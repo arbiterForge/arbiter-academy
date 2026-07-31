@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
-from enum import StrEnum
+from enum import Enum
 from typing import Mapping
 
 
@@ -12,7 +12,7 @@ class ValidationError(ValueError):
     """Raised when a ticket mapping does not meet the domain contract."""
 
 
-class TicketStatus(StrEnum):
+class TicketStatus(str, Enum):
     OPEN = "open"
     CLAIMED = "claimed"
     COMPLETED = "completed"

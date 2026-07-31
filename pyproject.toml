@@ -1,13 +1,16 @@
 [build-system]
-requires = []
+requires = ["setuptools==83.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "workshop-queue"
 version = "0.1.0"
 description = "A local-first workshop ticket queue for Arbiter Academy labs."
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = "AGPL-3.0-only"
 
 [project.scripts]
 workshop-queue = "workshop_queue.cli:main"
+
+[tool.setuptools]
+packages = ["workshop_queue"]

@@ -11,11 +11,19 @@ from typing import Sequence
 
 from .model import Ticket, TicketStatus
 from .service import InvalidTransition, TicketNotFound, claim_ticket, complete_ticket
-from .store import JsonTicketStore, MalformedStoreError, PathBoundaryError
+from .store import JsonTicketStore, MalformedStoreError, PathBoundaryError, StoreWriteError
 
 
 def _default_data_file() -> Path:
     return Path(__file__).resolve().parent.parent / "data" / "tickets.json"
+
+
+def _project_data_root() -> Path:
+    return Path(__file__).resolve().parent.parent / "data"
+
+
+def _resolve_data_file(value: Path, data_root: Path) -> Path:
+    return value if value.is_absolute() else data_root / value
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -64,7 +72,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return int(exc.code)
 
     try:
-        store = JsonTicketStore(arguments.data_file, allowed_root=arguments.data_file.parent)
+        data_root = _project_data_root()
+        data_file = _resolve_data_file(arguments.data_file, data_root)
+        store = JsonTicketStore(data_file, allowed_root=data_root)
         tickets = store.load()
         if arguments.command == "list":
             _write_tickets(tickets, arguments.format)
@@ -75,6 +85,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif arguments.command == "report":
             _write_report(tickets, arguments.format)
         return 0
-    except (InvalidTransition, TicketNotFound, MalformedStoreError, PathBoundaryError, ValueError) as exc:
+    except (InvalidTransition, TicketNotFound, MalformedStoreError, PathBoundaryError, StoreWriteError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
