@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"U06-preview-and-advanced-surfaces","predicates":[{"id":"report","type":"file_exists","path":".codearbiter/reports/2026-07-20-baseline/summary.md"}]}
+{"schema_version":2,"id":"U06-preview-and-advanced-surfaces","predicates":[{"id":"preview_advanced_evidence","type":"lab_semantics","profile":"preview_evidence","report":".codearbiter/reports/academy/U06-preview.json"}]}

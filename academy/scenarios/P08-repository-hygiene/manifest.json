@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P08-repository-hygiene","files":[],"removals":[],"starting_task":"P08","checkpoint":"academy/checkpoints/P08-repository-hygiene.json","requires_push_safe_setup":false}
+{"schema_version":1,"id":"P08-repository-hygiene","files":[{"source":"scenario.json","destination":"training_scenarios/P08-repository-hygiene.json"}],"removals":[],"starting_task":"P08","checkpoint":"academy/checkpoints/P08-repository-hygiene.json","requires_push_safe_setup":false}

@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P07-threat-model","predicates":[{"id":"questions","type":"file_exists","path":".codearbiter/open-questions.md"}]}
+{"schema_version":2,"id":"P07-threat-model","predicates":[{"id":"stride_model","type":"lab_semantics","profile":"stride_model","model":".codearbiter/reports/academy/P07-threat-model.md","target":"academy_engine/paths.py"}]}

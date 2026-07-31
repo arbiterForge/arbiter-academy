@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P06-context-drift-recovery","files":[],"removals":[],"starting_task":"P06","checkpoint":"academy/checkpoints/P06-context-drift-recovery.json","requires_push_safe_setup":false}
+{"schema_version":1,"id":"P06-context-drift-recovery","files":[{"source":"scenario.json","destination":"training_scenarios/P06-context-drift-recovery.json"}],"removals":[],"starting_task":"P06","checkpoint":"academy/checkpoints/P06-context-drift-recovery.json","requires_push_safe_setup":false}

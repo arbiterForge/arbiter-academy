@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"F04-fix-with-evidence","files":[],"removals":[],"starting_task":"F04","checkpoint":"academy/checkpoints/F04-fix-with-evidence.json","requires_push_safe_setup":false}
+{"schema_version":1,"id":"F04-fix-with-evidence","files":[{"source":"scenario.json","destination":"training_scenarios/F04-fix-with-evidence.json"}],"removals":[],"starting_task":"F04","checkpoint":"academy/checkpoints/F04-fix-with-evidence.json","requires_push_safe_setup":false}

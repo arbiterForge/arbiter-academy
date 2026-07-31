@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"U04-initialize-projects","predicates":[{"id":"context","type":"file_exists","path":".codearbiter/CONTEXT.md"}]}
+{"schema_version":2,"id":"U04-initialize-projects","predicates":[{"id":"initialized_secondary_fixture","type":"lab_semantics","profile":"initialized_fixture","workspace":".academy/workspaces/U04-secondary","report":".codearbiter/reports/academy/U04-initialization.md"}]}

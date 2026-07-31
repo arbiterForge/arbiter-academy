@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P02-commit-review-pr","predicates":[{"id":"audit","type":"file_exists","path":".codearbiter/sprint-log.md"}]}
+{"schema_version":2,"id":"P02-commit-review-pr","predicates":[{"id":"review_pr_commit_range","type":"lab_semantics","profile":"pr_receipt","receipt":".codearbiter/reports/academy/P02-pr-receipt.json"}]}

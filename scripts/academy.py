@@ -16,6 +16,7 @@ from academy_engine.scenario import PreparationError, prepare_lab, reset_lab
 from academy_engine.update import UpdateError, update_academy
 from academy_engine.remotes import RemoteSafetyError
 from academy_engine.checkpoints import CheckpointError, evaluate_checkpoint
+from academy_engine.evidence import record_checkpoint
 from academy_engine.receipt import ReceiptPrivacyError, export_catalog, graduate
 
 
@@ -43,13 +44,15 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error("check requires LAB_ID")
             result = evaluate_checkpoint(Path.cwd(), arguments.lab_id)
             if result.passed:
-                print(f"checkpoint {result.lab_id}: passed")
+                progress_path = Path.cwd() / ".academy" / "progress.json"
+                record_checkpoint(progress_path, result)
+                print(f"checkpoint {result.lab_id}: passed; progress: .academy/progress.json")
                 return 0
             print(f"checkpoint {result.lab_id}: failed ({', '.join(result.failed_predicates)})", file=sys.stderr)
             return 1
         if arguments.command == "graduate":
             receipt = graduate(Path.cwd())
-            print(receipt.digest)
+            print(f"{receipt.path.name} {receipt.digest}")
             return 0
         if arguments.command == "export-catalog":
             if not arguments.lab_id:

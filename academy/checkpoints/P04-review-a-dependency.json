@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P04-review-a-dependency","predicates":[{"id":"controls","type":"file_exists","path":".codearbiter/security-controls.md"}]}
+{"schema_version":2,"id":"P04-review-a-dependency","predicates":[{"id":"strict_dependency_review","type":"lab_semantics","profile":"dependency_review","review":".codearbiter/reports/academy/P04-dependency-review.md","project":"pyproject.toml"}]}

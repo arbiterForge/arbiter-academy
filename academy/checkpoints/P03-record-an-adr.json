@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P03-record-an-adr","predicates":[{"id":"adr","type":"file_exists","path":".codearbiter/decisions/0001-json-storage-boundary.md"}]}
+{"schema_version":2,"id":"P03-record-an-adr","predicates":[{"id":"accepted_adr_and_log","type":"lab_semantics","profile":"accepted_adr","adr":".codearbiter/decisions/0003-academy-lab.md","decision_log":".codearbiter/decisions/decision-log.md"}]}

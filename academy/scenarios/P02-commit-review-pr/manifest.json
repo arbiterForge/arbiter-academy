@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P02-commit-review-pr","files":[],"removals":[],"starting_task":"P02","checkpoint":"academy/checkpoints/P02-commit-review-pr.json","requires_push_safe_setup":true}
+{"schema_version":1,"id":"P02-commit-review-pr","files":[{"source":"scenario.json","destination":"training_scenarios/P02-commit-review-pr.json"}],"removals":[],"starting_task":"P02","checkpoint":"academy/checkpoints/P02-commit-review-pr.json","requires_push_safe_setup":true}

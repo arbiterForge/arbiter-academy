@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"F02-orient-to-state","predicates":[{"id":"state","type":"file_exists","path":".codearbiter/open-tasks.md"}]}
+{"schema_version":2,"id":"F02-orient-to-state","predicates":[{"id":"live_context_orientation","type":"lab_semantics","profile":"orientation","artifact":".codearbiter/reports/academy/F02-orientation.json","context":".codearbiter/CONTEXT.md"}]}

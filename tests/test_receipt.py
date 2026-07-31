@@ -6,8 +6,14 @@ from pathlib import Path
 import sys
 import hashlib
 import json
-from academy_engine.receipt import ReceiptPrivacyError, graduate, validate_receipt_value
-from academy_engine.checkpoints import LAB_CONTRACT
+from unittest.mock import patch
+from academy_engine.receipt import (
+    ReceiptPrivacyError,
+    graduate,
+    validate_graduation_receipt,
+    validate_receipt_value,
+)
+from academy_engine.checkpoints import CheckpointResult, LAB_INVENTORY
 
 
 class ReceiptTests(unittest.TestCase):
@@ -16,41 +22,55 @@ class ReceiptTests(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaises(ReceiptPrivacyError): validate_receipt_value(value)
 
-    def test_graduation_recomputes_even_when_progress_is_fabricated_or_definition_changes(self):
+    def test_repository_relative_artifact_paths_are_not_private(self):
+        validate_receipt_value(
+            {
+                "source_path": "academy/tracks/foundations/F01-fork-clone-doctor.md",
+                "checkpoint_path": "academy/checkpoints/F01-fork-clone-doctor.json",
+            }
+        )
+
+    def test_graduate_writes_validated_receipt_and_rejects_range_or_duplicate_tampering(self):
         source = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "repo"; root.mkdir()
             shutil.copytree(source / "academy", root / "academy")
-            shutil.copytree(source / ".codearbiter", root / ".codearbiter")
-            shutil.copytree(source / "workshop_queue", root / "workshop_queue")
-            for lab in json.loads((root / "academy" / "catalog.json").read_text(encoding="utf-8"))["labs"]:
-                lab_source = root / "academy" / "tracks" / lab["track"] / f"{lab['id']}.md"
-                lab_source.parent.mkdir(parents=True, exist_ok=True); lab_source.write_text(f"# {lab['id']} fixture\n", encoding="utf-8")
-            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True, text=True)
             subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True, text=True)
             subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "fixture"], cwd=root, check=True, capture_output=True, text=True)
-            for prefix, count in (("F", 4), ("P", 8), ("U", 7)):
-                for number in range(1, count + 1):
-                    lab = next(item["id"] for item in json.loads((root / "academy" / "catalog.json").read_text(encoding="utf-8"))["labs"] if item["id"].startswith(f"{prefix}{number:02d}"))
-                    subprocess.run(["git", "switch", "-c", f"academy/{lab}/1", "main"], cwd=root, check=True, capture_output=True, text=True)
-                    subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-m", f"academy: prepare {lab} attempt 1"], cwd=root, check=True, capture_output=True, text=True)
-                    contract = next(item for item in json.loads((root / "academy" / "contracts.json").read_text(encoding="utf-8"))["contracts"] if item["id"] == lab)
-                    governed = root / contract["governed_path"]; governed.parent.mkdir(parents=True, exist_ok=True); governed.write_text(json.dumps({"lab_id": lab, "status": "governed"}, sort_keys=True, separators=(",", ":")), encoding="utf-8")
-                    work = root / contract["work_path"]; work.parent.mkdir(parents=True, exist_ok=True); work.write_text(json.dumps(contract["outcome"], sort_keys=True, separators=(",", ":")), encoding="utf-8")
-                    subprocess.run(["git", "add", str(governed.relative_to(root)), str(work.relative_to(root))], cwd=root, check=True, capture_output=True, text=True)
-                    subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", lab + " output"], cwd=root, check=True, capture_output=True, text=True)
-                    subprocess.run(["git", "switch", "main"], cwd=root, check=True, capture_output=True, text=True)
-            subprocess.run(["git", "switch", "academy/U07-capstone/1"], cwd=root, check=True, capture_output=True, text=True)
-            for item in json.loads((root / "academy" / "catalog.json").read_text(encoding="utf-8"))["labs"]:
-                if item["id"] != "U07-capstone": subprocess.run(["git", "merge", "--no-edit", f"academy/{item['id']}/1"], cwd=root, check=True, capture_output=True, text=True)
-            (root / "academy" / "progress.json").write_text('{"schema_version":1,"checkpoints":[{"id":"U07-capstone","digest":"0"}] }', encoding="utf-8")
-            receipt = graduate(root)
-            self.assertEqual(len(receipt.data["checkpoints"]), 19)
-            self.assertNotIn("fixture@example", str(receipt.data))
-            changed = root / "academy" / "checkpoints" / "F01-fork-clone-doctor.json"
-            changed.write_text('{"schema_version":1,"id":"F01-fork-clone-doctor","predicates":[{"id":"missing","type":"file_exists","path":".codearbiter/missing.md"}]}', encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "F01-fork-clone-doctor"):
-                graduate(root)
+            head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            catalog_digest = hashlib.sha256((root / "academy" / "catalog.json").read_bytes()).hexdigest()
+            results = [
+                CheckpointResult(
+                    lab_id=lab_id,
+                    passed=True,
+                    definition_digest="a" * 64,
+                    digest="b" * 64,
+                    passed_predicates=("semantic",),
+                    failed_predicates=(),
+                    catalog_digest=catalog_digest,
+                    manifest_digest="c" * 64,
+                    source_digest="d" * 64,
+                    contract_digest="e" * 64,
+                    attempt=f"academy/{lab_id}/2",
+                    prepared_commit=head,
+                    base_commit=head,
+                    head_commit=head,
+                )
+                for lab_id in LAB_INVENTORY
+            ]
+            with patch("academy_engine.receipt.evaluate_checkpoint", side_effect=results):
+                receipt = graduate(root)
+            self.assertEqual(json.loads(receipt.path.read_text(encoding="utf-8")), receipt.data)
+            self.assertEqual(hashlib.sha256(receipt.path.read_bytes()).hexdigest(), receipt.digest)
+            tampered = json.loads(receipt.path.read_text(encoding="utf-8"))
+            tampered["capstone_commit_range"]["to"] = "f" * 40
+            with self.assertRaisesRegex(ValueError, "exact attempt"):
+                validate_graduation_receipt(tampered)
+            duplicated = json.loads(receipt.path.read_text(encoding="utf-8"))
+            duplicated["checkpoints"][1]["id"] = duplicated["checkpoints"][0]["id"]
+            with self.assertRaisesRegex(ValueError, "exact and unique"):
+                validate_graduation_receipt(duplicated)
 
     def test_fresh_catalog_repository_cannot_graduate_from_static_fixture_files(self):
         source = Path(__file__).resolve().parents[1]

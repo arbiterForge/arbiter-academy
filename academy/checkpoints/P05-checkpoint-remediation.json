@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P05-checkpoint-remediation","predicates":[{"id":"checkpoint","type":"file_exists","path":".codearbiter/checkpoints/2026-07-20-baseline.md"}]}
+{"schema_version":2,"id":"P05-checkpoint-remediation","predicates":[{"id":"finding_remediation_link","type":"lab_semantics","profile":"checkpoint_remediation","report":".codearbiter/checkpoints/P05-academy.json"}]}

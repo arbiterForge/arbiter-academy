@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"U01-autonomous-sprint","predicates":[{"id":"sprint-log","type":"file_exists","path":".codearbiter/sprint-log.md"}]}
+{"schema_version":2,"id":"U01-autonomous-sprint","predicates":[{"id":"approved_sprint_decisions","type":"lab_semantics","profile":"sprint_decisions","spec":".codearbiter/specs/academy-sprint.md","plan":".codearbiter/plans/academy-sprint.md","sprint_log":".codearbiter/sprint-log.md"}]}

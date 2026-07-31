@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"U03-refactor-chore-release","files":[],"removals":[],"starting_task":"U03","checkpoint":"academy/checkpoints/U03-refactor-chore-release.json","requires_push_safe_setup":true}
+{"schema_version":1,"id":"U03-refactor-chore-release","files":[{"source":"scenario.json","destination":"training_scenarios/U03-refactor-chore-release.json"}],"removals":[],"starting_task":"U03","checkpoint":"academy/checkpoints/U03-refactor-chore-release.json","requires_push_safe_setup":true}

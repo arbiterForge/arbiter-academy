@@ -1,0 +1,1 @@
+{"schema_version":1,"lab_id":"U04-initialize-projects","operation":"secondary_initialization","target":".academy/workspaces/U04-secondary","starting_condition":"workspace-absent"}

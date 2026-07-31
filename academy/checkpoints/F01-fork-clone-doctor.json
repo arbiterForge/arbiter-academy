@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"F01-fork-clone-doctor","predicates":[{"id":"context","type":"file_exists","path":".codearbiter/CONTEXT.md"}]}
+{"schema_version":2,"id":"F01-fork-clone-doctor","predicates":[{"id":"remote_and_doctor","type":"lab_semantics","profile":"remote_doctor","artifact":".codearbiter/reports/academy/F01-doctor.json"}]}

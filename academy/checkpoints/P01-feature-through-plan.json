@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P01-feature-through-plan","predicates":[{"id":"plan","type":"file_exists","path":".codearbiter/plans/ticket-assignment.md"}]}
+{"schema_version":2,"id":"P01-feature-through-plan","predicates":[{"id":"approved_spec_plan_task","type":"lab_semantics","profile":"approved_spec_plan","spec":".codearbiter/specs/academy-feature.md","plan":".codearbiter/plans/academy-feature.md","board":".codearbiter/open-tasks.md"}]}

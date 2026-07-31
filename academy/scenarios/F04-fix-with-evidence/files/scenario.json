@@ -1,0 +1,1 @@
+{"schema_version":1,"lab_id":"F04-fix-with-evidence","operation":"regression_first_fix","target":"workshop_queue/service.py","starting_condition":"defect-staged"}

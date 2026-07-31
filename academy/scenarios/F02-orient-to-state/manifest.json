@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"F02-orient-to-state","files":[],"removals":[],"starting_task":"F02","checkpoint":"academy/checkpoints/F02-orient-to-state.json","requires_push_safe_setup":false}
+{"schema_version":1,"id":"F02-orient-to-state","files":[{"source":"scenario.json","destination":"training_scenarios/F02-orient-to-state.json"}],"removals":[],"starting_task":"F02","checkpoint":"academy/checkpoints/F02-orient-to-state.json","requires_push_safe_setup":false}

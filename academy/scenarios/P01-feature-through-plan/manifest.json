@@ -1,1 +1,1 @@
-{"schema_version":1,"id":"P01-feature-through-plan","files":[],"removals":[],"starting_task":"P01","checkpoint":"academy/checkpoints/P01-feature-through-plan.json","requires_push_safe_setup":false}
+{"schema_version":1,"id":"P01-feature-through-plan","files":[{"source":"scenario.json","destination":"training_scenarios/P01-feature-through-plan.json"}],"removals":[],"starting_task":"P01","checkpoint":"academy/checkpoints/P01-feature-through-plan.json","requires_push_safe_setup":false}

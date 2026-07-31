@@ -1,0 +1,1 @@
+{"schema_version":1,"lab_id":"P07-threat-model","operation":"stride_model","target":"academy_engine/paths.py","starting_condition":"model-absent"}
