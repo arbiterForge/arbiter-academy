@@ -121,7 +121,7 @@ def load_manifest(payload: object) -> ScenarioManifest:
     """Validate one in-memory manifest without touching the filesystem."""
     data = _require_object(payload, "scenario manifest")
     _only_keys(data, {"schema_version", "id", "files", "removals", "starting_task", "checkpoint", "requires_push_safe_setup"}, "scenario manifest")
-    if data["schema_version"] != 1:
+    if type(data["schema_version"]) is not int or data["schema_version"] != 1:
         raise CatalogError("scenario manifest schema_version must be 1.")
     lab_id = _lab_id(data["id"], "scenario manifest id")
     files_data = data["files"]
@@ -179,7 +179,7 @@ class Catalog:
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
             raise CatalogError(f"could not read catalog: {error}") from error
         _only_keys(data, {"schema_version", "labs"}, "catalog")
-        if data["schema_version"] != 1:
+        if type(data["schema_version"]) is not int or data["schema_version"] != 1:
             raise CatalogError("catalog schema_version must be 1.")
         raw_labs = data["labs"]
         if not isinstance(raw_labs, list) or not raw_labs:
