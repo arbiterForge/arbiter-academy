@@ -28,6 +28,38 @@ data-root selection and seed initialization, and their tests must defend both bo
 
 ---
 
+## DECISION-0003 — ADR-0003 — Treat local graduation as trusted-verifier evidence, not cryptographic attestation
+
+**Date:** 2026-07-31
+**Status:** accepted
+**Supersedes:** none
+**Decided by:** SUaDtL
+**Decision category:** architecture
+**Artifact-section-hash:** n/a
+
+### Variance summary
+- **Artifact position:** The Academy specification requires recomputed, privacy-safe local graduation evidence.
+- **Scaffold position:** The local-only fixture had no explicit verifier bootstrap or attestation boundary.
+- **Status type:** open-decision-closure
+
+### Decision
+Authoritative checks run from an Academy verifier installed outside the learner checkout. The
+checkout is untrusted input; the local verifier process is the trust anchor. Receipts are
+tamper-evident under that boundary, not cryptographically signed credentials.
+
+### SMARTS rationale
+The installed-verifier boundary is strong for Maintainability, Availability, Reliability,
+Testability, and Securability because it remains offline and no-spend while avoiding a circular
+self-attestation claim. Hosted or signed attestation adds service, authentication, and key-custody
+boundaries outside the approved project.
+
+### Implementation implication
+Package `academy_engine` with an external console entry point, reject authoritative commands loaded
+from the target checkout, state the trust model in receipts/docs, and retain strict recomputation of
+all learner-controlled inputs.
+
+---
+
 ## DECISION-0002 — ADR-0002 — Enforce an explicit immutable ticket state machine
 
 **Date:** 2026-07-30

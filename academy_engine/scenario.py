@@ -7,15 +7,21 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 from academy_engine.catalog import Catalog, CatalogError, Lab, ScenarioManifest, load_manifest_file
-from academy_engine.command import GitCommandError, repository_root, run_git
+from academy_engine.command import GitCommandError, repository_root, run_git as _run_git
 from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
 BASE_BRANCH = "main"
+
+
+def run_git(
+    root: Path, args: Sequence[str], *, check: bool = True
+):
+    return _run_git(root, args, check=check, trust_local_config=True)
 
 
 class PreparationError(RuntimeError):
@@ -79,7 +85,9 @@ def _attempt(root: Path, lab_id: str) -> int:
 def _ensure_mutation_remote_safety(root: Path, manifest: ScenarioManifest) -> None:
     """Every mutation needs a learner fork; push labs additionally need the full contract."""
     try:
-        report = validate_training_remotes(root, require_push_safe=False)
+        report = validate_training_remotes(
+            root, require_push_safe=False, trust_local_config=True
+        )
     except RemoteSafetyError as error:
         raise _fail(error) from error
     origin = report.origin
@@ -92,7 +100,9 @@ def _ensure_mutation_remote_safety(root: Path, manifest: ScenarioManifest) -> No
         raise PreparationError("scenario mutation requires a fork-safe origin and origin push routing.")
     if manifest.requires_push_safe_setup:
         try:
-            validate_training_remotes(root, require_push_safe=True)
+            validate_training_remotes(
+                root, require_push_safe=True, trust_local_config=True
+            )
         except RemoteSafetyError as error:
             raise _fail(error) from error
 

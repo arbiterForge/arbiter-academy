@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
-from academy_engine.command import GitCommandError, repository_root, run_git
+from academy_engine.command import GitCommandError, repository_root, run_git as _run_git
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 from academy_engine.scenario import BASE_BRANCH
+
+
+def run_git(
+    root: Path, args: Sequence[str], *, check: bool = True
+):
+    return _run_git(root, args, check=check, trust_local_config=True)
 
 
 class UpdateError(RuntimeError):
@@ -35,7 +42,9 @@ def update_academy(root: Path) -> UpdateReport:
         branch = run_git(repository, ["symbolic-ref", "--quiet", "--short", "HEAD"], check=False)
         if branch.returncode or branch.stdout.strip() != BASE_BRANCH:
             raise UpdateError(f"update requires Academy base branch {BASE_BRANCH}.")
-        validate_training_remotes(repository, require_push_safe=True)
+        validate_training_remotes(
+            repository, require_push_safe=True, trust_local_config=True
+        )
         before = run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
         run_git(repository, ["fetch", "--no-tags", "upstream"])
         target = run_git(repository, ["rev-parse", f"upstream/{BASE_BRANCH}"]).stdout.strip()

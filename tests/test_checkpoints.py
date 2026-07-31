@@ -329,7 +329,14 @@ class CheckpointTests(unittest.TestCase):
                 subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip(),
             )
             checked = subprocess.run(
-                [sys.executable, str(source / "scripts" / "academy.py"), "check", lab_id],
+                [
+                    sys.executable,
+                    str(source / "scripts" / "academy.py"),
+                    "--repository",
+                    str(root),
+                    "check",
+                    lab_id,
+                ],
                 cwd=root,
                 capture_output=True,
                 text=True,
@@ -337,6 +344,31 @@ class CheckpointTests(unittest.TestCase):
             self.assertEqual(checked.returncode, 0, checked.stderr)
             progress = json.loads((root / ".academy" / "progress.json").read_text(encoding="utf-8"))
             self.assertEqual(progress["checkpoints"][0]["attempt"], f"academy/{lab_id}/2")
+            added_verifier = root / "academy_engine" / "benign_extension.py"
+            added_verifier.write_text("# benign but unreviewed verifier extension\n", encoding="utf-8")
+            subprocess.run(["git", "add", str(added_verifier.relative_to(root))], cwd=root, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "add verifier extension"], cwd=root, check=True, capture_output=True, text=True)
+            extended_verifier = evaluate_checkpoint(root, lab_id)
+            self.assertFalse(extended_verifier.passed)
+            self.assertIn("source_integrity", extended_verifier.failed_predicates)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=Fixture",
+                    "-c",
+                    "user.email=fixture@example.invalid",
+                    "revert",
+                    "--no-edit",
+                    "HEAD",
+                ],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            restored_baseline = evaluate_checkpoint(root, lab_id)
+            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
             remotes_path = root / "academy_engine" / "remotes.py"
             remotes_original = remotes_path.read_bytes()
             remotes_path.write_bytes(remotes_original + b"\n# verifier substitution\n")
@@ -344,6 +376,8 @@ class CheckpointTests(unittest.TestCase):
             self.assertFalse(substituted_verifier.passed)
             self.assertIn("source_integrity", substituted_verifier.failed_predicates)
             remotes_path.write_bytes(remotes_original)
+            restored_baseline = evaluate_checkpoint(root, lab_id)
+            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
             checkpoint_path = root / "academy" / "checkpoints" / f"{lab_id}.json"
             checkpoint_original = checkpoint_path.read_bytes()
             checkpoint_path.write_text(
@@ -354,6 +388,8 @@ class CheckpointTests(unittest.TestCase):
             self.assertFalse(substituted.passed)
             self.assertIn("source_integrity", substituted.failed_predicates)
             checkpoint_path.write_bytes(checkpoint_original)
+            restored_baseline = evaluate_checkpoint(root, lab_id)
+            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
             subprocess.run(
                 ["git", "switch", "-c", "alternate-rules"],
                 cwd=root,

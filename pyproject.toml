@@ -11,9 +11,59 @@ license = "AGPL-3.0-only"
 
 [project.scripts]
 workshop-queue = "workshop_queue.cli:main"
+arbiter-academy = "academy_engine.cli:main"
 
 [tool.setuptools]
-packages = ["workshop_queue"]
+packages = ["workshop_queue", "academy_engine"]
 
 [tool.setuptools.package-data]
 workshop_queue = ["seed/tickets.json"]
+
+[tool.setuptools.data-files]
+"share/arbiter-academy/academy" = [
+  "academy/catalog.json",
+  "academy/catalog.schema.json",
+  "academy/checkpoint.schema.json",
+  "academy/contracts.json",
+  "academy/receipt.schema.json",
+  "academy/scenario.schema.json",
+]
+"share/arbiter-academy/academy/checkpoints" = ["academy/checkpoints/*.json"]
+"share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor" = ["academy/scenarios/F01-fork-clone-doctor/manifest.json"]
+"share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
+"share/arbiter-academy/academy/scenarios/F02-orient-to-state" = ["academy/scenarios/F02-orient-to-state/manifest.json"]
+"share/arbiter-academy/academy/scenarios/F02-orient-to-state/files" = ["academy/scenarios/F02-orient-to-state/files/*"]
+"share/arbiter-academy/academy/scenarios/F03-work-the-board" = ["academy/scenarios/F03-work-the-board/manifest.json"]
+"share/arbiter-academy/academy/scenarios/F03-work-the-board/files" = ["academy/scenarios/F03-work-the-board/files/*"]
+"share/arbiter-academy/academy/scenarios/F04-fix-with-evidence" = ["academy/scenarios/F04-fix-with-evidence/manifest.json"]
+"share/arbiter-academy/academy/scenarios/F04-fix-with-evidence/files" = ["academy/scenarios/F04-fix-with-evidence/files/*"]
+"share/arbiter-academy/academy/scenarios/P01-feature-through-plan" = ["academy/scenarios/P01-feature-through-plan/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P01-feature-through-plan/files" = ["academy/scenarios/P01-feature-through-plan/files/*"]
+"share/arbiter-academy/academy/scenarios/P02-commit-review-pr" = ["academy/scenarios/P02-commit-review-pr/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P02-commit-review-pr/files" = ["academy/scenarios/P02-commit-review-pr/files/*"]
+"share/arbiter-academy/academy/scenarios/P03-record-an-adr" = ["academy/scenarios/P03-record-an-adr/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P03-record-an-adr/files" = ["academy/scenarios/P03-record-an-adr/files/*"]
+"share/arbiter-academy/academy/scenarios/P04-review-a-dependency" = ["academy/scenarios/P04-review-a-dependency/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P04-review-a-dependency/files" = ["academy/scenarios/P04-review-a-dependency/files/*"]
+"share/arbiter-academy/academy/scenarios/P05-checkpoint-remediation" = ["academy/scenarios/P05-checkpoint-remediation/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P05-checkpoint-remediation/files" = ["academy/scenarios/P05-checkpoint-remediation/files/*"]
+"share/arbiter-academy/academy/scenarios/P06-context-drift-recovery" = ["academy/scenarios/P06-context-drift-recovery/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P06-context-drift-recovery/files" = ["academy/scenarios/P06-context-drift-recovery/files/*"]
+"share/arbiter-academy/academy/scenarios/P07-threat-model" = ["academy/scenarios/P07-threat-model/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P07-threat-model/files" = ["academy/scenarios/P07-threat-model/files/*"]
+"share/arbiter-academy/academy/scenarios/P08-repository-hygiene" = ["academy/scenarios/P08-repository-hygiene/manifest.json"]
+"share/arbiter-academy/academy/scenarios/P08-repository-hygiene/files" = ["academy/scenarios/P08-repository-hygiene/files/*"]
+"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint" = ["academy/scenarios/U01-autonomous-sprint/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint/files" = ["academy/scenarios/U01-autonomous-sprint/files/*"]
+"share/arbiter-academy/academy/scenarios/U02-override-audit-metrics" = ["academy/scenarios/U02-override-audit-metrics/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U02-override-audit-metrics/files" = ["academy/scenarios/U02-override-audit-metrics/files/*"]
+"share/arbiter-academy/academy/scenarios/U03-refactor-chore-release" = ["academy/scenarios/U03-refactor-chore-release/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U03-refactor-chore-release/files" = ["academy/scenarios/U03-refactor-chore-release/files/*"]
+"share/arbiter-academy/academy/scenarios/U04-initialize-projects" = ["academy/scenarios/U04-initialize-projects/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U04-initialize-projects/files" = ["academy/scenarios/U04-initialize-projects/files/*"]
+"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict" = ["academy/scenarios/U05-debug-spike-conflict/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict/files" = ["academy/scenarios/U05-debug-spike-conflict/files/*"]
+"share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces" = ["academy/scenarios/U06-preview-and-advanced-surfaces/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces/files" = ["academy/scenarios/U06-preview-and-advanced-surfaces/files/*"]
+"share/arbiter-academy/academy/scenarios/U07-capstone" = ["academy/scenarios/U07-capstone/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U07-capstone/files" = ["academy/scenarios/U07-capstone/files/*"]

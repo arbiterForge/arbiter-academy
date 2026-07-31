@@ -64,3 +64,46 @@ class CatalogExportTests(unittest.TestCase):
         self.assertEqual(len(payload["labs"]), 19)
         self.assertTrue(all(item["source_status"] == "pending" for item in payload["labs"]))
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))
+
+    def test_cli_rejects_non_object_or_unknown_key_manifest_without_traceback(self):
+        source = Path(__file__).resolve().parents[1]
+        script = source / "scripts" / "academy.py"
+        for label, malformed in (
+            ("non-object", []),
+            (
+                "unknown-key",
+                {
+                    "schema_version": 1,
+                    "id": "F01-fork-clone-doctor",
+                    "files": [],
+                    "removals": [],
+                    "starting_task": "F01",
+                    "checkpoint": "academy/checkpoints/F01-fork-clone-doctor.json",
+                    "requires_push_safe_setup": True,
+                    "unexpected": "value",
+                },
+            ),
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "repo"
+                shutil.copytree(
+                    source,
+                    root,
+                    ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+                )
+                manifest = root / "academy/scenarios/F01-fork-clone-doctor/manifest.json"
+                manifest.write_text(json.dumps(malformed), encoding="utf-8")
+                subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True, text=True)
+                subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True, text=True)
+                subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "malformed manifest"], cwd=root, check=True, capture_output=True, text=True)
+                result = subprocess.run(
+                    [sys.executable, str(script), "export-catalog", str(Path(directory) / "catalog.json")],
+                    cwd=root,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("error:", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertNotIn(directory, result.stderr)

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from academy_engine.catalog import Catalog
+from academy_engine.catalog import Catalog, CatalogError, load_manifest
 from academy_engine.checkpoints import (
     LAB_INVENTORY,
     CheckpointResult,
@@ -27,8 +27,12 @@ _TOKEN = re.compile(
     re.I,
 )
 _CREDENTIAL_URL = re.compile(r"://[^/\s:@]+:[^/\s@]+@")
-_WINDOWS_PATH = re.compile(r"^(?:[A-Za-z]:\\|\\\\[^\\/]+\\)")
+_WINDOWS_PATH = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/])")
 _POSIX_ABSOLUTE = re.compile(r"^/(?:[^/\x00]+/)*[^/\x00]*$")
+_GENERAL_SECRET = re.compile(
+    r"(?i)\b(?:api[_-]?key|access[_-]?token|secret|password|passwd)\b"
+    r"\s*[:=]\s*[\"']?[A-Za-z0-9_./+=-]{12,}"
+)
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -57,6 +61,7 @@ def validate_receipt_value(value: object) -> None:
         or _CREDENTIAL_URL.search(value)
         or _WINDOWS_PATH.search(value)
         or _POSIX_ABSOLUTE.fullmatch(value)
+        or _GENERAL_SECRET.search(value)
     ):
         raise ReceiptPrivacyError("receipt value is private or secret-shaped.")
     if isinstance(value, dict):
@@ -140,13 +145,15 @@ def export_catalog(root: Path, output: Path) -> CatalogExport:
         manifest_raw = _tracked_blob(repository, source_commit, lab.manifest)
         checkpoint_raw = _tracked_blob(repository, source_commit, contract.checkpoint_path)
         try:
-            manifest = json.loads(manifest_raw)
+            manifest = load_manifest(json.loads(manifest_raw))
             checkpoint = json.loads(checkpoint_raw)
-        except json.JSONDecodeError as error:
+        except (json.JSONDecodeError, CatalogError) as error:
             raise ValueError("catalog artifact mapping is invalid.") from error
         if (
-            manifest.get("id") != lab.id
-            or manifest.get("checkpoint") != contract.checkpoint_path
+            manifest.id != lab.id
+            or manifest.checkpoint != contract.checkpoint_path
+            or manifest.requires_push_safe_setup != lab.requires_push_safe_setup
+            or not isinstance(checkpoint, dict)
             or checkpoint.get("id") != lab.id
         ):
             raise ValueError("catalog artifact mapping is inconsistent.")
@@ -215,10 +222,16 @@ def validate_graduation_receipt(data: object) -> None:
         "capstone_commit_range",
         "host_labels",
         "completion_date",
+        "trust_model",
     }
     if set(data) != expected or type(data["schema_version"]) is not int or data["schema_version"] != 2:
         raise ValueError("graduation receipt schema is invalid.")
-    if not _SHA40.fullmatch(str(data["source_commit"])) or not _SHA256.fullmatch(str(data["catalog_sha256"])):
+    if (
+        not isinstance(data["source_commit"], str)
+        or not _SHA40.fullmatch(data["source_commit"])
+        or not isinstance(data["catalog_sha256"], str)
+        or not _SHA256.fullmatch(data["catalog_sha256"])
+    ):
         raise ValueError("graduation receipt source identity is invalid.")
     checkpoints = data["checkpoints"]
     if not isinstance(checkpoints, list) or len(checkpoints) != len(LAB_INVENTORY):
@@ -231,29 +244,41 @@ def validate_graduation_receipt(data: object) -> None:
             "contract_sha256", "result_sha256",
         }:
             raise ValueError("graduation receipt checkpoint entry is invalid.")
-        if item["id"] != expected_id or item["id"] in identifiers:
+        if (
+            not isinstance(item["id"], str)
+            or item["id"] != expected_id
+            or item["id"] in identifiers
+        ):
             raise ValueError("graduation receipt checkpoint IDs must be exact and unique.")
         identifiers.add(item["id"])
-        if not _ATTEMPT_FOR(expected_id).fullmatch(str(item["attempt"])):
+        if not isinstance(item["attempt"], str) or not _ATTEMPT_FOR(expected_id).fullmatch(
+            item["attempt"]
+        ):
             raise ValueError("graduation receipt attempt is invalid.")
         if (
-            not _SHA40.fullmatch(str(item["attempt_head"]))
-            or not _SHA40.fullmatch(str(item["prepared_commit"]))
-            or not _SHA40.fullmatch(str(item["base_commit"]))
+            not isinstance(item["attempt_head"], str)
+            or not _SHA40.fullmatch(item["attempt_head"])
+            or not isinstance(item["prepared_commit"], str)
+            or not _SHA40.fullmatch(item["prepared_commit"])
+            or not isinstance(item["base_commit"], str)
+            or not _SHA40.fullmatch(item["base_commit"])
         ):
             raise ValueError("graduation receipt commit identity is invalid.")
         for field in (
             "catalog_sha256", "definition_sha256", "manifest_sha256",
             "source_sha256", "contract_sha256", "result_sha256",
         ):
-            if not _SHA256.fullmatch(str(item[field])):
+            if not isinstance(item[field], str) or not _SHA256.fullmatch(item[field]):
                 raise ValueError("graduation receipt digest is invalid.")
         if item["catalog_sha256"] != data["catalog_sha256"]:
             raise ValueError("graduation receipt checkpoint catalog digest is inconsistent.")
     commit_range = data["capstone_commit_range"]
     if not isinstance(commit_range, dict) or set(commit_range) != {"from", "to"}:
         raise ValueError("graduation receipt capstone range is invalid.")
-    if not all(_SHA40.fullmatch(str(commit_range[field])) for field in ("from", "to")):
+    if not all(
+        isinstance(commit_range[field], str) and _SHA40.fullmatch(commit_range[field])
+        for field in ("from", "to")
+    ):
         raise ValueError("graduation receipt capstone range is invalid.")
     capstone = checkpoints[-1]
     if commit_range != {"from": capstone["base_commit"], "to": capstone["attempt_head"]}:
@@ -262,6 +287,8 @@ def validate_graduation_receipt(data: object) -> None:
         raise ValueError("graduation receipt source commit is not the prepared Academy base.")
     if data["host_labels"] != ["local-git"]:
         raise ValueError("graduation receipt host labels are invalid.")
+    if data["trust_model"] != "installed-local-verifier":
+        raise ValueError("graduation receipt trust model is invalid.")
     if not isinstance(data["completion_date"], str) or not re.fullmatch(
         r"[0-9]{4}-[0-9]{2}-[0-9]{2}", data["completion_date"]
     ):
@@ -307,6 +334,7 @@ def graduate(root: Path) -> GraduationReceipt:
             "to": capstone.head_commit,
         },
         "host_labels": ["local-git"],
+        "trust_model": "installed-local-verifier",
         "completion_date": datetime.now(timezone.utc).date().isoformat(),
     }
     validate_graduation_receipt(data)

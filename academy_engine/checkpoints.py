@@ -4,13 +4,14 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
 from academy_engine.catalog import Catalog, load_manifest
-from academy_engine.command import run_git
+from academy_engine.command import repository_root, run_git, validate_repository_git_config
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 LAB_INVENTORY = (
@@ -147,6 +148,10 @@ def sha256(value: object) -> str:
 
 def _raw_digest(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _version(value: object, expected: int) -> bool:
+    return type(value) is int and value == expected
 
 
 def _object(value: object, label: str) -> dict[str, Any]:
@@ -366,6 +371,51 @@ def _verifier_paths(root: Path, ref: str) -> tuple[str, ...]:
     return verifier
 
 
+def _control_namespace_paths(root: Path, ref: str) -> tuple[str, ...]:
+    paths = run_git(
+        root,
+        [
+            "ls-tree",
+            "-r",
+            "--name-only",
+            ref,
+            "--",
+            "academy_engine",
+            "scripts",
+            "academy",
+        ],
+        check=False,
+    ).stdout.splitlines()
+    controls = tuple(
+        path
+        for path in paths
+        if (
+            path.startswith("academy_engine/")
+            or path == "scripts/academy.py"
+            or path in {
+                "academy/catalog.json",
+                "academy/catalog.schema.json",
+                "academy/contracts.json",
+                "academy/checkpoint.schema.json",
+                "academy/receipt.schema.json",
+                "academy/scenario.schema.json",
+            }
+            or path.startswith("academy/checkpoints/")
+            or path.startswith("academy/scenarios/")
+        )
+    )
+    required = {
+        "academy_engine/checkpoints.py",
+        "academy_engine/cli.py",
+        "scripts/academy.py",
+        "academy/catalog.json",
+        "academy/contracts.json",
+    }
+    if not required.issubset(controls):
+        raise CheckpointError("Academy control namespace is incomplete.")
+    return controls
+
+
 def _text(root: Path, ref: str, path: str) -> str | None:
     value = _git_blob(root, ref, path)
     return None if value is None else value.decode("utf-8", "surrogateescape")
@@ -381,7 +431,11 @@ def _json(root: Path, ref: str, path: str) -> dict[str, Any] | None:
 
 
 def _changed(root: Path, base: str, head: str, path: str) -> bool:
-    return run_git(root, ["diff", "--quiet", base, head, "--", path], check=False).returncode == 1
+    return run_git(
+        root,
+        ["diff", "--no-ext-diff", "--quiet", base, head, "--", path],
+        check=False,
+    ).returncode == 1
 
 
 def _path_commits(root: Path, start: str, head: str, *paths: str) -> tuple[str, ...]:
@@ -524,6 +578,38 @@ def _headings(text: str | None, required: tuple[str, ...]) -> bool:
     return all(f"## {heading}".casefold() in headings or f"### {heading}".casefold() in headings for heading in required)
 
 
+def _plain_path_within(base: Path, target: Path, *, regular_file: bool) -> bool:
+    """Require every target component below *base* to be a non-reparse path."""
+    try:
+        parts = target.relative_to(base).parts
+    except ValueError:
+        return False
+    if not parts:
+        return False
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    current = base
+    for index, part in enumerate(parts):
+        if part in {"", ".", ".."}:
+            return False
+        current /= part
+        try:
+            metadata = current.lstat()
+        except OSError:
+            return False
+        if stat.S_ISLNK(metadata.st_mode) or (
+            reparse_flag
+            and getattr(metadata, "st_file_attributes", 0) & reparse_flag
+        ):
+            return False
+        final = index == len(parts) - 1
+        if final and regular_file:
+            if not stat.S_ISREG(metadata.st_mode):
+                return False
+        elif not stat.S_ISDIR(metadata.st_mode):
+            return False
+    return True
+
+
 def _remote_safe(root: Path) -> bool:
     try:
         report = validate_training_remotes(root, require_push_safe=True)
@@ -551,6 +637,81 @@ class _SemanticContext:
     predicate: Predicate
 
 
+def _live_hygiene_inventory(
+    root: Path, attempt: _Attempt
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    worktrees: list[dict[str, object]] = []
+    dirty_branches: set[str] = set()
+    porcelain = run_git(root, ["worktree", "list", "--porcelain"]).stdout
+    for block in (item for item in porcelain.strip().split("\n\n") if item.strip()):
+        fields: dict[str, str] = {}
+        detached = False
+        for line in block.splitlines():
+            key, _, value = line.partition(" ")
+            if key == "detached":
+                detached = True
+            elif value:
+                fields[key] = value
+        location = fields.get("worktree", "")
+        head = fields.get("HEAD", "")
+        branch_ref = fields.get("branch", "")
+        branch = (
+            branch_ref.removeprefix("refs/heads/")
+            if branch_ref.startswith("refs/heads/")
+            else f"(detached:{head[:12]})" if detached and _SHA40.fullmatch(head) else ""
+        )
+        if not location or not branch:
+            raise CheckpointError("Git worktree inventory is malformed.")
+        dirty = bool(
+            run_git(
+                Path(location),
+                ["status", "--porcelain", "--untracked-files=all"],
+                check=False,
+            ).stdout
+        )
+        if dirty and branch_ref.startswith("refs/heads/"):
+            dirty_branches.add(branch)
+        worktrees.append({"branch": branch, "dirty": dirty})
+    worktrees.sort(key=lambda item: str(item["branch"]))
+
+    refs: list[dict[str, object]] = []
+    raw_refs = run_git(
+        root,
+        [
+            "for-each-ref",
+            "--format=%(refname:short)%00%(objectname)",
+            "refs/heads",
+        ],
+    ).stdout.splitlines()
+    for raw in raw_refs:
+        if "\x00" not in raw:
+            raise CheckpointError("Git ref inventory is malformed.")
+        name, head = raw.split("\x00", 1)
+        if not name or not _SHA40.fullmatch(head):
+            raise CheckpointError("Git ref inventory is malformed.")
+        if name in dirty_branches:
+            classification = "dirty"
+        elif name in {"main", attempt.branch}:
+            classification = "retain"
+        elif run_git(
+            root,
+            ["merge-base", "--is-ancestor", head, "main"],
+            check=False,
+        ).returncode == 0:
+            classification = "merged"
+        elif run_git(
+            root,
+            ["rev-list", "--count", f"main..{head}"],
+            check=False,
+        ).stdout.strip() not in {"", "0"}:
+            classification = "unique"
+        else:
+            raise CheckpointError("Git ref classification is indeterminate.")
+        refs.append({"name": name, "classification": classification})
+    refs.sort(key=lambda item: str(item["name"]))
+    return refs, worktrees
+
+
 def _semantic(context: _SemanticContext) -> bool:
     data = context.predicate.data
     profile = str(data["profile"])
@@ -563,6 +724,7 @@ def _semantic(context: _SemanticContext) -> bool:
             artifact
             and _changed(root, attempt.prepared, attempt.head, str(data["artifact"]))
             and set(artifact) == {"schema_version", "safe_for_push_labs", "effective_push_remote"}
+            and _version(artifact["schema_version"], 1)
             and artifact == {
                 "schema_version": 1,
                 "safe_for_push_labs": True,
@@ -578,7 +740,7 @@ def _semantic(context: _SemanticContext) -> bool:
         match = re.search(r"(?m)^stage:\s*(\d+)\s*$", context_blob.decode("utf-8", "surrogateescape"))
         return bool(
             set(artifact) == {"schema_version", "context_path", "context_sha256", "stage"}
-            and artifact["schema_version"] == 1
+            and _version(artifact["schema_version"], 1)
             and artifact["context_path"] == context_path
             and artifact["context_sha256"] == _raw_digest(context_blob)
             and match
@@ -643,32 +805,51 @@ def _semantic(context: _SemanticContext) -> bool:
         if not report or not _changed(root, attempt.prepared, attempt.head, str(data["report"])):
             return False
         required = {"schema_version", "finding_id", "finding_commit", "remediation_commit", "paths", "status"}
-        if set(report) != required or report["schema_version"] != 1 or report["status"] != "remediated":
+        if (
+            set(report) != required
+            or not _version(report["schema_version"], 1)
+            or report["status"] != "remediated"
+        ):
             return False
         finding, remediation = report["finding_commit"], report["remediation_commit"]
         paths = report["paths"]
+        if (
+            not isinstance(finding, str)
+            or not _SHA40.fullmatch(finding)
+            or not isinstance(remediation, str)
+            or not _SHA40.fullmatch(remediation)
+            or not isinstance(report["finding_id"], str)
+            or not isinstance(paths, list)
+            or len(paths) < 2
+        ):
+            return False
+        try:
+            safe_paths = [_safe_path(path, "path") for path in paths]
+        except CheckpointError:
+            return False
+        if len(set(safe_paths)) != len(safe_paths):
+            return False
         finding_paths = set(
             run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", str(finding)],
+                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", finding],
                 check=False,
             ).stdout.splitlines()
         )
         remediation_paths = set(
             run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", str(remediation)],
+                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", remediation],
                 check=False,
             ).stdout.splitlines()
         )
         return bool(
-            isinstance(report["finding_id"], str)
-            and _SHA40.fullmatch(str(finding))
-            and _SHA40.fullmatch(str(remediation))
-            and isinstance(paths, list)
-            and len(paths) >= 2
-            and all(isinstance(path, str) and _changed(root, attempt.prepared, attempt.head, _safe_path(path, "path")) for path in paths)
-            and set(paths).issubset(finding_paths | remediation_paths)
+            all(
+                _changed(root, attempt.prepared, attempt.head, path)
+                for path in safe_paths
+            )
+            and set(safe_paths).issubset(finding_paths | remediation_paths)
             and finding_paths
             and remediation_paths
+            and bool(finding_paths & remediation_paths)
             and finding != remediation
             and finding != attempt.prepared
             and remediation != attempt.head
@@ -691,7 +872,8 @@ def _semantic(context: _SemanticContext) -> bool:
         )
         return bool(
             set(handoff) == required
-            and handoff["schema_version"] == 1
+            and _version(handoff["schema_version"], 1)
+            and _changed(root, attempt.prepared, attempt.head, handoff_path)
             and handoff["context_before_sha256"] == _raw_digest(before)
             and handoff["context_after_sha256"] == _raw_digest(after)
             and isinstance(preserved, str)
@@ -710,36 +892,13 @@ def _semantic(context: _SemanticContext) -> bool:
         snapshot = _json(root, attempt.head, str(data["snapshot"]))
         if not snapshot or not _changed(root, attempt.prepared, attempt.head, str(data["snapshot"])):
             return False
-        refs = snapshot.get("refs")
-        if set(snapshot) != {"schema_version", "refs"} or snapshot["schema_version"] != 1 or not isinstance(refs, list) or len(refs) < 2:
+        if (
+            set(snapshot) != {"schema_version", "refs", "worktrees"}
+            or not _version(snapshot["schema_version"], 1)
+        ):
             return False
-        seen: set[str] = set()
-        for item in refs:
-            if not isinstance(item, dict) or set(item) != {"name", "head", "classification"}:
-                return False
-            name, head = item["name"], item["head"]
-            if not isinstance(name, str) or name in seen or not _SHA40.fullmatch(str(head)):
-                return False
-            seen.add(name)
-            if item["classification"] not in {"retain", "merged", "unique", "dirty"}:
-                return False
-            if run_git(root, ["rev-parse", name], check=False).stdout.strip() != head:
-                return False
-            if name in {"main", attempt.branch}:
-                expected = "retain"
-            elif run_git(
-                root, ["merge-base", "--is-ancestor", str(head), "main"], check=False
-            ).returncode == 0:
-                expected = "merged"
-            elif run_git(
-                root, ["rev-list", "--count", f"main..{head}"], check=False
-            ).stdout.strip() not in {"", "0"}:
-                expected = "unique"
-            else:
-                return False
-            if item["classification"] != expected:
-                return False
-        return True
+        expected_refs, expected_worktrees = _live_hygiene_inventory(root, attempt)
+        return snapshot["refs"] == expected_refs and snapshot["worktrees"] == expected_worktrees
     if profile == "sprint_decisions":
         # Task 9 supplies the governed sprint approval/decision predicate and fixture.
         return False
@@ -758,7 +917,7 @@ def _semantic(context: _SemanticContext) -> bool:
             new_lines
             and all(hashlib.sha256(line.encode("utf-8")).hexdigest() in audit_text for line in new_lines)
             and set(metric_data) == {"schema_version", "override_count", "low_confidence_count"}
-            and metric_data["schema_version"] == 1
+            and _version(metric_data["schema_version"], 1)
             and metric_data["override_count"] == len(new_lines)
             and type(metric_data["low_confidence_count"]) is int
             and metric_data["low_confidence_count"] >= 0
@@ -779,9 +938,17 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "initialized_fixture":
         report = _changed_document(context, str(data["report"]))
         workspace = root / str(data["workspace"])
+        live_context = workspace / ".codearbiter" / "CONTEXT.md"
+        workspace_plain = _plain_path_within(root, workspace, regular_file=False)
+        git_directory_plain = workspace_plain and _plain_path_within(
+            workspace, workspace / ".git", regular_file=False
+        )
+        context_plain = workspace_plain and _plain_path_within(
+            workspace, live_context, regular_file=True
+        )
         child_root = (
             run_git(workspace, ["rev-parse", "--show-toplevel"], check=False).stdout.strip()
-            if workspace.is_dir()
+            if workspace_plain and git_directory_plain and context_plain
             else ""
         )
         child_head = (
@@ -789,12 +956,42 @@ def _semantic(context: _SemanticContext) -> bool:
             if child_root and Path(child_root).resolve() == workspace.resolve()
             else ""
         )
+        child_tree = (
+            run_git(workspace, ["rev-parse", "HEAD^{tree}"], check=False).stdout.strip()
+            if _SHA40.fullmatch(child_head)
+            else ""
+        )
+        context_blob = (
+            _git_blob(workspace, child_head, ".codearbiter/CONTEXT.md")
+            if _SHA40.fullmatch(child_head)
+            else None
+        )
+        clean = (
+            not run_git(
+                workspace,
+                ["status", "--porcelain", "--untracked-files=all"],
+                check=False,
+            ).stdout
+            if child_root
+            else False
+        )
         return bool(
             report
             and _headings(report, ("Init", "Brownfield", "Greenfield", "Reconciliation"))
             and _SHA40.fullmatch(child_head)
+            and _SHA40.fullmatch(child_tree)
             and Path(child_root).resolve() == workspace.resolve()
-            and (workspace / ".codearbiter" / "CONTEXT.md").is_file()
+            and workspace_plain
+            and git_directory_plain
+            and context_plain
+            and context_blob is not None
+            and clean
+            and re.search(rf"(?m)^Child-HEAD:\s*{re.escape(child_head)}\s*$", report)
+            and re.search(rf"(?m)^Child-Tree:\s*{re.escape(child_tree)}\s*$", report)
+            and re.search(
+                rf"(?m)^CONTEXT-SHA256:\s*{re.escape(_raw_digest(context_blob))}\s*$",
+                report,
+            )
         )
     if profile == "debug_spike_conflict":
         debug, spike, conflict = (_changed_document(context, str(data[key])) for key in ("debug", "spike", "conflict"))
@@ -825,7 +1022,13 @@ def _semantic(context: _SemanticContext) -> bool:
         expected_paths = (
             run_git(
                 root,
-                ["diff", "--name-only", attempt.prepared, str(reviewed_commit)],
+                [
+                    "diff",
+                    "--no-ext-diff",
+                    "--name-only",
+                    attempt.prepared,
+                    str(reviewed_commit),
+                ],
                 check=False,
             ).stdout.splitlines()
             if _SHA40.fullmatch(str(reviewed_commit))
@@ -851,7 +1054,7 @@ def _semantic(context: _SemanticContext) -> bool:
                 "schema_version", "reviewed_commit", "reviewed_tree", "changed_paths",
                 "read_only", "secret_scan", "predicted_reviewers", "optional_surfaces",
             }
-            and report["schema_version"] == 1
+            and _version(report["schema_version"], 1)
             and run_git(root, ["merge-base", "--is-ancestor", str(reviewed_commit), attempt.head], check=False).returncode == 0
             and reviewed_commit != attempt.prepared
             and report["reviewed_tree"] == reviewed_tree
@@ -880,8 +1083,15 @@ def _valid_pr_receipt(context: _SemanticContext, path: str) -> bool:
         "schema_version", "receipt_id", "mode", "repository", "branch",
         "prepared_base", "work_head", "commits", "review_status", "pr_reference",
     }
-    if set(receipt) != required or receipt["schema_version"] != 1:
+    if set(receipt) != required or not _version(receipt["schema_version"], 1):
         return False
+    try:
+        remotes = validate_training_remotes(context.root, require_push_safe=True)
+    except RemoteSafetyError:
+        return False
+    if remotes.origin is None:
+        return False
+    origin_identity = f"{remotes.origin.owner}/{remotes.origin.repository}"
     commits = receipt["commits"]
     work_head = receipt["work_head"]
     expected = run_git(
@@ -901,15 +1111,23 @@ def _valid_pr_receipt(context: _SemanticContext, path: str) -> bool:
         else ""
     )
     reference = receipt["pr_reference"]
+    github_reference = (
+        re.fullmatch(
+            r"https://github\.com/(?P<owner>[A-Za-z0-9_.-]+)/"
+            r"(?P<repository>arbiter-academy)/pull/[1-9][0-9]*",
+            reference,
+        )
+        if isinstance(reference, str)
+        else None
+    )
     reference_ok = (
-        reference == f"local-pr:{str(work_head)[:12]}"
-        if receipt["mode"] == "offline-local"
+        reference == f"local-pr:{work_head[:12]}"
+        if receipt["mode"] == "offline-local" and isinstance(work_head, str)
         else bool(
-            isinstance(reference, str)
-            and re.fullmatch(
-                r"https://github\.com/[A-Za-z0-9_.-]+/arbiter-academy/pull/[1-9][0-9]*",
-                reference,
-            )
+            receipt["mode"] == "github"
+            and github_reference is not None
+            and f"{github_reference.group('owner')}/{github_reference.group('repository')}".casefold()
+            == origin_identity.casefold()
         )
     )
     return bool(
@@ -918,15 +1136,17 @@ def _valid_pr_receipt(context: _SemanticContext, path: str) -> bool:
         and receipt["mode"] in {"offline-local", "github"}
         and isinstance(receipt["repository"], str)
         and re.fullmatch(r"[A-Za-z0-9_.-]+/arbiter-academy", receipt["repository"])
-        and receipt["repository"].casefold() != "arbiterforge/arbiter-academy"
+        and receipt["repository"].casefold() == origin_identity.casefold()
         and receipt["branch"] == context.attempt.branch
         and receipt["prepared_base"] == context.attempt.prepared
-        and _SHA40.fullmatch(str(work_head))
+        and isinstance(work_head, str)
+        and _SHA40.fullmatch(work_head)
         and isinstance(commits, list)
         and bool(commits)
         and work_head != context.attempt.prepared
         and commits == expected
         and receipt_parent == work_head
+        and receipt_commit == context.attempt.head
         and set(_commit_paths(context.root, receipt_commit)) == {path}
         and receipt["review_status"] == "cleared"
         and reference_ok
@@ -939,6 +1159,8 @@ def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
         raise CheckpointError("checkpoint ID is not in the exact Academy inventory.")
     repository = Path(root).resolve()
     try:
+        repository = repository_root(repository)
+        validate_repository_git_config(repository)
         attempt = _discover_attempt(repository, lab_id)
         contracts, contract, definition = _load_attempt_definition(
             repository, attempt.base, lab_id
@@ -951,13 +1173,9 @@ def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
             contract.source_path,
             "academy/contracts.json",
         )
-        control_paths = (
-            *digest_paths,
-            "academy/checkpoint.schema.json",
-            "academy/receipt.schema.json",
-            *_verifier_paths(repository, attempt.base),
-        )
-        control_blobs = [_git_blob(repository, attempt.base, path) for path in control_paths]
+        base_namespace = _control_namespace_paths(repository, attempt.base)
+        head_namespace = _control_namespace_paths(repository, attempt.head)
+        control_paths = tuple(dict.fromkeys((*base_namespace, contract.source_path)))
         control_worktree_clean = (
             run_git(
                 repository,
@@ -973,20 +1191,42 @@ def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
                 "--untracked-files=all",
                 "--",
                 "academy_engine",
-                "scripts",
-                *digest_paths,
+                "scripts/academy.py",
+                "academy/catalog.json",
+                "academy/catalog.schema.json",
+                "academy/contracts.json",
                 "academy/checkpoint.schema.json",
                 "academy/receipt.schema.json",
+                "academy/scenario.schema.json",
+                "academy/checkpoints",
+                "academy/scenarios",
+                contract.source_path,
             ],
             check=False,
             ).stdout
         )
-        source_integrity = all(
-            blob is not None
-            and _git_blob(repository, attempt.head, path) == blob
-            for path, blob in zip(control_paths, control_blobs, strict=True)
-        ) and control_worktree_clean
-        source_blobs = control_blobs[:5]
+        source_blobs = [
+            _git_blob(repository, attempt.base, path) for path in digest_paths
+        ]
+        source_integrity = bool(
+            all(blob is not None for blob in source_blobs)
+            and base_namespace == head_namespace
+            and run_git(
+                repository,
+                [
+                    "diff",
+                    "--no-ext-diff",
+                    "--quiet",
+                    attempt.base,
+                    attempt.head,
+                    "--",
+                    *control_paths,
+                ],
+                check=False,
+            ).returncode
+            == 0
+            and control_worktree_clean
+        )
         catalog_digest, manifest_digest, definition_digest, source_digest, contract_digest = (
             _raw_digest(blob) if blob is not None else ""
             for blob in source_blobs

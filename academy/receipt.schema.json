@@ -4,7 +4,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version", "source_commit", "catalog_sha256", "checkpoints",
-    "capstone_commit_range", "host_labels", "completion_date"
+    "capstone_commit_range", "host_labels", "completion_date", "trust_model"
   ],
   "properties": {
     "schema_version": {"const": 2},
@@ -49,7 +49,8 @@
       "maxItems": 1,
       "items": {"const": "local-git"}
     },
-    "completion_date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"}
+    "completion_date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "trust_model": {"const": "installed-local-verifier"}
   },
   "$defs": {
     "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

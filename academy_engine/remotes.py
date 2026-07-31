@@ -105,12 +105,20 @@ def normalize_github_remote(url: str) -> GitHubRemote:
     return _parse_path(parsed.path)
 
 
-def _remote_urls(root: Path, name: str, *, push: bool = False) -> tuple[tuple[str, ...], str | None]:
+def _remote_urls(
+    root: Path,
+    name: str,
+    *,
+    push: bool = False,
+    trust_local_config: bool = False,
+) -> tuple[tuple[str, ...], str | None]:
     args = ["remote", "get-url"]
     if push:
         args.append("--push")
     args.extend(["--all", name])
-    result = run_git(root, args, check=False)
+    result = run_git(
+        root, args, check=False, trust_local_config=trust_local_config
+    )
     if result.returncode:
         kind = "push target" if push else "remote"
         return (), f"{name} {kind} is missing."
@@ -137,18 +145,28 @@ def _normalized_remotes(
     return tuple(remotes), tuple(issues)
 
 
-def _config_values(root: Path, key: str) -> tuple[str, ...]:
-    result = run_git(root, ["config", "--get-all", key], check=False)
+def _config_values(
+    root: Path, key: str, *, trust_local_config: bool = False
+) -> tuple[str, ...]:
+    result = run_git(
+        root,
+        ["config", "--get-all", key],
+        check=False,
+        trust_local_config=trust_local_config,
+    )
     if result.returncode:
         return ()
     return tuple(line for line in result.stdout.splitlines() if line)
 
 
-def _effective_push_remote(root: Path) -> tuple[str | None, str | None]:
+def _effective_push_remote(
+    root: Path, *, trust_local_config: bool = False
+) -> tuple[str | None, str | None]:
     branch_result = run_git(
         root,
         ["symbolic-ref", "--quiet", "--short", "HEAD"],
         check=False,
+        trust_local_config=trust_local_config,
     )
     if branch_result.returncode:
         return None, "push routing is unknown because HEAD is detached."
@@ -159,7 +177,9 @@ def _effective_push_remote(root: Path) -> tuple[str | None, str | None]:
         f"branch.{branch}.remote",
     )
     for key in routing_keys:
-        values = _config_values(root, key)
+        values = _config_values(
+            root, key, trust_local_config=trust_local_config
+        )
         if len(values) > 1:
             return None, f"push routing is ambiguous because {key} has multiple values."
         if values:
@@ -167,15 +187,30 @@ def _effective_push_remote(root: Path) -> tuple[str | None, str | None]:
     return "origin", None
 
 
-def validate_training_remotes(root: Path, *, require_push_safe: bool) -> RemoteReport:
+def validate_training_remotes(
+    root: Path,
+    *,
+    require_push_safe: bool,
+    trust_local_config: bool = False,
+) -> RemoteReport:
     """Assess configured remotes; only raise when a push-safe exercise demands it."""
     issues: list[str] = []
     try:
-        origin_urls, origin_error = _remote_urls(root, "origin")
-        upstream_urls, upstream_error = _remote_urls(root, "upstream")
-        origin_push_urls, origin_push_error = _remote_urls(root, "origin", push=True)
-        upstream_push_urls, upstream_push_error = _remote_urls(root, "upstream", push=True)
-        effective_push_remote, routing_error = _effective_push_remote(root)
+        origin_urls, origin_error = _remote_urls(
+            root, "origin", trust_local_config=trust_local_config
+        )
+        upstream_urls, upstream_error = _remote_urls(
+            root, "upstream", trust_local_config=trust_local_config
+        )
+        origin_push_urls, origin_push_error = _remote_urls(
+            root, "origin", push=True, trust_local_config=trust_local_config
+        )
+        upstream_push_urls, upstream_push_error = _remote_urls(
+            root, "upstream", push=True, trust_local_config=trust_local_config
+        )
+        effective_push_remote, routing_error = _effective_push_remote(
+            root, trust_local_config=trust_local_config
+        )
     except GitCommandError as error:
         if require_push_safe:
             raise RemoteSafetyError(str(error)) from error

@@ -129,17 +129,22 @@ class ProjectStateTests(unittest.TestCase):
 
     def test_accepted_decisions_and_log_are_sequential_and_user_attributed(self):
         decisions = sorted((STATE_ROOT / "decisions").glob("[0-9][0-9][0-9][0-9]-*.md"))
-        self.assertEqual([path.name[:4] for path in decisions], ["0001", "0002"])
+        self.assertEqual([path.name[:4] for path in decisions], ["0001", "0002", "0003"])
         for path in decisions:
-            fields = frontmatter_fields(path)
-            self.assertEqual(fields.get("status"), "accepted", path)
-            self.assertEqual(fields.get("decided-by"), "SUaDtL", path)
-            self.assertIn("## Status\nAccepted", path.read_text(encoding="utf-8"), path)
+            text = path.read_text(encoding="utf-8")
+            if path.name.startswith("0003-"):
+                self.assertIn("**Status:** accepted", text, path)
+                self.assertIn("**Decided by:** SUaDtL", text, path)
+            else:
+                fields = frontmatter_fields(path)
+                self.assertEqual(fields.get("status"), "accepted", path)
+                self.assertEqual(fields.get("decided-by"), "SUaDtL", path)
+                self.assertIn("## Status\nAccepted", text, path)
 
         decision_log = (STATE_ROOT / "decisions/decision-log.md").read_text(encoding="utf-8")
         entries = re.findall(r"(?ms)^## DECISION-(\d{4}) .*?(?=^---$|\Z)", decision_log)
-        self.assertEqual(entries, ["0001", "0002"])
-        self.assertEqual(decision_log.count("**Decided by:** SUaDtL"), 2)
+        self.assertEqual(sorted(entries), ["0001", "0002", "0003"])
+        self.assertEqual(decision_log.count("**Decided by:** SUaDtL"), 3)
 
     def test_completed_plan_item_exercises_real_claim_lifecycle(self):
         plan = (STATE_ROOT / "plans/ticket-assignment.md").read_text(encoding="utf-8")

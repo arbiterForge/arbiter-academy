@@ -3,10 +3,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 
@@ -234,6 +236,152 @@ class InstalledWheelTests(unittest.TestCase):
         self.assertEqual(snapshot_checkout(repository), checkout_before)
         for artifact in ("build", "dist", "workshop_queue.egg-info"):
             self.assertFalse((repository / artifact).exists(), artifact)
+
+    def test_installed_academy_verifier_targets_a_separate_learner_repository(self) -> None:
+        wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            scratch = Path(temporary_directory)
+            source = scratch / "source"
+            shutil.copytree(
+                repository,
+                source,
+                ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+            )
+            wheel_directory = scratch / "wheel"
+            wheel_directory.mkdir()
+            build = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "wheel",
+                    "--no-index",
+                    "--find-links",
+                    str(wheelhouse),
+                    "--no-deps",
+                    "--wheel-dir",
+                    str(wheel_directory),
+                    str(source),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
+            with zipfile.ZipFile(wheel) as archive:
+                names = set(archive.namelist())
+            for artifact in (
+                "catalog.json",
+                "catalog.schema.json",
+                "contracts.json",
+                "checkpoint.schema.json",
+                "receipt.schema.json",
+                "scenario.schema.json",
+            ):
+                self.assertTrue(
+                    any(
+                        name.endswith(f"share/arbiter-academy/academy/{artifact}")
+                        for name in names
+                    ),
+                    artifact,
+                )
+            self.assertEqual(
+                sum(
+                    name.endswith(".json")
+                    and "/share/arbiter-academy/academy/checkpoints/" in name
+                    for name in names
+                ),
+                19,
+            )
+            self.assertEqual(
+                sum(
+                    name.endswith("/manifest.json")
+                    and "/share/arbiter-academy/academy/scenarios/" in name
+                    for name in names
+                ),
+                19,
+            )
+            self.assertEqual(
+                sum(
+                    name.endswith("/scenario.json")
+                    and "/share/arbiter-academy/academy/scenarios/" in name
+                    for name in names
+                ),
+                19,
+            )
+
+            venv = scratch / "venv"
+            subprocess.run(
+                [sys.executable, "-m", "venv", str(venv)],
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            venv_python = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            executable = venv / ("Scripts/arbiter-academy.exe" if os.name == "nt" else "bin/arbiter-academy")
+            install = subprocess.run(
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-index",
+                    "--find-links",
+                    str(wheelhouse),
+                    "--no-deps",
+                    str(wheel),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(install.returncode, 0, install.stdout + install.stderr)
+            learner = scratch / "learner"
+            learner.mkdir()
+            subprocess.run(["git", "init", "-b", "main"], cwd=learner, check=True, capture_output=True, text=True)
+            (learner / "README.md").write_text("learner\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=learner, check=True, capture_output=True, text=True)
+            subprocess.run(
+                ["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "learner"],
+                cwd=learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            outside = scratch / "outside"
+            outside.mkdir()
+            command = subprocess.run(
+                [
+                    str(executable),
+                    "--repository",
+                    str(learner),
+                    "check",
+                    "F01-fork-clone-doctor",
+                ],
+                cwd=outside,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(command.returncode, 0)
+            self.assertIn("checkpoint F01-fork-clone-doctor: failed", command.stderr)
+            self.assertNotIn("outside the target repository", command.stderr)
+            self.assertNotIn(str(learner), command.stderr)
+            self.assertNotIn("Traceback", command.stderr)
+            location = subprocess.run(
+                [
+                    str(venv_python),
+                    "-c",
+                    "import academy_engine; print(academy_engine.__file__)",
+                ],
+                cwd=outside,
+                text=True,
+                capture_output=True,
+                check=True,
+            ).stdout.strip()
+            self.assertNotIn(str(learner), location)
 
 
 if __name__ == "__main__":
