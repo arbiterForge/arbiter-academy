@@ -1,0 +1,134 @@
+---
+id: P04-review-a-dependency
+track: practitioner
+order: 4
+title: Review a real dependency before installation
+outcome: Make a complete SMARTS-backed accept or reject decision for python-dateutil 2.9.0.post0 before any installation or permitted manifest change.
+prerequisites: P03-record-an-adr
+estimated_minutes: 35
+scenario_command: python scripts/academy.py prepare P04-review-a-dependency
+checkpoint_command: arbiter-academy --repository <learner-repository> check P04-review-a-dependency
+next_lab: P05-checkpoint-remediation
+---
+
+# P04 — Review a real dependency before installation
+
+## Why this mechanism matters
+
+A package name is a proposal, not authorization to install. Dependency review must establish exact
+candidate identity, provenance, license, maintenance and supply-chain facts, compatibility, and
+alternatives before project state changes. The intended solution rejects this package for a narrow
+date-parsing need. An accepted equivalent is valid only with a complete reviewed runtime closure;
+the Academy candidate wrapper is evidence about one direct wheel, not that environment lock.
+
+## Start the scenario
+
+Prepare the offline candidate review:
+
+```powershell
+python scripts/academy.py prepare P04-review-a-dependency
+```
+
+The scenario requests `python-dateutil==2.9.0.post0` for legacy date input and supplies stable
+candidate metadata. It does not install, vendor, pre-approve, or add the package to project files.
+
+## Use your host
+
+Invoke the dependency-review lane before running any installer or editing a manifest.
+
+### Claude Code
+
+```text
+/ca:add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
+```
+
+### Codex
+
+```text
+$ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
+```
+
+### Pi (Feature Forge preview)
+
+Pi is the supported Feature Forge preview and requires project trust. Its documented fallback is
+`/skill:ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"`.
+
+```text
+/ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
+```
+
+## Do the work
+
+Review the exact candidate and prepared project digest. Record provenance, license, supply-chain
+signals, compatibility, the bounded stdlib alternative, rationale, all SMARTS lenses, and reviewer
+outcome in `.codearbiter/reports/academy/P04-dependency-review.md` before any other project change.
+
+For the intended rejection, choose the bounded stdlib parser and leave `pyproject.toml`,
+`requirements.lock`, and `.codearbiter/reports/academy/P04-approved-dependency.lock.json` absent or
+unchanged. Install nothing.
+
+For the documented accepted equivalent, first complete an accepting review. Then, in one later
+governed commit, add exactly `python-dateutil==2.9.0.post0` to the learner attempt's
+`pyproject.toml`; add a complete `requirements.lock` containing exactly these two UTF-8,
+LF-terminated physical lines in this order; and add the separate Academy wrapper:
+
+```text
+python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl
+six==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl
+```
+
+The `artifact=` comments are Academy verifier grammar while the hash options remain pip-compatible.
+Use no index directive, editable reference, environment marker, alternate hash, or extra package.
+The wrapper is exactly:
+
+```json
+{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}
+```
+
+Commit manifest, environment lock, and wrapper together only after review. Do not install a package
+in either variant.
+
+## Hints
+
+### Hint 1
+
+Separate the requested capability from the proposed package. Test whether the Workshop Queue input
+formats can be handled by a bounded standard-library parser first.
+
+### Hint 2
+
+Bind the review to the prepared project SHA-256 and exact candidate/version. Cover provenance,
+license, maintenance, supply-chain risk, compatibility, alternatives, and every SMARTS lens.
+
+### Hint 3
+
+If accepting, distinguish the two locks: `requirements.lock` covers the complete direct-plus-`six`
+runtime closure; the Academy JSON wrapper binds only the reviewed direct candidate wheel for later
+evidence. Neither authorizes an install in P04.
+
+## Success evidence
+
+The intended path has a complete pre-install review rejecting the exact candidate and proves the
+manifest and both lock surfaces stayed unchanged. The equivalent path has an earlier accepting
+review and a later co-commit of the exact manifest entry, complete hash-pinned transitive
+environment lock, and separately labeled direct-candidate wrapper using reviewed artifact bytes.
+Pre-review edits, invented hashes, incomplete closure, or any installation fail.
+
+```powershell
+arbiter-academy --repository <learner-repository> check P04-review-a-dependency
+```
+
+## Recovery
+
+If any install or premature manifest/lock edit occurred, do not delete evidence to hide it. Preserve
+the attempt and reset:
+
+```powershell
+python scripts/academy.py reset P04-review-a-dependency
+```
+
+Begin the retry from clean prepared project state and review before changing anything.
+
+## Next lab
+
+Continue to **P05 — Remediate a checkpoint finding** after P04 passes.

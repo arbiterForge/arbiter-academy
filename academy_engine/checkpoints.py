@@ -70,7 +70,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F04-fix-with-evidence": ("red_then_fix_history", "tdd_history", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
     "P01-feature-through-plan": ("approved_spec_plan_task", "approved_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md"}),
     "P02-commit-review-pr": ("review_pr_commit_range", "pr_receipt", {"receipt": ".codearbiter/reports/academy/P02-pr-receipt.json"}),
-    "P03-record-an-adr": ("accepted_adr_and_log", "accepted_adr", {"adr": ".codearbiter/decisions/0003-academy-lab.md", "decision_log": ".codearbiter/decisions/decision-log.md"}),
+    "P03-record-an-adr": ("accepted_adr_and_log", "accepted_adr", {"adr": ".codearbiter/decisions/0004-academy-lab.md", "decision_log": ".codearbiter/decisions/decision-log.md"}),
     "P04-review-a-dependency": ("strict_dependency_review", "dependency_review", {"review": ".codearbiter/reports/academy/P04-dependency-review.md", "project": "pyproject.toml"}),
     "P05-checkpoint-remediation": ("finding_remediation_link", "checkpoint_remediation", {"report": ".codearbiter/checkpoints/P05-academy.json"}),
     "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json"}),

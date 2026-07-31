@@ -70,13 +70,21 @@ class CatalogExportTests(unittest.TestCase):
                 "F02-orient-to-state",
                 "F03-work-the-board",
                 "F04-fix-with-evidence",
+                "P01-feature-through-plan",
+                "P02-commit-review-pr",
+                "P03-record-an-adr",
+                "P04-review-a-dependency",
+                "P05-checkpoint-remediation",
+                "P06-context-drift-recovery",
+                "P07-threat-model",
+                "P08-repository-hygiene",
             },
         )
         self.assertTrue(
             all(
                 status == "pending"
                 for lab_id, status in statuses.items()
-                if not lab_id.startswith("F0")
+                if lab_id.startswith("U0")
             )
         )
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))

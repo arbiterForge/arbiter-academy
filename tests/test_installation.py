@@ -327,6 +327,33 @@ class InstalledWheelTests(unittest.TestCase):
                     "F04-fix-with-evidence.md",
                 },
             )
+            practitioner_sources = {
+                name.rsplit("/", 1)[-1]
+                for name in names
+                if "/share/arbiter-academy/academy/tracks/practitioner/" in name
+                and name.endswith(".md")
+            }
+            self.assertEqual(
+                practitioner_sources,
+                {
+                    "index.md",
+                    "P01-feature-through-plan.md",
+                    "P02-commit-review-pr.md",
+                    "P03-record-an-adr.md",
+                    "P04-review-a-dependency.md",
+                    "P05-checkpoint-remediation.md",
+                    "P06-context-drift-recovery.md",
+                    "P07-threat-model.md",
+                    "P08-repository-hygiene.md",
+                },
+            )
+            power_user_sources = {
+                name.rsplit("/", 1)[-1]
+                for name in names
+                if "/share/arbiter-academy/academy/tracks/power-user/" in name
+                and name.endswith(".md")
+            }
+            self.assertEqual(power_user_sources, set())
 
             venv = scratch / "venv"
             subprocess.run(

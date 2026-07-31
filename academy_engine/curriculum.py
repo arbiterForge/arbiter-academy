@@ -94,6 +94,37 @@ _FOUNDATIONS_SCENARIOS = {
     "F03-work-the-board": ("task_transition", "academy.feature.0001", "queued"),
     "F04-fix-with-evidence": ("regression_first_fix", "workshop_queue/service.py", "defect-staged"),
 }
+_PRACTITIONER_SCENARIOS = {
+    "P01-feature-through-plan": ("feature_spec_plan", "academy-feature", "approval-required"),
+    "P02-commit-review-pr": ("commit_review_pr", "learner-fork", "review-required"),
+    "P03-record-an-adr": ("architecture_decision", "ADR-0004", "decision-open"),
+    "P04-review-a-dependency": (
+        "dependency_review",
+        "python-dateutil==2.9.0.post0",
+        "install-blocked",
+    ),
+    "P05-checkpoint-remediation": (
+        "finding_remediation",
+        "workshop-queue-finding",
+        "finding-open",
+    ),
+    "P06-context-drift-recovery": (
+        "provenance_recovery",
+        ".codearbiter/CONTEXT.md",
+        "context-stale",
+    ),
+    "P07-threat-model": ("stride_model", "academy_engine/paths.py", "model-absent"),
+    "P08-repository-hygiene": (
+        "ref_classification",
+        "local-refs",
+        "classification-absent",
+    ),
+}
+_SCENARIO_COMMANDS = {
+    "P02-commit-review-pr": (
+        "arbiter-academy --repository <learner-repository> prepare P02-commit-review-pr"
+    ),
+}
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (
         "untouched",
@@ -152,6 +183,10 @@ _MATRIX_CASES = {
         "disconnected-regression",
         "overbroad-then-decoy-repair",
     ),
+    **{
+        lab_id: ("untouched", "partial", "wrong", "intended", "equivalent")
+        for lab_id in _PRACTITIONER_SCENARIOS
+    },
 }
 
 
@@ -289,6 +324,13 @@ def load_track(root: Path, track_id: str) -> CurriculumTrack:
     catalog_labs = tuple(lab for lab in catalog.labs if lab.track == track_id)
     if not catalog_labs:
         raise CurriculumError("track is not present in the Academy catalog.")
+    index_path = repository / f"academy/tracks/{track_id}/index.md"
+    try:
+        index_text = index_path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise CurriculumError(f"{track_id} track index is missing.") from error
+    if not _has_learner_visible_content(index_text):
+        raise CurriculumError(f"{track_id} track index lacks learner-visible content.")
     labs = tuple(
         _parse_lab(repository / f"academy/tracks/{track_id}/{lab.id}.md")
         for lab in catalog_labs
@@ -308,7 +350,9 @@ def load_track(root: Path, track_id: str) -> CurriculumTrack:
         )
         if actual.next_lab != expected_next:
             raise CurriculumError(f"{actual.id} next_lab disagrees with catalog order.")
-        expected_scenario = f"python scripts/academy.py prepare {actual.id}"
+        expected_scenario = _SCENARIO_COMMANDS.get(
+            actual.id, f"python scripts/academy.py prepare {actual.id}"
+        )
         if actual.scenario_command != expected_scenario:
             raise CurriculumError(f"{actual.id} scenario command is noncanonical.")
         expected_check = f"arbiter-academy --repository <learner-repository> check {actual.id}"
@@ -322,6 +366,9 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
     issues: list[str] = []
     try:
         track = load_track(repository, track_id)
+        catalog_labs = {
+            lab.id: lab for lab in Catalog.load(repository / "academy/catalog.json").labs
+        }
         contracts = {contract.id: contract for contract in load_contracts(repository)}
         for lab in track.labs:
             contract = contracts.get(lab.id)
@@ -329,6 +376,17 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
                 issues.append(f"{lab.id}: curriculum contract is missing")
                 continue
             manifest = load_manifest_file(repository / f"academy/scenarios/{lab.id}/manifest.json")
+            catalog_lab = catalog_labs.get(lab.id)
+            if (
+                catalog_lab is None
+                or manifest.id != lab.id
+                or manifest.checkpoint != contract.checkpoint_path
+                or manifest.checkpoint != catalog_lab.checkpoint
+                or manifest.requires_push_safe_setup
+                != catalog_lab.requires_push_safe_setup
+                or manifest.starting_task != lab.id.split("-", 1)[0]
+            ):
+                issues.append(f"{lab.id}: scenario manifest binding is noncanonical")
             scenario_path = repository / "academy/scenarios" / lab.id / "files/scenario.json"
             scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
             if not isinstance(scenario, dict):
@@ -338,7 +396,10 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
                 issues.append(f"{lab.id}: scenario input shape is not canonical")
             if scenario.get("schema_version") != 1 or scenario.get("lab_id") != lab.id:
                 issues.append(f"{lab.id}: scenario input identity is invalid")
-            expected_scenario = _FOUNDATIONS_SCENARIOS.get(lab.id)
+            expected_scenario = {
+                **_FOUNDATIONS_SCENARIOS,
+                **_PRACTITIONER_SCENARIOS,
+            }.get(lab.id)
             observed_scenario = (
                 scenario.get("operation"),
                 scenario.get("target"),

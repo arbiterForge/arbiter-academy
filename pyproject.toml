@@ -36,6 +36,17 @@ workshop_queue = ["seed/tickets.json"]
   "academy/tracks/foundations/F03-work-the-board.md",
   "academy/tracks/foundations/F04-fix-with-evidence.md",
 ]
+"share/arbiter-academy/academy/tracks/practitioner" = [
+  "academy/tracks/practitioner/index.md",
+  "academy/tracks/practitioner/P01-feature-through-plan.md",
+  "academy/tracks/practitioner/P02-commit-review-pr.md",
+  "academy/tracks/practitioner/P03-record-an-adr.md",
+  "academy/tracks/practitioner/P04-review-a-dependency.md",
+  "academy/tracks/practitioner/P05-checkpoint-remediation.md",
+  "academy/tracks/practitioner/P06-context-drift-recovery.md",
+  "academy/tracks/practitioner/P07-threat-model.md",
+  "academy/tracks/practitioner/P08-repository-hygiene.md",
+]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor" = ["academy/scenarios/F01-fork-clone-doctor/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
 "share/arbiter-academy/academy/scenarios/F02-orient-to-state" = ["academy/scenarios/F02-orient-to-state/manifest.json"]
