@@ -7,7 +7,7 @@ the pre-staged Workshop Queue state that later labs inspect and mutate. Recorded
 ## Contract status
 
 The repository is initialized at stage 2 with `arbiter: enabled`. Workshop Queue is
-local-first, standard-library-only, and AGPL-3.0-only. Assignment follows
+local-first, standard-library-only, and AGPL-3.0-only. Claiming follows
 [ADR-0002](../../decisions/0002-explicit-ticket-state-machine.md) over the local
 storage boundary in [ADR-0001](../../decisions/0001-json-storage-boundary.md).
 
@@ -21,7 +21,7 @@ storage boundary in [ADR-0001](../../decisions/0001-json-storage-boundary.md).
 
 ## Concerns retained for labs
 
-- The stale hygiene task is deliberate training data, not a live failure.
+- The stale `academy.fixture.0002` task is deliberate training data, not a live failure.
 - The dependency task is blocked pending fictional review evidence; it does not block
   the current staged fixture.
 - Prompts in [open questions](../../open-questions.md) are not unresolved product or

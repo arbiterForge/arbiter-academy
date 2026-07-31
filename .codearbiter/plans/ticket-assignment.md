@@ -1,4 +1,4 @@
-# Plan - Ticket assignment
+# Plan - Ticket claim
 
 - Spec: [ticket assignment](../specs/ticket-assignment.md)
 - Status: approved fixture baseline
@@ -8,9 +8,9 @@
 
 | ID | Task | Verification | Status |
 | --- | --- | --- | --- |
-| A-01 | Add assignment to the local ticket model. | Unit test proves assignment preserves state. | done fixture |
-| A-02 | Validate assignment labels at the command boundary. | Unit test rejects control characters. | queued fixture |
-| A-03 | Render an assignee in list output. | CLI test checks the visible local result. | queued fixture |
+| A-01 | Use `claim_ticket` to record `claimed_by` and transition `open` to `claimed`. | Unit test proves attribution, UTC claim time, immutable replacement, and the explicit transition. | done fixture |
+| A-02 | Validate claimant labels at the command boundary. | Unit test rejects control characters. | queued fixture |
+| A-03 | Render `claimed_by` in list output. | CLI test checks the visible local result. | queued fixture |
 | A-04 | Inspect the deliberately stale hygiene task. | Learner classifies it through the board exercise. | in-progress fixture |
 
 ## Constraints and evidence

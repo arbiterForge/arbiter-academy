@@ -1,4 +1,4 @@
-# Specification - Ticket assignment
+# Specification - Ticket claim
 
 - Status: approved fixture baseline
 - Recorded: 2026-07-30 (fictional Academy fixture)
@@ -7,15 +7,15 @@
 
 ## Problem
 
-A facilitator needs to assign a locally stored workshop ticket to an Academy role
-without confusing assignment with lifecycle completion.
+A facilitator needs to claim a locally stored workshop ticket for an Academy role
+without confusing the claim transition with lifecycle completion.
 
 ## Acceptance criteria
 
-1. Assigning a valid local role records that role on the selected ticket.
-2. Assignment preserves the ticket's explicit lifecycle state.
-3. Invalid or control-character-bearing assignment labels are rejected locally.
-4. List output can show an assignee without exposing JSON storage details.
+1. `claim_ticket` moves an open ticket to claimed and records `claimed_by` with a UTC claim time.
+2. Claiming does not complete the ticket; completion remains a separate claimed-to-completed transition.
+3. Control-character validation for claimant labels is queued work, not baseline-complete behavior.
+4. Learner-visible rendering of `claimed_by` is queued work and must not expose JSON storage details.
 5. The behavior needs no network access or added runtime package.
 
 ## Boundaries
