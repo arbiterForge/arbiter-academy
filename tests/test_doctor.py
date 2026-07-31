@@ -11,6 +11,9 @@ from pathlib import Path
 from academy_engine.doctor import inspect_doctor
 
 
+PUSH_DISABLED = "DISABLED"
+
+
 def git(directory: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=directory, check=True, text=True, capture_output=True)
 
@@ -29,6 +32,7 @@ class DoctorTests(unittest.TestCase):
         git(self.root, "commit", "-m", "initial")
         git(self.root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
         git(self.root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+        git(self.root, "remote", "set-url", "--push", "upstream", PUSH_DISABLED)
         codearbiter = self.root / ".codearbiter"
         codearbiter.mkdir()
         (codearbiter / "CONTEXT.md").write_text("initialized\n", encoding="utf-8")
@@ -44,8 +48,14 @@ class DoctorTests(unittest.TestCase):
         self.assertFalse(report.worktree.detached)
         self.assertEqual(report.remotes.origin.owner, "learner")
         self.assertTrue(report.remotes.upstream.is_official)
+        self.assertTrue(getattr(report.remotes, "upstream_push_disabled", False))
         self.assertTrue(report.codearbiter_active)
         self.assertIn("python scripts/academy.py doctor", report.host_guidance)
+        self.assertIn("git remote set-url --push upstream DISABLED", report.host_guidance)
+        self.assertIn(
+            "Origin identity is fork-compatible; GitHub lineage is not verified offline.",
+            report.render(),
+        )
 
     def test_reports_unsafe_configuration_without_a_traceback(self) -> None:
         git(self.root, "remote", "set-url", "origin", "https://github.com/arbiterForge/arbiter-academy.git")
@@ -54,9 +64,23 @@ class DoctorTests(unittest.TestCase):
 
         self.assertFalse(report.safe_for_push_labs)
         self.assertTrue(report.issues)
+        self.assertIn(
+            "Origin identity is not fork-compatible; GitHub lineage is not verified offline.",
+            report.render(),
+        )
+        self.assertNotIn("Origin identity is fork-compatible;", report.render())
 
     def test_reports_a_dirty_worktree_as_unsafe(self) -> None:
         (self.root / "README.md").write_text("changed\n", encoding="utf-8")
+
+        report = inspect_doctor(self.root)
+
+        self.assertFalse(report.worktree.clean)
+        self.assertIn("worktree has uncommitted changes.", report.issues)
+
+    def test_forces_all_untracked_files_visible_despite_status_config(self) -> None:
+        git(self.root, "config", "status.showUntrackedFiles", "no")
+        (self.root / "hidden-untracked.txt").write_text("hidden\n", encoding="utf-8")
 
         report = inspect_doctor(self.root)
 
@@ -111,4 +135,19 @@ class DoctorTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("UNSAFE", result.stdout)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_cli_normalizes_malformed_remote_parser_errors_without_traceback(self) -> None:
+        git(self.root, "remote", "set-url", "origin", "https://[github.com/learner/arbiter-academy.git")
+        script = Path(__file__).parents[1] / "scripts" / "academy.py"
+
+        result = subprocess.run(
+            [sys.executable, str(script), "doctor"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("origin remote is invalid", result.stdout)
         self.assertNotIn("Traceback", result.stdout + result.stderr)

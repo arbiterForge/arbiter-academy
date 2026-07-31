@@ -42,6 +42,11 @@ class DoctorReport:
         upstream = _remote_label(self.remotes.upstream)
         branch = self.worktree.branch or ("detached" if self.worktree.detached else "unavailable")
         cleanliness = _yes_no(self.worktree.clean)
+        origin_classification = (
+            "fork-compatible"
+            if self.remotes.origin_fork_compatible
+            else "not fork-compatible"
+        )
         lines = [
             "Arbiter Academy doctor",
             f"Python: {self.python_version}",
@@ -51,6 +56,10 @@ class DoctorReport:
             f"Branch: {branch}",
             f"Origin: {origin}",
             f"Upstream: {upstream}",
+            f"Effective push remote: {self.remotes.effective_push_remote or 'unavailable'}",
+            f"Official upstream push disabled: {_yes_no(self.remotes.upstream_push_disabled)}",
+            f"Origin identity is {origin_classification}; "
+            "GitHub lineage is not verified offline.",
             f"codeArbiter active: {_yes_no(self.codearbiter_active)}",
             f"codeArbiter initialized: {_yes_no(self.codearbiter_initialized)}",
             f"Host guidance: {self.host_guidance}",
@@ -75,7 +84,11 @@ def _remote_label(remote: object) -> str:
 def inspect_doctor(root: Path | None = None) -> DoctorReport:
     """Collect a complete, non-mutating local readiness report."""
     requested_root = Path.cwd() if root is None else Path(root)
-    guidance = "Run `python scripts/academy.py doctor` from the repository root."
+    guidance = (
+        "Run `python scripts/academy.py doctor` from the repository root. "
+        "Make the official upstream read-only with "
+        "`git remote set-url --push upstream DISABLED`."
+    )
     try:
         version = git_version(requested_root)
     except GitCommandError as error:
@@ -94,7 +107,10 @@ def inspect_doctor(root: Path | None = None) -> DoctorReport:
         )
     try:
         repository = repository_root(requested_root)
-        status = run_git(repository, ["status", "--porcelain"]).stdout
+        status = run_git(
+            repository,
+            ["status", "--porcelain", "--untracked-files=all"],
+        ).stdout
         branch_result = run_git(repository, ["symbolic-ref", "--quiet", "--short", "HEAD"], check=False)
     except GitCommandError as error:
         issue = f"Git repository check failed: {error}"
