@@ -163,6 +163,24 @@ class ValidateTrainingRemotesTests(unittest.TestCase):
                     with self.assertRaisesRegex(RemoteSafetyError, "GitHub remote"):
                         validate_training_remotes(root, require_push_safe=True)
 
+    def test_invalid_utf8_remote_bytes_reach_validation_as_unsafe(self) -> None:
+        git(self.root, "remote", "add", "upstream", OFFICIAL)
+        git(self.root, "remote", "set-url", "--push", "upstream", PUSH_DISABLED)
+        config_path = self.root / ".git" / "config"
+        config_path.write_bytes(
+            config_path.read_bytes()
+            + b'\n[remote "origin"]\n\turl = https://github.com/learner\x81/arbiter-academy.git\n'
+        )
+
+        try:
+            validate_training_remotes(self.root, require_push_safe=True)
+        except RemoteSafetyError as error:
+            self.assertIn("origin remote is invalid", str(error))
+        except Exception as error:
+            self.fail(f"invalid remote bytes crashed Git decoding: {type(error).__name__}: {error}")
+        else:
+            self.fail("invalid UTF-8 remote bytes were accepted")
+
     def test_rejects_official_origin_pushurl_with_learner_fetch_url(self) -> None:
         self.set_remotes(LEARNER, OFFICIAL)
         git(self.root, "remote", "set-url", "--push", "origin", OFFICIAL)

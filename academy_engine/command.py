@@ -17,6 +17,8 @@ def _run(command: Sequence[str], *, cwd: Path, check: bool) -> subprocess.Comple
             list(command),
             cwd=cwd,
             text=True,
+            encoding="utf-8",
+            errors="surrogateescape",
             capture_output=True,
             shell=False,
             check=False,

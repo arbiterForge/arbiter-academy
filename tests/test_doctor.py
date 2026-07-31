@@ -151,3 +151,24 @@ class DoctorTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("origin remote is invalid", result.stdout)
         self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_cli_rejects_unicode_lookalike_remote_without_decode_traceback(self) -> None:
+        git(
+            self.root,
+            "remote",
+            "set-url",
+            "origin",
+            "https://github.com\uFF0Flearner/arbiter-academy.git",
+        )
+        script = Path(__file__).parents[1] / "scripts" / "academy.py"
+
+        result = subprocess.run(
+            [sys.executable, str(script), "doctor"],
+            cwd=self.root,
+            text=True,
+            capture_output=True,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("origin remote is invalid", result.stdout)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)

@@ -41,3 +41,29 @@ class RunGitTests(unittest.TestCase):
     def test_surfaces_git_stderr_for_a_failed_command(self) -> None:
         with self.assertRaisesRegex(GitCommandError, "does-not-exist"):
             run_git(self.root, ["show-ref", "--verify", "refs/heads/does-not-exist"])
+
+    def test_decodes_non_ascii_git_output_as_utf8(self) -> None:
+        configured_value = "fullwidth slash: \uFF0F"
+        git(self.root, "config", "academy.unicode", configured_value)
+
+        try:
+            result = run_git(self.root, ["config", "--get", "academy.unicode"])
+        except UnicodeDecodeError as error:
+            self.fail(f"Git output used locale decoding instead of UTF-8: {error}")
+        if result.stdout is None:
+            self.fail("Git output became unusable after locale decoding failed")
+        self.assertEqual(result.stdout.strip(), configured_value)
+
+    def test_surrogateescapes_invalid_utf8_git_output(self) -> None:
+        config_path = self.root / ".git" / "config"
+        config_path.write_bytes(
+            config_path.read_bytes() + b"\n[academy]\n\tinvalid = invalid-\x81-byte\n"
+        )
+
+        try:
+            result = run_git(self.root, ["config", "--get", "academy.invalid"])
+        except UnicodeDecodeError as error:
+            self.fail(f"invalid Git bytes crashed text decoding: {error}")
+        if result.stdout is None:
+            self.fail("invalid Git bytes made captured text unusable")
+        self.assertEqual(result.stdout.strip(), "invalid-\udc81-byte")
