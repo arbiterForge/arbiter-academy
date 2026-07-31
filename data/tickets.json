@@ -1,0 +1,13 @@
+[
+  {
+    "claimed_at": null,
+    "claimed_by": null,
+    "completed_at": null,
+    "created_at": "2026-07-30T10:00:00Z",
+    "description": "Set up the projector in Room A.",
+    "id": "RQ-101",
+    "resolution": null,
+    "status": "open",
+    "title": "Set up projector"
+  }
+]
