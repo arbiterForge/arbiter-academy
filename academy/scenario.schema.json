@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arbiter Academy scenario manifest",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "id", "files", "removals", "starting_task", "checkpoint", "requires_push_safe_setup"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source", "destination"], "properties": {"source": {"type": "string"}, "destination": {"type": "string"}}}},
+    "removals": {"type": "array", "items": {"type": "string"}},
+    "starting_task": {"type": "string", "minLength": 1},
+    "checkpoint": {"type": "string", "minLength": 1},
+    "requires_push_safe_setup": {"type": "boolean"}
+  }
+}
