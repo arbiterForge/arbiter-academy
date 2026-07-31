@@ -44,6 +44,7 @@ class CheckpointResult:
     catalog_digest: str = ""
     manifest_digest: str = ""
     source_digest: str = ""
+    contract_digest: str = ""
 
 def canonical_json(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
@@ -128,32 +129,37 @@ def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
     if definition.id != lab_id: raise CheckpointError("checkpoint ID does not match requested lab.")
     # A catalog fixture on its own is never learner evidence.  Every lab must
     # have a real, committed Academy attempt branch before its predicates count.
-    attempt = f"academy/{lab_id}/1"; evidence_path = f".academy/evidence/{lab_id}.json"; work_path = f".academy/work/{lab_id}/outcome.json"; governed_path = LAB_CONTRACT[lab_id]
+    attempt = f"academy/{lab_id}/1"
     try:
         attempt_exists = run_git(repository, ["show-ref", "--verify", "--quiet", f"refs/heads/{attempt}"], check=False).returncode == 0
         main_ancestor = attempt_exists and run_git(repository, ["merge-base", "--is-ancestor", "main", attempt], check=False).returncode == 0
-        base = run_git(repository, ["merge-base", "main", attempt]).stdout.strip()
+        base = run_git(repository, ["merge-base", "main", attempt]).stdout.strip(); head = run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
         catalog = Catalog.load(repository / "academy" / "catalog.json"); lab = catalog.lab(lab_id)
-        source_path = f"academy/tracks/{lab.track}/{lab_id}.md"
-        source_paths = ("academy/catalog.json", lab.manifest, lab.checkpoint, source_path)
+        contract_bytes = run_git(repository, ["show", "HEAD:academy/contracts.json"]).stdout.encode("utf-8", "surrogateescape")
+        contract_data = json.loads(contract_bytes)
+        contract = next(item for item in contract_data["contracts"] if item["id"] == lab_id)
+        if set(contract) != {"id", "title", "source_path", "checkpoint_path", "work_path", "governed_path", "corroboration_path", "outcome"} or contract["checkpoint_path"] != lab.checkpoint:
+            raise CheckpointError("lab contract is invalid.")
+        source_path = contract["source_path"]; work_path = contract["work_path"]; governed_path = contract["governed_path"]
+        source_paths = ("academy/catalog.json", lab.manifest, lab.checkpoint, source_path, "academy/contracts.json")
         source_clean = all(run_git(repository, ["diff", "--quiet", base, "--", path], check=False).returncode == 0 for path in source_paths)
         raw = {path: run_git(repository, ["show", f"{base}:{path}"]).stdout.encode("utf-8", "surrogateescape") for path in source_paths}
-        catalog_digest, manifest_digest, definition_digest, source_digest = (hashlib.sha256(raw[path]).hexdigest() for path in source_paths)
-        changed_paths = run_git(repository, ["diff", "--name-only", f"{base}...{attempt}"], check=False).stdout.splitlines() if main_ancestor else []
-        work_bytes = run_git(repository, ["show", f"{attempt}:{work_path}"]).stdout.encode("utf-8", "surrogateescape") if work_path in changed_paths else b""
-        governed_bytes = run_git(repository, ["show", f"{attempt}:{governed_path}"]).stdout.encode("utf-8", "surrogateescape") if governed_path in changed_paths else b""
-        head = run_git(repository, ["rev-parse", attempt]).stdout.strip()
-        evidence = json.loads(run_git(repository, ["show", f"{attempt}:{evidence_path}"]).stdout) if evidence_path in changed_paths else {}
-        expected = {"attempt_branch": attempt, "base_commit": base, "catalog_sha256": catalog_digest, "governed_blob_sha256": hashlib.sha256(governed_bytes).hexdigest(), "governed_path": governed_path, "lab_id": lab_id, "schema_version": 1, "source_sha256": source_digest, "status": "passed", "work_blob_sha256": hashlib.sha256(work_bytes).hexdigest(), "work_path": work_path}
-        identity = isinstance(evidence, dict) and isinstance(evidence.get("attempt_commit"), str) and len(evidence["attempt_commit"]) == 40 and run_git(repository, ["merge-base", "--is-ancestor", evidence["attempt_commit"], head], check=False).returncode == 0
-        committed_output = source_clean and bool(work_bytes) and bool(governed_bytes) and identity and {key: value for key, value in evidence.items() if key != "attempt_commit"} == expected
+        catalog_digest, manifest_digest, definition_digest, source_digest, contract_digest = (hashlib.sha256(raw[path]).hexdigest() for path in source_paths)
+        changed_paths = run_git(repository, ["diff", "--name-only", f"{base}...{head}"], check=False).stdout.splitlines() if main_ancestor else []
+        work_bytes = run_git(repository, ["show", f"HEAD:{work_path}"]).stdout.encode("utf-8", "surrogateescape") if work_path in changed_paths else b""
+        governed_bytes = run_git(repository, ["show", f"HEAD:{governed_path}"]).stdout.encode("utf-8", "surrogateescape") if governed_path in changed_paths else b""
+        prepared = any(line == f"academy: prepare {lab_id} attempt 1" for line in run_git(repository, ["log", "--format=%s", attempt]).stdout.splitlines())
+        attempt_ancestor = run_git(repository, ["merge-base", "--is-ancestor", attempt, head], check=False).returncode == 0
+        outcome = json.loads(work_bytes) if work_bytes else {}
+        corroboration = run_git(repository, ["show", f"HEAD:{contract['corroboration_path']}"]).stdout
+        committed_output = source_clean and prepared and attempt_ancestor and outcome == contract["outcome"] and json.loads(governed_bytes) == {"lab_id":lab_id,"status":"governed"} and bool(corroboration.strip())
     except Exception:
-        attempt_exists = main_ancestor = committed_output = False; catalog_digest = manifest_digest = definition_digest = source_digest = ""
+        attempt_exists = main_ancestor = committed_output = False; catalog_digest = manifest_digest = definition_digest = source_digest = contract_digest = ""
     passed_items = [item.id for item in definition.predicates if _evaluate(repository, item)]
     if attempt_exists and main_ancestor and committed_output:
         passed_items.extend(("prepared_attempt", "learner_evidence", "governed_output"))
     passed = tuple(passed_items); failed = tuple(item.id for item in definition.predicates if item.id not in passed)
     for required in ("prepared_attempt", "learner_evidence", "governed_output"):
         if required not in passed: failed += (required,)
-    digest = sha256({"lab_id": lab_id, "definition": definition_digest or definition.digest, "manifest": manifest_digest, "source": source_digest, "catalog": catalog_digest, "passed": not failed, "passed_predicates": passed, "failed_predicates": failed})
-    return CheckpointResult(lab_id, not failed, definition_digest or definition.digest, digest, passed, failed, catalog_digest, manifest_digest, source_digest)
+    digest = sha256({"lab_id": lab_id, "definition": definition_digest or definition.digest, "manifest": manifest_digest, "source": source_digest, "contract": contract_digest, "catalog": catalog_digest, "passed": not failed, "passed_predicates": passed, "failed_predicates": failed})
+    return CheckpointResult(lab_id, not failed, definition_digest or definition.digest, digest, passed, failed, catalog_digest, manifest_digest, source_digest, contract_digest)

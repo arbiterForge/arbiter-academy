@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from academy_engine.checkpoints import CheckpointResult, LAB_CONTRACT, canonical_json
+from academy_engine.checkpoints import CheckpointResult, LAB_CONTRACT, canonical_json, evaluate_checkpoint
 
 
 def _digest(value: object) -> str:
@@ -14,14 +14,20 @@ def _digest(value: object) -> str:
 
 def record_checkpoint(progress_path: Path, result: CheckpointResult) -> None:
     """Replace, never merge, progress with one fully-bound catalog result."""
+    if progress_path.name != "progress.json" or progress_path.parent.name != ".academy":
+        raise ValueError("progress path must be the canonical Academy progress document.")
     if result.lab_id not in LAB_CONTRACT:
         raise ValueError("checkpoint result is not a known Academy lab.")
+    recomputed = evaluate_checkpoint(progress_path.parent.parent, result.lab_id)
+    if recomputed != result:
+        raise ValueError("checkpoint result is not fresh repository evidence.")
     entry = {
         "id": result.lab_id,
         "catalog_sha256": _digest(result.catalog_digest),
         "definition_sha256": _digest(result.definition_digest),
         "manifest_sha256": _digest(result.manifest_digest),
         "source_sha256": _digest(result.source_digest),
+        "contract_sha256": _digest(result.contract_digest),
         "result_sha256": _digest(result.digest),
     }
     payload = {"schema_version": 1, "checkpoints": [entry]}

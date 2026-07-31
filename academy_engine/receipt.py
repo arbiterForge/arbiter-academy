@@ -29,21 +29,26 @@ def _catalog(root: Path) -> tuple[Catalog, str]:
         raise ValueError("Academy catalog could not be read.") from error
 def export_catalog(root: Path, output: Path) -> CatalogExport:
     catalog, catalog_digest = _catalog(root)
+    try:
+        contracts_raw = run_git(root, ["show", "HEAD:academy/contracts.json"]).stdout.encode("utf-8", "surrogateescape")
+        contracts = json.loads(contracts_raw)["contracts"]
+    except Exception as error: raise ValueError("catalog contracts are unavailable.") from error
     labs=[]
     for lab in catalog.labs:
         manifest = root / lab.manifest; checkpoint = root / lab.checkpoint
-        source_path = f"academy/tracks/{lab.track}/{lab.id}.md"; source = root / source_path
-        if not manifest.is_file() or not checkpoint.is_file() or not source.is_file(): raise ValueError("catalog artifact mapping is missing.")
+        contract = next((item for item in contracts if item.get("id") == lab.id), None)
+        if not manifest.is_file() or not checkpoint.is_file() or not isinstance(contract, dict): raise ValueError("catalog artifact mapping is missing.")
         try:
             definition = json.loads(checkpoint.read_text(encoding="utf-8")); manifest_data=json.loads(manifest.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error: raise ValueError("catalog artifact mapping is invalid.") from error
         try:
-            raw_source = run_git(root, ["show", f"HEAD:{source_path}"]).stdout.encode("utf-8", "surrogateescape")
             run_git(root, ["cat-file", "-e", f"HEAD:{lab.manifest}"])
             run_git(root, ["cat-file", "-e", f"HEAD:{lab.checkpoint}"])
         except Exception as error: raise ValueError("catalog artifact mapping is untracked.") from error
         if definition.get("id") != lab.id or manifest_data.get("id") != lab.id or manifest_data.get("checkpoint") != lab.checkpoint: raise ValueError("catalog artifact mapping is inconsistent.")
-        labs.append({"id":lab.id,"track":lab.track,"order":lab.order,"manifest_sha256":_digest(manifest_data),"checkpoint_sha256":_digest(definition),"source_sha256":hashlib.sha256(raw_source).hexdigest()})
+        source_path = contract.get("source_path")
+        raw_source = run_git(root, ["show", f"HEAD:{source_path}"], check=False).stdout.encode("utf-8", "surrogateescape") if isinstance(source_path, str) else b""
+        labs.append({"id":lab.id,"track":lab.track,"order":lab.order,"manifest_sha256":_digest(manifest_data),"checkpoint_sha256":_digest(definition),"contract_sha256":_digest(contract),"source_path":source_path,"source_sha256":hashlib.sha256(raw_source).hexdigest() if raw_source else None})
     data={"schema_version":1,"catalog_sha256":catalog_digest,"labs":labs}; validate_receipt_value(data); output.write_bytes(canonical_json(data)); return CatalogExport(data, _digest(data))
 def graduate(root: Path) -> GraduationReceipt:
     catalog, catalog_digest = _catalog(root); results=[]
@@ -57,5 +62,5 @@ def graduate(root: Path) -> GraduationReceipt:
         head = run_git(root,["rev-parse",capstone]).stdout.strip()
     except Exception as error:
         raise ValueError("graduation blocked: U07-capstone prepared attempt is unavailable.") from error
-    data={"schema_version":1,"source_commit":head,"catalog_sha256":catalog_digest,"checkpoints":[{"id":item.lab_id,"catalog_sha256":item.catalog_digest,"definition_sha256":item.definition_digest,"manifest_sha256":item.manifest_digest,"source_sha256":item.source_digest,"result_sha256":item.digest} for item in results],"capstone_commit_range":{"from":base,"to":head},"host_labels":["local-git"],"completion_date":datetime.now(timezone.utc).date().isoformat()}
+    data={"schema_version":1,"source_commit":head,"catalog_sha256":catalog_digest,"checkpoints":[{"id":item.lab_id,"catalog_sha256":item.catalog_digest,"definition_sha256":item.definition_digest,"manifest_sha256":item.manifest_digest,"source_sha256":item.source_digest,"contract_sha256":item.contract_digest,"result_sha256":item.digest} for item in results],"capstone_commit_range":{"from":base,"to":head},"host_labels":["local-git"],"completion_date":datetime.now(timezone.utc).date().isoformat()}
     validate_receipt_value(data); return GraduationReceipt(data,_digest(data))
