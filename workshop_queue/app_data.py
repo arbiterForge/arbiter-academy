@@ -43,11 +43,13 @@ def resolve_data_root(
     home = Path.home() if home is None else home
     if platform_name == "nt":
         local_app_data = environment.get("LOCALAPPDATA")
-        base = Path(local_app_data) if local_app_data else home / "AppData" / "Local"
+        candidate = Path(local_app_data) if local_app_data else None
+        base = candidate if candidate is not None and candidate.is_absolute() else home / "AppData" / "Local"
         return (base / "ArbiterAcademy" / "WorkshopQueue").expanduser().resolve()
 
     xdg_data_home = environment.get("XDG_DATA_HOME")
-    base = Path(xdg_data_home) if xdg_data_home else home / ".local" / "share"
+    candidate = Path(xdg_data_home) if xdg_data_home else None
+    base = candidate if candidate is not None and candidate.is_absolute() else home / ".local" / "share"
     return (base / "arbiter-academy" / "workshop-queue").expanduser().resolve()
 
 

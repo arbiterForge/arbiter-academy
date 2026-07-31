@@ -68,6 +68,23 @@ class DataRootTests(unittest.TestCase):
 
         self.assertEqual(resolved, (base / "LocalAppData" / "ArbiterAcademy" / "WorkshopQueue").resolve())
 
+    def test_windows_relative_localappdata_falls_back_beneath_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            home = Path(temporary_directory) / "home"
+
+            resolved = resolve_data_root(
+                None,
+                package_directory=home / "installed-package",
+                environ={"LOCALAPPDATA": "relative-local-app-data"},
+                platform_name="nt",
+                home=home,
+            )
+
+        self.assertEqual(
+            resolved,
+            (home / "AppData" / "Local" / "ArbiterAcademy" / "WorkshopQueue").resolve(),
+        )
+
     def test_posix_user_data_honors_xdg_data_home(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)
@@ -81,6 +98,23 @@ class DataRootTests(unittest.TestCase):
             )
 
         self.assertEqual(resolved, (base / "xdg" / "arbiter-academy" / "workshop-queue").resolve())
+
+    def test_posix_relative_xdg_data_home_falls_back_beneath_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            home = Path(temporary_directory) / "home"
+
+            resolved = resolve_data_root(
+                None,
+                package_directory=home / "installed-package",
+                environ={"XDG_DATA_HOME": "relative-xdg"},
+                platform_name="posix",
+                home=home,
+            )
+
+        self.assertEqual(
+            resolved,
+            (home / ".local" / "share" / "arbiter-academy" / "workshop-queue").resolve(),
+        )
 
     def test_posix_user_data_falls_back_beneath_home(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

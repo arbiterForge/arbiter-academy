@@ -10,6 +10,48 @@ import unittest
 from pathlib import Path
 
 
+SETUPTOOLS_WHEEL_NAME = "setuptools-83.0.0-py3-none-any.whl"
+SETUPTOOLS_SHA256 = "29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3"
+
+
+def verified_wheelhouse(value: str | None) -> Path:
+    if not value:
+        raise unittest.SkipTest(
+            "WORKSHOP_QUEUE_TEST_WHEELHOUSE is required with the verified setuptools==83.0.0 wheel"
+        )
+    wheelhouse = Path(value).expanduser().resolve()
+    wheel = wheelhouse / SETUPTOOLS_WHEEL_NAME
+    if not wheel.is_file():
+        raise AssertionError(f"verified wheelhouse must contain {SETUPTOOLS_WHEEL_NAME}")
+    observed = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    if observed != SETUPTOOLS_SHA256:
+        raise AssertionError(
+            f"setuptools wheel SHA-256 mismatch: expected {SETUPTOOLS_SHA256}, observed {observed}"
+        )
+    return wheelhouse
+
+
+def copy_indexed_source(repository: Path, destination: Path) -> None:
+    destination.mkdir(parents=True)
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=repository,
+        capture_output=True,
+        check=True,
+    ).stdout.decode("utf-8").split("\0")
+    for relative_path in (path for path in tracked if path):
+        target = destination / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(
+            subprocess.run(
+                ["git", "show", f":{relative_path}"],
+                cwd=repository,
+                capture_output=True,
+                check=True,
+            ).stdout
+        )
+
+
 def snapshot_files(root: Path) -> dict[str, str]:
     return {
         path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -18,11 +60,76 @@ def snapshot_files(root: Path) -> dict[str, str]:
     }
 
 
+def snapshot_checkout(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in root.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(root).parts
+    }
+
+
+class InstallerHarnessTests(unittest.TestCase):
+    def test_missing_wheelhouse_has_a_precise_skip_prerequisite(self) -> None:
+        with self.assertRaisesRegex(
+            unittest.SkipTest,
+            "WORKSHOP_QUEUE_TEST_WHEELHOUSE.*verified setuptools==83.0.0 wheel",
+        ):
+            verified_wheelhouse(None)
+
+    def test_supplied_wheelhouse_with_wrong_hash_fails_deterministically(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            wheelhouse = Path(temporary_directory)
+            (wheelhouse / SETUPTOOLS_WHEEL_NAME).write_bytes(b"not the reviewed wheel")
+
+            with self.assertRaisesRegex(AssertionError, "SHA-256 mismatch"):
+                verified_wheelhouse(str(wheelhouse))
+
+    def test_supplied_wheelhouse_missing_exact_wheel_fails_deterministically(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with self.assertRaisesRegex(AssertionError, SETUPTOOLS_WHEEL_NAME):
+                verified_wheelhouse(temporary_directory)
+
+    def test_scratch_source_contains_exactly_indexed_files_without_touching_checkout(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        before = snapshot_checkout(repository)
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z"],
+            cwd=repository,
+            capture_output=True,
+            check=True,
+        ).stdout.decode("utf-8").split("\0")
+        expected = {path for path in tracked if path}
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            source = Path(temporary_directory) / "source"
+            copy_indexed_source(repository, source)
+            actual = {
+                path.relative_to(source).as_posix()
+                for path in source.rglob("*")
+                if path.is_file()
+            }
+
+            self.assertEqual(actual, expected)
+            indexed_pyproject = subprocess.run(
+                ["git", "show", ":pyproject.toml"],
+                cwd=repository,
+                capture_output=True,
+                check=True,
+            ).stdout
+            self.assertEqual((source / "pyproject.toml").read_bytes(), indexed_pyproject)
+
+        self.assertEqual(snapshot_checkout(repository), before)
+
+
 class InstalledWheelTests(unittest.TestCase):
     def test_installed_cli_seeds_writable_app_data_without_changing_site_packages(self) -> None:
+        wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
         repository = Path(__file__).resolve().parents[1]
+        checkout_before = snapshot_checkout(repository)
         with tempfile.TemporaryDirectory() as temporary_directory:
             scratch = Path(temporary_directory)
+            source = scratch / "source"
+            copy_indexed_source(repository, source)
             wheel_directory = scratch / "wheel"
             wheel_directory.mkdir()
             build_command = [
@@ -30,14 +137,14 @@ class InstalledWheelTests(unittest.TestCase):
                 "-m",
                 "pip",
                 "wheel",
+                "--no-index",
+                "--find-links",
+                str(wheelhouse),
                 "--no-deps",
                 "--wheel-dir",
                 str(wheel_directory),
+                str(source),
             ]
-            wheelhouse = os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE")
-            if wheelhouse:
-                build_command.extend(["--no-index", "--find-links", wheelhouse])
-            build_command.append(str(repository))
             build = subprocess.run(build_command, text=True, capture_output=True, check=False)
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
 
@@ -53,7 +160,17 @@ class InstalledWheelTests(unittest.TestCase):
             executable = venv / ("Scripts/workshop-queue.exe" if os.name == "nt" else "bin/workshop-queue")
             wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
             install = subprocess.run(
-                [str(venv_python), "-m", "pip", "install", "--no-index", "--no-deps", str(wheel)],
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-index",
+                    "--find-links",
+                    str(wheelhouse),
+                    "--no-deps",
+                    str(wheel),
+                ],
                 text=True,
                 capture_output=True,
                 check=False,
@@ -114,6 +231,9 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertEqual(saved["status"], "completed")
             self.assertEqual(saved["resolution"], "Projector ready")
             self.assertEqual(snapshot_files(site_packages), before)
+        self.assertEqual(snapshot_checkout(repository), checkout_before)
+        for artifact in ("build", "dist", "workshop_queue.egg-info"):
+            self.assertFalse((repository / artifact).exists(), artifact)
 
 
 if __name__ == "__main__":
