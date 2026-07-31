@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import platform
+import json
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from academy_engine.command import GitCommandError, git_version, repository_root, run_git
+from academy_engine.paths import ensure_within
 from academy_engine.remotes import RemoteReport, validate_training_remotes
 
 
@@ -152,3 +156,38 @@ def inspect_doctor(root: Path | None = None) -> DoctorReport:
         tuple(issues),
         not issues,
     )
+
+
+def record_foundations_doctor(root: Path, report: DoctorReport) -> Path:
+    """Write the bounded F01 observation after a fully safe live inspection."""
+    if not report.safe_for_push_labs or report.remotes.effective_push_remote != "origin":
+        raise ValueError("F01 doctor evidence is recorded only after all safety checks pass.")
+    repository = repository_root(root)
+    destination = ensure_within(
+        repository, Path(".codearbiter/reports/academy/F01-doctor.json")
+    )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination = ensure_within(
+        repository, Path(".codearbiter/reports/academy/F01-doctor.json")
+    )
+    payload = {
+        "schema_version": 1,
+        "safe_for_push_labs": True,
+        "effective_push_remote": "origin",
+    }
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=destination.parent, prefix="F01-doctor.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, destination)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except OSError:
+            pass
+        raise
+    return destination

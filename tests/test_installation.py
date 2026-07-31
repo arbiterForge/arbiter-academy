@@ -311,6 +311,22 @@ class InstalledWheelTests(unittest.TestCase):
                 ),
                 19,
             )
+            foundations_sources = {
+                name.rsplit("/", 1)[-1]
+                for name in names
+                if "/share/arbiter-academy/academy/tracks/foundations/" in name
+                and name.endswith(".md")
+            }
+            self.assertEqual(
+                foundations_sources,
+                {
+                    "index.md",
+                    "F01-fork-clone-doctor.md",
+                    "F02-orient-to-state.md",
+                    "F03-work-the-board.md",
+                    "F04-fix-with-evidence.md",
+                },
+            )
 
             venv = scratch / "venv"
             subprocess.run(

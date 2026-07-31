@@ -34,8 +34,6 @@ def claim_ticket(tickets: Sequence[Ticket], ticket_id: str, volunteer: str, now:
                 raise InvalidTransition(f"ticket {ticket_id} is {ticket.status.value} and cannot be claimed")
             if not volunteer.strip():
                 raise ValueError("volunteer must be non-empty")
-            if any(ord(character) < 32 or ord(character) == 127 for character in volunteer):
-                raise ValueError("volunteer must not contain control characters")
             return _replace_ticket(
                 tickets,
                 ticket_id,

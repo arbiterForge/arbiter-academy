@@ -28,5 +28,20 @@ evidence, not signed credentials. The boundary and its limits are in
   provenance, license, and offline impact are reviewed.
 - The release board item is local exercise evidence, not authority to publish.
 
+## Commit secret scan
+
+`python scripts/scan_secrets.py --staged` inspects the exact added, copied, modified,
+and renamed Git index blobs by object identity. It excludes deleted paths and never
+reopens mutable worktree files as committed evidence. Byte-oriented, high-confidence
+rules cover private-key headers and common credential/token forms without entropy
+scoring or broad secret-word matching.
+
+Diagnostics contain only rule ID, safely escaped repository-relative path, and line
+number; secret-shaped paths are redacted. Git, index, or object inspection failures
+fail closed with exit `2` without replaying raw Git stderr or content. The scanner is
+Python standard-library-only, offline, and performs no credential or network lookup.
+It is preventive local evidence, not proof against an operator who replaces the
+scanner or Git executable.
+
 The [baseline checkpoint](checkpoints/2026-07-20-baseline.md) records the starting
 review posture.

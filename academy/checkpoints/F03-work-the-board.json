@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"F03-work-the-board","predicates":[{"id":"board_transition_and_audit","type":"lab_semantics","profile":"task_transition","board":".codearbiter/open-tasks.md","audit":".codearbiter/gate-events.log","task_id":"academy.feature.0001"}]}
+{"schema_version":2,"id":"F03-work-the-board","predicates":[{"id":"canonical_board_transition","type":"lab_semantics","profile":"task_transition","board":".codearbiter/open-tasks.md","task_id":"academy.feature.0001"}]}

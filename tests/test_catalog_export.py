@@ -62,7 +62,23 @@ class CatalogExportTests(unittest.TestCase):
             self.assertEqual(output.read_bytes(), original)
         self.assertRegex(payload["source_commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(len(payload["labs"]), 19)
-        self.assertTrue(all(item["source_status"] == "pending" for item in payload["labs"]))
+        statuses = {item["id"]: item["source_status"] for item in payload["labs"]}
+        self.assertEqual(
+            {lab_id for lab_id, status in statuses.items() if status == "authored"},
+            {
+                "F01-fork-clone-doctor",
+                "F02-orient-to-state",
+                "F03-work-the-board",
+                "F04-fix-with-evidence",
+            },
+        )
+        self.assertTrue(
+            all(
+                status == "pending"
+                for lab_id, status in statuses.items()
+                if not lab_id.startswith("F0")
+            )
+        )
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))
 
     def test_cli_rejects_non_object_or_unknown_key_manifest_without_traceback(self):

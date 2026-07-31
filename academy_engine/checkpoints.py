@@ -1,6 +1,8 @@
 """Fail-closed, repository-derived Academy checkpoint evaluation."""
 from __future__ import annotations
 
+import ast
+import copy
 import hashlib
 import json
 import re
@@ -42,7 +44,7 @@ _ATTEMPT = re.compile(r"^academy/(?P<lab>[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*)
 _PROFILES = {
     "remote_doctor": ("artifact",),
     "orientation": ("artifact", "context"),
-    "task_transition": ("board", "audit", "task_id"),
+    "task_transition": ("board", "task_id"),
     "tdd_history": ("code", "test"),
     "approved_spec_plan": ("spec", "plan", "board"),
     "pr_receipt": ("receipt",),
@@ -64,7 +66,7 @@ _REMOTE_PROFILES = frozenset({"remote_doctor", "pr_receipt", "refactor_chore_rel
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F01-fork-clone-doctor": ("remote_and_doctor", "remote_doctor", {"artifact": ".codearbiter/reports/academy/F01-doctor.json"}),
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
-    "F03-work-the-board": ("board_transition_and_audit", "task_transition", {"board": ".codearbiter/open-tasks.md", "audit": ".codearbiter/gate-events.log", "task_id": "academy.feature.0001"}),
+    "F03-work-the-board": ("canonical_board_transition", "task_transition", {"board": ".codearbiter/open-tasks.md", "task_id": "academy.feature.0001"}),
     "F04-fix-with-evidence": ("red_then_fix_history", "tdd_history", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
     "P01-feature-through-plan": ("approved_spec_plan_task", "approved_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md"}),
     "P02-commit-review-pr": ("review_pr_commit_range", "pr_receipt", {"receipt": ".codearbiter/reports/academy/P02-pr-receipt.json"}),
@@ -457,6 +459,32 @@ def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
     )
 
 
+def _exact_two_commit_range(
+    root: Path, prepared: str, head: str
+) -> tuple[str, str] | None:
+    result = run_git(
+        root,
+        ["rev-list", "--reverse", f"{prepared}..{head}"],
+        check=False,
+    )
+    commits = tuple(
+        line for line in result.stdout.splitlines() if _SHA40.fullmatch(line)
+    )
+    if result.returncode or len(commits) != 2:
+        return None
+    expected_parent = prepared
+    for commit in commits:
+        parents = run_git(
+            root, ["rev-list", "--parents", "-n", "1", commit], check=False
+        ).stdout.split()
+        if parents != [commit, expected_parent]:
+            return None
+        expected_parent = commit
+    if commits[-1] != head:
+        return None
+    return commits[0], commits[1]
+
+
 def _predicted_reviewers(paths: list[str]) -> list[str]:
     reviewers: set[str] = set()
     if any(path.startswith(".codearbiter/") for path in paths):
@@ -486,7 +514,7 @@ def _changed_blobs_are_secret_free(root: Path, commit: str, paths: list[str]) ->
     )
 
 
-def _discover_attempt(root: Path, lab_id: str) -> _Attempt:
+def _discover_attempt(root: Path, lab_id: str, *, require_current: bool) -> _Attempt:
     refs = run_git(
         root,
         ["for-each-ref", "--format=%(refname:short)", f"refs/heads/academy/{lab_id}/"],
@@ -501,11 +529,12 @@ def _discover_attempt(root: Path, lab_id: str) -> _Attempt:
         raise CheckpointError("Academy attempt is unavailable.")
     current = run_git(root, ["branch", "--show-current"], check=False).stdout.strip()
     current_match = _ATTEMPT.fullmatch(current)
-    selected = (
-        (int(current_match.group("number")), current)
-        if current_match is not None and current_match.group("lab") == lab_id
-        else max(choices)
-    )
+    if current_match is not None and current_match.group("lab") == lab_id:
+        selected = (int(current_match.group("number")), current)
+    elif require_current:
+        raise CheckpointError(f"current branch is not an Academy attempt for {lab_id}.")
+    else:
+        selected = max(choices)
     number, branch = selected
     head = run_git(root, ["rev-parse", branch]).stdout.strip()
     subject = f"academy: prepare {lab_id} attempt {number}"
@@ -630,6 +659,348 @@ def _changed_document(context: "_SemanticContext", path: str) -> str | None:
     ) else None
 
 
+def _control_regression_method_matches_contract(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> bool:
+    def is_control(value: object) -> bool:
+        return isinstance(value, str) and any(
+            ord(character) < 32 or ord(character) == 127 for character in value
+        )
+
+    invalid_bound = False
+    for loop in (node for node in ast.walk(function) if isinstance(node, ast.For)):
+        if not isinstance(loop.target, ast.Name) or not isinstance(loop.iter, (ast.Tuple, ast.List)):
+            continue
+        values = [item.value for item in loop.iter.elts if isinstance(item, ast.Constant)]
+        if len(values) != len(loop.iter.elts) or not values or not all(is_control(value) for value in values):
+            continue
+        for context in (node for node in ast.walk(loop) if isinstance(node, ast.With)):
+            raises_control = any(
+                isinstance(call := item.context_expr, ast.Call)
+                and isinstance(call.func, ast.Attribute)
+                and call.func.attr == "assertRaisesRegex"
+                and len(call.args) >= 2
+                and isinstance(call.args[0], ast.Name)
+                and call.args[0].id == "ValueError"
+                and isinstance(call.args[1], ast.Constant)
+                and isinstance(call.args[1].value, str)
+                and "control character" in call.args[1].value.casefold()
+                for item in context.items
+            )
+            if not raises_control:
+                continue
+            invalid_bound = any(
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "claim_ticket"
+                and len(call.args) >= 3
+                and (
+                    isinstance(call.args[2], ast.Name)
+                    and call.args[2].id == loop.target.id
+                    or isinstance(call.args[2], ast.Constant)
+                    and is_control(call.args[2].value)
+                )
+                for statement in context.body
+                for call in ast.walk(statement)
+            )
+            if invalid_bound:
+                break
+        if invalid_bound:
+            break
+
+    valid_bindings: dict[str, str] = {}
+    for statement in function.body:
+        if not (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == "claim_ticket"
+            and len(statement.value.args) >= 3
+            and isinstance(statement.value.args[2], ast.Constant)
+            and isinstance(statement.value.args[2].value, str)
+        ):
+            continue
+        label = statement.value.args[2].value
+        if label.strip() and not is_control(label):
+            valid_bindings[statement.targets[0].id] = label
+
+    valid_assertion = False
+    for call in (node for node in ast.walk(function) if isinstance(node, ast.Call)):
+        if not (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "assertEqual"
+            and len(call.args) == 2
+            and isinstance(call.args[0], ast.Attribute)
+            and call.args[0].attr == "claimed_by"
+            and isinstance(call.args[0].value, ast.Subscript)
+            and isinstance(call.args[0].value.value, ast.Name)
+            and isinstance(call.args[0].value.slice, ast.Constant)
+            and call.args[0].value.slice.value == 0
+            and isinstance(call.args[1], ast.Constant)
+            and isinstance(call.args[1].value, str)
+        ):
+            continue
+        binding = call.args[0].value.value.id
+        valid_assertion = valid_bindings.get(binding) == call.args[1].value
+        if valid_assertion:
+            break
+    return invalid_bound and valid_assertion
+
+
+def _imports_production_claim_ticket(tree: ast.Module) -> bool:
+    imports = [
+        alias
+        for statement in tree.body
+        if isinstance(statement, ast.ImportFrom)
+        and statement.module == "workshop_queue.service"
+        and statement.level == 0
+        for alias in statement.names
+        if alias.name == "claim_ticket" and alias.asname is None
+    ]
+    return len(imports) == 1
+
+
+def _scope_binds_claim_ticket(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> bool:
+    arguments = (
+        function.args.posonlyargs
+        + function.args.args
+        + function.args.kwonlyargs
+        + ([function.args.vararg] if function.args.vararg else [])
+        + ([function.args.kwarg] if function.args.kwarg else [])
+    )
+    if any(argument.arg == "claim_ticket" for argument in arguments):
+        return True
+    for node in ast.walk(function):
+        if (
+            isinstance(node, ast.Name)
+            and node.id == "claim_ticket"
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+        ):
+            return True
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and node is not function
+            and node.name == "claim_ticket"
+        ):
+            return True
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                bound = alias.asname or alias.name.split(".", 1)[0]
+                if bound == "claim_ticket":
+                    return True
+        if isinstance(node, ast.ExceptHandler) and node.name == "claim_ticket":
+            return True
+        if isinstance(node, (ast.MatchAs, ast.MatchStar)) and node.name == "claim_ticket":
+            return True
+        if isinstance(node, ast.MatchMapping) and node.rest == "claim_ticket":
+            return True
+    return False
+
+
+def _direct_control_regression(
+    tree: ast.Module,
+) -> tuple[ast.ClassDef, ast.FunctionDef | ast.AsyncFunctionDef] | None:
+    classes = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "TicketTransitionTests"
+    ]
+    if len(classes) != 1:
+        return None
+    methods = [
+        node
+        for node in classes[0].body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "test_claim_rejects_control_characters_in_volunteer_label"
+    ]
+    if len(methods) != 1:
+        return None
+    return classes[0], methods[0]
+
+
+def _without_control_regression(tree: ast.Module) -> ast.Module | None:
+    candidate = copy.deepcopy(tree)
+    located = _direct_control_regression(candidate)
+    if located is None:
+        return None
+    test_class, method = located
+    test_class.body.remove(method)
+    return candidate
+
+
+def _test_module_has_minimal_retained_control_regression(
+    prepared_blob: bytes | None,
+    regression_blob: bytes | None,
+    final_blob: bytes | None,
+) -> bool:
+    if prepared_blob is None or regression_blob is None or final_blob is None:
+        return False
+    try:
+        prepared_tree = ast.parse(prepared_blob.decode("utf-8"))
+        regression_tree = ast.parse(regression_blob.decode("utf-8"))
+        final_tree = ast.parse(final_blob.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    if _direct_control_regression(prepared_tree) is not None:
+        return False
+    if not all(
+        _imports_production_claim_ticket(tree)
+        for tree in (prepared_tree, regression_tree, final_tree)
+    ):
+        return False
+    regression = _direct_control_regression(regression_tree)
+    final = _direct_control_regression(final_tree)
+    if regression is None or final is None:
+        return False
+    regression_method, final_method = regression[1], final[1]
+    if (
+        _scope_binds_claim_ticket(regression_method)
+        or _scope_binds_claim_ticket(final_method)
+        or not _control_regression_method_matches_contract(regression_method)
+        or not _control_regression_method_matches_contract(final_method)
+        or ast.dump(regression_method, include_attributes=False)
+        != ast.dump(final_method, include_attributes=False)
+    ):
+        return False
+    regression_without = _without_control_regression(regression_tree)
+    final_without = _without_control_regression(final_tree)
+    if regression_without is None or final_without is None:
+        return False
+    prepared_dump = ast.dump(prepared_tree, include_attributes=False)
+    return (
+        ast.dump(regression_without, include_attributes=False) == prepared_dump
+        and ast.dump(final_without, include_attributes=False) == prepared_dump
+    )
+
+
+def _character_control_predicate(test: ast.expr) -> bool:
+    if not (
+        isinstance(test, ast.Call)
+        and isinstance(test.func, ast.Name)
+        and test.func.id == "any"
+        and len(test.args) == 1
+        and not test.keywords
+        and isinstance(test.args[0], ast.GeneratorExp)
+    ):
+        return False
+    generator = test.args[0]
+    if len(generator.generators) != 1:
+        return False
+    comprehension = generator.generators[0]
+    if not (
+        isinstance(comprehension.target, ast.Name)
+        and isinstance(comprehension.iter, ast.Name)
+        and comprehension.iter.id == "volunteer"
+        and not comprehension.ifs
+        and not comprehension.is_async
+    ):
+        return False
+    character = comprehension.target.id
+    terms = generator.elt.values if isinstance(generator.elt, ast.BoolOp) and isinstance(generator.elt.op, ast.Or) else ()
+
+    def operand(expression: ast.expr) -> tuple[str, object] | None:
+        if isinstance(expression, ast.Name) and expression.id == character:
+            return ("character", character)
+        if (
+            isinstance(expression, ast.Call)
+            and isinstance(expression.func, ast.Name)
+            and expression.func.id == "ord"
+            and len(expression.args) == 1
+            and isinstance(expression.args[0], ast.Name)
+            and expression.args[0].id == character
+        ):
+            return ("ord", character)
+        return None
+
+    lower = False
+    delete = False
+    for term in terms:
+        if not isinstance(term, ast.Compare) or len(term.ops) != 1 or len(term.comparators) != 1:
+            continue
+        left = operand(term.left)
+        right = term.comparators[0]
+        if left == ("ord", character) and isinstance(right, ast.Constant) and type(right.value) is int:
+            lower = lower or (isinstance(term.ops[0], ast.Lt) and right.value == 32)
+            delete = delete or (isinstance(term.ops[0], ast.Eq) and right.value == 127)
+        if left == ("character", character) and isinstance(right, ast.Constant) and isinstance(right.value, str):
+            lower = lower or (isinstance(term.ops[0], ast.Lt) and right.value == " ")
+            delete = delete or (isinstance(term.ops[0], ast.Eq) and right.value == "\x7f")
+    return lower and delete
+
+
+def _service_has_minimal_control_repair(
+    prepared_blob: bytes | None, final_blob: bytes | None
+) -> bool:
+    if prepared_blob is None or final_blob is None:
+        return False
+    try:
+        prepared_tree = ast.parse(prepared_blob.decode("utf-8"))
+        final_tree = ast.parse(final_blob.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    prepared_functions = [
+        node for node in prepared_tree.body if isinstance(node, ast.FunctionDef) and node.name == "claim_ticket"
+    ]
+    final_functions = [
+        node for node in final_tree.body if isinstance(node, ast.FunctionDef) and node.name == "claim_ticket"
+    ]
+    if len(prepared_functions) != 1 or len(final_functions) != 1:
+        return False
+    prepared_dump = ast.dump(prepared_tree, include_attributes=False)
+    successful_removals = 0
+    function = final_functions[0]
+    for ticket_branch in (node for node in function.body if isinstance(node, ast.For)):
+        for match_branch in (node for node in ticket_branch.body if isinstance(node, ast.If)):
+            names = {node.id for node in ast.walk(match_branch.test) if isinstance(node, ast.Name)}
+            attributes = {
+                node.attr for node in ast.walk(match_branch.test) if isinstance(node, ast.Attribute)
+            }
+            if "ticket_id" not in names or "ticket_id" not in attributes:
+                continue
+            for index, branch in enumerate(match_branch.body):
+                if (
+                    not isinstance(branch, ast.If)
+                    or branch.orelse
+                    or index + 1 >= len(match_branch.body)
+                    or not isinstance(match_branch.body[index + 1], ast.Return)
+                ):
+                    continue
+                raises = [node for node in branch.body if isinstance(node, ast.Raise)]
+                messages = {
+                    node.value
+                    for raised in raises
+                    for node in ast.walk(raised)
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                }
+                if not (
+                    len(branch.body) == 1
+                    and len(raises) == 1
+                    and _character_control_predicate(branch.test)
+                    and any("control character" in value.casefold() for value in messages)
+                ):
+                    continue
+                candidate = copy.deepcopy(final_tree)
+                candidate_matches = [
+                    node
+                    for node in ast.walk(candidate)
+                    if isinstance(node, ast.If)
+                    and getattr(node, "lineno", None) == getattr(match_branch, "lineno", None)
+                    and getattr(node, "col_offset", None)
+                    == getattr(match_branch, "col_offset", None)
+                ]
+                if len(candidate_matches) != 1:
+                    continue
+                candidate_match = candidate_matches[0]
+                del candidate_match.body[index]
+                if ast.dump(candidate, include_attributes=False) == prepared_dump:
+                    successful_removals += 1
+    return successful_removals == 1
+
+
 @dataclass(frozen=True)
 class _SemanticContext:
     root: Path
@@ -720,8 +1091,12 @@ def _semantic(context: _SemanticContext) -> bool:
         return False
     if profile == "remote_doctor":
         artifact = _json(root, attempt.head, str(data["artifact"]))
+        clean = not run_git(
+            root, ["status", "--porcelain", "--untracked-files=all"], check=False
+        ).stdout
         return bool(
             artifact
+            and clean
             and _changed(root, attempt.prepared, attempt.head, str(data["artifact"]))
             and set(artifact) == {"schema_version", "safe_for_push_labs", "effective_push_remote"}
             and _version(artifact["schema_version"], 1)
@@ -747,32 +1122,67 @@ def _semantic(context: _SemanticContext) -> bool:
             and artifact["stage"] == int(match.group(1))
         )
     if profile == "task_transition":
-        board, audit, task_id = str(data["board"]), str(data["audit"]), str(data["task_id"])
+        board, task_id = str(data["board"]), str(data["task_id"])
         before, after = _text(root, attempt.prepared, board), _changed_document(context, board)
-        appended = _changed_document(context, audit)
-        same_commit = set(_path_commits(root, attempt.prepared, attempt.head, board)) & set(
-            _path_commits(root, attempt.prepared, attempt.head, audit)
+        if not before or not after:
+            return False
+        before_lines = before.splitlines(keepends=True)
+        after_lines = after.splitlines(keepends=True)
+        if len(before_lines) != len(after_lines):
+            return False
+        changed = [
+            (old, new)
+            for old, new in zip(before_lines, after_lines, strict=True)
+            if old != new
+        ]
+        if len(changed) != 1:
+            return False
+        old_line, new_line = (line.rstrip("\r\n") for line in changed[0])
+        old_match = re.fullmatch(
+            rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old_line
         )
+        new_match = re.fullmatch(
+            rf"- \[x\] {re.escape(task_id)} - (?P<body>.+?)  \(done (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)",
+            new_line,
+        )
+        commits = _path_commits(root, attempt.prepared, attempt.head, board)
+        commit_date = (
+            run_git(root, ["show", "-s", "--format=%as", commits[0]], check=False).stdout.strip()
+            if len(commits) == 1
+            else ""
+        )
+        clean = run_git(
+            root, ["diff", "--no-ext-diff", "--quiet", attempt.head, "--", board], check=False
+        ).returncode == 0
         return bool(
-            before
-            and after
-            and appended
-            and re.search(rf"(?m)^- \[ \] {re.escape(task_id)}\b", before)
-            and re.search(rf"(?m)^- \[x\] {re.escape(task_id)}\b", after)
-            and task_id in appended
-            and same_commit
+            old_match
+            and new_match
+            and old_match.group("body") == new_match.group("body")
+            and new_match.group("date") == commit_date
+            and clean
         )
     if profile == "tdd_history":
         code, test = str(data["code"]), str(data["test"])
-        code_commits = _path_commits(root, attempt.prepared, attempt.head, code)
-        test_commits = _path_commits(root, attempt.prepared, attempt.head, test)
+        commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
+        if commits is None:
+            return False
+        test_commit, code_commit = commits
         return bool(
-            code_commits
-            and test_commits
-            and code_commits[0] != test_commits[0]
+            set(_commit_paths(root, test_commit)) == {test}
+            and set(_commit_paths(root, code_commit)) == {code}
             and run_git(
-                root, ["merge-base", "--is-ancestor", test_commits[0], code_commits[-1]], check=False
+                root, ["merge-base", "--is-ancestor", test_commit, code_commit], check=False
             ).returncode == 0
+            and _git_blob(root, test_commit, code) == _git_blob(root, attempt.prepared, code)
+            and _test_module_has_minimal_retained_control_regression(
+                _git_blob(root, attempt.prepared, test),
+                _git_blob(root, test_commit, test),
+                _git_blob(root, attempt.head, test),
+            )
+            and _service_has_minimal_control_repair(
+                _git_blob(root, attempt.prepared, code),
+                _git_blob(root, attempt.head, code),
+            )
         )
     if profile == "approved_spec_plan":
         # Task 8 supplies an independently recomputable approval predicate and fixture.
@@ -1154,14 +1564,18 @@ def _valid_pr_receipt(context: _SemanticContext, path: str) -> bool:
     )
 
 
-def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
+def evaluate_checkpoint(
+    root: Path, lab_id: str, *, require_current_attempt: bool = True
+) -> CheckpointResult:
     if lab_id not in LAB_INVENTORY:
         raise CheckpointError("checkpoint ID is not in the exact Academy inventory.")
     repository = Path(root).resolve()
     try:
         repository = repository_root(repository)
         validate_repository_git_config(repository)
-        attempt = _discover_attempt(repository, lab_id)
+        attempt = _discover_attempt(
+            repository, lab_id, require_current=require_current_attempt
+        )
         contracts, contract, definition = _load_attempt_definition(
             repository, attempt.base, lab_id
         )

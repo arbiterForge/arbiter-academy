@@ -50,15 +50,6 @@ class TicketTransitionTests(unittest.TestCase):
         with self.assertRaisesRegex(InvalidTransition, "completed"):
             claim_ticket([completed_ticket("RQ-104")], "RQ-104", "Sam", fixed_now())
 
-    def test_claim_rejects_control_characters_in_volunteer_label(self) -> None:
-        for volunteer in ("Sam\nAdmin", "Sam\tAdmin", "Sam\x7fAdmin"):
-            with self.subTest(volunteer=repr(volunteer)):
-                with self.assertRaisesRegex(ValueError, "control characters"):
-                    claim_ticket([open_ticket("RQ-104")], "RQ-104", volunteer, fixed_now())
-
-        claimed = claim_ticket([open_ticket("RQ-104")], "RQ-104", "Sam Allen", fixed_now())
-        self.assertEqual(claimed[0].claimed_by, "Sam Allen")
-
     def test_complete_requires_a_claimed_ticket_and_records_resolution(self) -> None:
         claimed = claim_ticket([open_ticket("RQ-104")], "RQ-104", "Sam", fixed_now())
         completed_at = datetime(2026, 7, 30, 12, 5, tzinfo=timezone.utc)

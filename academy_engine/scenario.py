@@ -98,7 +98,11 @@ def _ensure_mutation_remote_safety(root: Path, manifest: ScenarioManifest) -> No
     )
     if not report.origin_fork_compatible or report.effective_push_remote != "origin" or not origin_targets_safe:
         raise PreparationError("scenario mutation requires a fork-safe origin and origin push routing.")
-    if manifest.requires_push_safe_setup:
+    # F01 exists to finish and verify the upstream half of a real fork-shaped
+    # checkout.  Its origin and effective push route must already be safe before
+    # any mutation, but demanding a complete upstream contract here would make
+    # the exercise vacuous.  The F01 checkpoint still requires the full contract.
+    if manifest.requires_push_safe_setup and manifest.id != "F01-fork-clone-doctor":
         try:
             validate_training_remotes(
                 root, require_push_safe=True, trust_local_config=True

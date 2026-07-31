@@ -13,7 +13,8 @@ from academy_engine.command import (
     repository_root,
     validate_repository_git_config,
 )
-from academy_engine.doctor import inspect_doctor
+from academy_engine.curriculum import CurriculumError, verify_track
+from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.evidence import record_checkpoint
 from academy_engine.progress import inspect_progress
 from academy_engine.receipt import ReceiptPrivacyError, export_catalog, graduate
@@ -61,9 +62,15 @@ def _parser() -> argparse.ArgumentParser:
             "check",
             "graduate",
             "export-catalog",
+            "verify-track",
         ),
     )
     parser.add_argument("lab_id", nargs="?")
+    parser.add_argument(
+        "--matrix",
+        action="store_true",
+        help="include the declared positive/adversarial curriculum matrix",
+    )
     return parser
 
 
@@ -85,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.command == "doctor":
             report = inspect_doctor(repository)
             print(report.render())
+            if arguments.lab_id:
+                if arguments.lab_id != "F01-fork-clone-doctor":
+                    parser.error("doctor evidence is available only for F01-fork-clone-doctor")
+                destination = record_foundations_doctor(repository, report)
+                print(f"Recorded {destination.relative_to(repository).as_posix()}")
             return 0 if report.safe_for_push_labs else 1
         if arguments.command in {"prepare", "reset"}:
             if not arguments.lab_id:
@@ -125,10 +137,17 @@ def main(argv: list[str] | None = None) -> int:
             result = export_catalog(repository, Path(arguments.lab_id))
             print(result.digest)
             return 0
+        if arguments.command == "verify-track":
+            if not arguments.lab_id:
+                parser.error("verify-track requires TRACK")
+            report = verify_track(repository, arguments.lab_id, matrix=arguments.matrix)
+            print(report.render())
+            return 0 if report.passed else 1
         print(inspect_progress(repository).render())
         return 0
     except (
         CatalogError,
+        CurriculumError,
         GitCommandError,
         PreparationError,
         RemoteSafetyError,

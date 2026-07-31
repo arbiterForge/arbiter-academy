@@ -302,7 +302,10 @@ def _ATTEMPT_FOR(lab_id: str) -> re.Pattern[str]:
 
 def graduate(root: Path) -> GraduationReceipt:
     repository = Path(root).resolve()
-    results = [evaluate_checkpoint(repository, lab_id) for lab_id in LAB_INVENTORY]
+    results = [
+        evaluate_checkpoint(repository, lab_id, require_current_attempt=False)
+        for lab_id in LAB_INVENTORY
+    ]
     failed = [
         f"{item.lab_id}: {', '.join(item.failed_predicates)}"
         for item in results
