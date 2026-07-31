@@ -59,6 +59,75 @@ class WorkshopQueueCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)[0]["id"], "RQ-101")
 
+    def test_explicit_data_root_is_seeded_without_touching_user_data(self) -> None:
+        with tempfile.TemporaryDirectory() as isolated_root:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "workshop_queue",
+                    "--data-root",
+                    isolated_root,
+                    "list",
+                    "--format",
+                    "json",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)[0]["id"], "RQ-101")
+            self.assertTrue((Path(isolated_root) / "tickets.json").is_file())
+
+    def test_explicit_data_root_does_not_authorize_an_outside_data_file(self) -> None:
+        with tempfile.TemporaryDirectory() as isolated_root, tempfile.TemporaryDirectory() as outside:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "workshop_queue",
+                    "--data-root",
+                    isolated_root,
+                    "--data-file",
+                    str(Path(outside) / "tickets.json"),
+                    "list",
+                    "--format",
+                    "json",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("trusted data root", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_source_checkout_default_reads_repository_data(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "workshop_queue", "list", "--format", "json"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)[0]["id"], "RQ-101")
+
+    def test_seed_initialization_failure_returns_a_stable_cli_error(self) -> None:
+        stderr = io.StringIO()
+        with tempfile.TemporaryDirectory() as isolated_root, patch(
+            "workshop_queue.cli.initialize_ticket_store",
+            side_effect=StoreWriteError("could not initialize ticket store"),
+        ), redirect_stderr(stderr):
+            return_code = main(["--data-root", isolated_root, "list", "--format", "json"])
+
+        self.assertEqual(return_code, 2)
+        self.assertEqual(stderr.getvalue(), "error: could not initialize ticket store\n")
+        self.assertNotIn("Traceback", stderr.getvalue())
+
     def test_claim_persists_attribution(self) -> None:
         result = self.run_cli("claim", "RQ-101", "--volunteer", "Sam")
 

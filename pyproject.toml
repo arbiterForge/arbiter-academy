@@ -14,3 +14,6 @@ workshop-queue = "workshop_queue.cli:main"
 
 [tool.setuptools]
 packages = ["workshop_queue"]
+
+[tool.setuptools.package-data]
+workshop_queue = ["seed/tickets.json"]

@@ -9,17 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
+from .app_data import initialize_ticket_store, resolve_data_root
 from .model import Ticket, TicketStatus
 from .service import InvalidTransition, TicketNotFound, claim_ticket, complete_ticket
 from .store import JsonTicketStore, MalformedStoreError, PathBoundaryError, StoreWriteError
 
 
 def _default_data_file() -> Path:
-    return Path(__file__).resolve().parent.parent / "data" / "tickets.json"
-
-
-def _project_data_root() -> Path:
-    return Path(__file__).resolve().parent.parent / "data"
+    return Path("tickets.json")
 
 
 def _resolve_data_file(value: Path, data_root: Path) -> Path:
@@ -28,6 +25,11 @@ def _resolve_data_file(value: Path, data_root: Path) -> Path:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="workshop-queue")
+    parser.add_argument(
+        "--data-root",
+        type=Path,
+        help="trusted root for Workshop Queue data (defaults to checkout or platform app data)",
+    )
     parser.add_argument("--data-file", type=Path, default=_default_data_file())
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -72,9 +74,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return int(exc.code)
 
     try:
-        data_root = _project_data_root()
+        data_root = resolve_data_root(arguments.data_root)
         data_file = _resolve_data_file(arguments.data_file, data_root)
         store = JsonTicketStore(data_file, allowed_root=data_root)
+        initialize_ticket_store(store.path)
         tickets = store.load()
         if arguments.command == "list":
             _write_tickets(tickets, arguments.format)
