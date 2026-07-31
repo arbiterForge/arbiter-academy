@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","additionalProperties":false,"required":["schema_version","id","predicates"],"properties":{"schema_version":{"const":1},"id":{"type":"string","pattern":"^[FPU][0-9]{2}-[a-z0-9-]+$"},"predicates":{"type":"array","minItems":1,"items":{"type":"object"}}}}

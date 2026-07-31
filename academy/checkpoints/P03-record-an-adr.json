@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P03-record-an-adr","predicates":[{"id":"adr","type":"file_exists","path":".codearbiter/decisions/0001-json-storage-boundary.md"}]}

@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P01-feature-through-plan","predicates":[{"id":"plan","type":"file_exists","path":".codearbiter/plans/ticket-assignment.md"}]}

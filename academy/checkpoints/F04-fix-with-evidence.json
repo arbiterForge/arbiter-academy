@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"F04-fix-with-evidence","predicates":[{"id":"evidence","type":"file_exists","path":".codearbiter/checkpoints/2026-07-20-baseline.md"}]}

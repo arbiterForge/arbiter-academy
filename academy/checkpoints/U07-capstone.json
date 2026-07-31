@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U07-capstone","predicates":[{"id":"spec","type":"file_exists","path":".codearbiter/specs/ticket-assignment.md"}]}

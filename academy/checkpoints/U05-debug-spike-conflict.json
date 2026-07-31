@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U05-debug-spike-conflict","predicates":[{"id":"questions","type":"file_exists","path":".codearbiter/open-questions.md"}]}

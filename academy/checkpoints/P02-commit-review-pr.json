@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P02-commit-review-pr","predicates":[{"id":"audit","type":"file_exists","path":".codearbiter/sprint-log.md"}]}

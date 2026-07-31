@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P08-repository-hygiene","predicates":[{"id":"standards","type":"file_exists","path":".codearbiter/coding-standards.md"}]}

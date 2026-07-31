@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U03-refactor-chore-release","predicates":[{"id":"tech-stack","type":"file_exists","path":".codearbiter/tech-stack.md"}]}

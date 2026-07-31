@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U04-initialize-projects","predicates":[{"id":"context","type":"file_exists","path":".codearbiter/CONTEXT.md"}]}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import os
 from pathlib import Path
 from typing import Sequence
 
@@ -12,6 +13,10 @@ class GitCommandError(RuntimeError):
 
 
 def _run(command: Sequence[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+    # Preserve only runtime variables Git needs; credentials, tokens, and arbitrary
+    # caller variables are deliberately omitted.
+    environment = {key: os.environ[key] for key in ("SystemRoot", "WINDIR", "PATH", "PATHEXT", "COMSPEC", "HOME", "USERPROFILE", "TMP", "TEMP") if key in os.environ}
+    environment["GIT_TERMINAL_PROMPT"] = "0"
     try:
         result = subprocess.run(
             list(command),
@@ -22,7 +27,11 @@ def _run(command: Sequence[str], *, cwd: Path, check: bool) -> subprocess.Comple
             capture_output=True,
             shell=False,
             check=False,
+            timeout=10,
+            env=environment,
         )
+    except subprocess.TimeoutExpired as error:
+        raise GitCommandError("Git command exceeded its bounded timeout.") from error
     except FileNotFoundError as error:
         raise GitCommandError("Git executable was not found on PATH.") from error
     if check and result.returncode:

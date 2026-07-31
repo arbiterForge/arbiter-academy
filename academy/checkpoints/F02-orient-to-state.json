@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"F02-orient-to-state","predicates":[{"id":"state","type":"file_exists","path":".codearbiter/open-tasks.md"}]}

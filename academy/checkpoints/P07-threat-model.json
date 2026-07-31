@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P07-threat-model","predicates":[{"id":"questions","type":"file_exists","path":".codearbiter/open-questions.md"}]}

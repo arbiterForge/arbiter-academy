@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P04-review-a-dependency","predicates":[{"id":"controls","type":"file_exists","path":".codearbiter/security-controls.md"}]}

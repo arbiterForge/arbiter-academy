@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U01-autonomous-sprint","predicates":[{"id":"sprint-log","type":"file_exists","path":".codearbiter/sprint-log.md"}]}
