@@ -62,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
     except (CatalogError, GitCommandError, PreparationError, RemoteSafetyError, UpdateError, CheckpointError, ReceiptPrivacyError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    except OSError:
+        print("error: Academy command could not complete.", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

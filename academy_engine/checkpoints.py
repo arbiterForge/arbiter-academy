@@ -15,6 +15,11 @@ from academy_engine.paths import PathBoundaryError, ensure_within
 _TYPES = frozenset({"file_exists", "file_contains", "json_equals", "git_branch", "git_ancestor", "command_success", "audit_contains"})
 _MAX_COMMAND_ARGS = 16
 _MAX_OUTPUT = 8192
+LAB_CONTRACT = {
+    "F01-fork-clone-doctor": ".codearbiter/CONTEXT.md", "F02-orient-to-state": ".codearbiter/open-tasks.md", "F03-work-the-board": ".codearbiter/open-tasks.md", "F04-fix-with-evidence": "workshop_queue/service.py",
+    "P01-feature-through-plan": ".codearbiter/plans/ticket-assignment.md", "P02-commit-review-pr": ".codearbiter/sprint-log.md", "P03-record-an-adr": ".codearbiter/decisions/0001-json-storage-boundary.md", "P04-review-a-dependency": ".codearbiter/security-controls.md", "P05-checkpoint-remediation": ".codearbiter/checkpoints/2026-07-20-baseline.md", "P06-context-drift-recovery": ".codearbiter/CONTEXT.md", "P07-threat-model": ".codearbiter/security-controls.md", "P08-repository-hygiene": ".codearbiter/open-tasks.md",
+    "U01-autonomous-sprint": ".codearbiter/sprint-log.md", "U02-override-audit-metrics": ".codearbiter/overrides.log", "U03-refactor-chore-release": ".codearbiter/tech-stack.md", "U04-initialize-projects": ".codearbiter/CONTEXT.md", "U05-debug-spike-conflict": ".codearbiter/open-questions.md", "U06-preview-and-advanced-surfaces": ".codearbiter/gate-events.log", "U07-capstone": ".codearbiter/reports/2026-07-20-baseline/summary.md",
+}
 
 class CheckpointError(ValueError):
     """A checkpoint definition or its evidence is invalid or unsafe."""
@@ -131,7 +136,24 @@ def _evaluate(root: Path, predicate: Predicate) -> bool:
 def evaluate_checkpoint(root: Path, lab_id: str) -> CheckpointResult:
     repository = Path(root).resolve(); definition = load_checkpoint(repository / "academy" / "checkpoints" / f"{lab_id}.json")
     if definition.id != lab_id: raise CheckpointError("checkpoint ID does not match requested lab.")
-    passed = tuple(item.id for item in definition.predicates if _evaluate(repository, item)); failed = tuple(item.id for item in definition.predicates if item.id not in passed)
+    # A catalog fixture on its own is never learner evidence.  Every lab must
+    # have a real, committed Academy attempt branch before its predicates count.
+    if lab_id not in LAB_CONTRACT: raise CheckpointError("checkpoint ID is not in the exact Academy inventory.")
+    attempt = f"academy/{lab_id}/1"; evidence_path = f".academy/evidence/{lab_id}.json"; governed_path = LAB_CONTRACT[lab_id]
+    try:
+        attempt_exists = run_git(repository, ["show-ref", "--verify", "--quiet", f"refs/heads/{attempt}"], check=False).returncode == 0
+        main_ancestor = attempt_exists and run_git(repository, ["merge-base", "--is-ancestor", "main", attempt], check=False).returncode == 0
+        changed_paths = run_git(repository, ["diff", "--name-only", "main..." + attempt], check=False).stdout.splitlines() if main_ancestor else []
+        evidence = json.loads(run_git(repository, ["show", f"{attempt}:{evidence_path}"]).stdout) if evidence_path in changed_paths else {}
+        committed_output = governed_path in changed_paths and evidence == {"artifact_sha256": hashlib.sha256(governed_path.encode("utf-8")).hexdigest(), "governed_path": governed_path, "lab_id": lab_id, "schema_version": 1, "status": "passed"}
+    except Exception:
+        attempt_exists = main_ancestor = committed_output = False
+    passed_items = [item.id for item in definition.predicates if _evaluate(repository, item)]
+    if attempt_exists and main_ancestor and committed_output:
+        passed_items.extend(("prepared_attempt", "learner_evidence", "governed_output"))
+    passed = tuple(passed_items); failed = tuple(item.id for item in definition.predicates if item.id not in passed)
+    for required in ("prepared_attempt", "learner_evidence", "governed_output"):
+        if required not in passed: failed += (required,)
     catalog_digest = hashlib.sha256(canonical_json(json.loads((repository / "academy" / "catalog.json").read_text(encoding="utf-8")))).hexdigest()
     digest = sha256({"lab_id": lab_id, "definition": definition.digest, "catalog": catalog_digest, "passed": not failed, "passed_predicates": passed, "failed_predicates": failed})
     return CheckpointResult(lab_id, not failed, definition.digest, digest, passed, failed)
