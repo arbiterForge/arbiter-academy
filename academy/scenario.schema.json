@@ -6,10 +6,14 @@
   "properties": {
     "schema_version": {"const": 1},
     "id": {"type": "string", "pattern": "^[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"},
-    "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source", "destination"], "properties": {"source": {"type": "string"}, "destination": {"type": "string"}}}},
-    "removals": {"type": "array", "items": {"type": "string"}},
+    "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source", "destination"], "properties": {"source": {"$ref": "#/$defs/scenario_path"}, "destination": {"$ref": "#/$defs/scenario_path"}}}},
+    "removals": {"type": "array", "items": {"$ref": "#/$defs/scenario_path"}},
     "starting_task": {"type": "string", "minLength": 1},
-    "checkpoint": {"type": "string", "minLength": 1},
+    "checkpoint": {"$ref": "#/$defs/path"},
     "requires_push_safe_setup": {"type": "boolean"}
+  },
+  "$defs": {
+    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"},
+    "scenario_path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)(?!.*(?:^|/)(?:\\.git|\\.academy|\\.codearbiter|academy)(?:/|$))[^\\u0000-\\u001F\\u007F]+$"}
   }
 }

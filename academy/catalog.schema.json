@@ -16,10 +16,11 @@
         "id": {"type": "string", "pattern": "^[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"},
         "track": {"enum": ["foundations", "practitioner", "power-user"]},
         "order": {"type": "integer", "minimum": 1},
-        "manifest": {"type": "string"}, "checkpoint": {"type": "string"},
+        "manifest": {"$ref": "#/$defs/path"}, "checkpoint": {"$ref": "#/$defs/path"},
         "prerequisites": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "requires_push_safe_setup": {"type": "boolean"}
       }
-    }
+    },
+    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"}
   }
 }

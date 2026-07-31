@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,19 +29,28 @@ def academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     manifest = root / "academy" / "scenarios" / "F01-fork-clone-doctor"
     (manifest / "files").mkdir(parents=True)
     (manifest / "files" / "seed.txt").write_text("starting state\n", encoding="utf-8")
-    (root / "academy" / "catalog.json").write_text(json.dumps({"schema_version": 1, "labs": [{
-        "id": "F01-fork-clone-doctor", "track": "foundations", "order": 1,
-        "manifest": "academy/scenarios/F01-fork-clone-doctor/manifest.json",
-        "checkpoint": "academy/checkpoints/F01-fork-clone-doctor.json", "prerequisites": [],
-        "requires_push_safe_setup": False,
-    }]}), encoding="utf-8")
+    shutil.copyfile(Path(__file__).parents[1] / "academy" / "catalog.json", root / "academy" / "catalog.json")
     (manifest / "manifest.json").write_text(json.dumps({"schema_version": 1, "id": "F01-fork-clone-doctor",
         "files": [{"source": "seed.txt", "destination": "exercise/seed.txt"}], "removals": [],
         "starting_task": "F01", "checkpoint": "academy/checkpoints/F01-fork-clone-doctor.json",
-        "requires_push_safe_setup": False}), encoding="utf-8")
+        "requires_push_safe_setup": True}), encoding="utf-8")
     git(root, "add", ".")
     git(root, "commit", "-m", "base")
+    git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+    git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+    git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
     return temporary, root
+
+
+def add_scenario(root: Path, lab_id: str) -> None:
+    scenario = root / "academy" / "scenarios" / lab_id
+    (scenario / "files").mkdir(parents=True)
+    (scenario / "files" / "seed.txt").write_text("starting state\n", encoding="utf-8")
+    (scenario / "manifest.json").write_text(json.dumps({
+        "schema_version": 1, "id": lab_id, "files": [{"source": "seed.txt", "destination": "exercise/seed.txt"}],
+        "removals": [], "starting_task": lab_id[:3], "checkpoint": f"academy/checkpoints/{lab_id}.json",
+        "requires_push_safe_setup": False,
+    }), encoding="utf-8")
 
 
 class ScenarioTests(unittest.TestCase):
@@ -96,6 +107,7 @@ class ScenarioTests(unittest.TestCase):
         git(self.root, "add", ".")
         git(self.root, "commit", "-m", "scenario removal")
         before = git(self.root, "rev-parse", "HEAD")
+        git(self.root, "remote", "set-url", "origin", "https://github.com/arbiterForge/arbiter-academy.git")
         with self.assertRaisesRegex(PreparationError, "origin"):
             prepare_lab(self.root, "F01-fork-clone-doctor")
         self.assertEqual(git(self.root, "rev-parse", "HEAD"), before)
@@ -114,3 +126,67 @@ class ScenarioTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("error:", result.stderr)
         self.assertNotIn("Traceback", result.stderr + result.stdout)
+
+    def test_prepare_rejects_protected_git_removal_before_branch_creation(self) -> None:
+        manifest_path = self.root / "academy/scenarios/F01-fork-clone-doctor/manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["removals"] = [".git/config"]
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        git(self.root, "add", "academy/scenarios/F01-fork-clone-doctor/manifest.json")
+        git(self.root, "commit", "-m", "unsafe manifest")
+        before = git(self.root, "rev-parse", "HEAD")
+        with self.assertRaisesRegex(PreparationError, "protected"):
+            prepare_lab(self.root, "F01-fork-clone-doctor")
+        self.assertTrue((self.root / ".git" / "config").is_file())
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), before)
+        self.assertFalse(git(self.root, "branch", "--list", "academy/F01-fork-clone-doctor/1"))
+
+    def test_prepare_rejects_an_in_repository_ancestor_symlink(self) -> None:
+        outside = self.root / "safe-target"
+        outside.mkdir()
+        link = self.root / "academy/scenarios/F01-fork-clone-doctor/files/link"
+        try:
+            os.symlink(outside, link, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"symlink/reparse creation unavailable: {error}")
+        manifest_path = self.root / "academy/scenarios/F01-fork-clone-doctor/manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["files"] = [{"source": "link/seed.txt", "destination": "exercise/seed.txt"}]
+        (outside / "seed.txt").write_text("escape\n", encoding="utf-8")
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        git(
+            self.root,
+            "add",
+            "academy/scenarios/F01-fork-clone-doctor/manifest.json",
+            "academy/scenarios/F01-fork-clone-doctor/files/link",
+            "safe-target/seed.txt",
+        )
+        git(self.root, "commit", "-m", "reparse manifest")
+        with self.assertRaisesRegex(PreparationError, "reparse"):
+            prepare_lab(self.root, "F01-fork-clone-doctor")
+        self.assertFalse((self.root / "exercise" / "seed.txt").exists())
+
+    def test_prepare_rejects_official_origin_for_non_push_lab_f02(self) -> None:
+        add_scenario(self.root, "F02-orient-to-state")
+        git(self.root, "add", "academy/scenarios/F02-orient-to-state")
+        git(self.root, "commit", "-m", "add F02 fixture")
+        git(self.root, "remote", "set-url", "origin", "https://github.com/arbiterForge/arbiter-academy.git")
+        with self.assertRaisesRegex(PreparationError, "origin"):
+            prepare_lab(self.root, "F02-orient-to-state")
+        self.assertFalse(git(self.root, "branch", "--list", "academy/F02-orient-to-state/1"))
+
+    def test_prepare_rolls_back_branch_index_and_overlay_after_commit_hook_failure(self) -> None:
+        hooks = Path(self.temporary.name) / "hooks"
+        hooks.mkdir()
+        hook = hooks / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        git(self.root, "config", "core.hooksPath", str(hooks))
+        before = git(self.root, "rev-parse", "HEAD")
+        with self.assertRaises(PreparationError):
+            prepare_lab(self.root, "F01-fork-clone-doctor")
+        self.assertEqual(git(self.root, "branch", "--show-current"), "main")
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), before)
+        self.assertEqual(git(self.root, "status", "--porcelain", "--untracked-files=all"), "")
+        self.assertFalse(git(self.root, "branch", "--list", "academy/F01-fork-clone-doctor/1"))
+        self.assertFalse((self.root / "exercise" / "seed.txt").exists())

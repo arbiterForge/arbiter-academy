@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from academy_engine.catalog import Catalog, CatalogError, load_manifest
+from academy_engine.catalog import Catalog, CatalogError, load_manifest, load_manifest_file
 
 
 class CatalogTests(unittest.TestCase):
@@ -68,3 +68,33 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(len([lab for lab in catalog.labs if lab.track == "foundations"]), 4)
         self.assertEqual(len([lab for lab in catalog.labs if lab.track == "practitioner"]), 8)
         self.assertEqual(len([lab for lab in catalog.labs if lab.track == "power-user"]), 7)
+
+    def test_catalog_rejects_missing_or_misrouted_exact_lab_artifact(self) -> None:
+        source = Path(__file__).parents[1] / "academy" / "catalog.json"
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        payload["labs"].pop()
+        with self.assertRaisesRegex(CatalogError, "exact"):
+            Catalog.load(self.write_catalog(payload))
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        payload["labs"][0]["checkpoint"] = "academy/checkpoints/not-f01.json"
+        with self.assertRaisesRegex(CatalogError, "mapping"):
+            Catalog.load(self.write_catalog(payload))
+
+    def test_manifest_rejects_every_protected_control_surface_before_resolution(self) -> None:
+        baseline = {
+            "schema_version": 1, "id": "F01-fork-clone-doctor", "files": [], "removals": [],
+            "starting_task": "F01", "checkpoint": "academy/checkpoints/F01-fork-clone-doctor.json",
+            "requires_push_safe_setup": False,
+        }
+        for unsafe in (".git/config", ".academy/progress.json", ".codearbiter/CONTEXT.md", "academy/catalog.json"):
+            with self.subTest(unsafe=unsafe), self.assertRaisesRegex(CatalogError, "protected"):
+                load_manifest(dict(baseline, removals=[unsafe]))
+
+    def test_repository_catalog_maps_every_exact_manifest_and_checkpoint(self) -> None:
+        root = Path(__file__).parents[1]
+        catalog = Catalog.load(root / "academy" / "catalog.json")
+        for lab in catalog.labs:
+            manifest = load_manifest_file(root / lab.manifest)
+            self.assertEqual(manifest.id, lab.id)
+            self.assertEqual(manifest.checkpoint, lab.checkpoint)
+            self.assertTrue((root / lab.manifest).parent.joinpath("files", ".gitkeep").is_file())

@@ -11,6 +11,19 @@ from typing import Any
 
 _LAB_ID = re.compile(r"^[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$")
 _TRACKS = ("foundations", "practitioner", "power-user")
+_EXACT_LABS = (
+    ("F01-fork-clone-doctor", "foundations", 1), ("F02-orient-to-state", "foundations", 2),
+    ("F03-work-the-board", "foundations", 3), ("F04-fix-with-evidence", "foundations", 4),
+    ("P01-feature-through-plan", "practitioner", 1), ("P02-commit-review-pr", "practitioner", 2),
+    ("P03-record-an-adr", "practitioner", 3), ("P04-review-a-dependency", "practitioner", 4),
+    ("P05-checkpoint-remediation", "practitioner", 5), ("P06-context-drift-recovery", "practitioner", 6),
+    ("P07-threat-model", "practitioner", 7), ("P08-repository-hygiene", "practitioner", 8),
+    ("U01-autonomous-sprint", "power-user", 1), ("U02-override-audit-metrics", "power-user", 2),
+    ("U03-refactor-chore-release", "power-user", 3), ("U04-initialize-projects", "power-user", 4),
+    ("U05-debug-spike-conflict", "power-user", 5), ("U06-preview-and-advanced-surfaces", "power-user", 6),
+    ("U07-capstone", "power-user", 7),
+)
+_PROTECTED_SCENARIO_PARTS = frozenset({".git", ".academy", ".codearbiter", "academy"})
 
 
 class CatalogError(ValueError):
@@ -77,6 +90,13 @@ def _path(value: object, label: str) -> str:
     return text
 
 
+def _scenario_path(value: object, label: str) -> str:
+    path = _path(value, label)
+    if any(part in _PROTECTED_SCENARIO_PARTS for part in path.split("/")):
+        raise CatalogError(f"{label} path targets a protected Academy/control surface.")
+    return path
+
+
 def _lab_id(value: object, label: str) -> str:
     text = _string(value, label)
     if not _LAB_ID.fullmatch(text):
@@ -113,8 +133,8 @@ def load_manifest(payload: object) -> ScenarioManifest:
     for index, item in enumerate(files_data):
         entry = _require_object(item, f"scenario manifest files[{index}]")
         _only_keys(entry, {"source", "destination"}, f"scenario manifest files[{index}]")
-        source = _path(entry["source"], f"scenario manifest files[{index}].source")
-        destination = _path(entry["destination"], f"scenario manifest files[{index}].destination")
+        source = _scenario_path(entry["source"], f"scenario manifest files[{index}].source")
+        destination = _scenario_path(entry["destination"], f"scenario manifest files[{index}].destination")
         sources.append(source)
         destinations.append(destination)
         files.append(OverlayFile(source, destination))
@@ -124,7 +144,7 @@ def load_manifest(payload: object) -> ScenarioManifest:
     removals_data = data["removals"]
     if not isinstance(removals_data, list):
         raise CatalogError("scenario manifest removals must be a list.")
-    removals = tuple(_path(item, f"scenario manifest removals[{index}]") for index, item in enumerate(removals_data))
+    removals = tuple(_scenario_path(item, f"scenario manifest removals[{index}]") for index, item in enumerate(removals_data))
     if len(set(removals)) != len(removals):
         raise CatalogError("scenario manifest removal paths must be unique.")
     _overlap(removals, "scenario manifest removal")
@@ -195,6 +215,11 @@ class Catalog:
         expected = sorted(labs, key=lambda lab: (_TRACKS.index(lab.track), lab.order))
         if labs != expected:
             raise CatalogError("catalog labs must be ordered by track and order.")
+        if tuple((lab.id, lab.track, lab.order) for lab in labs) != _EXACT_LABS:
+            raise CatalogError("catalog must contain the exact ordered Academy lab inventory.")
+        for lab in labs:
+            if lab.manifest != f"academy/scenarios/{lab.id}/manifest.json" or lab.checkpoint != f"academy/checkpoints/{lab.id}.json":
+                raise CatalogError("catalog manifest/checkpoint mapping is not canonical for its lab ID.")
         return cls(tuple(labs))
 
     def lab(self, lab_id: str) -> Lab:
