@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -98,3 +99,56 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(manifest.id, lab.id)
             self.assertEqual(manifest.checkpoint, lab.checkpoint)
             self.assertTrue((root / lab.manifest).parent.joinpath("files", ".gitkeep").is_file())
+
+    def test_catalog_schema_literally_pins_the_exact_ordered_artifact_map(self) -> None:
+        root = Path(__file__).parents[1]
+        schema = json.loads((root / "academy" / "catalog.schema.json").read_text(encoding="utf-8"))
+        catalog = json.loads((root / "academy" / "catalog.json").read_text(encoding="utf-8"))
+        labs_schema = schema["properties"]["labs"]
+        self.assertEqual(labs_schema["minItems"], 19)
+        self.assertEqual(labs_schema["maxItems"], 19)
+        self.assertFalse(labs_schema["items"])
+        self.assertEqual(len(labs_schema["prefixItems"]), 19)
+        for item, pinned in zip(catalog["labs"], labs_schema["prefixItems"], strict=True):
+            constants = pinned["properties"]
+            for field in ("id", "track", "order", "manifest", "checkpoint"):
+                self.assertEqual(constants[field]["const"], item[field])
+
+    def test_schema_path_patterns_reject_dot_components_and_control_paths(self) -> None:
+        root = Path(__file__).parents[1]
+        catalog_schema = json.loads((root / "academy" / "catalog.schema.json").read_text(encoding="utf-8"))
+        scenario_schema = json.loads((root / "academy" / "scenario.schema.json").read_text(encoding="utf-8"))
+        generic_patterns = [catalog_schema["$defs"]["path"]["pattern"], scenario_schema["$defs"]["path"]["pattern"]]
+        for pattern in generic_patterns:
+            expression = re.compile(pattern)
+            for unsafe in ("../x", "a/./b", "a/../b", "a\\b"):
+                with self.subTest(pattern=pattern, unsafe=unsafe):
+                    self.assertIsNone(expression.fullmatch(unsafe))
+            self.assertIsNotNone(expression.fullmatch("academy/scenarios/F01-fork-clone-doctor/manifest.json"))
+        scenario_expression = re.compile(scenario_schema["$defs"]["scenario_path"]["pattern"])
+        for unsafe in ("../x", "a/./b", "a/../b", ".git/config", ".academy/progress.json", ".codearbiter/CONTEXT.md", "academy/catalog.json", "a\\b"):
+            with self.subTest(unsafe=unsafe):
+                self.assertIsNone(scenario_expression.fullmatch(unsafe))
+        self.assertIsNotNone(scenario_expression.fullmatch("exercise/seed.txt"))
+
+    def test_catalog_schema_positional_contract_rejects_swapped_missing_and_extra_rows(self) -> None:
+        root = Path(__file__).parents[1]
+        schema = json.loads((root / "academy" / "catalog.schema.json").read_text(encoding="utf-8"))
+        catalog = json.loads((root / "academy" / "catalog.json").read_text(encoding="utf-8"))
+        prefix_items = schema["properties"]["labs"]["prefixItems"]
+
+        def accepts(payload: list[dict[str, object]]) -> bool:
+            if len(payload) != len(prefix_items) or schema["properties"]["labs"]["items"] is not False:
+                return False
+            for row, position in zip(payload, prefix_items, strict=True):
+                for field in ("id", "track", "order", "manifest", "checkpoint"):
+                    if row.get(field) != position["properties"][field]["const"]:
+                        return False
+            return True
+
+        self.assertTrue(accepts(catalog["labs"]))
+        swapped = list(catalog["labs"])
+        swapped[0], swapped[1] = swapped[1], swapped[0]
+        self.assertFalse(accepts(swapped))
+        self.assertFalse(accepts(catalog["labs"][:-1]))
+        self.assertFalse(accepts(catalog["labs"] + [catalog["labs"][0]]))

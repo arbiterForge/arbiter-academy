@@ -6,7 +6,30 @@
   "required": ["schema_version", "labs"],
   "properties": {
     "schema_version": {"const": 1},
-    "labs": {"type": "array", "items": {"$ref": "#/$defs/lab"}}
+    "labs": {
+      "type": "array", "minItems": 19, "maxItems": 19, "items": false,
+      "prefixItems": [
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"F01-fork-clone-doctor"},"track":{"const":"foundations"},"order":{"const":1},"manifest":{"const":"academy/scenarios/F01-fork-clone-doctor/manifest.json"},"checkpoint":{"const":"academy/checkpoints/F01-fork-clone-doctor.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"F02-orient-to-state"},"track":{"const":"foundations"},"order":{"const":2},"manifest":{"const":"academy/scenarios/F02-orient-to-state/manifest.json"},"checkpoint":{"const":"academy/checkpoints/F02-orient-to-state.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"F03-work-the-board"},"track":{"const":"foundations"},"order":{"const":3},"manifest":{"const":"academy/scenarios/F03-work-the-board/manifest.json"},"checkpoint":{"const":"academy/checkpoints/F03-work-the-board.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"F04-fix-with-evidence"},"track":{"const":"foundations"},"order":{"const":4},"manifest":{"const":"academy/scenarios/F04-fix-with-evidence/manifest.json"},"checkpoint":{"const":"academy/checkpoints/F04-fix-with-evidence.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P01-feature-through-plan"},"track":{"const":"practitioner"},"order":{"const":1},"manifest":{"const":"academy/scenarios/P01-feature-through-plan/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P01-feature-through-plan.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P02-commit-review-pr"},"track":{"const":"practitioner"},"order":{"const":2},"manifest":{"const":"academy/scenarios/P02-commit-review-pr/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P02-commit-review-pr.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P03-record-an-adr"},"track":{"const":"practitioner"},"order":{"const":3},"manifest":{"const":"academy/scenarios/P03-record-an-adr/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P03-record-an-adr.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P04-review-a-dependency"},"track":{"const":"practitioner"},"order":{"const":4},"manifest":{"const":"academy/scenarios/P04-review-a-dependency/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P04-review-a-dependency.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P05-checkpoint-remediation"},"track":{"const":"practitioner"},"order":{"const":5},"manifest":{"const":"academy/scenarios/P05-checkpoint-remediation/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P05-checkpoint-remediation.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P06-context-drift-recovery"},"track":{"const":"practitioner"},"order":{"const":6},"manifest":{"const":"academy/scenarios/P06-context-drift-recovery/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P06-context-drift-recovery.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P07-threat-model"},"track":{"const":"practitioner"},"order":{"const":7},"manifest":{"const":"academy/scenarios/P07-threat-model/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P07-threat-model.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"P08-repository-hygiene"},"track":{"const":"practitioner"},"order":{"const":8},"manifest":{"const":"academy/scenarios/P08-repository-hygiene/manifest.json"},"checkpoint":{"const":"academy/checkpoints/P08-repository-hygiene.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U01-autonomous-sprint"},"track":{"const":"power-user"},"order":{"const":1},"manifest":{"const":"academy/scenarios/U01-autonomous-sprint/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U01-autonomous-sprint.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U02-override-audit-metrics"},"track":{"const":"power-user"},"order":{"const":2},"manifest":{"const":"academy/scenarios/U02-override-audit-metrics/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U02-override-audit-metrics.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U03-refactor-chore-release"},"track":{"const":"power-user"},"order":{"const":3},"manifest":{"const":"academy/scenarios/U03-refactor-chore-release/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U03-refactor-chore-release.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U04-initialize-projects"},"track":{"const":"power-user"},"order":{"const":4},"manifest":{"const":"academy/scenarios/U04-initialize-projects/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U04-initialize-projects.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U05-debug-spike-conflict"},"track":{"const":"power-user"},"order":{"const":5},"manifest":{"const":"academy/scenarios/U05-debug-spike-conflict/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U05-debug-spike-conflict.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U06-preview-and-advanced-surfaces"},"track":{"const":"power-user"},"order":{"const":6},"manifest":{"const":"academy/scenarios/U06-preview-and-advanced-surfaces/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U06-preview-and-advanced-surfaces.json"}}},
+        {"allOf":[{"$ref":"#/$defs/lab"}],"properties":{"id":{"const":"U07-capstone"},"track":{"const":"power-user"},"order":{"const":7},"manifest":{"const":"academy/scenarios/U07-capstone/manifest.json"},"checkpoint":{"const":"academy/checkpoints/U07-capstone.json"}}}
+      ]
+    }
   },
   "$defs": {
     "lab": {
@@ -21,6 +44,6 @@
         "requires_push_safe_setup": {"type": "boolean"}
       }
     },
-    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"}
+    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!\\.{1,2}(?:/|$))(?!.*?/\\.{1,2}(?:/|$))(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"}
   }
 }

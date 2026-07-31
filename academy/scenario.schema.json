@@ -13,7 +13,7 @@
     "requires_push_safe_setup": {"type": "boolean"}
   },
   "$defs": {
-    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"},
-    "scenario_path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)(?!.*(?:^|/)(?:\\.git|\\.academy|\\.codearbiter|academy)(?:/|$))[^\\u0000-\\u001F\\u007F]+$"}
+    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!\\.{1,2}(?:/|$))(?!.*?/\\.{1,2}(?:/|$))(?!.*\\\\)(?!.*:)(?!.*//)[^\\u0000-\\u001F\\u007F]+$"},
+    "scenario_path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!\\.{1,2}(?:/|$))(?!.*?/\\.{1,2}(?:/|$))(?!.*\\\\)(?!.*:)(?!.*//)(?!.*(?:^|/)(?:\\.git|\\.academy|\\.codearbiter|academy)(?:/|$))[^\\u0000-\\u001F\\u007F]+$"}
   }
 }
