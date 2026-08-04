@@ -6,7 +6,7 @@ title: Recover context drift without losing unrelated work
 outcome: Update stale CONTEXT.md through the documented recovery route while preserving the prepared docs/preserved-note.md bytes exactly.
 prerequisites: P05-checkpoint-remediation
 estimated_minutes: 30
-scenario_command: python scripts/academy.py prepare P06-context-drift-recovery
+scenario_command: arbiter-academy --repository <learner-repository> prepare P06-context-drift-recovery
 checkpoint_command: arbiter-academy --repository <learner-repository> check P06-context-drift-recovery
 next_lab: P07-threat-model
 ---
@@ -22,10 +22,13 @@ byte-for-byte. Recreating a similar-looking note after deletion is not preservat
 
 ## Start the scenario
 
+Run this from the learner checkout. Preserved P02 verifier records require the installed command for
+every later Practitioner transition, even though the original GitHub remotes are already restored.
 Prepare the stale context and unrelated note:
 
 ```powershell
-python scripts/academy.py prepare P06-context-drift-recovery
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P06-context-drift-recovery
 ```
 
 Inspect `.codearbiter/CONTEXT.md`, current Workshop Queue summary behavior, accepted decisions, and
@@ -96,7 +99,8 @@ in the prepared tree and has identical bytes at head. A pre-existing handoff, re
 unchanged context, missing prepared note, or recreated/modified note fails.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P06-context-drift-recovery
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P06-context-drift-recovery
 ```
 
 ## Recovery
@@ -105,7 +109,8 @@ If the wrong context boundary changed or the preserved note differs, do not over
 a new copy. Preserve the failed attempt and reset:
 
 ```powershell
-python scripts/academy.py reset P06-context-drift-recovery
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P06-context-drift-recovery
 ```
 
 The archived attempt remains available for diagnosis.

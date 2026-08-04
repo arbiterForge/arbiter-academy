@@ -6,7 +6,7 @@ title: Review a real dependency before installation
 outcome: Make a complete SMARTS-backed accept or reject decision for python-dateutil 2.9.0.post0 before any installation or permitted manifest change.
 prerequisites: P03-record-an-adr
 estimated_minutes: 35
-scenario_command: python scripts/academy.py prepare P04-review-a-dependency
+scenario_command: arbiter-academy --repository <learner-repository> prepare P04-review-a-dependency
 checkpoint_command: arbiter-academy --repository <learner-repository> check P04-review-a-dependency
 next_lab: P05-checkpoint-remediation
 ---
@@ -23,10 +23,13 @@ the Academy candidate wrapper is evidence about one direct wheel, not that envir
 
 ## Start the scenario
 
+Run this from the learner checkout. Preserved P02 verifier records require the installed command for
+every later Practitioner transition, even though the original GitHub remotes are already restored.
 Prepare the offline candidate review:
 
 ```powershell
-python scripts/academy.py prepare P04-review-a-dependency
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P04-review-a-dependency
 ```
 
 The scenario requests `python-dateutil==2.9.0.post0` for legacy date input and supplies stable
@@ -115,7 +118,8 @@ environment lock, and separately labeled direct-candidate wrapper using reviewed
 Pre-review edits, invented hashes, incomplete closure, or any installation fail.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P04-review-a-dependency
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P04-review-a-dependency
 ```
 
 ## Recovery
@@ -124,7 +128,8 @@ If any install or premature manifest/lock edit occurred, do not delete evidence 
 the attempt and reset:
 
 ```powershell
-python scripts/academy.py reset P04-review-a-dependency
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P04-review-a-dependency
 ```
 
 Begin the retry from clean prepared project state and review before changing anything.

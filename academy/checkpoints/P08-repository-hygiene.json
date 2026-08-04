@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"P08-repository-hygiene","predicates":[{"id":"live_ref_hygiene","type":"lab_semantics","profile":"hygiene_snapshot","snapshot":".codearbiter/reports/academy/P08-hygiene.json"}]}
+{"schema_version":2,"id":"P08-repository-hygiene","predicates":[{"id":"live_ref_hygiene","type":"lab_semantics","profile":"p08_authenticated"}]}

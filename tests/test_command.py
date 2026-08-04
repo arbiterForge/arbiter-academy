@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -13,7 +14,7 @@ from unittest.mock import patch
 
 import academy_engine.command as command_module
 from academy_engine.checkpoints import evaluate_checkpoint
-from academy_engine.command import GitCommandError, _run
+from academy_engine.command import GitCommandError, _run, run_git_unbound
 from academy_engine.git import run_git
 
 
@@ -34,6 +35,268 @@ class RunGitTests(unittest.TestCase):
         result = run_git(self.root / "nested", ["rev-parse", "--show-toplevel"])
 
         self.assertEqual(Path(result.stdout.strip()).resolve(), self.root.resolve())
+
+    def test_skipping_policy_validation_keeps_the_hardened_git_process_boundary(self) -> None:
+        """Catches coupling the config allowlist escape to trusted Git execution."""
+        git(self.root, "config", "pull.rebase", "false")
+        launches: list[tuple[list[str], dict[str, str]]] = []
+        real_popen = subprocess.Popen
+
+        def observed_popen(*args, **kwargs):
+            launches.append((list(args[0]), dict(kwargs["env"])))
+            return real_popen(*args, **kwargs)
+
+        with patch.object(
+            command_module.subprocess,
+            "Popen",
+            side_effect=observed_popen,
+        ):
+            result = run_git(
+                self.root / "nested",
+                ["rev-parse", "--show-toplevel"],
+                validate_local_config=False,
+            )
+
+        self.assertEqual(Path(result.stdout.strip()).resolve(), self.root.resolve())
+        self.assertEqual(len(launches), 1)
+        invocation, environment = launches[0]
+        git_index = next(
+            index
+            for index, argument in enumerate(invocation)
+            if Path(argument).name.casefold() in {"git", "git.exe"}
+        )
+        git_invocation = invocation[git_index:]
+        for hardening in (
+            "--no-optional-locks",
+            "--no-replace-objects",
+            "core.fsmonitor=false",
+            f"core.hooksPath={os.devnull}",
+            "credential.helper=",
+            "commit.gpgSign=false",
+            "tag.gpgSign=false",
+            "protocol.ext.allow=never",
+        ):
+            with self.subTest(hardening=hardening):
+                self.assertIn(hardening, git_invocation)
+        self.assertEqual(environment["GIT_CONFIG_NOSYSTEM"], "1")
+        self.assertEqual(environment["GIT_CONFIG_GLOBAL"], os.devnull)
+        self.assertEqual(environment["GIT_OPTIONAL_LOCKS"], "0")
+        self.assertEqual(environment["GIT_NO_LAZY_FETCH"], "1")
+        self.assertEqual(environment["GIT_TERMINAL_PROMPT"], "0")
+
+    def test_explicit_policy_validation_is_independent_of_local_config_trust(self) -> None:
+        """Catches treating either policy choice as an alias for the other."""
+        git(self.root, "config", "pull.rebase", "false")
+
+        with self.assertRaisesRegex(GitCommandError, "unsafe local Git configuration"):
+            run_git(
+                self.root,
+                ["rev-parse", "--show-toplevel"],
+                trust_local_config=True,
+                validate_local_config=True,
+            )
+
+    def test_unbound_runner_uses_a_plain_directory_without_repository_binding(self) -> None:
+        plain = self.root.parent / "plain"
+        plain.mkdir()
+
+        result = run_git_unbound(plain, ["--version"])
+
+        self.assertEqual(result.returncode, 0)
+        self.assertTrue(result.stdout.startswith("git version "))
+
+    def test_unbound_runner_cannot_discover_repository_or_local_config(self) -> None:
+        git(self.root, "config", "academy.private-probe", "must-not-be-read")
+
+        discovered = run_git_unbound(
+            self.root / "nested",
+            ["rev-parse", "--show-toplevel"],
+            check=False,
+        )
+        local_config = run_git_unbound(
+            self.root / "nested",
+            ["config", "--local", "--get", "academy.private-probe"],
+            check=False,
+        )
+
+        self.assertNotEqual(discovered.returncode, 0)
+        self.assertEqual(discovered.stdout, "")
+        self.assertNotEqual(local_config.returncode, 0)
+        self.assertEqual(local_config.stdout, "")
+
+    def test_unbound_runner_blocks_local_alias_side_effects_and_requires_an_absolute_git_dir(self) -> None:
+        git(
+            self.root,
+            "config",
+            "alias.academy-side-effect",
+            "!echo unsafe > alias-ran.txt",
+        )
+
+        alias = run_git_unbound(
+            self.root / "nested",
+            ["academy-side-effect"],
+            check=False,
+        )
+
+        self.assertNotEqual(alias.returncode, 0)
+        self.assertFalse((self.root / "alias-ran.txt").exists())
+        with self.assertRaisesRegex(GitCommandError, "absolute"):
+            run_git_unbound(
+                self.root / "nested",
+                ["--git-dir=../.git", "rev-parse", "--is-inside-work-tree"],
+            )
+
+        sidecar = self.root.parent / "sidecar.git"
+        git(self.root.parent, "init", "--bare", str(sidecar))
+        explicit = run_git_unbound(
+            self.root / "nested",
+            [f"--git-dir={sidecar.resolve()}", "rev-parse", "--is-bare-repository"],
+        )
+        self.assertEqual(explicit.stdout.strip(), "true")
+
+    def test_unbound_runner_rejects_split_duplicate_and_relative_git_directories(self) -> None:
+        """Catches any option spelling that can override the isolated Git directory."""
+        sidecar = self.root.parent / "sidecar.git"
+        git(self.root.parent, "init", "--bare", str(sidecar))
+        cases = (
+            ("split-relative", ["--git-dir", ".git", "rev-parse", "--git-dir"]),
+            (
+                "split-absolute",
+                ["--git-dir", str(sidecar.resolve()), "rev-parse", "--is-bare-repository"],
+            ),
+            (
+                "mixed-duplicate",
+                [
+                    f"--git-dir={sidecar.resolve()}",
+                    "--git-dir",
+                    str(sidecar.resolve()),
+                    "rev-parse",
+                    "--is-bare-repository",
+                ],
+            ),
+            (
+                "joined-relative",
+                ["--git-dir=.git", "rev-parse", "--is-inside-work-tree"],
+            ),
+        )
+
+        for label, arguments in cases:
+            with self.subTest(label=label), self.assertRaisesRegex(
+                GitCommandError, "Git directory"
+            ):
+                run_git_unbound(self.root / "nested", arguments)
+
+    def test_unbound_runner_allows_only_an_explicit_absolute_bare_sidecar_init(self) -> None:
+        """Catches repository reinitialization through the generic `init` exemption."""
+        config_before = (self.root / ".git/config").read_bytes()
+        for label, arguments in (
+            ("no-target", ["init"]),
+            ("relative-target", ["init", "relative-sidecar.git"]),
+            ("relative-bare-target", ["init", "--bare", "relative-sidecar.git"]),
+            ("absolute-nonbare-target", ["init", str((self.root.parent / "worktree").resolve())]),
+        ):
+            created = (
+                self.root / "relative-sidecar.git"
+                if "relative-sidecar.git" in arguments
+                else self.root.parent / "worktree"
+                if label == "absolute-nonbare-target"
+                else None
+            )
+            with self.subTest(label=label):
+                try:
+                    with self.assertRaises(GitCommandError):
+                        run_git_unbound(self.root, arguments)
+                finally:
+                    if created is not None and created.exists():
+                        shutil.rmtree(created)
+        self.assertEqual(
+            (self.root / ".git/config").read_bytes(),
+            config_before,
+        )
+        self.assertFalse((self.root / "relative-sidecar.git").exists())
+
+        sidecar = (self.root.parent / "new-sidecar.git").resolve()
+        result = run_git_unbound(
+            self.root.parent,
+            ["init", "--bare", "--template=", str(sidecar)],
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(
+            subprocess.run(
+                ["git", f"--git-dir={sidecar}", "rev-parse", "--is-bare-repository"],
+                cwd=self.root.parent,
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip(),
+            "true",
+        )
+
+    def test_unbound_runner_rejects_joined_learner_git_dir_before_init_mutates_config(self) -> None:
+        """Catches init validation that only inspects the first Git argument."""
+        config_path = self.root / ".git" / "config"
+        config_before = config_path.read_bytes()
+
+        with self.assertRaises(GitCommandError):
+            run_git_unbound(
+                self.root,
+                [f"--git-dir={self.root / '.git'}", "init"],
+            )
+
+        self.assertEqual(config_path.read_bytes(), config_before)
+
+    def test_unbound_runner_rejects_configured_alias_before_it_reinitializes_learner(self) -> None:
+        """Catches caller config that disguises init behind a Git alias."""
+        config_path = self.root / ".git" / "config"
+        config_before = config_path.read_bytes()
+        raised = None
+
+        try:
+            run_git_unbound(
+                self.root,
+                [
+                    f"--git-dir={self.root / '.git'}",
+                    "-c",
+                    "alias.reinit=init",
+                    "reinit",
+                ],
+            )
+        except GitCommandError as error:
+            raised = error
+
+        self.assertEqual(config_path.read_bytes(), config_before)
+        self.assertIsNotNone(raised)
+
+    def test_unbound_runner_rejects_local_alias_before_it_reinitializes_learner(self) -> None:
+        """Catches a selected Git directory's alias that expands to init."""
+        git(self.root, "config", "alias.reinit", "init")
+        config_path = self.root / ".git" / "config"
+        config_before = config_path.read_bytes()
+        raised = None
+
+        try:
+            run_git_unbound(
+                self.root,
+                [f"--git-dir={self.root / '.git'}", "reinit"],
+            )
+        except GitCommandError as error:
+            raised = error
+
+        self.assertEqual(config_path.read_bytes(), config_before)
+        self.assertIsNotNone(raised)
+
+    def test_process_boundary_disables_lazy_fetch(self) -> None:
+        result = _run(
+            [
+                sys.executable,
+                "-c",
+                "import os; print(os.environ.get('GIT_NO_LAZY_FETCH', ''))",
+            ],
+            cwd=self.root,
+            check=True,
+        )
+
+        self.assertEqual(result.stdout.strip(), "1")
 
     def test_treats_each_argument_literally(self) -> None:
         result = run_git(self.root, ["config", "academy.literal", "value with spaces; not-a-command"])
@@ -232,6 +495,13 @@ class RunGitTests(unittest.TestCase):
 
         with self.assertRaisesRegex(GitCommandError, "unsafe local Git configuration"):
             command_module.validate_repository_git_config(self.root)
+
+    def test_authoritative_config_allows_git_sha256_object_format_marker(self) -> None:
+        sha256_repository = self.root.parent / "sha256-repository"
+        sha256_repository.mkdir()
+        git(sha256_repository, "init", "--object-format=sha256")
+
+        command_module.validate_repository_git_config(sha256_repository)
 
     def test_authoritative_config_rejects_worktree_config_scope(self) -> None:
         sentinel = self.root / "worktree-filter-invoked.txt"

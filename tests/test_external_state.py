@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 import shutil
@@ -82,6 +83,279 @@ class RepositoryFixture:
         self.temporary.cleanup()
 
 
+class ExistingStateProbeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = RepositoryFixture()
+        self.addCleanup(self.fixture.close)
+
+    def test_absent_probe_and_open_existing_are_non_mutating(self) -> None:
+        self.assertFalse(
+            ExternalStateStore.has_records(
+                self.fixture.root,
+                lab="p02",
+                test_root=self.fixture.state_root,
+            )
+        )
+        self.assertIsNone(
+            ExternalStateStore.open_existing(
+                self.fixture.root,
+                academy_base_commit=BASE_COMMIT,
+                catalog_sha256=CATALOG_SHA256,
+                test_root=self.fixture.state_root,
+            )
+        )
+        self.assertFalse(self.fixture.state_root.exists())
+
+    def test_installed_state_open_paths_keep_authoritative_config_validation(self) -> None:
+        """Catches extending the read-only absence exception into state open paths."""
+        git(self.fixture.root, "config", "pull.rebase", "false")
+
+        for operation in (
+            lambda: self.fixture.store(),
+            lambda: ExternalStateStore.open_existing(
+                self.fixture.root,
+                academy_base_commit=BASE_COMMIT,
+                catalog_sha256=CATALOG_SHA256,
+                test_root=self.fixture.state_root,
+            ),
+        ):
+            with self.subTest(operation=operation):
+                with self.assertRaises(ExternalStateError) as raised:
+                    operation()
+                self.assertEqual(raised.exception.code, "repository-identity")
+                self.assertFalse(self.fixture.state_root.exists())
+
+    def test_probe_finds_records_and_open_existing_binds_exact_epoch(self) -> None:
+        store = self.fixture.store()
+        with store.locked() as locked:
+            locked.write_record(
+                "p02", 1, {"generation": 1}, expected_generation=0
+            )
+
+        self.assertTrue(
+            ExternalStateStore.has_records(
+                self.fixture.root,
+                lab="p02",
+                test_root=self.fixture.state_root,
+            )
+        )
+        opened = ExternalStateStore.open_existing(
+            self.fixture.root,
+            academy_base_commit=BASE_COMMIT,
+            catalog_sha256=CATALOG_SHA256,
+            test_root=self.fixture.state_root,
+        )
+        self.assertIsNotNone(opened)
+        self.assertEqual(opened.repository_id, store.repository_id)
+        self.assertIsNone(
+            ExternalStateStore.open_existing(
+                self.fixture.root,
+                academy_base_commit="c" * 40,
+                catalog_sha256=CATALOG_SHA256,
+                test_root=self.fixture.state_root,
+            )
+        )
+
+    def test_probe_rejects_noncanonical_epoch_structure_without_reading_records(self) -> None:
+        store = self.fixture.store()
+        with store.locked() as locked:
+            locked.write_record(
+                "p02", 1, {"generation": 1}, expected_generation=0
+            )
+        epochs = store._epoch_dir.parent
+        (epochs / "not-a-canonical-epoch").mkdir()
+
+        with self.assertRaisesRegex(ExternalStateError, "identity"):
+            ExternalStateStore.has_records(
+                self.fixture.root,
+                lab="p02",
+                test_root=self.fixture.state_root,
+            )
+
+    def test_open_existing_does_not_repair_or_rewrite_existing_state(self) -> None:
+        store = self.fixture.store()
+        with store.locked() as locked:
+            locked.write_record(
+                "p02", 1, {"generation": 1}, expected_generation=0
+            )
+        identity_before = store._identity_path.read_bytes()
+        lock_before = store._lock_path.read_bytes()
+        identity_mtime = store._identity_path.stat().st_mtime_ns
+        lock_mtime = store._lock_path.stat().st_mtime_ns
+
+        opened = ExternalStateStore.open_existing(
+            self.fixture.root,
+            academy_base_commit=BASE_COMMIT,
+            catalog_sha256=CATALOG_SHA256,
+            test_root=self.fixture.state_root,
+        )
+
+        self.assertIsNotNone(opened)
+        self.assertEqual(store._identity_path.read_bytes(), identity_before)
+        self.assertEqual(store._lock_path.read_bytes(), lock_before)
+        self.assertEqual(store._identity_path.stat().st_mtime_ns, identity_mtime)
+        self.assertEqual(store._lock_path.stat().st_mtime_ns, lock_mtime)
+
+    def test_probe_rejects_empty_and_noncanonical_attempt_directories(self) -> None:
+        store = self.fixture.store()
+        lab_directory = store._epoch_dir / "p02"
+        lab_directory.mkdir()
+        if os.name != "nt":
+            os.chmod(lab_directory, 0o700)
+
+        before = self._snapshot(self.fixture.state_root)
+        with self.assertRaises(ExternalStateError) as empty:
+            ExternalStateStore.has_records(
+                self.fixture.root,
+                lab="p02",
+                test_root=self.fixture.state_root,
+            )
+        self.assertEqual(empty.exception.code, "state-corrupt")
+        self.assertEqual(self._snapshot(self.fixture.state_root), before)
+
+        for name in ("01", "+1", "\u0661", "0", "33"):
+            with self.subTest(name=name):
+                attempt = lab_directory / name
+                attempt.mkdir()
+                before = self._snapshot(self.fixture.state_root)
+                with self.assertRaises(ExternalStateError) as invalid:
+                    ExternalStateStore.has_records(
+                        self.fixture.root,
+                        lab="p02",
+                        test_root=self.fixture.state_root,
+                    )
+                self.assertEqual(invalid.exception.code, "state-corrupt")
+                self.assertEqual(self._snapshot(self.fixture.state_root), before)
+                attempt.rmdir()
+
+    def test_open_existing_validates_locator_lock_before_absent_epoch(self) -> None:
+        store = self.fixture.store()
+        store._lock_path.unlink()
+        before = self._snapshot(self.fixture.state_root)
+
+        with self.assertRaises(ExternalStateError) as raised:
+            ExternalStateStore.open_existing(
+                self.fixture.root,
+                academy_base_commit="c" * 40,
+                catalog_sha256=CATALOG_SHA256,
+                test_root=self.fixture.state_root,
+            )
+
+        self.assertEqual(raised.exception.code, "state-identity-mismatch")
+        self.assertEqual(self._snapshot(self.fixture.state_root), before)
+
+    def test_open_existing_rejects_empty_or_malformed_epochs_before_absent_epoch(self) -> None:
+        for shape in ("empty", "malformed-sibling"):
+            with self.subTest(shape=shape):
+                fixture = RepositoryFixture()
+                self.addCleanup(fixture.close)
+                store = fixture.store()
+                epochs = store._epoch_dir.parent
+                shutil.rmtree(store._epoch_dir)
+                if shape == "malformed-sibling":
+                    (epochs / "not-a-canonical-epoch").mkdir()
+                before = self._snapshot(fixture.state_root)
+
+                with self.assertRaises(ExternalStateError) as raised:
+                    ExternalStateStore.open_existing(
+                        fixture.root,
+                        academy_base_commit="c" * 40,
+                        catalog_sha256=CATALOG_SHA256,
+                        test_root=fixture.state_root,
+                    )
+
+                self.assertEqual(raised.exception.code, "state-identity-mismatch")
+                self.assertEqual(self._snapshot(fixture.state_root), before)
+
+    def test_open_existing_validates_p02_records_in_valid_sibling_epochs_before_absence(self) -> None:
+        """Catches corrupt sibling P02 state hidden by an absent requested epoch."""
+        for shape in ("empty", "noncanonical", "partial", "extra"):
+            with self.subTest(shape=shape):
+                fixture = RepositoryFixture()
+                self.addCleanup(fixture.close)
+                store = fixture.store()
+                lab_directory = store._epoch_dir / "p02"
+                if shape == "extra":
+                    with store.locked() as locked:
+                        locked.write_record(
+                            "p02", 1, {"generation": 1}, expected_generation=0
+                        )
+                    (lab_directory / "1/unexpected").write_text(
+                        "corrupt\n", encoding="utf-8"
+                    )
+                else:
+                    lab_directory.mkdir()
+                    if os.name != "nt":
+                        os.chmod(lab_directory, 0o700)
+                    if shape == "noncanonical":
+                        attempt = lab_directory / "01"
+                        attempt.mkdir()
+                    elif shape == "partial":
+                        attempt = lab_directory / "1"
+                        attempt.mkdir()
+                    if shape in {"noncanonical", "partial"} and os.name != "nt":
+                        os.chmod(attempt, 0o700)
+                before = self._snapshot(fixture.state_root)
+
+                with self.assertRaises(ExternalStateError) as raised:
+                    ExternalStateStore.open_existing(
+                        fixture.root,
+                        academy_base_commit="c" * 40,
+                        catalog_sha256=CATALOG_SHA256,
+                        test_root=fixture.state_root,
+                    )
+
+                self.assertEqual(raised.exception.code, "state-corrupt")
+                self.assertEqual(self._snapshot(fixture.state_root), before)
+
+    @staticmethod
+    def _snapshot(root: Path) -> dict[str, tuple[str, bytes | None]]:
+        if not root.exists():
+            return {}
+        return {
+            path.relative_to(root).as_posix(): (
+                "directory" if path.is_dir() else "file",
+                None if path.is_dir() else path.read_bytes(),
+            )
+            for path in root.rglob("*")
+        }
+
+    def test_probe_rejects_partial_locator_epochs_and_identity_without_mutation(self) -> None:
+        cases = (
+            "missing-lock",
+            "directory-lock",
+            "empty-epochs",
+            "missing-identity",
+            "corrupt-identity",
+        )
+        for kind in cases:
+            with self.subTest(kind=kind):
+                fixture = RepositoryFixture()
+                self.addCleanup(fixture.close)
+                store = fixture.store()
+                if kind == "missing-lock":
+                    store._lock_path.unlink()
+                elif kind == "directory-lock":
+                    store._lock_path.unlink()
+                    store._lock_path.mkdir()
+                elif kind == "empty-epochs":
+                    shutil.rmtree(store._epoch_dir)
+                elif kind == "missing-identity":
+                    store._identity_path.unlink()
+                else:
+                    store._identity_path.write_bytes(b'{"corrupt":true}\n')
+                before = self._snapshot(fixture.state_root)
+
+                with self.assertRaises(ExternalStateError):
+                    ExternalStateStore.has_records(
+                        fixture.root,
+                        lab="p02",
+                        test_root=fixture.state_root,
+                    )
+
+                self.assertEqual(self._snapshot(fixture.state_root), before)
+
+
 class RootResolutionTests(unittest.TestCase):
     def test_platform_roots_are_exact(self) -> None:
         if os.name == "nt":
@@ -145,7 +419,7 @@ class RootResolutionTests(unittest.TestCase):
         candidates.append(("inside", fixture.root / "state", "state-root-inside-repository"))
         file_root = fixture.base / "state-file"
         file_root.write_text("not a directory", encoding="utf-8")
-        candidates.append(("file", file_root, "invalid-state-root"))
+        candidates.append(("file", file_root, "unsafe-state-path"))
 
         outside = fixture.base / "redirect-target"
         outside.mkdir()
@@ -217,6 +491,92 @@ class RootResolutionTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, "unsafe-state-path")
         self.assertEqual(list(outside.iterdir()), [])
 
+    def test_redirected_ancestor_above_absent_state_root_is_rejected_before_creation(self) -> None:
+        fixture = RepositoryFixture()
+        self.addCleanup(fixture.close)
+        outside = fixture.base / "outside-parent"
+        outside.mkdir()
+        redirected = fixture.base / "redirected-parent"
+        if sys.platform == "win32":
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", redirected.name, outside.name],
+                cwd=fixture.base,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(created.returncode, 0, (created.stdout + created.stderr)[:2048])
+        else:
+            os.symlink(outside, redirected, target_is_directory=True)
+        self.addCleanup(self._remove_redirect, redirected)
+        candidate = redirected / "VerifierState"
+
+        with self.assertRaises(ExternalStateError) as raised:
+            fixture.store(state_root=candidate)
+
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertFalse((outside / "VerifierState").exists())
+        self.assertNotIn(str(candidate), str(raised.exception))
+
+    def test_read_only_lookup_rejects_a_redirected_ancestor_without_mutation(self) -> None:
+        """Catches read-only traversal through a symlink or junction above the state root."""
+        fixture = RepositoryFixture()
+        self.addCleanup(fixture.close)
+        outside = fixture.base / "outside-read-only"
+        candidate_target = outside / "VerifierState"
+        candidate_target.mkdir(parents=True)
+        sentinel = candidate_target / "sentinel.txt"
+        sentinel.write_text("preserve\n", encoding="utf-8")
+        redirected = fixture.base / "redirected-read-only"
+        if sys.platform == "win32":
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [
+                    str(command),
+                    "/d",
+                    "/v:off",
+                    "/c",
+                    "mklink",
+                    "/J",
+                    redirected.name,
+                    outside.name,
+                ],
+                cwd=fixture.base,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(
+                created.returncode, 0, (created.stdout + created.stderr)[:2048]
+            )
+        else:
+            os.symlink(outside, redirected, target_is_directory=True)
+        self.addCleanup(self._remove_redirect, redirected)
+        candidate = redirected / "VerifierState"
+        before = sentinel.read_bytes()
+
+        for operation in ("has-records", "open-existing"):
+            with self.subTest(operation=operation):
+                with self.assertRaises(ExternalStateError) as raised:
+                    if operation == "has-records":
+                        ExternalStateStore.has_records(
+                            fixture.root, lab="p02", test_root=candidate
+                        )
+                    else:
+                        ExternalStateStore.open_existing(
+                            fixture.root,
+                            academy_base_commit=BASE_COMMIT,
+                            catalog_sha256=CATALOG_SHA256,
+                            test_root=candidate,
+                        )
+                self.assertEqual(raised.exception.code, "unsafe-state-path")
+                self.assertNotIn(str(candidate), str(raised.exception))
+                self.assertEqual(sentinel.read_bytes(), before)
+                self.assertEqual(tuple(candidate_target.iterdir()), (sentinel,))
+
 
 class LocatorAndIdentityTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -265,9 +625,18 @@ class LocatorAndIdentityTests(unittest.TestCase):
             return real(*args, **kwargs)
 
         with mock.patch.object(external_state, "run_git", side_effect=observed):
-            repository_locator(self.fixture.root)
+            found = ExternalStateStore.has_records(
+                self.fixture.root,
+                lab="p02",
+                test_root=self.fixture.state_root,
+            )
+        self.assertFalse(found)
+        self.assertFalse(self.fixture.state_root.exists())
         self.assertGreaterEqual(len(calls), 2)
         self.assertTrue(all(call.get("trust_local_config", False) is False for call in calls))
+        self.assertTrue(
+            all(call.get("validate_local_config", True) is False for call in calls)
+        )
 
     def test_identity_is_exact_opaque_and_epoch_separated(self) -> None:
         first = self.fixture.store()
@@ -352,6 +721,352 @@ class LocatorAndIdentityTests(unittest.TestCase):
         }
         self.assertEqual(after, before)
         self.assertFalse(store._identity_path.exists())
+
+
+class ShallowRepositoryDirectoryTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = RepositoryFixture()
+        self.addCleanup(self.fixture.close)
+        self.store = self.fixture.store()
+        self.repository_id = "c" * 64
+
+    def _storage_id(self, attempt: int = 1) -> str:
+        return hashlib.sha256(
+            (
+                "arbiter-academy/shallow-repository/v1\0"
+                f"{self.store._locator_digest}\0{self.store._epoch_digest}\0"
+                f"p02\0{attempt}\0{self.repository_id}\n"
+            ).encode("ascii")
+        ).hexdigest()
+
+    def test_exact_storage_preimage_path_and_private_mode(self) -> None:
+        expected_id = hashlib.sha256(
+            b"arbiter-academy/shallow-repository/v1\0"
+            + self.store._locator_digest.encode("ascii")
+            + b"\0"
+            + self.store._epoch_digest.encode("ascii")
+            + b"\0p02\0"
+            + b"1"
+            + b"\0"
+            + self.repository_id.encode("ascii")
+            + b"\n"
+        ).hexdigest()
+
+        with self.store.locked() as locked:
+            directory, created = locked.owned_repository_directory(
+                "p02", 1, self.repository_id, create=True
+            )
+
+        self.assertTrue(created)
+        self.assertEqual(directory, (self.store._state_root / "remotes" / expected_id).resolve())
+        self.assertTrue(directory.is_dir())
+        self.assertFalse(directory.is_symlink())
+        if os.name != "nt":
+            self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o700)
+
+    def test_locator_epoch_and_attempt_separate_storage(self) -> None:
+        second_epoch = self.fixture.store(base_commit="d" * 40)
+        with self.store.locked() as first_locked:
+            first, _ = first_locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+            next_attempt, _ = first_locked.owned_repository_directory("p02", 2, self.repository_id, create=True)
+        with second_epoch.locked() as second_locked:
+            second, _ = second_locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+        self.assertNotEqual(first, second)
+        self.assertNotEqual(first, next_attempt)
+
+    def test_active_lock_lab_attempt_and_id_grammar_are_enforced(self) -> None:
+        with self.store.locked() as locked:
+            for lab, attempt, repository_id, code in (
+                ("p08", 1, self.repository_id, "unsafe-state-path"),
+                ("p02", 0, self.repository_id, "attempt-limit"),
+                ("p02", 33, self.repository_id, "attempt-limit"),
+                ("p02", True, self.repository_id, "attempt-limit"),
+                ("p02", 1, "C" * 64, "unsafe-state-path"),
+                ("p02", 1, "c" * 63, "unsafe-state-path"),
+            ):
+                with self.subTest(lab=lab, attempt=attempt, repository_id=repository_id):
+                    with self.assertRaises(ExternalStateError) as raised:
+                        locked.owned_repository_directory(lab, attempt, repository_id)
+                    self.assertEqual(raised.exception.code, code)
+        with self.assertRaises(ExternalStateError) as raised:
+            locked.owned_repository_directory("p02", 1, self.repository_id)
+        self.assertEqual(raised.exception.code, "state-busy")
+
+    def test_missing_lookup_is_nonmutating_and_create_reports_atomic_ownership(self) -> None:
+        remotes = self.store._state_root / "remotes"
+        with self.store.locked() as locked:
+            with self.assertRaises(ExternalStateError) as raised:
+                locked.owned_repository_directory("p02", 1, self.repository_id)
+            self.assertEqual(raised.exception.code, "state-missing")
+            self.assertFalse(os.path.lexists(remotes))
+
+            directory, created = locked.owned_repository_directory(
+                "p02", 1, self.repository_id, create=True
+            )
+            same, created_again = locked.owned_repository_directory(
+                "p02", 1, self.repository_id, create=True
+            )
+
+        self.assertTrue(created)
+        self.assertFalse(created_again)
+        self.assertEqual(directory, same)
+
+    def test_existing_directory_is_not_chmod_normalized(self) -> None:
+        with self.store.locked() as locked:
+            directory, created = locked.owned_repository_directory(
+                "p02", 1, self.repository_id, create=True
+            )
+            self.assertTrue(created)
+            with mock.patch.object(external_state, "_set_private_mode") as normalized:
+                same, created_again = locked.owned_repository_directory(
+                    "p02", 1, self.repository_id, create=True
+                )
+        self.assertEqual(same, directory)
+        self.assertFalse(created_again)
+        normalized.assert_not_called()
+
+    def test_redirected_remotes_ancestor_is_rejected_without_outside_mutation(self) -> None:
+        outside = self.fixture.base / "outside-remotes"
+        outside.mkdir()
+        redirected = self.store._state_root / "remotes"
+        if sys.platform == "win32":
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", redirected.name, outside.name],
+                cwd=self.store._state_root,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(created.returncode, 0, (created.stdout + created.stderr)[:2048])
+        else:
+            os.symlink(outside, redirected, target_is_directory=True)
+        self.addCleanup(RootResolutionTests._remove_redirect, redirected)
+
+        with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_redirected_or_regular_file_final_entry_is_rejected_unchanged(self) -> None:
+        remotes = self.store._state_root / "remotes"
+        remotes.mkdir()
+        final = remotes / self._storage_id()
+        outside = self.fixture.base / "outside-final"
+        outside.mkdir()
+        if sys.platform == "win32":
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", str(final.relative_to(self.fixture.base)), outside.name],
+                cwd=self.fixture.base,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(created.returncode, 0, (created.stdout + created.stderr)[:2048])
+        else:
+            os.symlink(outside, final, target_is_directory=True)
+        with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertEqual(list(outside.iterdir()), [])
+        RootResolutionTests._remove_redirect(final)
+
+        final.write_bytes(b"preserve-final-file")
+        before = final.read_bytes()
+        with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertEqual(final.read_bytes(), before)
+
+    def test_windows_length_failure_creates_no_remotes_ancestor(self) -> None:
+        original_root = self.store._state_root
+        original_entries = tuple(original_root.iterdir())
+        overlong_root = Path("C:/" + "x" * 230)
+        self.store._state_root = overlong_root
+        try:
+            with mock.patch.object(external_state.os, "name", "nt"):
+                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+                    locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+            self.assertEqual(raised.exception.code, "unsafe-state-path")
+            self.assertFalse(os.path.lexists(overlong_root))
+            self.assertFalse(os.path.lexists(overlong_root / "remotes"))
+            self.assertFalse((original_root / "remotes").exists())
+            self.assertEqual(tuple(original_root.iterdir()), original_entries)
+        finally:
+            self.store._state_root = original_root
+
+    def test_windows_length_budget_counts_utf16_astral_code_units(self) -> None:
+        original_root = self.store._state_root
+        astral_root = Path("C:/" + "\U0001f680" * 90)
+        candidate = astral_root / "remotes" / self._storage_id()
+        self.assertLessEqual(len(str(candidate)), 240)
+        self.assertGreater(len(os.fspath(candidate).encode("utf-16-le")) // 2, 240)
+        self.store._state_root = astral_root
+        try:
+            with mock.patch.object(external_state.os, "name", "nt"):
+                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+                    locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
+            self.assertEqual(raised.exception.code, "unsafe-state-path")
+            self.assertFalse(os.path.lexists(astral_root))
+            self.assertFalse(os.path.lexists(astral_root / "remotes"))
+        finally:
+            self.store._state_root = original_root
+
+    @unittest.skipUnless(os.name == "nt", "Git for Windows shallow-path push coverage")
+    def test_real_bare_repository_accepts_push_through_shallow_path(self) -> None:
+        with self.store.locked() as locked:
+            directory, _ = locked.owned_repository_directory(
+                "p02", 1, self.repository_id, create=True
+            )
+        git(self.fixture.base, "init", "--bare", "--template=", str(directory))
+        branch = "academy/P02-commit-review-pr/1"
+        git(self.fixture.root, "push", directory.as_uri(), f"HEAD:refs/heads/{branch}")
+        self.assertEqual(
+            git(self.fixture.base, f"--git-dir={directory}", "rev-parse", f"refs/heads/{branch}"),
+            git(self.fixture.root, "rev-parse", "HEAD"),
+        )
+
+
+class P08WorktreeParentTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = RepositoryFixture()
+        self.addCleanup(self.fixture.close)
+        self.store = self.fixture.store()
+        self.worktree_id = "d" * 64
+
+    def _storage_id(self, *, store=None, attempt: int = 1, worktree_id: str | None = None) -> str:
+        active_store = self.store if store is None else store
+        identifier = self.worktree_id if worktree_id is None else worktree_id
+        return hashlib.sha256(
+            (
+                "arbiter-academy/p08-worktree-parent/v1\0"
+                f"{active_store._locator_digest}\0{active_store._epoch_digest}\0"
+                f"p08\0{attempt}\0{identifier}\n"
+            ).encode("ascii")
+        ).hexdigest()[:32]
+
+    def _set_windows_state_root_for_target_units(self, units: int) -> tuple[Path, Path]:
+        suffix = Path("p08-worktrees") / self._storage_id() / self.worktree_id / ".git"
+        prefix = self.fixture.base / "p08-units-"
+        padding = units - len(os.fspath(prefix / suffix).encode("utf-16-le")) // 2
+        self.assertGreaterEqual(padding, 1)
+        root = Path(os.fspath(prefix) + "x" * padding)
+        self.assertEqual(len(os.fspath(root / suffix).encode("utf-16-le")) // 2, units)
+        root.mkdir(parents=True)
+        original_root = self.store._state_root
+        self.store._state_root = root
+        self.addCleanup(setattr, self.store, "_state_root", original_root)
+        return root, root / "p08-worktrees"
+
+    def test_exact_preimage_determinism_leaf_and_internal_epoch_binding(self) -> None:
+        expected_id = self._storage_id()
+        with self.store.locked() as locked:
+            parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
+            repeated = locked.owned_p08_worktree_parent(1, self.worktree_id)
+            next_attempt = locked.owned_p08_worktree_parent(2, self.worktree_id)
+            next_worktree = locked.owned_p08_worktree_parent(1, "e" * 64)
+
+        self.assertEqual(parent, (self.store._state_root / "p08-worktrees" / expected_id).resolve())
+        self.assertEqual(parent, repeated)
+        self.assertEqual(len(parent.name), 32)
+        self.assertNotEqual(parent, next_attempt)
+        self.assertNotEqual(parent, next_worktree)
+        self.assertTrue(parent.is_dir())
+        self.assertFalse((parent / self.worktree_id).exists())
+        self.assertEqual(
+            tuple(inspect.signature(locked.owned_p08_worktree_parent).parameters),
+            ("attempt", "worktree_id"),
+        )
+
+        later_epoch = self.fixture.store(base_commit="d" * 40)
+        with later_epoch.locked() as locked:
+            later_parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
+        self.assertNotEqual(parent, later_parent)
+
+        other = RepositoryFixture()
+        self.addCleanup(other.close)
+        with other.store().locked() as locked:
+            other_parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
+        self.assertNotEqual(parent, other_parent)
+
+    def test_exact_240_utf16_target_plus_git_is_accepted_before_leaf_creation(self) -> None:
+        _, p08_root = self._set_windows_state_root_for_target_units(240)
+        with mock.patch.object(external_state.os, "name", "nt"):
+            with self.store.locked() as locked:
+                parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
+        self.assertTrue(parent.is_dir())
+        self.assertFalse((parent / self.worktree_id).exists())
+        self.assertTrue(p08_root.is_dir())
+
+    def test_241_utf16_target_plus_git_fails_before_shallow_root_mutation(self) -> None:
+        root, p08_root = self._set_windows_state_root_for_target_units(241)
+        before = tuple(root.iterdir())
+        with mock.patch.object(external_state.os, "name", "nt"):
+            with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+                locked.owned_p08_worktree_parent(1, self.worktree_id)
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertFalse(os.path.lexists(p08_root))
+        self.assertEqual(tuple(root.iterdir()), before)
+
+    def test_astral_utf16_overlength_fails_before_shallow_root_mutation(self) -> None:
+        original_root = self.store._state_root
+        astral_root = Path("C:/" + "\U0001f680" * 80)
+        candidate = astral_root / "p08-worktrees" / self._storage_id() / self.worktree_id / ".git"
+        self.assertLessEqual(len(os.fspath(candidate)), 240)
+        self.assertGreater(len(os.fspath(candidate).encode("utf-16-le")) // 2, 240)
+        self.store._state_root = astral_root
+        try:
+            with mock.patch.object(external_state.os, "name", "nt"):
+                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+                    locked.owned_p08_worktree_parent(1, self.worktree_id)
+            self.assertEqual(raised.exception.code, "unsafe-state-path")
+            self.assertFalse(os.path.lexists(astral_root))
+            self.assertFalse(os.path.lexists(astral_root / "p08-worktrees"))
+        finally:
+            self.store._state_root = original_root
+
+    def test_redirected_shallow_root_is_rejected_without_outside_mutation(self) -> None:
+        outside = self.fixture.base / "outside-p08-worktrees"
+        outside.mkdir()
+        redirected = self.store._state_root / "p08-worktrees"
+        if sys.platform == "win32":
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", redirected.name, outside.name],
+                cwd=self.store._state_root,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(created.returncode, 0, (created.stdout + created.stderr)[:2048])
+        else:
+            os.symlink(outside, redirected, target_is_directory=True)
+        self.addCleanup(RootResolutionTests._remove_redirect, redirected)
+
+        with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            locked.owned_p08_worktree_parent(1, self.worktree_id)
+        self.assertEqual(raised.exception.code, "unsafe-state-path")
+        self.assertEqual(tuple(outside.iterdir()), ())
+
+    def test_deep_record_and_p02_storage_are_preserved(self) -> None:
+        with self.store.locked() as locked:
+            locked.write_record("p08", 1, {"generation": 1, "value": "deep-record"}, expected_generation=0)
+            p02, created = locked.owned_repository_directory("p02", 1, "c" * 64, create=True)
+            before = (self.store._epoch_dir / "p08/1/state.json").read_bytes()
+            parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
+            after = (self.store._epoch_dir / "p08/1/state.json").read_bytes()
+            repeated_p02, created_again = locked.owned_repository_directory("p02", 1, "c" * 64, create=True)
+        self.assertEqual(before, after)
+        self.assertEqual(p02, repeated_p02)
+        self.assertTrue(created)
+        self.assertFalse(created_again)
+        self.assertEqual(parent.parent.parent, self.store._state_root)
+        self.assertFalse(str(parent).startswith(str(self.store._epoch_dir)))
 
 
 class RecordAndAtomicityTests(unittest.TestCase):
@@ -551,6 +1266,33 @@ class LockingTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, "state-busy")
         self.assertGreaterEqual(elapsed, 0.04)
         self.assertLess(elapsed, 1.0)
+
+    @unittest.skipUnless(os.name == "nt", "Windows byte-range lock semantics")
+    def test_windows_lock_initializes_only_new_storage_and_rejects_existing_malformed_bytes_unchanged(self) -> None:
+        new_lock = self.fixture.base / "new-private-lock"
+        with external_state._AdvisoryLock(new_lock, 0.1):
+            pass
+        self.assertEqual(new_lock.read_bytes(), b"\0")
+
+        valid_before = self.store._lock_path.read_bytes()
+        valid_mtime = self.store._lock_path.stat().st_mtime_ns
+        with self.store.locked(timeout_seconds=0.1):
+            pass
+        self.assertEqual(self.store._lock_path.read_bytes(), valid_before)
+        self.assertEqual(self.store._lock_path.stat().st_mtime_ns, valid_mtime)
+
+        for malformed in (b"", b"\0\0", b"partial"):
+            with self.subTest(malformed=malformed):
+                self.store._lock_path.write_bytes(malformed)
+                before = self.store._lock_path.read_bytes()
+                before_mtime = self.store._lock_path.stat().st_mtime_ns
+                with self.assertRaises(ExternalStateError) as raised:
+                    with self.store.locked(timeout_seconds=0.1):
+                        self.fail("malformed existing lock acquired")
+                self.assertEqual(raised.exception.code, "state-busy")
+                self.assertNotIn(str(self.fixture.state_root), str(raised.exception))
+                self.assertEqual(self.store._lock_path.read_bytes(), before)
+                self.assertEqual(self.store._lock_path.stat().st_mtime_ns, before_mtime)
 
     def test_nonfinite_and_overflowing_timeouts_fail_promptly_with_stable_code(self) -> None:
         second = self.fixture.store()

@@ -7,6 +7,18 @@
 - `unittest` from the standard library for tests.
 - Local JSON persistence as constrained by [ADR-0001](decisions/0001-json-storage-boundary.md).
 
+## Coverage
+
+No coverage command or threshold is configured for this standard-library Academy
+surface. Current TDD uses Phase 4 obligation verification under the no-tooling
+exemption.
+
+## Lint
+
+```sh
+python -m tabnanny academy_engine workshop_queue scripts tests
+```
+
 ## Verification
 
 ```sh
@@ -15,6 +27,8 @@ python -m compileall workshop_queue tests
 python -m unittest tests.test_project_state -v
 python scripts/scan_secrets.py --staged
 ```
+
+`python -m compileall workshop_queue tests` is syntax verification, not lint.
 
 The secret scan reads added, copied, modified, and renamed blobs from Git's staged
 index by object identity; it does not substitute mutable worktree content. Exit `1`

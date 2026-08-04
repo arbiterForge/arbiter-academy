@@ -120,10 +120,18 @@ _PRACTITIONER_SCENARIOS = {
         "classification-absent",
     ),
 }
+_INSTALLED_PREPARE_LABS = (
+    "P02-commit-review-pr",
+    "P03-record-an-adr",
+    "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
+    "P06-context-drift-recovery",
+    "P07-threat-model",
+    "P08-repository-hygiene",
+)
 _SCENARIO_COMMANDS = {
-    "P02-commit-review-pr": (
-        "arbiter-academy --repository <learner-repository> prepare P02-commit-review-pr"
-    ),
+    lab_id: f"arbiter-academy --repository <learner-repository> prepare {lab_id}"
+    for lab_id in _INSTALLED_PREPARE_LABS
 }
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (

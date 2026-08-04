@@ -15,6 +15,18 @@ from typing import Sequence
 
 _MAX_STREAM_BYTES = 1024 * 1024
 _COMMAND_TIMEOUT_SECONDS = 10.0
+_UNBOUND_EXPLICIT_GIT_COMMANDS = frozenset(
+    {
+        "cat-file",
+        "config",
+        "fetch",
+        "for-each-ref",
+        "merge-base",
+        "rev-list",
+        "rev-parse",
+        "show-ref",
+    }
+)
 _WINDOWS_GATE = (
     "import subprocess,sys; "
     "ready=sys.stdin.buffer.read(1); "
@@ -37,6 +49,7 @@ _SAFE_LOCAL_CONFIG = tuple(
         r"branch\..+\.(?:remote|merge|pushremote|rebase|vscode-merge-base)",
         r"user\.(?:name|email)",
         r"init\.defaultbranch",
+        r"extensions\.objectformat",
         r"status\.showuntrackedfiles",
         r"push\.default",
     )
@@ -192,6 +205,7 @@ def _run(
     environment["GIT_CONFIG_NOSYSTEM"] = "1"
     environment["GIT_CONFIG_GLOBAL"] = os.devnull
     environment["GIT_OPTIONAL_LOCKS"] = "0"
+    environment["GIT_NO_LAZY_FETCH"] = "1"
     environment["GIT_PAGER"] = "cat"
     environment["PAGER"] = "cat"
     invocation = list(command)
@@ -199,6 +213,7 @@ def _run(
         invocation = [
             invocation[0],
             "--no-optional-locks",
+            "--no-replace-objects",
             "-c",
             f"core.autocrlf={'true' if os.name == 'nt' else 'false'}",
             *(
@@ -401,15 +416,21 @@ def run_git(
     *,
     check: bool = True,
     trust_local_config: bool = False,
+    validate_local_config: bool | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run Git argument-by-argument from the resolved working-tree root."""
     if isinstance(args, str) or not all(isinstance(argument, str) for argument in args):
         raise TypeError("Git arguments must be a sequence of strings.")
     repository, git_directory = _repository_layout(root)
     actual_args = list(args)
+    should_validate_local_config = (
+        not trust_local_config
+        if validate_local_config is None
+        else validate_local_config
+    )
     if actual_args and actual_args[0] == "config":
         actual_args.insert(1, "--no-includes")
-    elif not trust_local_config:
+    elif should_validate_local_config:
         validate_repository_git_config(repository)
     return _run(
         [
@@ -422,3 +443,147 @@ def run_git(
         check=check,
         trust_local_config=trust_local_config,
     )
+
+
+def run_git_unbound(
+    cwd: Path,
+    args: Sequence[str],
+    *,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    """Run a default-isolated Git command without binding learner Git metadata."""
+    if isinstance(args, str) or not all(isinstance(argument, str) for argument in args):
+        raise TypeError("Git arguments must be a sequence of strings.")
+    directory = Path(cwd).expanduser().resolve()
+    if not directory.is_dir():
+        raise GitCommandError("Git command directory is not a directory.")
+    actual_args = list(args)
+    if any(
+        argument == "-c"
+        or (argument.startswith("-c") and len(argument) > 2)
+        or argument == "--config-env"
+        or argument.startswith("--config-env=")
+        for argument in actual_args
+    ):
+        raise GitCommandError("unbound Git does not allow caller configuration.")
+    if "--git-dir" in actual_args:
+        raise GitCommandError(
+            "unbound Git directory must use one --git-dir=<absolute> argument."
+        )
+    explicit_git_directories = [
+        argument.removeprefix("--git-dir=")
+        for argument in actual_args
+        if argument.startswith("--git-dir=")
+    ]
+    explicit_git_directory = bool(explicit_git_directories)
+    if explicit_git_directory:
+        command_index = 0
+        while command_index < len(actual_args) and (
+            actual_args[command_index].startswith("--git-dir=")
+            or actual_args[command_index] == "--no-replace-objects"
+        ):
+            command_index += 1
+        if (
+            command_index == len(actual_args)
+            or actual_args[command_index] not in _UNBOUND_EXPLICIT_GIT_COMMANDS
+        ):
+            raise GitCommandError("unbound Git command is not authorized.")
+        if len(explicit_git_directories) != 1:
+            raise GitCommandError("unbound Git requires one absolute Git directory.")
+        selected = Path(explicit_git_directories[0])
+        if not selected.is_absolute():
+            raise GitCommandError("unbound Git requires an absolute Git directory.")
+        try:
+            metadata = selected.lstat()
+        except OSError as error:
+            raise GitCommandError(
+                "unbound Git directory could not be inspected."
+            ) from error
+        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if (
+            not stat.S_ISDIR(metadata.st_mode)
+            or stat.S_ISLNK(metadata.st_mode)
+            or (
+                reparse_flag
+                and getattr(metadata, "st_file_attributes", 0) & reparse_flag
+            )
+        ):
+            raise GitCommandError("unbound Git directory is not a plain directory.")
+    sidecar_init = False
+    init_indices = [
+        index for index, argument in enumerate(actual_args) if argument == "init"
+    ]
+    if init_indices:
+        if init_indices != [0]:
+            raise GitCommandError(
+                "unbound Git init requires one absolute empty bare sidecar destination."
+            )
+        bare_count = actual_args[1:].count("--bare")
+        templates = [
+            argument
+            for argument in actual_args[1:]
+            if argument.startswith("--template=")
+        ]
+        object_formats = [
+            argument
+            for argument in actual_args[1:]
+            if argument.startswith("--object-format=")
+        ]
+        positional = [
+            argument for argument in actual_args[1:] if not argument.startswith("-")
+        ]
+        allowed_options = all(
+            argument == "--bare"
+            or argument.startswith("--template=")
+            or argument in {"--object-format=sha1", "--object-format=sha256"}
+            or not argument.startswith("-")
+            for argument in actual_args[1:]
+        )
+        if (
+            bare_count != 1
+            or len(templates) != 1
+            or len(object_formats) > 1
+            or len(positional) != 1
+            or not allowed_options
+        ):
+            raise GitCommandError(
+                "unbound Git init requires one absolute empty bare sidecar destination."
+            )
+        target = Path(positional[0])
+        if not target.is_absolute() or target.parent.resolve() != directory:
+            raise GitCommandError(
+                "unbound Git init requires one absolute empty bare sidecar destination."
+            )
+        if os.path.lexists(target):
+            try:
+                details = target.lstat()
+                occupied = any(target.iterdir())
+            except OSError as error:
+                raise GitCommandError(
+                    "unbound Git init destination could not be inspected."
+                ) from error
+            reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+            if (
+                not stat.S_ISDIR(details.st_mode)
+                or stat.S_ISLNK(details.st_mode)
+                or bool(
+                    reparse_flag
+                    and getattr(details, "st_file_attributes", 0) & reparse_flag
+                )
+                or occupied
+            ):
+                raise GitCommandError(
+                    "unbound Git init destination is not an empty plain directory."
+                )
+        sidecar_init = True
+    repository_independent = bool(actual_args) and (
+        actual_args[0] == "--version"
+        or sidecar_init
+        or (actual_args[0] == "apply" and "--no-index" in actual_args[1:])
+    )
+    if not explicit_git_directory and not repository_independent:
+        isolated = directory / ".arbiter-academy-unbound-no-repository"
+        if os.path.lexists(isolated):
+            raise GitCommandError("unbound Git isolation marker is occupied.")
+        actual_args.insert(0, f"--git-dir={isolated}")
+    return _run(["git", *actual_args], cwd=directory, check=check)

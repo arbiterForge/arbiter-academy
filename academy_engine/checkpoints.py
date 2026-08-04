@@ -14,6 +14,17 @@ from typing import Any
 
 from academy_engine.catalog import Catalog, load_manifest
 from academy_engine.command import repository_root, run_git, validate_repository_git_config
+from academy_engine.exercise_state import (
+    P02AttemptIdentity,
+    P08AttemptIdentity,
+    _parse_p02_receipt_bytes,
+    open_existing_p02_store,
+    open_p08_store,
+    preflight_p08,
+    validate_p02_checkpoint,
+    validate_p02_prepared_commit,
+    validate_p08_checkpoint,
+)
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 LAB_INVENTORY = (
@@ -54,6 +65,7 @@ _PROFILES = {
     "provenance_recovery": ("context", "handoff"),
     "stride_model": ("model", "target"),
     "hygiene_snapshot": ("snapshot",),
+    "p08_authenticated": (),
     "sprint_decisions": ("spec", "plan", "sprint_log"),
     "override_audit_metrics": ("overrides", "audit", "metrics"),
     "refactor_chore_release": ("code", "test", "chore", "tag_prefix"),
@@ -62,7 +74,7 @@ _PROFILES = {
     "preview_evidence": ("report",),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
-_REMOTE_PROFILES = frozenset({"remote_doctor", "pr_receipt", "refactor_chore_release", "capstone"})
+_REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "capstone"})
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F01-fork-clone-doctor": ("remote_and_doctor", "remote_doctor", {"artifact": ".codearbiter/reports/academy/F01-doctor.json"}),
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
@@ -75,7 +87,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P05-checkpoint-remediation": ("finding_remediation_link", "checkpoint_remediation", {"report": ".codearbiter/checkpoints/P05-academy.json"}),
     "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json"}),
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py"}),
-    "P08-repository-hygiene": ("live_ref_hygiene", "hygiene_snapshot", {"snapshot": ".codearbiter/reports/academy/P08-hygiene.json"}),
+    "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md"}),
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "tag_prefix": "academy-v"}),
@@ -574,6 +586,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         *(overlay.destination for overlay in manifest.files),
         *manifest.removals,
     }
+    if contract.id == "P02-commit-review-pr":
+        expected_paths.add(".codearbiter/tech-stack.md")
     actual_paths = set(
         run_git(
             root,
@@ -597,6 +611,14 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
     for removal in manifest.removals:
         if _git_blob(root, attempt.base, removal) is None or _git_blob(root, attempt.prepared, removal) is not None:
             return False
+    if contract.id == "P02-commit-review-pr":
+        return validate_p02_prepared_commit(
+            root,
+            base_commit=attempt.base,
+            prepared_commit=attempt.prepared,
+            branch=attempt.branch,
+            attempt_number=attempt.number,
+        )
     return True
 
 
@@ -1189,7 +1211,7 @@ def _semantic(context: _SemanticContext) -> bool:
         # Learner-authored ``status: approved`` prose is never sufficient evidence.
         return False
     if profile == "pr_receipt":
-        return _valid_pr_receipt(context, str(data["receipt"]))
+        return _valid_offline_p02_receipt(context, str(data["receipt"]))
     if profile == "accepted_adr":
         adr, decision_log = str(data["adr"]), str(data["decision_log"])
         adr_text, log_text = _changed_document(context, adr), _changed_document(context, decision_log)
@@ -1299,16 +1321,20 @@ def _semantic(context: _SemanticContext) -> bool:
             and f"Target-SHA256: {_raw_digest(target_blob)}" in (model or "")
         )
     if profile == "hygiene_snapshot":
-        snapshot = _json(root, attempt.head, str(data["snapshot"]))
-        if not snapshot or not _changed(root, attempt.prepared, attempt.head, str(data["snapshot"])):
+        return False
+    if profile == "p08_authenticated":
+        try:
+            base, _lab, authority = preflight_p08(root)
+            store = open_p08_store(root, base=base, authority=authority)
+            identity = P08AttemptIdentity(
+                context.attempt.number,
+                context.attempt.branch,
+                context.attempt.prepared,
+                context.attempt.head,
+            )
+            return validate_p08_checkpoint(root, store, identity)
+        except (OSError, TypeError, ValueError):
             return False
-        if (
-            set(snapshot) != {"schema_version", "refs", "worktrees"}
-            or not _version(snapshot["schema_version"], 1)
-        ):
-            return False
-        expected_refs, expected_worktrees = _live_hygiene_inventory(root, attempt)
-        return snapshot["refs"] == expected_refs and snapshot["worktrees"] == expected_worktrees
     if profile == "sprint_decisions":
         # Task 9 supplies the governed sprint approval/decision predicate and fixture.
         return False
@@ -1485,83 +1511,25 @@ def _semantic(context: _SemanticContext) -> bool:
     return False
 
 
-def _valid_pr_receipt(context: _SemanticContext, path: str) -> bool:
-    receipt = _json(context.root, context.attempt.head, path)
-    if not receipt or not _changed(context.root, context.attempt.prepared, context.attempt.head, path):
-        return False
-    required = {
-        "schema_version", "receipt_id", "mode", "repository", "branch",
-        "prepared_base", "work_head", "commits", "review_status", "pr_reference",
-    }
-    if set(receipt) != required or not _version(receipt["schema_version"], 1):
-        return False
+def _valid_offline_p02_receipt(context: _SemanticContext, path: str) -> bool:
     try:
-        remotes = validate_training_remotes(context.root, require_push_safe=True)
-    except RemoteSafetyError:
-        return False
-    if remotes.origin is None:
-        return False
-    origin_identity = f"{remotes.origin.owner}/{remotes.origin.repository}"
-    commits = receipt["commits"]
-    work_head = receipt["work_head"]
-    expected = run_git(
-        context.root,
-        ["rev-list", "--reverse", f"{context.attempt.prepared}..{work_head}"],
-        check=False,
-    ).stdout.splitlines()
-    receipt_commits = _path_commits(
-        context.root, context.attempt.prepared, context.attempt.head, path
-    )
-    receipt_commit = receipt_commits[0] if len(receipt_commits) == 1 else ""
-    receipt_parent = (
-        run_git(
-            context.root, ["rev-parse", f"{receipt_commit}^"], check=False
-        ).stdout.strip()
-        if receipt_commit
-        else ""
-    )
-    reference = receipt["pr_reference"]
-    github_reference = (
-        re.fullmatch(
-            r"https://github\.com/(?P<owner>[A-Za-z0-9_.-]+)/"
-            r"(?P<repository>arbiter-academy)/pull/[1-9][0-9]*",
-            reference,
+        raw = _git_blob(context.root, context.attempt.head, path)
+        if raw is None:
+            return False
+        object_format = "sha1" if len(context.attempt.base) == 40 else "sha256"
+        receipt = _parse_p02_receipt_bytes(raw, object_format=object_format)
+        store = open_existing_p02_store(context.root, base=context.attempt.base)
+        if store is None:
+            return False
+        identity = P02AttemptIdentity(
+            context.attempt.number,
+            context.attempt.branch,
+            context.attempt.prepared,
+            context.attempt.head,
         )
-        if isinstance(reference, str)
-        else None
-    )
-    reference_ok = (
-        reference == f"local-pr:{work_head[:12]}"
-        if receipt["mode"] == "offline-local" and isinstance(work_head, str)
-        else bool(
-            receipt["mode"] == "github"
-            and github_reference is not None
-            and f"{github_reference.group('owner')}/{github_reference.group('repository')}".casefold()
-            == origin_identity.casefold()
-        )
-    )
-    return bool(
-        isinstance(receipt["receipt_id"], str)
-        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{7,63}", receipt["receipt_id"])
-        and receipt["mode"] in {"offline-local", "github"}
-        and isinstance(receipt["repository"], str)
-        and re.fullmatch(r"[A-Za-z0-9_.-]+/arbiter-academy", receipt["repository"])
-        and receipt["repository"].casefold() == origin_identity.casefold()
-        and receipt["branch"] == context.attempt.branch
-        and receipt["prepared_base"] == context.attempt.prepared
-        and isinstance(work_head, str)
-        and _SHA40.fullmatch(work_head)
-        and isinstance(commits, list)
-        and bool(commits)
-        and work_head != context.attempt.prepared
-        and commits == expected
-        and receipt_parent == work_head
-        and receipt_commit == context.attempt.head
-        and set(_commit_paths(context.root, receipt_commit)) == {path}
-        and receipt["review_status"] == "cleared"
-        and reference_ok
-        and run_git(context.root, ["merge-base", "--is-ancestor", str(work_head), context.attempt.head], check=False).returncode == 0
-    )
+        return validate_p02_checkpoint(context.root, store, identity, receipt)
+    except (OSError, TypeError, ValueError):
+        return False
 
 
 def evaluate_checkpoint(

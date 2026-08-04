@@ -51,6 +51,7 @@ _MESSAGES = {
     "state-too-large": "External state exceeds its size limit.",
     "attempt-limit": "External state attempt is outside the supported range.",
     "generation-mismatch": "External state generation does not match.",
+    "state-missing": "External state is missing.",
 }
 
 
@@ -158,12 +159,63 @@ def _ensure_directory(path: Path) -> None:
     _set_private_mode(path, directory=True)
 
 
+def _validate_private_directory(path: Path) -> None:
+    try:
+        details = path.lstat()
+    except FileNotFoundError as error:
+        raise ExternalStateError("state-missing") from error
+    except OSError as error:
+        raise ExternalStateError("unsafe-state-path") from error
+    if _is_redirect(details) or not stat.S_ISDIR(details.st_mode):
+        raise ExternalStateError("unsafe-state-path")
+    if os.name != "nt" and stat.S_IMODE(details.st_mode) & 0o077:
+        raise ExternalStateError("unsafe-state-path")
+
+
+def _validate_private_file(path: Path) -> None:
+    try:
+        details = path.lstat()
+    except FileNotFoundError as error:
+        raise ExternalStateError("state-missing") from error
+    except OSError as error:
+        raise ExternalStateError("unsafe-state-path") from error
+    if _is_redirect(details) or not stat.S_ISREG(details.st_mode):
+        raise ExternalStateError("unsafe-state-path")
+    if os.name != "nt" and stat.S_IMODE(details.st_mode) & 0o077:
+        raise ExternalStateError("unsafe-state-path")
+
+
 def _ensure_descendant(base: Path, *parts: str) -> Path:
     current = base
     for part in parts:
         current /= part
         _ensure_directory(current)
     return current
+
+
+def _validate_lexical_ancestor_chain(path: Path) -> None:
+    """Reject redirects in every existing lexical ancestor without chmod."""
+    for current in reversed((path, *path.parents)):
+        if not os.path.lexists(current):
+            continue
+        try:
+            details = current.lstat()
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        if _is_redirect(details) or not stat.S_ISDIR(details.st_mode):
+            raise ExternalStateError("unsafe-state-path")
+
+
+def _create_missing_directory_chain(path: Path) -> None:
+    """Create missing components only after all existing ancestors are trusted."""
+    for current in reversed((path, *path.parents)):
+        if os.path.lexists(current):
+            continue
+        try:
+            current.mkdir(mode=0o700)
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        _set_private_mode(current, directory=True)
 
 
 def _validate_descendant_chain(base: Path, *parts: str) -> Path:
@@ -189,6 +241,7 @@ def _validate_root(root: Path, repository_root: Path) -> Path:
         raise ExternalStateError("invalid-state-root")
     if os.name == "nt" and _is_windows_unc(str(supplied)):
         raise ExternalStateError("invalid-state-root")
+    _validate_lexical_ancestor_chain(supplied)
     if os.path.lexists(supplied):
         try:
             details = supplied.lstat()
@@ -208,16 +261,123 @@ def _validate_root(root: Path, repository_root: Path) -> Path:
         raise ExternalStateError("invalid-state-root") from error
     if common == os.path.normcase(str(normalized_repository)):
         raise ExternalStateError("state-root-inside-repository")
-    try:
-        supplied.mkdir(mode=0o700, parents=True, exist_ok=True)
-    except OSError as error:
-        raise ExternalStateError("invalid-state-root") from error
+    _create_missing_directory_chain(supplied)
     _ensure_directory(supplied)
     return supplied.resolve(strict=True)
 
 
-def _git_value(repository: Path, arguments: list[str]) -> str:
-    result = run_git(repository, arguments, check=False)
+def _read_only_root(root: Path, repository_root: Path) -> Path | None:
+    supplied = Path(root)
+    if not supplied.is_absolute() or _has_control(str(supplied)):
+        raise ExternalStateError("invalid-state-root")
+    if os.name == "nt" and _is_windows_unc(str(supplied)):
+        raise ExternalStateError("invalid-state-root")
+    _validate_lexical_ancestor_chain(supplied)
+    try:
+        normalized_root = supplied.resolve(strict=False)
+        normalized_repository = repository_root.resolve(strict=True)
+        common = os.path.commonpath(
+            [
+                os.path.normcase(str(normalized_root)),
+                os.path.normcase(str(normalized_repository)),
+            ]
+        )
+    except (OSError, ValueError) as error:
+        raise ExternalStateError("invalid-state-root") from error
+    if common == os.path.normcase(str(normalized_repository)):
+        raise ExternalStateError("state-root-inside-repository")
+    if not os.path.lexists(supplied):
+        return None
+    _validate_private_directory(supplied)
+    try:
+        return supplied.resolve(strict=True)
+    except OSError as error:
+        raise ExternalStateError("unsafe-state-path") from error
+
+
+def _existing_private_directory(parent: Path, name: str) -> Path | None:
+    candidate = parent / name
+    if not os.path.lexists(candidate):
+        return None
+    _validate_private_directory(candidate)
+    return candidate
+
+
+def _canonical_attempt_number(name: str) -> int | None:
+    if re.fullmatch(r"(?:[1-9]|[12][0-9]|3[0-2])", name) is None:
+        return None
+    return int(name)
+
+
+def _observed_record_attempts(lab_directory: Path) -> tuple[int, ...]:
+    _validate_private_directory(lab_directory)
+    try:
+        entries = tuple(lab_directory.iterdir())
+    except OSError as error:
+        raise ExternalStateError("unsafe-state-path") from error
+    if not entries:
+        raise ExternalStateError("state-corrupt")
+    attempts: list[int] = []
+    for attempt_directory in entries:
+        attempt = _canonical_attempt_number(attempt_directory.name)
+        if attempt is None:
+            raise ExternalStateError("state-corrupt")
+        _validate_private_directory(attempt_directory)
+        state_path = attempt_directory / "state.json"
+        if not os.path.lexists(state_path):
+            raise ExternalStateError("state-corrupt")
+        _validate_private_file(state_path)
+        try:
+            contents = tuple(attempt_directory.iterdir())
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        if len(contents) != 1 or contents[0].name != "state.json":
+            raise ExternalStateError("state-corrupt")
+        attempts.append(attempt)
+    return tuple(sorted(attempts))
+
+
+def _shallow_repository_storage_id(
+    locator_digest: str,
+    epoch_digest: str,
+    lab: str,
+    attempt: int,
+    repository_id: str,
+) -> str:
+    return hashlib.sha256(
+        (
+            "arbiter-academy/shallow-repository/v1\0"
+            f"{locator_digest}\0{epoch_digest}\0{lab}\0{attempt}\0{repository_id}\n"
+        ).encode("ascii")
+    ).hexdigest()
+
+
+def _p08_worktree_parent_storage_id(
+    locator_digest: str,
+    epoch_digest: str,
+    attempt: int,
+    worktree_id: str,
+) -> str:
+    return hashlib.sha256(
+        (
+            "arbiter-academy/p08-worktree-parent/v1\0"
+            f"{locator_digest}\0{epoch_digest}\0p08\0{attempt}\0{worktree_id}\n"
+        ).encode("ascii")
+    ).hexdigest()[:32]
+
+
+def _git_value(
+    repository: Path,
+    arguments: list[str],
+    *,
+    validate_local_config: bool = True,
+) -> str:
+    result = run_git(
+        repository,
+        arguments,
+        check=False,
+        validate_local_config=validate_local_config,
+    )
     if result.returncode != 0:
         raise ExternalStateError("repository-identity")
     value = result.stdout.strip()
@@ -226,16 +386,34 @@ def _git_value(repository: Path, arguments: list[str]) -> str:
     return value
 
 
-def _repository_details(repository: Path) -> tuple[Path, Path, str]:
+def _repository_details(
+    repository: Path,
+    *,
+    validate_local_config: bool = True,
+) -> tuple[Path, Path, str]:
     try:
         supplied = Path(repository).expanduser().resolve(strict=True)
-        top_level = Path(_git_value(supplied, ["rev-parse", "--show-toplevel"])).resolve(strict=True)
-        common_text = _git_value(supplied, ["rev-parse", "--git-common-dir"])
+        top_level = Path(
+            _git_value(
+                supplied,
+                ["rev-parse", "--show-toplevel"],
+                validate_local_config=validate_local_config,
+            )
+        ).resolve(strict=True)
+        common_text = _git_value(
+            supplied,
+            ["rev-parse", "--git-common-dir"],
+            validate_local_config=validate_local_config,
+        )
         common_candidate = Path(common_text)
         if not common_candidate.is_absolute():
             common_candidate = supplied / common_candidate
         common = common_candidate.resolve(strict=True)
-        object_format = _git_value(supplied, ["rev-parse", "--show-object-format"]).lower()
+        object_format = _git_value(
+            supplied,
+            ["rev-parse", "--show-object-format"],
+            validate_local_config=validate_local_config,
+        ).lower()
     except ExternalStateError:
         raise
     except (GitCommandError, OSError, RuntimeError, UnicodeError) as error:
@@ -264,10 +442,17 @@ def _filesystem_identity(common_directory: Path) -> tuple[int, int] | None:
     return None
 
 
-def repository_locator(repository: Path) -> RepositoryLocator:
+def repository_locator(
+    repository: Path,
+    *,
+    validate_local_config: bool = True,
+) -> RepositoryLocator:
     """Return an opaque locator shared by linked worktrees."""
     try:
-        _, common, object_format = _repository_details(Path(repository))
+        _, common, object_format = _repository_details(
+            Path(repository),
+            validate_local_config=validate_local_config,
+        )
         filesystem_identity = _filesystem_identity(common)
         if filesystem_identity is not None:
             device, inode = filesystem_identity
@@ -512,17 +697,26 @@ class _AdvisoryLock:
         if not math.isfinite(timeout) or timeout < 0:
             raise ExternalStateError("state-busy")
         try:
-            if os.path.lexists(self.path):
-                details = self.path.lstat()
-                if _is_redirect(details) or not stat.S_ISREG(details.st_mode):
-                    raise ExternalStateError("unsafe-state-path")
-            descriptor = os.open(self.path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
+            binary = getattr(os, "O_BINARY", 0)
+            try:
+                descriptor = os.open(
+                    self.path, os.O_RDWR | os.O_CREAT | os.O_EXCL | binary, 0o600
+                )
+                created = True
+            except FileExistsError:
+                _validate_private_file(self.path)
+                descriptor = os.open(self.path, os.O_RDWR | binary)
+                created = False
             self.stream = os.fdopen(descriptor, "r+b", closefd=True)
-            if os.name == "nt" and self.stream.seek(0, os.SEEK_END) == 0:
-                self.stream.write(b"\0")
-                self.stream.flush()
-                os.fsync(self.stream.fileno())
-            _set_private_mode(self.path, directory=False)
+            if os.name == "nt":
+                if created:
+                    self.stream.write(b"\0")
+                    self.stream.flush()
+                    os.fsync(self.stream.fileno())
+                elif os.fstat(descriptor).st_size != 1:
+                    raise ExternalStateError("state-busy")
+            if created:
+                _set_private_mode(self.path, directory=False)
         except (OSError, ExternalStateError) as error:
             if self.stream is not None:
                 self.stream.close()
@@ -538,6 +732,12 @@ class _AdvisoryLock:
                     import msvcrt
 
                     msvcrt.locking(self.stream.fileno(), msvcrt.LK_NBLCK, 1)
+                    self.stream.seek(0)
+                    if self.stream.read(1) != b"\0":
+                        msvcrt.locking(self.stream.fileno(), msvcrt.LK_UNLCK, 1)
+                        self.stream.close()
+                        self.stream = None
+                        raise ExternalStateError("state-busy")
                 else:
                     import fcntl
 
@@ -578,11 +778,209 @@ class ExternalStateStore:
         identity_path: Path,
         lock_path: Path,
         repository_id: str,
+        state_root: Path,
+        locator_digest: str,
+        epoch_digest: str,
     ) -> None:
         self._epoch_dir = epoch_directory
         self._identity_path = identity_path
         self._lock_path = lock_path
+        self._state_root = state_root
+        self._locator_digest = locator_digest
+        self._epoch_digest = epoch_digest
         self.repository_id = repository_id
+
+    @classmethod
+    def has_records(
+        cls,
+        repository: Path,
+        *,
+        lab: str,
+        test_root: Path | None = None,
+    ) -> bool:
+        """Probe for existing records without reading content or mutating state."""
+        if lab != "p02":
+            raise ExternalStateError("unsafe-state-path")
+        repository_root, _, _ = _repository_details(
+            Path(repository),
+            validate_local_config=False,
+        )
+        locator = repository_locator(
+            Path(repository),
+            validate_local_config=False,
+        )
+        selected = resolve_state_root() if test_root is None else Path(test_root)
+        state_root = _read_only_root(selected, repository_root)
+        if state_root is None:
+            return False
+        repositories = _existing_private_directory(state_root, "repositories")
+        if repositories is None:
+            return False
+        locator_directory = _existing_private_directory(repositories, locator.digest)
+        if locator_directory is None:
+            return False
+        lock_path = locator_directory / "lock"
+        if not os.path.lexists(lock_path):
+            raise ExternalStateError("state-identity-mismatch")
+        _validate_private_file(lock_path)
+        epochs = _existing_private_directory(locator_directory, "epochs")
+        if epochs is None:
+            raise ExternalStateError("state-identity-mismatch")
+        try:
+            epoch_entries = tuple(epochs.iterdir())
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        if not epoch_entries:
+            raise ExternalStateError("state-identity-mismatch")
+        found = False
+        for epoch_directory in epoch_entries:
+            if re.fullmatch(r"[0-9a-f]{64}", epoch_directory.name) is None:
+                raise ExternalStateError("state-identity-mismatch")
+            _validate_private_directory(epoch_directory)
+            identity_path = epoch_directory / "identity.json"
+            if not os.path.lexists(identity_path):
+                raise ExternalStateError("state-identity-mismatch")
+            _validate_private_file(identity_path)
+            identity = _read_json(identity_path, max_bytes=_MAX_RECORD_BYTES)
+            academy_base_commit = identity.get("academy_base_commit")
+            catalog_sha256 = identity.get("catalog_sha256")
+            _validate_binding(academy_base_commit, catalog_sha256)
+            expected_commit_length = 40 if locator.object_format == "sha1" else 64
+            if len(academy_base_commit) != expected_commit_length:
+                raise ExternalStateError("state-identity-mismatch")
+            expected: dict[str, object] = {
+                "locator": locator.digest,
+                "locator_source": locator.source_kind,
+                "object_format": locator.object_format,
+                "academy_base_commit": academy_base_commit,
+                "catalog_sha256": catalog_sha256,
+            }
+            _validate_identity(identity, expected)
+            expected_epoch = hashlib.sha256(
+                (
+                    "arbiter-academy/state-epoch/v1\0"
+                    f"{academy_base_commit}\0{catalog_sha256}\n"
+                ).encode("ascii")
+            ).hexdigest()
+            if epoch_directory.name != expected_epoch:
+                raise ExternalStateError("state-identity-mismatch")
+            lab_directory = _existing_private_directory(epoch_directory, lab)
+            if lab_directory is None:
+                continue
+            if _observed_record_attempts(lab_directory):
+                found = True
+        return found
+
+    @classmethod
+    def open_existing(
+        cls,
+        repository: Path,
+        *,
+        academy_base_commit: str,
+        catalog_sha256: str,
+        test_root: Path | None = None,
+    ) -> "ExternalStateStore | None":
+        """Open an exact existing epoch without creating or repairing state."""
+        _validate_binding(academy_base_commit, catalog_sha256)
+        repository_root, _, _ = _repository_details(Path(repository))
+        locator = repository_locator(Path(repository))
+        expected_commit_length = 40 if locator.object_format == "sha1" else 64
+        if len(academy_base_commit) != expected_commit_length:
+            raise ExternalStateError("state-identity-mismatch")
+        selected = resolve_state_root() if test_root is None else Path(test_root)
+        state_root = _read_only_root(selected, repository_root)
+        if state_root is None:
+            return None
+        repositories = _existing_private_directory(state_root, "repositories")
+        if repositories is None:
+            return None
+        locator_directory = _existing_private_directory(repositories, locator.digest)
+        if locator_directory is None:
+            return None
+        lock_path = locator_directory / "lock"
+        if not os.path.lexists(lock_path):
+            raise ExternalStateError("state-identity-mismatch")
+        _validate_private_file(lock_path)
+        epochs = _existing_private_directory(locator_directory, "epochs")
+        if epochs is None:
+            raise ExternalStateError("state-identity-mismatch")
+        try:
+            epoch_entries = tuple(epochs.iterdir())
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        if not epoch_entries:
+            raise ExternalStateError("state-identity-mismatch")
+        validated_epochs: dict[str, Path] = {}
+        for observed_epoch in epoch_entries:
+            if re.fullmatch(r"[0-9a-f]{64}", observed_epoch.name) is None:
+                raise ExternalStateError("state-identity-mismatch")
+            _validate_private_directory(observed_epoch)
+            observed_identity_path = observed_epoch / "identity.json"
+            if not os.path.lexists(observed_identity_path):
+                raise ExternalStateError("state-identity-mismatch")
+            _validate_private_file(observed_identity_path)
+            observed_identity = _read_json(
+                observed_identity_path, max_bytes=_MAX_RECORD_BYTES
+            )
+            observed_base = observed_identity.get("academy_base_commit")
+            observed_catalog = observed_identity.get("catalog_sha256")
+            _validate_binding(observed_base, observed_catalog)
+            if len(observed_base) != expected_commit_length:
+                raise ExternalStateError("state-identity-mismatch")
+            observed_expected: dict[str, object] = {
+                "locator": locator.digest,
+                "locator_source": locator.source_kind,
+                "object_format": locator.object_format,
+                "academy_base_commit": observed_base,
+                "catalog_sha256": observed_catalog,
+            }
+            _validate_identity(observed_identity, observed_expected)
+            observed_digest = hashlib.sha256(
+                (
+                    "arbiter-academy/state-epoch/v1\0"
+                    f"{observed_base}\0{observed_catalog}\n"
+                ).encode("ascii")
+            ).hexdigest()
+            if observed_epoch.name != observed_digest:
+                raise ExternalStateError("state-identity-mismatch")
+            observed_p02 = _existing_private_directory(observed_epoch, "p02")
+            if observed_p02 is not None:
+                _observed_record_attempts(observed_p02)
+            validated_epochs[observed_epoch.name] = observed_epoch
+        epoch = hashlib.sha256(
+            (
+                "arbiter-academy/state-epoch/v1\0"
+                f"{academy_base_commit}\0{catalog_sha256}\n"
+            ).encode("ascii")
+        ).hexdigest()
+        epoch_directory = validated_epochs.get(epoch)
+        if epoch_directory is None:
+            return None
+        identity_path = epoch_directory / "identity.json"
+        if not os.path.lexists(identity_path) or not os.path.lexists(lock_path):
+            raise ExternalStateError("state-identity-mismatch")
+        _validate_private_file(identity_path)
+        _validate_private_file(lock_path)
+        expected: dict[str, object] = {
+            "locator": locator.digest,
+            "locator_source": locator.source_kind,
+            "object_format": locator.object_format,
+            "academy_base_commit": academy_base_commit,
+            "catalog_sha256": catalog_sha256,
+        }
+        identity = _read_json(identity_path, max_bytes=_MAX_RECORD_BYTES)
+        _validate_identity(identity, expected)
+        repository_id = identity["repository_id"]
+        assert isinstance(repository_id, str)
+        return cls(
+            epoch_directory=epoch_directory,
+            identity_path=identity_path,
+            lock_path=lock_path,
+            repository_id=repository_id,
+            state_root=state_root,
+            locator_digest=locator.digest,
+            epoch_digest=epoch,
+        )
 
     @classmethod
     def open(
@@ -648,6 +1046,9 @@ class ExternalStateStore:
             identity_path=identity_path,
             lock_path=lock_path,
             repository_id=repository_id,
+            state_root=state_root,
+            locator_digest=locator.digest,
+            epoch_digest=epoch,
         )
 
     def locked(
@@ -720,6 +1121,16 @@ class LockedExternalState:
             raise ExternalStateError("state-corrupt")
         return record
 
+    def record_attempts(self, lab: str) -> tuple[int, ...]:
+        """Return canonical observed attempts without reading record content."""
+        self._require_active()
+        if lab not in {"p02", "p08"}:
+            raise ExternalStateError("unsafe-state-path")
+        lab_directory = self._store._epoch_dir / lab
+        if not os.path.lexists(lab_directory):
+            return ()
+        return _observed_record_attempts(lab_directory)
+
     def write_record(
         self,
         lab: str,
@@ -785,3 +1196,97 @@ class LockedExternalState:
             self._store._epoch_dir, lab, str(attempt), *components
         )
         return trusted.resolve(strict=True)
+
+    def owned_repository_directory(
+        self,
+        lab: str,
+        attempt: int,
+        repository_id: str,
+        *,
+        create: bool = False,
+    ) -> tuple[Path, bool]:
+        """Look up or atomically create one shallow P02 repository directory."""
+        self._require_active()
+        self._validate_location(lab, attempt)
+        if lab != "p02":
+            raise ExternalStateError("unsafe-state-path")
+        if (
+            not isinstance(repository_id, str)
+            or re.fullmatch(r"[0-9a-f]{64}", repository_id) is None
+        ):
+            raise ExternalStateError("unsafe-state-path")
+        storage_id = _shallow_repository_storage_id(
+            self._store._locator_digest,
+            self._store._epoch_digest,
+            lab,
+            attempt,
+            repository_id,
+        )
+        candidate = self._store._state_root / "remotes" / storage_id
+        path_units = len(os.fspath(candidate).encode("utf-16-le")) // 2
+        if os.name == "nt" and path_units > 240:
+            raise ExternalStateError("unsafe-state-path")
+        remotes = self._store._state_root / "remotes"
+        if not create:
+            _validate_private_directory(remotes)
+            _validate_private_directory(candidate)
+            return candidate.resolve(strict=True), False
+        if not os.path.lexists(remotes):
+            _ensure_directory(remotes)
+        else:
+            _validate_private_directory(remotes)
+        created = False
+        try:
+            candidate.mkdir(mode=0o700)
+            created = True
+        except FileExistsError:
+            pass
+        except OSError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        if created:
+            _set_private_mode(candidate, directory=True)
+        else:
+            _validate_private_directory(candidate)
+        return candidate.resolve(strict=True), created
+
+    def owned_p08_worktree_parent(self, attempt: int, worktree_id: str) -> Path:
+        """Create or validate one shallow, externally-owned P08 worktree parent."""
+        self._require_active()
+        self._validate_location("p08", attempt)
+        if (
+            not isinstance(worktree_id, str)
+            or re.fullmatch(r"[0-9a-f]{64}", worktree_id) is None
+        ):
+            raise ExternalStateError("unsafe-state-path")
+        storage_id = _p08_worktree_parent_storage_id(
+            self._store._locator_digest,
+            self._store._epoch_digest,
+            attempt,
+            worktree_id,
+        )
+        state_root = self._store._state_root
+        shallow_root = state_root / "p08-worktrees"
+        parent = shallow_root / storage_id
+        target = parent / worktree_id
+        path_units = len(os.fspath(target / ".git").encode("utf-16-le")) // 2
+        if os.name == "nt" and path_units > 240:
+            raise ExternalStateError("unsafe-state-path")
+        try:
+            parent.relative_to(shallow_root)
+            shallow_root.relative_to(state_root)
+        except ValueError as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        for directory in (state_root, shallow_root, parent):
+            if os.path.lexists(directory):
+                _validate_private_directory(directory)
+        if not os.path.lexists(shallow_root):
+            _ensure_directory(shallow_root)
+        if not os.path.lexists(parent):
+            _ensure_directory(parent)
+        try:
+            resolved_root = state_root.resolve(strict=True)
+            resolved_parent = parent.resolve(strict=True)
+            resolved_parent.relative_to(resolved_root)
+        except (OSError, RuntimeError, ValueError) as error:
+            raise ExternalStateError("unsafe-state-path") from error
+        return resolved_parent

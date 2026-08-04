@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -16,10 +17,16 @@ from academy_engine.command import (
 from academy_engine.curriculum import CurriculumError, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.evidence import record_checkpoint
+from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.progress import inspect_progress
 from academy_engine.receipt import ReceiptPrivacyError, export_catalog, graduate
 from academy_engine.remotes import RemoteSafetyError
-from academy_engine.scenario import PreparationError, prepare_lab, reset_lab
+from academy_engine.scenario import (
+    PreparationError,
+    p02_state_reachable,
+    prepare_lab,
+    reset_lab,
+)
 from academy_engine.update import UpdateError, update_academy
 
 
@@ -40,7 +47,7 @@ def ensure_authoritative_verifier(repository: Path) -> None:
     verifier = Path(__file__).resolve().parent
     if _inside(verifier, repository):
         raise VerifierTrustError(
-            "authoritative check and graduate require a verifier installed outside the target repository."
+            "authoritative Academy commands require a verifier installed outside the target repository."
         )
 
 
@@ -77,7 +84,16 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     arguments = parser.parse_args(argv)
-    if arguments.command in {"check", "graduate"} and arguments.repository is None:
+    authoritative_exercise = (
+        arguments.command in {"prepare", "reset"}
+        and arguments.lab_id in {"P02-commit-review-pr", "P08-repository-hygiene"}
+    )
+    later_p02_reachable = (
+        arguments.command in {"prepare", "reset"}
+        and arguments.lab_id != "P02-commit-review-pr"
+        and p02_state_reachable(arguments.lab_id)
+    )
+    if (arguments.command in {"check", "graduate"} or authoritative_exercise) and arguments.repository is None:
         parser.error(f"{arguments.command} requires --repository TARGET")
     requested_repository = (
         arguments.repository.expanduser().resolve()
@@ -86,9 +102,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         repository = repository_root(requested_repository)
-        if arguments.command in {"check", "graduate"}:
+        installed_authority = False
+        if (
+            arguments.command in {"check", "graduate"}
+            or authoritative_exercise
+            or (later_p02_reachable and arguments.repository is not None)
+        ):
             validate_repository_git_config(repository)
             ensure_authoritative_verifier(repository)
+            installed_authority = True
+        elif later_p02_reachable:
+            try:
+                p02_records_present = ExternalStateStore.has_records(
+                    repository, lab="p02"
+                )
+            except (ExternalStateError, GitCommandError) as error:
+                raise VerifierTrustError(
+                    "P02 exercise state probe could not complete."
+                ) from error
+            if p02_records_present:
+                raise VerifierTrustError(
+                    "P02 exercise records require installed Academy authority."
+                )
         if arguments.command == "doctor":
             report = inspect_doctor(repository)
             print(report.render())
@@ -102,11 +137,35 @@ def main(argv: list[str] | None = None) -> int:
             if not arguments.lab_id:
                 parser.error(f"{arguments.command} requires LAB_ID")
             result = (
-                prepare_lab(repository, arguments.lab_id)
+                prepare_lab(
+                    repository,
+                    arguments.lab_id,
+                    installed_authority=installed_authority,
+                )
                 if arguments.command == "prepare"
-                else reset_lab(repository, arguments.lab_id)
+                else reset_lab(
+                    repository,
+                    arguments.lab_id,
+                    installed_authority=installed_authority,
+                )
             )
-            print(f"Academy {arguments.command}d: {result.branch} at {result.commit_sha}")
+            identities = (
+                result.origin_repository_id,
+                result.upstream_repository_id,
+            )
+            if (identities[0] is None) != (identities[1] is None) or any(
+                value is not None and re.fullmatch(r"[0-9a-f]{64}", value) is None
+                for value in identities
+            ):
+                raise ValueError("prepared lab repository identity is invalid.")
+            completed_action = {
+                "prepare": "prepared",
+                "reset": "reset",
+            }[arguments.command]
+            print(f"Academy {completed_action}: {result.branch} at {result.commit_sha}")
+            if identities[0] is not None:
+                print(f"Origin repository ID: {identities[0]}")
+                print(f"Upstream repository ID: {identities[1]}")
             return 0
         if arguments.command == "update":
             print(update_academy(repository).render())

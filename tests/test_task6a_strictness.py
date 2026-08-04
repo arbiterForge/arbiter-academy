@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import academy_engine.exercise_state as exercise_module
 from academy_engine.checkpoints import (
     Predicate,
     _Attempt,
@@ -14,6 +17,7 @@ from academy_engine.checkpoints import (
     _remote_safe,
     _semantic,
 )
+from academy_engine.exercise_state import open_p08_store, preflight_p08, prepare_p08
 
 
 def git(root: Path, *arguments: str, check: bool = True) -> str:
@@ -291,7 +295,7 @@ class SemanticStrictnessTests(unittest.TestCase):
             )
         )
 
-    def test_p08_rejects_an_incomplete_live_ref_inventory(self) -> None:
+    def test_p08_rejects_unauthenticated_hygiene_snapshot_inventory(self) -> None:
         git(self.root, "branch", "merged-extra")
         branch = "academy/P08-repository-hygiene/1"
         git(self.root, "branch", branch)
@@ -325,7 +329,7 @@ class SemanticStrictnessTests(unittest.TestCase):
             _Attempt(branch, 1, prepared, self.base, valid_head),
             predicate,
         )
-        self.assertTrue(_semantic(valid))
+        self.assertFalse(_semantic(valid))
 
         incomplete = json.loads(snapshot.read_text(encoding="utf-8"))
         incomplete["refs"] = [
@@ -343,6 +347,69 @@ class SemanticStrictnessTests(unittest.TestCase):
                 )
             )
         )
+
+    def test_p08_accepts_real_authority_bound_attempt_instead_of_snapshot(self) -> None:
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary = Path(temporary_directory)
+            repository = temporary / "learner"
+            installed_data = temporary / "installed-data"
+            installed = installed_data / "share/arbiter-academy/academy"
+            installed.parent.mkdir(parents=True)
+            shutil.copytree(source / "academy", installed)
+            shutil.copytree(source / "academy", repository / "academy")
+            shutil.copytree(source / "workshop_queue", repository / "workshop_queue")
+            shutil.copytree(source / "data", repository / "data")
+            shutil.copy2(source / "pyproject.toml", repository / "pyproject.toml")
+            shutil.copy2(source / ".gitignore", repository / ".gitignore")
+            (repository / ".codearbiter").mkdir()
+            shutil.copy2(source / ".codearbiter/tech-stack.md", repository / ".codearbiter/tech-stack.md")
+            (repository / "scripts").mkdir()
+            shutil.copy2(source / "scripts/scan_secrets.py", repository / "scripts/scan_secrets.py")
+            (repository / "tests").mkdir()
+            shutil.copy2(source / "tests/test_cli.py", repository / "tests/test_cli.py")
+            git(repository, "init", "-b", "main")
+            git(repository, "config", "user.name", "Fixture")
+            git(repository, "config", "user.email", "fixture@example.invalid")
+            git(repository, "add", ".")
+            git(repository, "commit", "-m", "academy base")
+            git(repository, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+            git(repository, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+            git(repository, "remote", "set-url", "--push", "upstream", "DISABLED")
+            state_root = temporary / "state"
+
+            with patch("academy_engine.exercise_state.sysconfig.get_path", return_value=str(installed_data)):
+                base, lab, authority = preflight_p08(repository)
+                store = open_p08_store(repository, base=base, authority=authority, test_root=state_root)
+                prepared = prepare_p08(repository, store, lab)
+            with store.locked() as locked:
+                record = locked.read_record("p08", 1)
+            self.assertIsNotNone(record)
+            assert record is not None
+            target = repository / ".codearbiter/reports/academy/P08-hygiene.json"
+            target.parent.mkdir(parents=True)
+            target.write_bytes(
+                json.dumps(
+                    exercise_module._p08_expected_report(repository, record, base),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ).encode("utf-8") + b"\n"
+            )
+            git(repository, "add", ".codearbiter/reports/academy/P08-hygiene.json")
+            git(repository, "commit", "-m", "academy: report P08 hygiene")
+            head = git(repository, "rev-parse", "HEAD")
+            predicate = Predicate("live_ref_hygiene", "lab_semantics", {"profile": "p08_authenticated"})
+            context = _SemanticContext(
+                repository,
+                _Attempt(prepared.branch, 1, prepared.commit_sha, base, head),
+                predicate,
+            )
+            with patch("academy_engine.exercise_state.sysconfig.get_path", return_value=str(installed_data)), patch(
+                "academy_engine.checkpoints.open_p08_store", return_value=store
+            ) as opened:
+                self.assertTrue(_semantic(context))
+            opened.assert_called_once_with(repository, base=base, authority=authority)
 
     def test_u04_rejects_mutable_unbound_child_repository_state(self) -> None:
         prepared = self.commit("prepare")

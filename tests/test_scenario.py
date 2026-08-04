@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -8,8 +9,13 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
-from academy_engine.scenario import PreparationError, prepare_lab
+from academy_engine.catalog import CatalogError
+from academy_engine.command import GitCommandError
+from academy_engine.exercise_state import ExerciseStateError
+from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
+from academy_engine.external_state import ExternalStateStore
 from academy_engine.progress import inspect_progress
 
 
@@ -65,6 +71,563 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(prepared.base_sha, base)
         self.assertEqual((self.root / "exercise" / "seed.txt").read_text(encoding="utf-8"), "starting state\n")
         self.assertEqual(git(self.root, "log", "-1", "--format=%s"), "academy: prepare F01-fork-clone-doctor attempt 1")
+
+    def test_p02_prepare_and_reset_refuse_without_installed_authority_before_state_access(self) -> None:
+        for operation in (prepare_lab, reset_lab):
+            caught: Exception | None = None
+            with self.subTest(operation=operation.__name__), patch(
+                "academy_engine.scenario.ExternalStateStore.has_records"
+            ) as probed, patch(
+                "academy_engine.scenario.open_existing_p02_store"
+            ) as opened_existing, patch(
+                "academy_engine.scenario.open_p02_store"
+            ) as opened_new, patch(
+                "academy_engine.scenario.restore_p02"
+            ) as restored, patch(
+                "academy_engine.scenario.prepare_p02"
+            ) as prepared:
+                try:
+                    operation(
+                        self.root,
+                        "P02-commit-review-pr",
+                        installed_authority=False,
+                    )
+                except Exception as error:
+                    caught = error
+                else:
+                    self.fail("P02 state was reachable without installed authority")
+
+            self.assertIsInstance(caught, PreparationError)
+            self.assertEqual(
+                str(caught),
+                "P02 exercise records require installed Academy authority.",
+            )
+            probed.assert_not_called()
+            opened_existing.assert_not_called()
+            opened_new.assert_not_called()
+            restored.assert_not_called()
+            prepared.assert_not_called()
+
+    def test_p02_prepare_dispatches_to_external_state_before_generic_overlay(self) -> None:
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+        base = git(self.root, "rev-parse", "main")
+        expected = PreparedLab("P02-commit-review-pr", 1, "academy/P02-commit-review-pr/1", "a" * 40, "b" * 40)
+        store = Mock()
+
+        with patch("academy_engine.scenario.preflight_p02", return_value=base) as preflight, patch(
+            "academy_engine.scenario.open_p02_store", return_value=store
+        ) as opened, patch(
+            "academy_engine.scenario.prepare_p02", return_value=expected
+        ) as prepared:
+            result = prepare_lab(
+                self.root,
+                "P02-commit-review-pr",
+                installed_authority=True,
+            )
+
+        self.assertEqual(result, expected)
+        preflight.assert_called_once_with(self.root.resolve(), unittest.mock.ANY)
+        opened.assert_called_once_with(self.root.resolve(), base=base)
+        prepared.assert_called_once()
+
+    def test_p08_proves_installed_authority_before_p02_restore_and_state_open(self) -> None:
+        scenario = self.root / "academy/scenarios/P08-repository-hygiene"
+        shutil.copytree(
+            Path(__file__).parents[1] / "academy/scenarios/P08-repository-hygiene",
+            scenario,
+        )
+        git(self.root, "add", "academy/scenarios/P08-repository-hygiene")
+        git(self.root, "commit", "-m", "add P08 fixture")
+        base = git(self.root, "rev-parse", "main")
+        expected = PreparedLab(
+            "P08-repository-hygiene", 1,
+            "academy/P08-repository-hygiene/1", base, "b" * 40,
+        )
+        authority = Mock()
+        lab = Mock()
+        events: list[str] = []
+
+        def preflight(repository: Path):
+            self.assertEqual(repository, self.root.resolve())
+            events.append("p08-authority")
+            return base, lab, authority
+
+        def restore(*_args, **_kwargs):
+            events.append("p02-restore")
+
+        def opened(*_args, **_kwargs):
+            events.append("p08-store")
+            return Mock()
+
+        with patch("academy_engine.scenario.preflight_p08", side_effect=preflight), patch(
+            "academy_engine.scenario._restore_p02_before_later_lab", side_effect=restore
+        ), patch("academy_engine.scenario.open_p08_store", side_effect=opened), patch(
+            "academy_engine.scenario.prepare_p08", return_value=expected
+        ) as prepared:
+            result = prepare_lab(
+                self.root, "P08-repository-hygiene", installed_authority=True
+            )
+
+        self.assertEqual(result, expected)
+        self.assertEqual(events, ["p08-authority", "p02-restore", "p08-store"])
+        prepared.assert_called_once_with(self.root.resolve(), unittest.mock.ANY, lab)
+
+    def test_p08_authority_failure_blocks_p02_restore_and_p08_state_access(self) -> None:
+        failure = ExerciseStateError("installed-authority-required")
+        with patch("academy_engine.scenario.preflight_p08", side_effect=failure), patch(
+            "academy_engine.scenario._restore_p02_before_later_lab"
+        ) as restored, patch("academy_engine.scenario.open_p08_store") as opened, patch(
+            "academy_engine.scenario.prepare_p08"
+        ) as prepared:
+            with self.assertRaises(PreparationError) as raised:
+                prepare_lab(
+                    self.root, "P08-repository-hygiene", installed_authority=True
+                )
+        self.assertIn("P02 requires installed Academy authority", str(raised.exception))
+        restored.assert_not_called()
+        opened.assert_not_called()
+        prepared.assert_not_called()
+
+    def test_p08_reset_dispatches_after_authority_and_p02_restoration(self) -> None:
+        scenario = self.root / "academy/scenarios/P08-repository-hygiene"
+        shutil.copytree(
+            Path(__file__).parents[1] / "academy/scenarios/P08-repository-hygiene",
+            scenario,
+        )
+        git(self.root, "add", "academy/scenarios/P08-repository-hygiene")
+        git(self.root, "commit", "-m", "add P08 fixture")
+        base = git(self.root, "rev-parse", "main")
+        expected = PreparedLab(
+            "P08-repository-hygiene", 2,
+            "academy/P08-repository-hygiene/2", base, "b" * 40,
+        )
+        events: list[str] = []
+        lab, authority, store = Mock(), Mock(), Mock()
+
+        def preflight(repository: Path):
+            self.assertEqual(repository, self.root.resolve())
+            events.append("p08-authority")
+            return base, lab, authority
+
+        def restore(*_args, **_kwargs):
+            events.append("p02-restore")
+
+        def opened(*_args, **_kwargs):
+            events.append("p08-store")
+            return store
+
+        with patch("academy_engine.scenario.preflight_p08", side_effect=preflight), patch(
+            "academy_engine.scenario._restore_p02_before_later_lab", side_effect=restore
+        ), patch("academy_engine.scenario.open_p08_store", side_effect=opened), patch(
+            "academy_engine.scenario.reset_p08", return_value=expected, create=True
+        ) as reset:
+            result = reset_lab(
+                self.root, "P08-repository-hygiene", installed_authority=True
+            )
+
+        self.assertEqual(result, expected)
+        self.assertEqual(events, ["p08-authority", "p02-restore", "p08-store"])
+        reset.assert_called_once_with(self.root.resolve(), store)
+
+    def test_fresh_p02_dispatch_opens_state_at_the_base_verified_by_preflight(self) -> None:
+        """Mutation caught: discarding preflight_p02's verified base before state open."""
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+        verified_base = "f" * 40
+        expected = PreparedLab("P02-commit-review-pr", 1, "academy/P02-commit-review-pr/1", "a" * 40, "b" * 40)
+        store = Mock()
+
+        with patch(
+            "academy_engine.scenario.preflight_p02", return_value=verified_base
+        ) as preflight, patch(
+            "academy_engine.scenario.open_p02_store", return_value=store
+        ) as opened, patch(
+            "academy_engine.scenario.prepare_p02", return_value=expected
+        ):
+            result = prepare_lab(
+                self.root,
+                "P02-commit-review-pr",
+                installed_authority=True,
+            )
+
+        self.assertEqual(result, expected)
+        preflight.assert_called_once_with(self.root.resolve(), unittest.mock.ANY)
+        opened.assert_called_once_with(self.root.resolve(), base=verified_base)
+
+    def test_fresh_p02_preflight_rejects_before_external_state_open(self) -> None:
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=False
+        ), patch(
+            "academy_engine.scenario.preflight_p02",
+            side_effect=PreparationError("preflight rejected"),
+            create=True,
+        ) as preflight, patch(
+            "academy_engine.scenario.open_p02_store"
+        ) as opened, patch(
+            "academy_engine.scenario.prepare_p02",
+            return_value=PreparedLab(
+                "P02-commit-review-pr", 1, "academy/P02-commit-review-pr/1", "a" * 40, "b" * 40
+            ),
+        ):
+            with self.assertRaisesRegex(PreparationError, "preflight rejected"):
+                prepare_lab(
+                    self.root,
+                    "P02-commit-review-pr",
+                    installed_authority=True,
+                )
+
+        preflight.assert_called_once()
+        opened.assert_not_called()
+
+    def test_p02_reset_restores_then_prepares_the_next_attempt(self) -> None:
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+        expected = PreparedLab("P02-commit-review-pr", 2, "academy/P02-commit-review-pr/2", "a" * 40, "b" * 40)
+        store = Mock()
+
+        with patch(
+            "academy_engine.scenario._p02_preparation_base", return_value="a" * 40
+        ), patch(
+            "academy_engine.scenario.open_existing_p02_store", return_value=store
+        ), patch(
+            "academy_engine.scenario.restore_p02"
+        ) as restored, patch("academy_engine.scenario.prepare_p02", return_value=expected):
+            result = reset_lab(
+                self.root,
+                "P02-commit-review-pr",
+                installed_authority=True,
+            )
+
+        restored.assert_called_once()
+        self.assertEqual(result, expected)
+
+    def test_p02_catalog_manifest_and_os_failures_use_stable_path_free_code(self) -> None:
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+        private_path = r"C:\external\learner-secret\manifest.json"
+        cases = (
+            (
+                "catalog",
+                "academy_engine.scenario.Catalog.load",
+                CatalogError(f"could not read catalog: {private_path}"),
+            ),
+            (
+                "manifest",
+                "academy_engine.scenario.load_manifest_file",
+                CatalogError(f"could not read manifest: {private_path}"),
+            ),
+            (
+                "os",
+                "academy_engine.scenario.Catalog.load",
+                OSError(f"access denied: {private_path}"),
+            ),
+        )
+
+        for label, target, failure in cases:
+            with self.subTest(label=label), patch(target, side_effect=failure):
+                with self.assertRaises(PreparationError) as caught:
+                    prepare_lab(
+                        self.root,
+                        "P02-commit-review-pr",
+                        installed_authority=True,
+                    )
+
+            self.assertEqual(str(caught.exception), "P02 exercise state is invalid.")
+            self.assertNotIn(private_path, str(caught.exception))
+            self.assertIsInstance(caught.exception.__cause__, ExerciseStateError)
+            self.assertEqual(caught.exception.__cause__.code, "invalid-exercise-state")
+
+    def test_p02_prepare_and_reset_git_discovery_is_unchecked_and_path_free(self) -> None:
+        scenario = self.root / "academy/scenarios/P02-commit-review-pr"
+        shutil.copytree(Path(__file__).parents[1] / "academy/scenarios/P02-commit-review-pr", scenario)
+        git(self.root, "add", "academy/scenarios/P02-commit-review-pr")
+        git(self.root, "commit", "-m", "add P02 fixture")
+        private_path = r"C:\external\learner-secret\.git"
+        raw_git = f"fatal: unsafe repository at {private_path} for learner@example.test"
+
+        for operation in (prepare_lab, reset_lab):
+            calls: list[bool] = []
+
+            def checked_git_failure(_root, _args, *, check=True, **_kwargs):
+                calls.append(check)
+                if check:
+                    raise GitCommandError(raw_git)
+                return subprocess.CompletedProcess(["git"], 128, "", raw_git)
+
+            with self.subTest(operation=operation.__name__), patch(
+                "academy_engine.scenario._run_git", side_effect=checked_git_failure
+            ):
+                caught_error: Exception | None = None
+                try:
+                    operation(
+                        self.root,
+                        "P02-commit-review-pr",
+                        installed_authority=True,
+                    )
+                except Exception as error:
+                    caught_error = error
+                else:
+                    self.fail("P02 Git discovery unexpectedly succeeded")
+
+            self.assertEqual(calls, [False])
+            self.assertIsNotNone(caught_error)
+            self.assertEqual(str(caught_error), "P02 exercise state is invalid.")
+            self.assertNotIn(private_path, str(caught_error))
+            self.assertNotIn(raw_git, str(caught_error))
+            self.assertIsInstance(caught_error.__cause__, ExerciseStateError)
+            self.assertEqual(caught_error.__cause__.code, "invalid-exercise-state")
+
+    def test_later_lab_resumes_p02_restoration_even_after_checkout_reached_main(self) -> None:
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+        store = Mock()
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=True
+        ), patch("academy_engine.scenario.open_existing_p02_store", return_value=store), patch(
+            "academy_engine.scenario.has_active_p02", return_value=True
+        ), patch("academy_engine.scenario.restore_p02") as restored:
+            try:
+                result = prepare_lab(
+                    self.root,
+                    "P03-record-an-adr",
+                    installed_authority=True,
+                )
+            except TypeError as error:
+                self.fail(f"installed authority was not accepted: {error}")
+
+        restored.assert_called_once_with(
+            self.root.resolve(), store, transition_to="P03-record-an-adr"
+        )
+        self.assertEqual(result.lab_id, "P03-record-an-adr")
+
+    def test_later_lab_without_installed_authority_refuses_new_records_before_restore(self) -> None:
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+        before_head = git(self.root, "rev-parse", "HEAD")
+        before_branch = git(self.root, "branch", "--show-current")
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=True
+        ) as probed, patch(
+            "academy_engine.scenario.open_existing_p02_store"
+        ) as opened, patch(
+            "academy_engine.scenario.restore_p02"
+        ) as restored:
+            try:
+                prepare_lab(
+                    self.root,
+                    "P03-record-an-adr",
+                    installed_authority=False,
+                )
+            except TypeError as error:
+                self.fail(f"installed authority was not accepted: {error}")
+            except PreparationError as error:
+                caught = error
+            else:
+                self.fail("later-lab preparation restored P02 without installed authority")
+
+        self.assertEqual(
+            str(caught),
+            "P02 exercise records require installed Academy authority.",
+        )
+        probed.assert_called_once_with(self.root.resolve(), lab="p02")
+        opened.assert_not_called()
+        restored.assert_not_called()
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), before_head)
+        self.assertEqual(git(self.root, "branch", "--show-current"), before_branch)
+
+    def test_later_lab_reset_without_installed_authority_refuses_records_before_mutation(self) -> None:
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=False
+        ):
+            prepare_lab(self.root, "P03-record-an-adr")
+        before_head = git(self.root, "rev-parse", "HEAD")
+        before_branch = git(self.root, "branch", "--show-current")
+        before_refs = git(
+            self.root,
+            "for-each-ref",
+            "--format=%(refname)",
+            "refs/heads/academy/",
+        )
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=True
+        ) as probed, patch(
+            "academy_engine.scenario.open_existing_p02_store"
+        ) as opened, patch(
+            "academy_engine.scenario.restore_p02"
+        ) as restored:
+            try:
+                reset_lab(
+                    self.root,
+                    "P03-record-an-adr",
+                    installed_authority=False,
+                )
+            except TypeError as error:
+                self.fail(f"installed authority was not accepted: {error}")
+            except PreparationError as error:
+                caught = error
+            else:
+                self.fail("later-lab reset mutated state without installed authority")
+
+        self.assertEqual(
+            str(caught),
+            "P02 exercise records require installed Academy authority.",
+        )
+        probed.assert_called_once_with(self.root.resolve(), lab="p02")
+        opened.assert_not_called()
+        restored.assert_not_called()
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), before_head)
+        self.assertEqual(git(self.root, "branch", "--show-current"), before_branch)
+        self.assertEqual(
+            git(
+                self.root,
+                "for-each-ref",
+                "--format=%(refname)",
+                "refs/heads/academy/",
+            ),
+            before_refs,
+        )
+
+    def test_later_lab_with_no_p02_records_never_opens_or_mutates_external_state(self) -> None:
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=False
+        ) as probed, patch(
+            "academy_engine.scenario.open_existing_p02_store"
+        ) as opened, patch(
+            "academy_engine.scenario.restore_p02"
+        ) as restored:
+            result = prepare_lab(self.root, "P03-record-an-adr")
+
+        probed.assert_called_once_with(self.root.resolve(), lab="p02")
+        opened.assert_not_called()
+        restored.assert_not_called()
+        self.assertEqual(result.lab_id, "P03-record-an-adr")
+
+    def test_later_lab_with_harmless_local_config_and_no_p02_state_prepares_without_creating_state(self) -> None:
+        """Catches a read-only P02 locator that applies mutation-policy config validation."""
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+        git(self.root, "config", "pull.rebase", "false")
+        state_root = Path(self.temporary.name) / "absent-installed-state"
+
+        try:
+            with patch(
+                "academy_engine.external_state.resolve_state_root",
+                return_value=state_root,
+            ):
+                result = prepare_lab(self.root, "P03-record-an-adr")
+        finally:
+            self.assertFalse(state_root.exists())
+
+        self.assertEqual(result.lab_id, "P03-record-an-adr")
+        self.assertEqual(result.branch, "academy/P03-record-an-adr/1")
+
+    def test_later_lab_blocks_when_only_stale_p02_epochs_exist(self) -> None:
+        add_scenario(self.root, "P03-record-an-adr")
+        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
+        git(self.root, "commit", "-m", "add P03 fixture")
+        before = git(self.root, "rev-parse", "HEAD")
+
+        with patch(
+            "academy_engine.scenario.ExternalStateStore.has_records", return_value=True
+        ), patch(
+            "academy_engine.scenario.open_existing_p02_store", return_value=None
+        ), patch("academy_engine.scenario.restore_p02") as restored:
+            with self.assertRaisesRegex(PreparationError, "identity"):
+                prepare_lab(
+                    self.root,
+                    "P03-record-an-adr",
+                    installed_authority=True,
+                )
+
+        restored.assert_not_called()
+        self.assertEqual(git(self.root, "rev-parse", "HEAD"), before)
+
+    def test_later_lab_rejects_partial_current_locator_state_without_sidecar_mutation(self) -> None:
+        for kind in (
+            "missing-lock",
+            "directory-lock",
+            "empty-epochs",
+            "missing-identity",
+            "corrupt-identity",
+        ):
+            with self.subTest(kind=kind):
+                temporary, root = academy_git_fixture()
+                try:
+                    add_scenario(root, "P03-record-an-adr")
+                    git(root, "add", "academy/scenarios/P03-record-an-adr")
+                    git(root, "commit", "-m", "add P03 fixture")
+                    base = git(root, "rev-parse", "HEAD")
+                    catalog = root / "academy/catalog.json"
+                    state_root = Path(temporary.name) / "partial-state"
+                    store = ExternalStateStore.open(
+                        root,
+                        academy_base_commit=base,
+                        catalog_sha256=hashlib.sha256(catalog.read_bytes()).hexdigest(),
+                        test_root=state_root,
+                    )
+                    if kind == "missing-lock":
+                        store._lock_path.unlink()
+                    elif kind == "directory-lock":
+                        store._lock_path.unlink()
+                        store._lock_path.mkdir()
+                    elif kind == "empty-epochs":
+                        shutil.rmtree(store._epoch_dir)
+                    elif kind == "missing-identity":
+                        store._identity_path.unlink()
+                    else:
+                        store._identity_path.write_bytes(b'{"corrupt":true}\n')
+                    before = {
+                        path.relative_to(state_root).as_posix(): (
+                            "directory" if path.is_dir() else path.read_bytes()
+                        )
+                        for path in state_root.rglob("*")
+                    }
+                    head = git(root, "rev-parse", "HEAD")
+
+                    with patch(
+                        "academy_engine.external_state.resolve_state_root",
+                        return_value=state_root,
+                    ):
+                        with self.assertRaisesRegex(PreparationError, "state|identity"):
+                            prepare_lab(root, "P03-record-an-adr")
+
+                    after = {
+                        path.relative_to(state_root).as_posix(): (
+                            "directory" if path.is_dir() else path.read_bytes()
+                        )
+                        for path in state_root.rglob("*")
+                    }
+                    self.assertEqual(after, before)
+                    self.assertEqual(git(root, "rev-parse", "HEAD"), head)
+                finally:
+                    temporary.cleanup()
 
     def test_prepare_refuses_dirty_default_detached_and_unknown_lab_without_moving_head(self) -> None:
         before = git(self.root, "rev-parse", "HEAD")

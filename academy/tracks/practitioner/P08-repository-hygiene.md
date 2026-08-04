@@ -6,7 +6,7 @@ title: Classify repository hygiene without destructive cleanup
 outcome: Commit a complete live branch and worktree classification bound to prepared external identities without deleting or pruning anything.
 prerequisites: P07-threat-model
 estimated_minutes: 30
-scenario_command: python scripts/academy.py prepare P08-repository-hygiene
+scenario_command: arbiter-academy --repository <learner-repository> prepare P08-repository-hygiene
 checkpoint_command: arbiter-academy --repository <learner-repository> check P08-repository-hygiene
 next_lab: U01-autonomous-sprint
 ---
@@ -23,10 +23,13 @@ classification, and safe recommendations only—never destructive cleanup.
 
 ## Start the scenario
 
+Run this from the learner checkout. Preserved P02 verifier records require the installed command for
+every later Practitioner transition, even though the original GitHub remotes are already restored.
 Prepare the live local-ref fixture:
 
 ```powershell
-python scripts/academy.py prepare P08-repository-hygiene
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P08-repository-hygiene
 ```
 
 Preparation creates a clean merged branch, a dirty unmerged worktree, the current attempt branch,
@@ -97,7 +100,8 @@ items, stale or copied classifications, merge-only claims, deletion, pruning, fo
 absolute local paths fail.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P08-repository-hygiene
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P08-repository-hygiene
 ```
 
 ## Recovery
@@ -106,7 +110,8 @@ If the inventory is incomplete, a classification is stale, or a worktree becomes
 all refs/worktrees and reset through the scenario mechanism only:
 
 ```powershell
-python scripts/academy.py reset P08-repository-hygiene
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P08-repository-hygiene
 ```
 
 Do not delete branches, remove worktrees, prune metadata, or force an operation to make the report

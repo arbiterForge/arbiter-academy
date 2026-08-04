@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -425,6 +426,151 @@ class InstalledWheelTests(unittest.TestCase):
                 check=True,
             ).stdout.strip()
             self.assertNotIn(str(learner), location)
+
+            p08_learner = scratch / "p08-learner"
+            shutil.copytree(
+                source,
+                p08_learner,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            )
+            subprocess.run(
+                ["git", "init", "-b", "main"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Fixture"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "fixture@example.invalid"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(["git", "add", "."], cwd=p08_learner, check=True, capture_output=True, text=True)
+            subprocess.run(
+                ["git", "commit", "-m", "academy base"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            for name, url in (
+                ("origin", "https://github.com/learner/arbiter-academy.git"),
+                ("upstream", "https://github.com/arbiterForge/arbiter-academy.git"),
+            ):
+                subprocess.run(
+                    ["git", "remote", "add", name, url],
+                    cwd=p08_learner,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            subprocess.run(
+                ["git", "remote", "set-url", "--push", "upstream", "DISABLED"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            isolated_environment = os.environ.copy()
+            isolated_environment["PYTHONDONTWRITEBYTECODE"] = "1"
+            if os.name == "nt":
+                short_data_root = tempfile.TemporaryDirectory(
+                    prefix="aa-", dir=Path(tempfile.gettempdir()).anchor
+                )
+                self.addCleanup(short_data_root.cleanup)
+                isolated_environment["LOCALAPPDATA"] = short_data_root.name
+            else:
+                isolated_environment["XDG_DATA_HOME"] = str(scratch / "academy-data")
+            p08_prepare = subprocess.run(
+                [str(executable), "--repository", str(p08_learner), "prepare", "P08-repository-hygiene"],
+                cwd=outside,
+                env=isolated_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(p08_prepare.returncode, 0, p08_prepare.stdout + p08_prepare.stderr)
+            before_report = subprocess.run(
+                [str(executable), "--repository", str(p08_learner), "check", "P08-repository-hygiene"],
+                cwd=outside,
+                env=isolated_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(before_report.returncode, 0)
+            self.assertTrue(
+                before_report.stderr.startswith("checkpoint P08-repository-hygiene: failed ("),
+                before_report.stderr,
+            )
+            self.assertNotIn(str(p08_learner), before_report.stderr)
+            self.assertNotIn(str(outside), before_report.stderr)
+            self.assertNotIn("p08-worktrees", before_report.stderr)
+            self.assertNotIn("VerifierState", before_report.stderr)
+            self.assertNotIn("git_admin_id", before_report.stderr)
+            self.assertIsNone(re.search(r"[0-9a-f]{64}", before_report.stderr))
+            self.assertNotIn("Traceback", before_report.stderr)
+            report_writer = (
+                "import json, sys\n"
+                "from pathlib import Path\n"
+                "from academy_engine.exercise_state import _p08_expected_report, open_p08_store, preflight_p08\n"
+                "root = Path(sys.argv[1])\n"
+                "base, _lab, authority = preflight_p08(root)\n"
+                "store = open_p08_store(root, base=base, authority=authority)\n"
+                "with store.locked() as locked:\n"
+                "    record = locked.read_record('p08', 1)\n"
+                "if record is None:\n"
+                "    raise SystemExit('missing P08 record')\n"
+                "target = root / '.codearbiter/reports/academy/P08-hygiene.json'\n"
+                "target.parent.mkdir(parents=True, exist_ok=True)\n"
+                "target.write_bytes(json.dumps(_p08_expected_report(root, record, base), sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8') + b'\\n')\n"
+            )
+            rendered = subprocess.run(
+                [str(venv_python), "-c", report_writer, str(p08_learner)],
+                cwd=outside,
+                env=isolated_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(rendered.returncode, 0, rendered.stdout + rendered.stderr)
+            subprocess.run(
+                ["git", "add", ".codearbiter/reports/academy/P08-hygiene.json"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-m", "academy: report P08 hygiene"],
+                cwd=p08_learner,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            p08_check = subprocess.run(
+                [str(executable), "--repository", str(p08_learner), "check", "P08-repository-hygiene"],
+                cwd=outside,
+                env=isolated_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(p08_check.returncode, 0, p08_check.stdout + p08_check.stderr)
+            self.assertEqual(
+                p08_check.stdout,
+                "checkpoint P08-repository-hygiene: passed; progress: .academy/progress.json\n",
+            )
+            self.assertEqual(p08_check.stderr, "")
 
 
 if __name__ == "__main__":

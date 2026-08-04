@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
+from academy_engine.cli import main
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
+from academy_engine.scenario import PreparedLab
 
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -22,6 +28,7 @@ PRACTITIONER = (
     "P07-threat-model",
     "P08-repository-hygiene",
 )
+POST_P02_PRACTITIONER = PRACTITIONER[2:]
 EXPECTED_HOST_ACTIONS = {
     PRACTITIONER[0]: ("feature", "task"),
     PRACTITIONER[1]: ("review", "commit"),
@@ -35,6 +42,114 @@ EXPECTED_HOST_ACTIONS = {
 
 
 class PractitionerCurriculumTests(unittest.TestCase):
+    def test_loader_rejects_repository_local_post_p02_practitioner_scenarios(self) -> None:
+        """Preserved P02 records make a repository-local later transition noncanonical."""
+        for lab_id in POST_P02_PRACTITIONER:
+            with self.subTest(lab=lab_id), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                shutil.copytree(SOURCE / "academy", root / "academy")
+                path = root / f"academy/tracks/practitioner/{lab_id}.md"
+                text = path.read_text(encoding="utf-8")
+                installed = (
+                    "scenario_command: arbiter-academy --repository "
+                    f"<learner-repository> prepare {lab_id}"
+                )
+                local = f"scenario_command: python scripts/academy.py prepare {lab_id}"
+                self.assertIn(installed, text)
+                path.write_text(text.replace(installed, local), encoding="utf-8")
+
+                with self.assertRaisesRegex(
+                    CurriculumError,
+                    rf"{re.escape(lab_id)} scenario command is noncanonical",
+                ):
+                    load_track(root, "practitioner")
+
+    def test_post_p02_practitioner_guides_expose_restart_safe_installed_commands(self) -> None:
+        """The copyable path must retain external authority after P02 records are preserved."""
+        try:
+            track = load_track(SOURCE, "practitioner")
+        except CurriculumError as error:
+            self.fail(f"post-P02 source commands are not loadable: {error}")
+
+        assignment = "$learnerRepository = (Resolve-Path -LiteralPath '.').Path"
+        for lab in track.labs[2:]:
+            with self.subTest(lab=lab.id):
+                expected_prepare = (
+                    "arbiter-academy --repository <learner-repository> prepare "
+                    + lab.id
+                )
+                self.assertEqual(lab.scenario_command, expected_prepare)
+                guide = (
+                    SOURCE / f"academy/tracks/practitioner/{lab.id}.md"
+                ).read_text(encoding="utf-8")
+                prepare_block = re.search(
+                    rf"(?ms)^```powershell\n(?P<body>.*?prepare {re.escape(lab.id)}.*?)\n```$",
+                    guide,
+                )
+                self.assertIsNotNone(prepare_block)
+                self.assertEqual(
+                    tuple(prepare_block.group("body").splitlines())[:2],
+                    (
+                        assignment,
+                        f"arbiter-academy --repository $learnerRepository prepare {lab.id}",
+                    ),
+                )
+                self.assertIn(assignment, lab.success_evidence)
+                self.assertIn(
+                    f"arbiter-academy --repository $learnerRepository check {lab.id}",
+                    lab.success_evidence,
+                )
+                self.assertIn(assignment, lab.recovery)
+                self.assertIn(
+                    f"arbiter-academy --repository $learnerRepository reset {lab.id}",
+                    lab.recovery,
+                )
+                self.assertNotIn("python scripts/academy.py reset", lab.recovery)
+
+    def test_post_p02_documented_transitions_dispatch_with_installed_authority(self) -> None:
+        """The documented command shape must select the authoritative CLI route for prepare and reset."""
+        try:
+            track = load_track(SOURCE, "practitioner")
+        except CurriculumError as error:
+            self.fail(f"post-P02 source commands are not loadable: {error}")
+
+        for lab in track.labs[2:]:
+            result = PreparedLab(
+                lab.id,
+                1,
+                f"academy/{lab.id}/1",
+                "a" * 40,
+                "b" * 40,
+            )
+            for command, target in (("prepare", "prepare_lab"), ("reset", "reset_lab")):
+                output = StringIO()
+                with self.subTest(lab=lab.id, command=command), patch(
+                    "academy_engine.cli.repository_root", return_value=SOURCE
+                ), patch(
+                    "academy_engine.cli.validate_repository_git_config"
+                ) as validated, patch(
+                    "academy_engine.cli.ensure_authoritative_verifier"
+                ) as authoritative, patch(
+                    f"academy_engine.cli.{target}", return_value=result
+                ) as transitioned, redirect_stdout(output):
+                    exit_code = main(
+                        [
+                            "--repository",
+                            str(SOURCE),
+                            command,
+                            lab.id,
+                        ]
+                    )
+
+                self.assertEqual(exit_code, 0)
+                validated.assert_called_once_with(SOURCE)
+                authoritative.assert_called_once_with(SOURCE)
+                transitioned.assert_called_once_with(
+                    SOURCE,
+                    lab.id,
+                    installed_authority=True,
+                )
+
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         """Catches a missing/reordered lab or a guide wired to the wrong governed surface."""
         track = load_track(SOURCE, "practitioner")
@@ -67,6 +182,16 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 self.assertTrue(lab.success_evidence)
                 self.assertIn("reset", lab.recovery.casefold())
 
+        self.assertIn(
+            "arbiter-academy --repository $learnerRepository reset P02-commit-review-pr",
+            track.labs[1].recovery,
+        )
+        self.assertNotIn(
+            "arbiter-academy --repository <learner-repository> reset P02-commit-review-pr",
+            track.labs[1].recovery,
+        )
+        self.assertNotIn("scripts/academy.py reset", track.labs[1].recovery)
+
     def test_p01_exposes_exact_feature_and_task_start_commands_for_each_host(self) -> None:
         """Catches a guide that describes task movement without a copyable sanctioned command."""
         p01 = load_track(SOURCE, "practitioner").labs[0]
@@ -88,6 +213,127 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     "/ca-task start academy.feature.0002"
                 ),
             },
+        )
+
+    def test_p02_teaches_exact_identity_ref_and_two_commit_receipt_workflow(self) -> None:
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+
+        for required in (
+            "Origin repository ID: <64hex>",
+            "Upstream repository ID: <64hex>",
+            'git ls-remote origin "refs/heads/$branch"',
+            'git ls-remote upstream "refs/heads/$branch"',
+            "#### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
+            "#### Codex receipt commit\n\n```text\n$ca-commit\n```",
+            "#### Pi receipt commit\n\n```text\n/ca-commit\n```",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        self.assertIn("logical receipt identities", guide)
+        self.assertIn("not the temporary `file:` URLs", guide)
+
+    def test_p02_workflow_orders_external_prepare_checkout_guards_and_two_commits(self) -> None:
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+        markers = (
+            "$prepareOutput = @(arbiter-academy --repository $learnerRepository prepare P02-commit-review-pr)",
+            "$preparedCommit = $preparedMatch.Groups['commit'].Value",
+            "$originRepositoryId = $originMatch.Groups['id'].Value",
+            "Set-Location -LiteralPath $learnerRepository",
+            "if ((git branch --show-current) -ne $branch)",
+            "if ((git rev-parse HEAD) -ne $preparedCommit)",
+            "git add -- tests/test_cli.py workshop_queue/cli.py",
+            "$stagedWorkPaths = @(git diff --cached --name-only)",
+            '/ca:review\n/ca:commit\n```',
+            '$ca-review\n$ca-commit\n```',
+            '/ca-review\n/ca-commit\n```',
+            "$workHead = git rev-parse HEAD",
+            "$commits = @(git rev-list --reverse \"$preparedCommit..$workHead\")",
+            'git push origin "HEAD:refs/heads/$branch"',
+            'git ls-remote origin "refs/heads/$branch"',
+            'git ls-remote upstream "refs/heads/$branch"',
+            "[IO.File]::WriteAllText($receiptPath",
+            "git add -- .codearbiter/reports/academy/P02-pr-receipt.json",
+            "$stagedReceiptPaths = @(git diff --cached --name-only)",
+            "#### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
+            "#### Codex receipt commit\n\n```text\n$ca-commit\n```",
+            "#### Pi receipt commit\n\n```text\n/ca-commit\n```",
+            "arbiter-academy --repository $learnerRepository check P02-commit-review-pr",
+        )
+        positions = [guide.index(marker) for marker in markers]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_p02_patch_teaches_claimed_and_open_unresolved_counts(self) -> None:
+        exercise_patch = (
+            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('second["id"] = "RQ-102"', exercise_patch)
+        self.assertNotIn('second["ticket_id"]', exercise_patch)
+        self.assertIn('self.run_cli("claim", "RQ-102", "--volunteer", "Sam")', exercise_patch)
+        self.assertIn(
+            '{"claimed": 1, "completed": 0, "open": 1, "unresolved": 2}',
+            exercise_patch,
+        )
+
+    def test_p02_patch_carries_the_attempt_local_gate_without_expanding_work_paths(self) -> None:
+        """Catches an unpinned learner profile or a third learner work path."""
+        exercise_patch = (
+            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md",
+            exercise_patch,
+        )
+        verification = exercise_patch.index("-## Verification")
+        for preimage_context in (
+            " ## Coverage",
+            " No coverage command or threshold is configured for this standard-library Academy",
+            " surface. Current TDD uses Phase 4 obligation verification under the no-tooling",
+            " exemption.",
+            " ## Lint",
+            " python -m tabnanny academy_engine workshop_queue scripts tests",
+        ):
+            with self.subTest(preimage_context=preimage_context):
+                self.assertIn(preimage_context, exercise_patch)
+                self.assertLess(exercise_patch.index(preimage_context), verification)
+        self.assertIn("## P02 learner commit gate", exercise_patch)
+        self.assertIn("python -m unittest tests.test_cli -v", exercise_patch)
+        self.assertIn(
+            "python -m compileall -q workshop_queue tests/test_cli.py",
+            exercise_patch,
+        )
+        self.assertIn("python scripts/scan_secrets.py --staged", exercise_patch)
+
+    def test_p02_documents_the_bounded_gate_and_a_consistent_sixty_minute_pace(self) -> None:
+        """Catches a learner schedule based on the multi-hour maintainer acceptance suite."""
+        track = load_track(SOURCE, "practitioner")
+        p02 = track.labs[1]
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+        index = (
+            SOURCE / "academy/tracks/practitioner/index.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(p02.estimated_minutes, 60)
+        self.assertIn("| P02 |", index)
+        self.assertIn("| 60 minutes |", next(line for line in index.splitlines() if line.startswith("| P02 |")))
+        self.assertIn("## 60-minute pacing guide", guide)
+        for command in (
+            "python -m unittest tests.test_cli -v",
+            "python -m compileall -q workshop_queue tests/test_cli.py",
+            "python scripts/scan_secrets.py --staged",
+        ):
+            self.assertIn(command, guide)
+        self.assertIn("attempt-local", guide)
+        self.assertIn(
+            "Academy main keeps the full release verification profile",
+            " ".join(guide.split()),
         )
 
     def test_loader_requires_a_learner_visible_track_index(self) -> None:

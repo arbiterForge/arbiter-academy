@@ -6,7 +6,7 @@ title: Threat-model the path-handling boundary
 outcome: Preserve the complete native threat-model conversation and add a separately labeled Academy identity and SHA-256 binding for academy_engine/paths.py.
 prerequisites: P06-context-drift-recovery
 estimated_minutes: 30
-scenario_command: python scripts/academy.py prepare P07-threat-model
+scenario_command: arbiter-academy --repository <learner-repository> prepare P07-threat-model
 checkpoint_command: arbiter-academy --repository <learner-repository> check P07-threat-model
 next_lab: P08-repository-hygiene
 ---
@@ -24,10 +24,13 @@ output.
 
 ## Start the scenario
 
+Run this from the learner checkout. Preserved P02 verifier records require the installed command for
+every later Practitioner transition, even though the original GitHub remotes are already restored.
 Prepare the archive-import path request:
 
 ```powershell
-python scripts/academy.py prepare P07-threat-model
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P07-threat-model
 ```
 
 The bounded target is `academy_engine/paths.py`. Preparation records its tracked blob and raw
@@ -99,7 +102,8 @@ mixed metadata, stale digest, another target, post-wrapper mutation, or calling 
 native/canonical output fails.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P07-threat-model
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P07-threat-model
 ```
 
 ## Recovery
@@ -107,7 +111,8 @@ arbiter-academy --repository <learner-repository> check P07-threat-model
 For a wrong target, incomplete model, or stale digest, preserve the attempt and reset:
 
 ```powershell
-python scripts/academy.py reset P07-threat-model
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P07-threat-model
 ```
 
 Do not alter `academy_engine/paths.py` merely to fit an old digest or copy a model from another

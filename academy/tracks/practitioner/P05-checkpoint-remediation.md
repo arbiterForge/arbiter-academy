@@ -6,7 +6,7 @@ title: Remediate a checkpoint finding
 outcome: Reproduce a genuine blocked-ticket summary defect and link a real finding commit to a later regression-backed repair through shared changed paths.
 prerequisites: P04-review-a-dependency
 estimated_minutes: 45
-scenario_command: python scripts/academy.py prepare P05-checkpoint-remediation
+scenario_command: arbiter-academy --repository <learner-repository> prepare P05-checkpoint-remediation
 checkpoint_command: arbiter-academy --repository <learner-repository> check P05-checkpoint-remediation
 next_lab: P06-context-drift-recovery
 ---
@@ -23,10 +23,13 @@ patch or synthetic JSON finding from passing as remediation.
 
 ## Start the scenario
 
+Run this from the learner checkout. Preserved P02 verifier records require the installed command for
+every later Practitioner transition, even though the original GitHub remotes are already restored.
 Prepare the blocked-ticket fixture and staged summary defect:
 
 ```powershell
-python scripts/academy.py prepare P05-checkpoint-remediation
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P05-checkpoint-remediation
 ```
 
 Confirm the fixture can create and persist a blocked ticket independently of summary rendering.
@@ -102,7 +105,8 @@ in-attempt commits and shared affected paths and is itself later than the remedi
 same-commit, synthetic, code-only, test-only, pre-prepare, or prose-only evidence fails.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P05-checkpoint-remediation
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P05-checkpoint-remediation
 ```
 
 ## Recovery
@@ -111,7 +115,8 @@ If IDs are out of range, finding and remediation are disjoint, or the report was
 preserve the attempt and reset:
 
 ```powershell
-python scripts/academy.py reset P05-checkpoint-remediation
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P05-checkpoint-remediation
 ```
 
 Do not edit identifiers in prose to disguise disconnected history.

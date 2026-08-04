@@ -6,9 +6,11 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from academy_engine.checkpoints import (
     CheckpointError,
+    LabContract,
     Predicate,
     _Attempt,
     _SemanticContext,
@@ -16,10 +18,12 @@ from academy_engine.checkpoints import (
     _json,
     _raw_digest,
     _semantic,
+    _validate_prepare,
     evaluate_checkpoint,
     load_checkpoint,
     load_contracts,
 )
+from academy_engine.exercise_state import P08AttemptIdentity
 
 
 class CheckpointTests(unittest.TestCase):
@@ -33,7 +37,187 @@ class CheckpointTests(unittest.TestCase):
 
     def tearDown(self): self.temp.cleanup()
 
+    def test_p08_authenticated_profile_proves_authority_before_external_checkpoint(self):
+        attempt = _Attempt(
+            "academy/P08-repository-hygiene/1", 1, "a" * 40, "b" * 40, "c" * 40
+        )
+        predicate = Predicate("live_ref_hygiene", "lab_semantics", {"profile": "p08_authenticated"})
+        context = _SemanticContext(self.root, attempt, predicate)
+        store, authority = mock.Mock(), mock.Mock()
+
+        sequence = mock.Mock()
+        with mock.patch(
+            "academy_engine.checkpoints.preflight_p08",
+            return_value=("b" * 40, mock.Mock(), authority),
+        ) as preflight, mock.patch(
+            "academy_engine.checkpoints.open_p08_store", return_value=store
+        ) as opened, mock.patch(
+            "academy_engine.checkpoints.validate_p08_checkpoint", return_value=True
+        ) as verified:
+            sequence.attach_mock(preflight, "preflight")
+            sequence.attach_mock(opened, "opened")
+            sequence.attach_mock(verified, "verified")
+            self.assertTrue(_semantic(context))
+
+        preflight.assert_called_once_with(self.root)
+        opened.assert_called_once_with(self.root, base="b" * 40, authority=authority)
+        identity = P08AttemptIdentity(1, attempt.branch, attempt.prepared, attempt.head)
+        verified.assert_called_once_with(self.root, store, identity)
+        self.assertEqual(
+            sequence.mock_calls,
+            [
+                mock.call.preflight(self.root),
+                mock.call.opened(self.root, base="b" * 40, authority=authority),
+                mock.call.verified(self.root, store, identity),
+            ],
+        )
+
     def write(self, value): self.path.write_text(json.dumps(value), encoding="utf-8")
+
+    def test_p02_prepare_requires_the_exact_patch_derived_learner_profile(self):
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            installed_data = root / "installed-data"
+            installed = installed_data / "share/arbiter-academy/academy"
+            installed.parent.mkdir(parents=True)
+            shutil.copytree(source / "academy", installed)
+            shutil.copytree(source / "academy", root / "academy")
+            scenario_root = root / "academy/scenarios/P02-commit-review-pr"
+            profile = root / ".codearbiter/tech-stack.md"
+            profile.parent.mkdir(parents=True)
+            shutil.copy2(source / ".codearbiter/tech-stack.md", profile)
+            subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "Fixture"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+            base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            contract = LabContract(
+                "P02-commit-review-pr",
+                "Commit, review, and PR",
+                "academy/tracks/practitioner/P02-commit-review-pr.md",
+                "academy/checkpoints/P02-commit-review-pr.json",
+                "training_scenarios/P02-commit-review-pr.json",
+            )
+
+            def prepare(kind: str) -> _Attempt:
+                subprocess.run(["git", "switch", "--detach", base], cwd=root, check=True, capture_output=True)
+                destination = root / contract.scenario_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(scenario_root / "files/scenario.json", destination)
+                if kind != "missing":
+                    subprocess.run(
+                        [
+                            "git",
+                            "apply",
+                            "--include=.codearbiter/tech-stack.md",
+                            "--",
+                            "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch",
+                        ],
+                        cwd=root,
+                        check=True,
+                        capture_output=True,
+                    )
+                if kind == "wrong":
+                    profile.write_text("# unverified learner profile\n", encoding="utf-8")
+                if kind == "extra":
+                    (root / "unexpected.txt").write_text("extra\n", encoding="utf-8")
+                subprocess.run(["git", "add", "."], cwd=root, check=True)
+                subprocess.run(
+                    ["git", "commit", "-m", "academy: prepare P02-commit-review-pr attempt 1"],
+                    cwd=root,
+                    check=True,
+                    capture_output=True,
+                )
+                prepared = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+                return _Attempt("academy/P02-commit-review-pr/1", 1, prepared, base, prepared)
+
+            with mock.patch(
+                "academy_engine.exercise_state.sysconfig.get_path",
+                return_value=str(installed_data),
+            ):
+                self.assertTrue(_validate_prepare(root, contract, prepare("exact")))
+                for kind in ("missing", "wrong", "extra"):
+                    with self.subTest(kind=kind):
+                        self.assertFalse(_validate_prepare(root, contract, prepare(kind)))
+
+    def test_non_p02_prepare_remains_manifest_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = root / "academy/scenarios/F99-control/files"
+            files.mkdir(parents=True)
+            (files / "scenario.json").write_text('{"control":true}\n', encoding="utf-8")
+            (files.parent / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "id": "F99-control",
+                        "files": [
+                            {
+                                "source": "scenario.json",
+                                "destination": "training_scenarios/F99-control.json",
+                            }
+                        ],
+                        "removals": [],
+                        "starting_task": "F99",
+                        "checkpoint": "academy/checkpoints/F99-control.json",
+                        "requires_push_safe_setup": False,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "Fixture"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+            base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            destination = root / "training_scenarios/F99-control.json"
+            destination.parent.mkdir()
+            shutil.copy2(files / "scenario.json", destination)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-m", "prepare"], cwd=root, check=True, capture_output=True)
+            prepared = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            contract = LabContract("F99-control", "Control", "guide.md", "checkpoint.json", "training_scenarios/F99-control.json")
+            attempt = _Attempt("academy/F99-control/1", 1, prepared, base, prepared)
+
+            self.assertTrue(_validate_prepare(root, contract, attempt))
+
+    def test_p02_semantics_use_external_state_and_strict_offline_receipt(self):
+        attempt = _Attempt(
+            "academy/P02-commit-review-pr/1",
+            1,
+            "b" * 40,
+            "a" * 40,
+            "c" * 40,
+        )
+        predicate = Predicate(
+            "review_pr_commit_range",
+            "lab_semantics",
+            {
+                "profile": "pr_receipt",
+                "receipt": ".codearbiter/reports/academy/P02-pr-receipt.json",
+            },
+        )
+        context = _SemanticContext(self.root, attempt, predicate)
+        receipt = {"strict": "offline"}
+        store = object()
+
+        with mock.patch(
+            "academy_engine.checkpoints._git_blob", return_value=b"receipt-bytes"
+        ), mock.patch(
+            "academy_engine.checkpoints.open_existing_p02_store", return_value=store
+        ) as opened, mock.patch(
+            "academy_engine.checkpoints._parse_p02_receipt_bytes", return_value=receipt
+        ) as parsed, mock.patch(
+            "academy_engine.checkpoints.validate_p02_checkpoint", return_value=True
+        ) as validated:
+            self.assertTrue(_semantic(context))
+
+        opened.assert_called_once_with(self.root, base=attempt.base)
+        parsed.assert_called_once_with(b"receipt-bytes", object_format="sha1")
+        validated.assert_called_once()
 
     def test_untouched_partial_and_wrong_value_fail_closed(self):
         for label, contents in (("untouched", None), ("partial", ""), ("wrong", "wrong")):

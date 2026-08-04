@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,11 +12,51 @@ from typing import Callable, Sequence
 
 from academy_engine.catalog import Catalog, CatalogError, Lab, ScenarioManifest, load_manifest_file
 from academy_engine.command import GitCommandError, repository_root, run_git as _run_git
+from academy_engine.exercise_state import (
+    ExerciseStateError,
+    has_active_p02,
+    open_existing_p02_store,
+    open_p02_store,
+    open_p08_store,
+    preflight_p08,
+    preflight_p02,
+    prepare_p08,
+    prepare_p02,
+    reset_p08,
+    restore_p02,
+)
+from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
 BASE_BRANCH = "main"
+_P02_STATE_REACHABLE_LABS = frozenset(
+    {
+        "P02-commit-review-pr",
+        "P03-record-an-adr",
+        "P04-review-a-dependency",
+        "P05-checkpoint-remediation",
+        "P06-context-drift-recovery",
+        "P07-threat-model",
+        "P08-repository-hygiene",
+        "U01-autonomous-sprint",
+        "U02-override-audit-metrics",
+        "U03-refactor-chore-release",
+        "U04-initialize-projects",
+        "U05-debug-spike-conflict",
+        "U06-preview-and-advanced-surfaces",
+        "U07-capstone",
+    }
+)
+_P02_AUTHORITY_REQUIRED = (
+    "P02 exercise records require installed Academy authority."
+)
+
+
+def p02_state_reachable(lab_id: str | None) -> bool:
+    """Return whether scenario dispatch can inspect or mutate verifier-owned P02 state."""
+    return lab_id in _P02_STATE_REACHABLE_LABS
 
 
 def run_git(
@@ -35,6 +76,16 @@ class PreparedLab:
     branch: str
     base_sha: str
     commit_sha: str
+    origin_repository_id: str | None = None
+    upstream_repository_id: str | None = None
+
+    def __post_init__(self) -> None:
+        identities = (self.origin_repository_id, self.upstream_repository_id)
+        if (identities[0] is None) != (identities[1] is None) or any(
+            value is not None and re.fullmatch(r"[0-9a-f]{64}", value) is None
+            for value in identities
+        ):
+            raise ValueError("prepared lab repository identity is invalid.")
 
 
 @dataclass(frozen=True)
@@ -130,6 +181,25 @@ def _catalog_and_manifest(root: Path, lab_id: str) -> tuple[Lab, ScenarioManifes
     return lab, manifest, manifest_path
 
 
+def _p02_catalog_and_manifest(
+    root: Path, lab_id: str
+) -> tuple[Lab, ScenarioManifest, Path]:
+    try:
+        return _catalog_and_manifest(root, lab_id)
+    except (CatalogError, OSError, PathBoundaryError, PreparationError) as error:
+        raise ExerciseStateError("invalid-exercise-state") from error
+
+
+def _p02_git(repository: Path, args: Sequence[str]):
+    try:
+        result = _run_git(repository, args, check=False)
+    except (GitCommandError, OSError) as error:
+        raise ExerciseStateError("invalid-exercise-state") from error
+    if result.returncode:
+        raise ExerciseStateError("invalid-exercise-state")
+    return result
+
+
 def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Path) -> tuple[tuple[Path, Path], ...]:
     try:
         files_root = ensure_within(root, manifest_path.parent.relative_to(root) / "files")
@@ -215,8 +285,74 @@ def _prepare_inputs(root: Path, lab_id: str) -> tuple[Path, Lab, ScenarioManifes
     return repository, lab, manifest, operations, attempt, run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
 
 
-def prepare_lab(root: Path, lab_id: str) -> PreparedLab:
+def _restore_p02_before_later_lab(
+    repository: Path,
+    lab_id: str,
+    *,
+    installed_authority: bool,
+) -> None:
+    if not p02_state_reachable(lab_id) or lab_id == "P02-commit-review-pr":
+        return
+    try:
+        if not ExternalStateStore.has_records(repository, lab="p02"):
+            return
+        if not installed_authority:
+            raise PreparationError(_P02_AUTHORITY_REQUIRED)
+        store = open_existing_p02_store(
+            repository,
+            base=_p02_git(repository, ["rev-parse", "main"]).stdout.strip(),
+        )
+        if store is None:
+            raise ExternalStateError("state-identity-mismatch")
+        if has_active_p02(repository, store):
+            restore_p02(repository, store, transition_to=lab_id)
+    except (ExerciseStateError, ExternalStateError) as error:
+        raise PreparationError(str(error)) from error
+
+
+def prepare_lab(
+    root: Path,
+    lab_id: str,
+    *,
+    installed_authority: bool = False,
+) -> PreparedLab:
     """Prepare one catalog-sourced attempt from the clean immutable base branch."""
+    try:
+        repository = repository_root(root)
+        if lab_id == "P02-commit-review-pr":
+            if not installed_authority:
+                raise PreparationError(_P02_AUTHORITY_REQUIRED)
+            lab, _, _ = _p02_catalog_and_manifest(repository, lab_id)
+            base = _p02_git(
+                repository,
+                ["rev-parse", "main"],
+            ).stdout.strip()
+            if ExternalStateStore.has_records(repository, lab="p02"):
+                store = open_existing_p02_store(repository, base=base)
+                if store is None:
+                    raise ExternalStateError("state-identity-mismatch")
+            else:
+                base = preflight_p02(repository, lab)
+                store = open_p02_store(repository, base=base)
+            return prepare_p02(repository, store, lab)
+        if lab_id == "P08-repository-hygiene":
+            if not installed_authority:
+                raise PreparationError("P08 requires installed Academy authority.")
+            base, lab, authority = preflight_p08(repository)
+            _restore_p02_before_later_lab(
+                repository,
+                lab_id,
+                installed_authority=installed_authority,
+            )
+            store = open_p08_store(repository, base=base, authority=authority)
+            return prepare_p08(repository, store, lab)
+        _restore_p02_before_later_lab(
+            repository,
+            lab_id,
+            installed_authority=installed_authority,
+        )
+    except (ExerciseStateError, ExternalStateError) as error:
+        raise PreparationError(str(error)) from error
     repository, lab, manifest, operations, attempt, base_sha = _prepare_inputs(root, lab_id)
     branch = f"academy/{lab.id}/{attempt}"
     original_branch = _branch(repository)
@@ -254,10 +390,89 @@ def prepare_lab(root: Path, lab_id: str) -> PreparedLab:
     return PreparedLab(lab.id, attempt, branch, base_sha, commit_sha)
 
 
-def reset_lab(root: Path, lab_id: str, *, now: Callable[[], datetime] | None = None) -> PreparedLab:
+def _p02_preparation_base(repository: Path) -> str:
+    prefix = "refs/heads/academy/P02-commit-review-pr/"
+    result = _p02_git(
+        repository,
+        ["for-each-ref", "--format=%(refname:short)", prefix],
+    )
+    attempts: dict[int, str] = {}
+    for branch in result.stdout.splitlines():
+        match = re.fullmatch(r"academy/P02-commit-review-pr/([1-9]|[12][0-9]|3[0-2])", branch)
+        if match is None:
+            raise ExerciseStateError("invalid-exercise-state")
+        attempt = int(match.group(1))
+        if attempt in attempts:
+            raise ExerciseStateError("invalid-exercise-state")
+        attempts[attempt] = branch
+    if not attempts:
+        raise ExerciseStateError("invalid-exercise-state")
+    latest = max(attempts)
+    if tuple(sorted(attempts)) != tuple(range(1, latest + 1)):
+        raise ExerciseStateError("invalid-exercise-state")
+    subject = f"academy: prepare P02-commit-review-pr attempt {latest}"
+    history = _p02_git(
+        repository,
+        ["log", "--format=%H%x00%s", attempts[latest]],
+    ).stdout.splitlines()
+    matches = [line.split("\0", 1)[0] for line in history if line.endswith("\0" + subject)]
+    if len(matches) != 1:
+        raise ExerciseStateError("invalid-exercise-state")
+    parents = _p02_git(
+        repository,
+        ["rev-list", "--parents", "-n", "1", matches[0]],
+    ).stdout.split()
+    if len(parents) != 2:
+        raise ExerciseStateError("invalid-exercise-state")
+    return parents[1]
+
+
+def reset_lab(
+    root: Path,
+    lab_id: str,
+    *,
+    now: Callable[[], datetime] | None = None,
+    installed_authority: bool = False,
+) -> PreparedLab:
     """Archive the current clean attempt and prepare an independent retry."""
+    if lab_id == "P02-commit-review-pr":
+        if not installed_authority:
+            raise PreparationError(_P02_AUTHORITY_REQUIRED)
+        try:
+            repository = repository_root(root)
+            lab, _, _ = _p02_catalog_and_manifest(repository, lab_id)
+            base = _p02_preparation_base(repository)
+            store = open_existing_p02_store(repository, base=base)
+            if store is None:
+                raise ExternalStateError("state-identity-mismatch")
+            restore_p02(
+                repository, store, transition_to="reset", now=now
+            )
+            return prepare_p02(repository, store, lab)
+        except (ExerciseStateError, ExternalStateError, GitCommandError, OSError) as error:
+            raise PreparationError(str(error)) from error
+    if lab_id == "P08-repository-hygiene":
+        if not installed_authority:
+            raise PreparationError("P08 requires installed Academy authority.")
+        try:
+            repository = repository_root(root)
+            base, lab, authority = preflight_p08(repository)
+            _restore_p02_before_later_lab(
+                repository,
+                lab_id,
+                installed_authority=installed_authority,
+            )
+            store = open_p08_store(repository, base=base, authority=authority)
+            return reset_p08(repository, store)
+        except (ExerciseStateError, ExternalStateError, GitCommandError, OSError) as error:
+            raise PreparationError(str(error)) from error
     try:
         repository = repository_root(root)
+        _restore_p02_before_later_lab(
+            repository,
+            lab_id,
+            installed_authority=installed_authority,
+        )
         _clean(repository)
         current = _branch(repository)
     except GitCommandError as error:
@@ -289,7 +504,11 @@ def reset_lab(root: Path, lab_id: str, *, now: Callable[[], datetime] | None = N
                 raise PreparationError(f"{error} (archive rollback failed: {rollback_error})") from rollback_error
         raise _fail(error) from error
     try:
-        return prepare_lab(repository, lab_id)
+        return prepare_lab(
+            repository,
+            lab_id,
+            installed_authority=installed_authority,
+        )
     except PreparationError as error:
         try:
             if _branch(repository) != current:

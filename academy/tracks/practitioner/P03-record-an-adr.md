@@ -6,7 +6,7 @@ title: Record an accepted learner-attributed ADR
 outcome: Decide the Workshop Queue summary-format boundary in accepted ADR 0004 and a matching learner-attributed decision-log entry.
 prerequisites: P02-commit-review-pr
 estimated_minutes: 25
-scenario_command: python scripts/academy.py prepare P03-record-an-adr
+scenario_command: arbiter-academy --repository <learner-repository> prepare P03-record-an-adr
 checkpoint_command: arbiter-academy --repository <learner-repository> check P03-record-an-adr
 next_lab: P04-review-a-dependency
 ---
@@ -22,10 +22,13 @@ invent. ADR 0003 already governs Academy verifier trust, so this decision must a
 
 ## Start the scenario
 
-After P02 has restored safe remotes, prepare the decision tension:
+Run this from the learner checkout. The explicit installed verifier restores an active P02 attempt
+to the original safe remotes before it prepares the decision tension. Preserved P02 records keep
+this external-authority requirement in place after restoration.
 
 ```powershell
-python scripts/academy.py prepare P03-record-an-adr
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P03-record-an-adr
 ```
 
 The scenario presents stable text versus structured JSON for Workshop Queue summaries. It does not
@@ -93,7 +96,8 @@ duplicate 0003, missing canonical sections, stale or mismatched lifecycle/decisi
 uncommitted lookalikes. No third event is required.
 
 ```powershell
-arbiter-academy --repository <learner-repository> check P03-record-an-adr
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P03-record-an-adr
 ```
 
 ## Recovery
@@ -102,7 +106,8 @@ If the wrong number, decision, lifecycle, or attribution was recorded, preserve 
 reset:
 
 ```powershell
-python scripts/academy.py reset P03-record-an-adr
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P03-record-an-adr
 ```
 
 Never rename or overwrite ADR 0003 to make room.
