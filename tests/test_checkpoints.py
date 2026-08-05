@@ -17,6 +17,13 @@ from academy_engine.checkpoints import (
     _git_blob,
     _json,
     _raw_digest,
+    _p01_spec_and_plan,
+    _p01_criterion,
+    _p01_board_transition,
+    _p01_exact_repair,
+    _p01_fixture_models,
+    _p01_prepared_defect,
+    _p01_source_identity,
     _semantic,
     _validate_prepare,
     evaluate_checkpoint,
@@ -36,6 +43,236 @@ class CheckpointTests(unittest.TestCase):
         self.write({"schema_version": 2, "id": "F01-fork-clone-doctor", "predicates": [{"id": "remote_and_doctor", "type": "lab_semantics", "profile": "remote_doctor", "artifact": ".codearbiter/reports/academy/F01-doctor.json"}]})
 
     def tearDown(self): self.temp.cleanup()
+
+    def test_p01_spec_and_plan_reject_ambiguous_approval_and_scope_creep_variants(self):
+        """Catches a P01 verifier that merely token-matches native feature artifacts."""
+        spec = (
+            "# Unresolved ticket report\n\n"
+            "## Problem\nThe Workshop Queue JSON report lacks an unresolved count.\n\n"
+            "## Scope\nJSON report behavior in workshop_queue/cli.py and verification in tests/test_cli.py only; "
+            "exclude text-output changes, lifecycle changes, storage changes, dependencies, network behavior, credentials, and real personal data.\n\n"
+            "## Acceptance criteria\n"
+            "1. The JSON report adds integer unresolved equal to open + claimed.\n"
+            "2. Existing integer open, claimed, and completed counts remain exact, and completed tickets do not contribute to unresolved.\n\n"
+            "## Open questions\nNone.\n"
+        )
+        plan = (
+            "# Academy feature plan\n\n"
+            "## Acceptance criteria ledger\n"
+            "- AC-01: The JSON report adds integer unresolved equal to open + claimed.\n"
+            "- AC-02: Existing integer open, claimed, and completed counts remain exact, and completed tickets do not contribute to unresolved.\n\n"
+            "## Tasks\n"
+            "| ID | Path(s) | Verification | Maps to | Covers | Depends on | Status |\n"
+            "| --- | --- | --- | --- | --- | --- | --- |\n"
+            "| T-01 | tests/test_cli.py | focused unresolved-summary test | AC-01, AC-02 | AC-01, AC-02 | none | ACCEPTED |\n"
+            "| T-02 | workshop_queue/cli.py | focused unresolved-summary test; python -m unittest discover -v; python -m compileall workshop_queue tests | AC-01, AC-02 | AC-01, AC-02 | T-01 | ACCEPTED |\n\n"
+            "## MVP slice\nT-01 through T-02\n"
+        )
+        self.assertTrue(_p01_spec_and_plan(spec.encode(), plan.encode()))
+        bad_specs = (
+            spec.replace("open + claimed.", "open + claimed or open + completed."),
+            spec.replace("open + claimed.", "open and claimed."),
+            spec.replace("do not contribute to unresolved", "contribute to unresolved"),
+            spec.replace("None.\n", "None.\nApproved by system at 2026-08-04.\n"),
+            spec.replace(
+                "The Workshop Queue JSON report lacks an unresolved count.",
+                "The Workshop Queue JSON report lacks an unresolved count.\nStatus: approved 2026-08-04.",
+            ),
+            spec.replace(
+                "The Workshop Queue JSON report lacks an unresolved count.",
+                "The Workshop Queue JSON report lacks an unresolved count.\nApproval: granted by a system.",
+            ),
+            spec.replace(
+                "The Workshop Queue JSON report lacks an unresolved count.",
+                "The Workshop Queue JSON report lacks an unresolved count for learner@example.com.",
+            ),
+            spec.replace("2. Existing", "3. Existing"),
+        )
+        private_markers = (
+            " https://learner:token@example.invalid/",
+            " gh" + "p_aaaaaaaaaaaaaaaaaaaa",
+            " -----BEGIN " + "PRIVATE KEY-----",
+            " secret = 'academy-only'",
+            r" C:\\Users\\learner\\private.txt",
+            r" \\server\\share\\private.txt",
+            " /private/path",
+            " path=/private/data",
+            " see (/private/data)",
+            "\x01",
+        )
+        bad_specs += tuple(
+            spec.replace(
+                "The Workshop Queue JSON report lacks an unresolved count.",
+                "The Workshop Queue JSON report lacks an unresolved count." + marker,
+            )
+            for marker in private_markers
+        )
+        bad_plans = (
+            plan.replace(
+                "## MVP slice\n",
+                "| T-03 | README.md | python -m unittest discover -v | AC-01 | AC-01 | T-02 | ACCEPTED |\n\n## MVP slice\n",
+            ),
+            plan.replace("T-01 | tests/test_cli.py", "T-01 | tests/test_cli.py, README.md"),
+            plan.replace("T-01 through T-02", "T-02 through T-01"),
+            plan.replace(
+                "| T-02 | workshop_queue/cli.py | focused unresolved-summary test; python -m unittest discover -v",
+                "| T-02 | workshop_queue/cli.py | python -m unittest discover -v",
+            ),
+            plan.replace(
+                "; python -m compileall workshop_queue tests",
+                "; whoami; python -m compileall workshop_queue tests",
+            ),
+        )
+        for bad_spec in bad_specs:
+            with self.subTest(kind="spec"):
+                self.assertFalse(_p01_spec_and_plan(bad_spec.encode(), plan.encode()))
+        for bad_plan in bad_plans:
+            with self.subTest(kind="plan"):
+                self.assertFalse(_p01_spec_and_plan(spec.encode(), bad_plan.encode()))
+
+    def test_p01_frozen_model_requires_the_prepared_no_unresolved_defect(self):
+        """Catches a P01 proof that accepts a regression already green before the repair."""
+        source = Path(__file__).resolve().parents[1]
+        fixture = (source / "academy/scenarios/P01-feature-through-plan/files/p01-unresolved-tickets.json").read_bytes()
+        cli = (source / "workshop_queue/cli.py").read_bytes()
+        prepared, intended = _p01_fixture_models(fixture)
+        expected = {"open": 1, "claimed": 1, "completed": 1, "unresolved": 2}
+        self.assertEqual(prepared, {"open": 1, "claimed": 1, "completed": 1})
+        self.assertNotEqual(prepared, expected)
+        self.assertEqual(intended, expected)
+        self.assertTrue(_p01_prepared_defect(cli))
+
+        redundant = cli.replace(
+            b"    if output_format == \"json\":\n",
+            b"    counts['unresolved'] = counts[TicketStatus.OPEN.value] + counts[TicketStatus.CLAIMED.value]\n    if output_format == \"json\":\n",
+        )
+        duplicate_status = fixture.replace(b'"status":"claimed"', b'"status":"open"')
+        invalid_lifecycle = fixture.replace(b'"claimed_by":"Academy Volunteer"', b'"claimed_by":null')
+        private_description = fixture.replace(
+            b'"description":"Fictional Academy ticket."',
+            b'"description":"Contact learner@example.com for this fictional ticket."',
+            1,
+        )
+        invalid_chronology = fixture.replace(
+            b'"completed_at":"2026-08-01T09:25:00Z"',
+            b'"completed_at":"2026-08-01T09:00:00Z"',
+        )
+        invalid_calendar_time = fixture.replace(
+            b'"created_at":"2026-08-01T09:00:00Z"',
+            b'"created_at":"2026-02-30T09:00:00Z"',
+        )
+        private_fixtures = tuple(
+            fixture.replace(
+                b'"description":"Fictional Academy ticket."',
+                f'"description":"{marker}"'.encode("utf-8"),
+                1,
+            )
+            for marker in (
+                "gh" + "p_aaaaaaaaaaaaaaaaaaaa",
+                "secret = academy-only",
+                r"C:\\private\\ticket.txt",
+            )
+        )
+        self.assertFalse(_p01_prepared_defect(redundant))
+        for candidate in (
+            duplicate_status,
+            invalid_lifecycle,
+            private_description,
+            invalid_chronology,
+            invalid_calendar_time,
+            *private_fixtures,
+        ):
+            with self.subTest(fixture=candidate):
+                self.assertIsNone(_p01_fixture_models(candidate))
+
+    def test_p01_source_identity_is_typed_private_and_exact(self):
+        """Catches source identity comparisons where Python bools satisfy integer fields."""
+        source = Path(__file__).resolve().parents[1]
+        identity = json.loads(
+            (source / "academy/scenarios/P01-feature-through-plan/files/codearbiter-source.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertTrue(_p01_source_identity(identity))
+        for mutation in (
+            {**identity, "schema_version": True},
+            {**identity, "repository": "learner@example.com"},
+        ):
+            with self.subTest(mutation=mutation):
+                self.assertFalse(_p01_source_identity(mutation))
+
+    def test_p01_board_transition_returns_false_when_line_counts_differ(self):
+        """Catches a strict zip exception escaping a malformed board comparison."""
+        attempt = _Attempt("academy/P01-feature-through-plan/1", 1, "prepared", "base", "head")
+        with mock.patch(
+            "academy_engine.checkpoints._p01_regular_blob",
+            side_effect=(
+                b"- [ ] academy.feature.0002 - Show unresolved tickets in the summary\n",
+                b"- [~] academy.feature.0002 - Show unresolved tickets in the summary  (started 2026-08-04)\nextra\n",
+            ),
+        ):
+            self.assertFalse(
+                _p01_board_transition(
+                    self.root,
+                    attempt,
+                    ".codearbiter/open-tasks.md",
+                    "academy.feature.0002",
+                )
+            )
+
+    def test_p01_criteria_require_the_actual_formula_and_completed_exclusion(self):
+        """Catches a criterion parser that accepts a semantic inversion by token presence."""
+        self.assertTrue(
+            _p01_criterion(
+                "The JSON report adds integer unresolved equal to open + claimed.",
+                first=True,
+            )
+        )
+        self.assertTrue(
+            _p01_criterion(
+                "Existing integer open, claimed, and completed counts remain exact, and completed tickets do not contribute to unresolved.",
+                first=False,
+            )
+        )
+        self.assertFalse(
+            _p01_criterion(
+                "The JSON report adds integer unresolved equal to open and claimed.",
+                first=True,
+            )
+        )
+        self.assertFalse(
+            _p01_criterion(
+                "Existing integer open, claimed, and completed counts remain exact, and completed tickets contribute to unresolved.",
+                first=False,
+            )
+        )
+
+    def test_p01_repair_must_follow_the_status_count_comprehension(self):
+        """Catches a syntactically exact assignment placed after JSON output or return."""
+        source = Path(__file__).resolve().parents[1]
+        prepared = (source / "workshop_queue/cli.py").read_bytes()
+        assignment = (
+            b"    counts['unresolved'] = (\n"
+            b"        counts[TicketStatus.OPEN.value]\n"
+            b"        + counts[TicketStatus.CLAIMED.value]\n"
+            b"    )\n"
+        )
+        count_to_json = (
+            b"    counts = {status.value: sum(ticket.status is status for ticket in tickets) for status in TicketStatus}\n"
+            b'    if output_format == "json":\n'
+        )
+        correct = prepared.replace(
+            count_to_json,
+            count_to_json.removesuffix(b'    if output_format == "json":\n')
+            + assignment
+            + b'    if output_format == "json":\n',
+        )
+        after_json = prepared.replace(
+            b"    for status in TicketStatus:\n",
+            assignment + b"    for status in TicketStatus:\n",
+        )
+        self.assertTrue(_p01_exact_repair(prepared, correct))
+        self.assertFalse(_p01_exact_repair(prepared, after_json))
 
     def test_p08_authenticated_profile_proves_authority_before_external_checkpoint(self):
         attempt = _Attempt(

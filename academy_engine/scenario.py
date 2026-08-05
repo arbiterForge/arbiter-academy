@@ -10,7 +10,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Sequence
 
-from academy_engine.catalog import Catalog, CatalogError, Lab, ScenarioManifest, load_manifest_file
+from academy_engine.catalog import (
+    Catalog,
+    CatalogError,
+    Lab,
+    ScenarioManifest,
+    _CONTROL_STATE_SEED_TARGETS,
+    load_manifest_file,
+)
 from academy_engine.command import GitCommandError, repository_root, run_git as _run_git
 from academy_engine.exercise_state import (
     ExerciseStateError,
@@ -178,6 +185,8 @@ def _catalog_and_manifest(root: Path, lab_id: str) -> tuple[Lab, ScenarioManifes
         raise PreparationError("catalog and scenario manifest checkpoints disagree.")
     if manifest.requires_push_safe_setup != lab.requires_push_safe_setup:
         raise PreparationError("catalog and scenario manifest remote requirements disagree.")
+    if manifest.control_state_seed is not None and manifest.control_state_seed.destination not in _CONTROL_STATE_SEED_TARGETS.get(lab.id, frozenset()):
+        raise PreparationError("scenario control-state seed is not allowed for this lab.")
     return lab, manifest, manifest_path
 
 
@@ -214,6 +223,18 @@ def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Pat
             raise _fail(error) from error
         if not source.is_file():
             raise PreparationError(f"scenario overlay source is missing or unsafe: {overlay.source}.")
+        operations.append((source, destination))
+    if manifest.control_state_seed is not None:
+        seed = manifest.control_state_seed
+        try:
+            source = ensure_within(root, files_root.relative_to(root) / seed.source)
+            destination = ensure_within(root, Path(seed.destination))
+        except PathBoundaryError as error:
+            raise _fail(error) from error
+        if not source.is_file():
+            raise PreparationError(
+                f"scenario control-state seed source is missing or unsafe: {seed.source}."
+            )
         operations.append((source, destination))
     for removal in manifest.removals:
         try:

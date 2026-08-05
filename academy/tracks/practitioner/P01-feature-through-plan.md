@@ -3,10 +3,10 @@ id: P01-feature-through-plan
 track: practitioner
 order: 1
 title: Feature through a user-approved spec and derived plan
-outcome: Deliver unresolved-ticket summary behavior through an approved spec, coverage-valid derived plan, sanctioned task transition, and test-before-code history.
+outcome: Deliver unresolved-ticket summary behavior through an approved spec, coverage-valid derived plan, sanctioned task transition, and test-before-code workflow.
 prerequisites: F04-fix-with-evidence
 estimated_minutes: 45
-scenario_command: python scripts/academy.py prepare P01-feature-through-plan
+scenario_command: arbiter-academy --repository <learner-repository> prepare P01-feature-through-plan
 checkpoint_command: arbiter-academy --repository <learner-repository> check P01-feature-through-plan
 next_lab: P02-commit-review-pr
 ---
@@ -18,15 +18,16 @@ next_lab: P02-commit-review-pr
 A governed feature begins with agreement about observable behavior, not an implementation-shaped
 task list. Here the approval boundary is the specification. The implementation plan derives from
 that approved contract and must cover it, but codeArbiter does not define a separate plan-approval
-event for this lane. Real Git ordering then distinguishes a regression that exposed missing
-behavior from a test written after the code.
+event for this lane. You still practice test-before-code; the bounded, one-final-commit Academy
+checkpoint verifies the final repository contract rather than reconstructing command execution order.
 
 ## Start the scenario
 
 From clean `main`, prepare the bounded Workshop Queue feature:
 
 ```powershell
-python scripts/academy.py prepare P01-feature-through-plan
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository prepare P01-feature-through-plan
 ```
 
 Preparation creates the next numbered attempt branch and queues
@@ -76,9 +77,10 @@ command for your host to move exactly `academy.feature.0002` from queued to in p
 writer-produced start date.
 
 Add and run a focused summary test before touching production code. It must fail because unresolved
-tickets are absent from the summary, not because of syntax, import, or fixture errors. Commit that
-RED test alone. Only then make the smallest Workshop Queue change, run focused and full tests, and
-commit the GREEN implementation later in the same attempt history.
+tickets are absent from the summary, not because of syntax, import, or fixture errors. Then make
+only the bounded `open + claimed` assignment, run focused and full GREEN verification, and let the
+terminal commit gate create one final green commit containing the spec, derived plan, task-board
+transition, test, and production change. Do not create a RED commit, amend, or rebase.
 
 ## Hints
 
@@ -94,16 +96,19 @@ second approval gate to fabricate; the plan's authority comes from its traceable
 
 ### Hint 3
 
-At the RED commit, inspect `git diff <prepared-commit>..HEAD` and confirm only the test/evidence side
-changed. The production summary path must first change in a later commit where the same test passes.
+Keep the retained regression exact and narrow. The installed Academy checkpoint parses it as data
+against a verifier-owned prepared/intended model; it does not run learner Python, prove chat
+approval, or prove which executable wrote byte-identical files.
 
 ## Success evidence
 
-The selected attempt contains the approved spec, its coverage-valid derived plan, and the canonical
-task-board transition. Immutable Git history places a meaningful failing summary regression after
-prepare and a later minimal production repair, with focused and full verification passing at head.
-Prose saying “approved,” a hand-edited task, a same-commit test/fix, or an invented plan-approval
-event is insufficient.
+The selected attempt contains the approved spec, its coverage-valid derived plan, the canonical
+task-board transition, and one final green commit with the exact bounded test and production
+artifacts. The checkpoint reconstructs the regression's expected result from the frozen fixture and
+verifies the final AST/data contract. It does not prove that you ran the test before production code,
+observed a terminal RED/GREEN run, or created separate test and repair commits. Those are essential
+workflow instructions for the exercise; they are not durable claims made by a non-executing,
+one-final-commit verifier.
 
 ```powershell
 arbiter-academy --repository <learner-repository> check P01-feature-through-plan
@@ -117,10 +122,11 @@ are not outcome evidence.
 If approval, plan coverage, task movement, or TDD ordering is wrong, preserve the attempt and reset:
 
 ```powershell
-python scripts/academy.py reset P01-feature-through-plan
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository reset P01-feature-through-plan
 ```
 
-Do not amend or rebase to manufacture the required history.
+Do not amend or rebase a retry; preserve the attempt and let reset create the next one.
 
 ## Next lab
 

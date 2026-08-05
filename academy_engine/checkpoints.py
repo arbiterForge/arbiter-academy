@@ -8,6 +8,7 @@ import json
 import re
 import stat
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -57,7 +58,16 @@ _PROFILES = {
     "orientation": ("artifact", "context"),
     "task_transition": ("board", "task_id"),
     "tdd_history": ("code", "test"),
-    "approved_spec_plan": ("spec", "plan", "board"),
+    "feature_spec_plan": (
+        "spec",
+        "plan",
+        "board",
+        "test",
+        "code",
+        "fixture",
+        "source_identity",
+        "task_id",
+    ),
     "pr_receipt": ("receipt",),
     "accepted_adr": ("adr", "decision_log"),
     "dependency_review": ("review", "project"),
@@ -80,7 +90,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
     "F03-work-the-board": ("canonical_board_transition", "task_transition", {"board": ".codearbiter/open-tasks.md", "task_id": "academy.feature.0001"}),
     "F04-fix-with-evidence": ("red_then_fix_history", "tdd_history", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
-    "P01-feature-through-plan": ("approved_spec_plan_task", "approved_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md"}),
+    "P01-feature-through-plan": ("feature_spec_plan_commit", "feature_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md", "test": "tests/test_cli.py", "code": "workshop_queue/cli.py", "fixture": "data/p01-unresolved-tickets.json", "source_identity": "training_scenarios/P01-codearbiter-source.json", "task_id": "academy.feature.0002"}),
     "P02-commit-review-pr": ("review_pr_commit_range", "pr_receipt", {"receipt": ".codearbiter/reports/academy/P02-pr-receipt.json"}),
     "P03-record-an-adr": ("accepted_adr_and_log", "accepted_adr", {"adr": ".codearbiter/decisions/0004-academy-lab.md", "decision_log": ".codearbiter/decisions/decision-log.md"}),
     "P04-review-a-dependency": ("strict_dependency_review", "dependency_review", {"review": ".codearbiter/reports/academy/P04-dependency-review.md", "project": "pyproject.toml"}),
@@ -586,6 +596,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         *(overlay.destination for overlay in manifest.files),
         *manifest.removals,
     }
+    if manifest.control_state_seed is not None:
+        expected_paths.add(manifest.control_state_seed.destination)
     if contract.id == "P02-commit-review-pr":
         expected_paths.add(".codearbiter/tech-stack.md")
     actual_paths = set(
@@ -607,6 +619,11 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
     for overlay in manifest.files:
         source_blob = _git_blob(root, attempt.base, f"{files_root}/{overlay.source}")
         if source_blob is None or _git_blob(root, attempt.prepared, overlay.destination) != source_blob:
+            return False
+    if manifest.control_state_seed is not None:
+        seed = manifest.control_state_seed
+        source_blob = _git_blob(root, attempt.base, f"{files_root}/{seed.source}")
+        if source_blob is None or _git_blob(root, attempt.prepared, seed.destination) != source_blob:
             return False
     for removal in manifest.removals:
         if _git_blob(root, attempt.base, removal) is None or _git_blob(root, attempt.prepared, removal) is not None:
@@ -1030,6 +1047,396 @@ class _SemanticContext:
     predicate: Predicate
 
 
+_P01_SOURCE_IDENTITY = {
+    "schema_version": 1,
+    "repository": "arbiterForge/codeArbiter",
+    "commit": "469c2fb82555346a739ab72a0f7284f22874aa3e",
+    "task_writer_path": "core/pysrc/taskwrite.py",
+    "task_writer_blob": "73258a414b27798f26d347389e02404fb070ca89",
+    "task_writer_sha256": "2637d3bca4cf6e77c6486a350dabfd5f14f86de946c52d474482d990491ed65f",
+}
+_P01_PATHS = frozenset(
+    {
+        ".codearbiter/specs/academy-feature.md",
+        ".codearbiter/plans/academy-feature.md",
+        ".codearbiter/open-tasks.md",
+        "tests/test_cli.py",
+        "workshop_queue/cli.py",
+    }
+)
+
+
+def _p01_regular_blob(root: Path, ref: str, path: str) -> bytes | None:
+    entry = run_git(root, ["ls-tree", ref, "--", path], check=False).stdout.strip()
+    if not entry.startswith("100644 blob ") or not entry.endswith("\t" + path):
+        return None
+    return _git_blob(root, ref, path)
+
+
+def _p01_one_commit(root: Path, attempt: _Attempt) -> str | None:
+    commits = tuple(
+        line for line in run_git(
+            root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False
+        ).stdout.splitlines() if line
+    )
+    if len(commits) != 1 or commits[0] != attempt.head:
+        return None
+    parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
+    if parents != [attempt.head, attempt.prepared] or set(_commit_paths(root, attempt.head)) != _P01_PATHS:
+        return None
+    return attempt.head
+
+
+def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: str) -> bool:
+    before, after = _p01_regular_blob(root, attempt.prepared, board), _p01_regular_blob(root, attempt.head, board)
+    if before is None or after is None:
+        return False
+    try:
+        before_lines = before.decode("utf-8").splitlines(keepends=True)
+        after_lines = after.decode("utf-8").splitlines(keepends=True)
+    except UnicodeDecodeError:
+        return False
+    if len(before_lines) != len(after_lines):
+        return False
+    changed = [(old.rstrip("\r\n"), new.rstrip("\r\n")) for old, new in zip(before_lines, after_lines, strict=True) if old != new]
+    if len(changed) != 1:
+        return False
+    old, new = changed[0]
+    match = re.fullmatch(rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old)
+    started = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
+    commit_date = run_git(root, ["show", "-s", "--format=%as", attempt.head], check=False).stdout.strip()
+    return bool(match and started and match.group("body") == started.group("body") and started.group("date") == commit_date)
+
+
+def _p01_exact_regression(prepared: bytes | None, final: bytes | None) -> bool:
+    if prepared is None or final is None:
+        return False
+    expected = ast.parse(
+        "def test_report_json_counts_open_and_claimed_as_unresolved(self) -> None:\n"
+        "    result = self.run_cli_for(self.data_root / 'p01-unresolved-tickets.json', 'report', '--format', 'json')\n"
+        "    self.assertEqual(result.returncode, 0, result.stderr)\n"
+        "    self.assertEqual(json.loads(result.stdout), {'claimed': 1, 'completed': 1, 'open': 1, 'unresolved': 2})\n"
+    ).body[0]
+    try:
+        prepared_tree = ast.parse(prepared.decode("utf-8"))
+        final_tree = ast.parse(final.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    classes = [item for item in final_tree.body if isinstance(item, ast.ClassDef) and item.name == "WorkshopQueueCliTests"]
+    if len(classes) != 1:
+        return False
+    methods = [item for item in classes[0].body if isinstance(item, ast.FunctionDef) and item.name == expected.name]
+    if len(methods) != 1 or ast.dump(methods[0], include_attributes=False) != ast.dump(expected, include_attributes=False):
+        return False
+    final_copy = copy.deepcopy(final_tree)
+    final_class = next(item for item in final_copy.body if isinstance(item, ast.ClassDef) and item.name == "WorkshopQueueCliTests")
+    final_class.body = [item for item in final_class.body if not (isinstance(item, ast.FunctionDef) and item.name == expected.name)]
+    return ast.dump(final_copy, include_attributes=False) == ast.dump(prepared_tree, include_attributes=False)
+
+
+def _p01_exact_repair(prepared: bytes | None, final: bytes | None) -> bool:
+    if prepared is None or final is None:
+        return False
+    expected = ast.parse(
+        "counts['unresolved'] = (counts[TicketStatus.OPEN.value] + counts[TicketStatus.CLAIMED.value])"
+    ).body[0]
+    try:
+        prepared_tree = ast.parse(prepared.decode("utf-8"))
+        final_tree = ast.parse(final.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    functions = [item for item in final_tree.body if isinstance(item, ast.FunctionDef) and item.name == "_write_report"]
+    if len(functions) != 1:
+        return False
+    candidates = [
+        index
+        for index, item in enumerate(functions[0].body)
+        if ast.dump(item, include_attributes=False) == ast.dump(expected, include_attributes=False)
+    ]
+    expected_counts = ast.parse(
+        "counts = {status.value: sum(ticket.status is status for ticket in tickets) for status in TicketStatus}"
+    ).body[0]
+    if (
+        len(candidates) != 1
+        or candidates[0] == 0
+        or ast.dump(functions[0].body[candidates[0] - 1], include_attributes=False)
+        != ast.dump(expected_counts, include_attributes=False)
+    ):
+        return False
+    final_copy = copy.deepcopy(final_tree)
+    final_function = next(item for item in final_copy.body if isinstance(item, ast.FunctionDef) and item.name == "_write_report")
+    del final_function.body[candidates[0]]
+    return ast.dump(final_copy, include_attributes=False) == ast.dump(prepared_tree, include_attributes=False)
+
+
+def _p01_sections(text: str, headings: tuple[str, ...]) -> tuple[str, dict[str, str]] | None:
+    if len(text.encode("utf-8")) > 16_384 or len(text.splitlines()) > 160:
+        return None
+    lines = text.splitlines()
+    if not lines or not re.fullmatch(r"# [^#\r\n]{1,120}", lines[0]):
+        return None
+    found = [index for index, line in enumerate(lines) if line.startswith("## ")]
+    if [lines[index][3:] for index in found] != list(headings):
+        return None
+    if any(line.startswith("#") and not line.startswith("## ") for line in lines[1:]):
+        return None
+    sections: dict[str, str] = {}
+    for index, start in enumerate(found):
+        end = found[index + 1] if index + 1 < len(found) else len(lines)
+        sections[lines[start][3:]] = "\n".join(lines[start + 1:end]).strip()
+    return lines[0][2:].strip(), sections
+
+
+def _p01_normalize_markdown(text: str) -> str:
+    return " ".join(text.replace("`", "").split()).casefold()
+
+
+def _p01_private_text(text: str) -> bool:
+    return (
+        any(
+            (ord(character) < 32 and character not in {"\r", "\n", "\t"})
+            or ord(character) == 127
+            for character in text
+        )
+        or bool(
+            re.search(
+                r"(?i)(?:\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|"
+                r"https?://[^/\s:@]+:[^@\s/]+@|"
+                r"\b(?:ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b|"
+                r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|"
+                r"\b(?:secret|password|token|api[_-]?key)\s*[:=]|"
+                r"(?<![:\w/])/(?:[^\s/]+/)*[^\s/]+|"
+                r"(?:[A-Za-z]:\\|\\\\))",
+                text,
+            )
+        )
+    )
+
+
+def _p01_source_identity(value: object) -> bool:
+    if not isinstance(value, dict) or set(value) != set(_P01_SOURCE_IDENTITY):
+        return False
+    if type(value.get("schema_version")) is not int:
+        return False
+    if any(not isinstance(item, str) or _p01_private_text(item) for key, item in value.items() if key != "schema_version"):
+        return False
+    return value == _P01_SOURCE_IDENTITY
+
+
+def _p01_timestamp(value: str) -> datetime | None:
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return None
+
+
+def _p01_criterion(text: str, *, first: bool) -> bool:
+    value = _p01_normalize_markdown(text)
+    if " or " in value or " either " in value or " alternatively " in value:
+        return False
+    required = (
+        ("json", "report", "integer", "unresolved", "equal", "open", "claimed"),
+        ("integer", "open", "claimed", "completed", "exact", "completed", "unresolved"),
+    )[int(not first)]
+    if not all(token in value for token in required):
+        return False
+    if first:
+        return "open + claimed" in value
+    return "completed tickets do not contribute to unresolved" in value
+
+
+def _p01_parse_criteria(section: str) -> tuple[str, str] | None:
+    lines = [line.strip() for line in section.splitlines() if line.strip()]
+    if len(lines) != 2:
+        return None
+    parsed: list[str] = []
+    for index, line in enumerate(lines, start=1):
+        match = re.fullmatch(rf"{index}\.\s+(.+)", line)
+        if not match or not _p01_criterion(match.group(1), first=index == 1):
+            return None
+        parsed.append(match.group(1))
+    return tuple(parsed)  # type: ignore[return-value]
+
+
+def _p01_parse_table(section: str) -> list[list[str]] | None:
+    rows = [line.strip() for line in section.splitlines() if line.strip()]
+    if len(rows) != 4 or not all(row.startswith("|") and row.endswith("|") for row in rows):
+        return None
+    parsed = [[cell.strip() for cell in row[1:-1].split("|")] for row in rows]
+    if any(len(row) != 7 for row in parsed):
+        return None
+    if parsed[0] != ["ID", "Path(s)", "Verification", "Maps to", "Covers", "Depends on", "Status"]:
+        return None
+    if any(not re.fullmatch(r"-+", cell) for cell in parsed[1]):
+        return None
+    return parsed[2:]
+
+
+def _p01_spec_and_plan(spec: bytes | None, plan: bytes | None) -> bool:
+    if spec is None or plan is None:
+        return False
+    try:
+        spec_text, plan_text = spec.decode("utf-8"), plan.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    if _p01_private_text(spec_text) or _p01_private_text(plan_text):
+        return False
+    spec_parts = _p01_sections(spec_text, ("Problem", "Scope", "Acceptance criteria", "Open questions"))
+    plan_parts = _p01_sections(plan_text, ("Acceptance criteria ledger", "Tasks", "MVP slice"))
+    if spec_parts is None or plan_parts is None:
+        return False
+    _, spec_sections = spec_parts
+    _, plan_sections = plan_parts
+    problem = _p01_normalize_markdown(spec_sections["Problem"])
+    scope = _p01_normalize_markdown(spec_sections["Scope"])
+    criteria = _p01_parse_criteria(spec_sections["Acceptance criteria"])
+    if criteria is None or not all(token in problem for token in ("workshop", "queue", "json", "report", "unresolved")):
+        return False
+    if not all(token in scope for token in ("json", "report", "workshop_queue/cli.py", "tests/test_cli.py", "text-output", "lifecycle", "storage", "dependencies", "network", "credentials", "real", "personal", "data")):
+        return False
+    if _p01_normalize_markdown(spec_sections["Open questions"]) not in {"none", "none."}:
+        return False
+    lower_all = _p01_normalize_markdown(spec_text + "\n" + plan_text)
+    if any(token in lower_all for token in ("[confirm-", "[needs-triage]", "approved by", "approval id", "approved-plan")):
+        return False
+    if re.search(
+        r"(?im)^\s*(?:status|approval(?:\s+id)?|event)\s*:\s*(?:approved|accepted|confirmed|complete|passed|granted)\b",
+        spec_text + "\n" + plan_text,
+    ):
+        return False
+    ledger = [line.strip() for line in plan_sections["Acceptance criteria ledger"].splitlines() if line.strip()]
+    expected_ledger = [f"- AC-01: {criteria[0]}", f"- AC-02: {criteria[1]}"]
+    if len(ledger) != 2 or any(_p01_normalize_markdown(actual) != _p01_normalize_markdown(expected) for actual, expected in zip(ledger, expected_ledger, strict=True)):
+        return False
+    tasks = _p01_parse_table(plan_sections["Tasks"])
+    if tasks is None:
+        return False
+    first, second = tasks
+    if first != ["T-01", "tests/test_cli.py", first[2], "AC-01, AC-02", "AC-01, AC-02", "none", "ACCEPTED"]:
+        return False
+    if "focused unresolved-summary test" not in _p01_normalize_markdown(first[2]):
+        return False
+    if second != ["T-02", "workshop_queue/cli.py", second[2], "AC-01, AC-02", "AC-01, AC-02", "T-01", "ACCEPTED"]:
+        return False
+    if [entry.strip() for entry in second[2].split(";")] != [
+        "focused unresolved-summary test",
+        "python -m unittest discover -v",
+        "python -m compileall workshop_queue tests",
+    ]:
+        return False
+    return _p01_normalize_markdown(plan_sections["MVP slice"]) == "t-01 through t-02"
+
+
+def _p01_json(value: bytes) -> object | None:
+    def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, item in pairs:
+            if key in result:
+                raise ValueError("duplicate key")
+            result[key] = item
+        return result
+
+    try:
+        return json.loads(value.decode("utf-8"), object_pairs_hook=reject_duplicates, parse_constant=lambda _: (_ for _ in ()).throw(ValueError("non-finite")))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        return None
+
+
+def _p01_fixture_models(value: bytes) -> tuple[dict[str, int], dict[str, int]] | None:
+    fixture = _p01_json(value)
+    if not isinstance(fixture, list) or len(fixture) != 3:
+        return None
+    expected_keys = {"id", "title", "description", "status", "created_at", "claimed_by", "claimed_at", "completed_at", "resolution"}
+    statuses: list[str] = []
+    identifiers: set[str] = set()
+    for item in fixture:
+        if not isinstance(item, dict) or set(item) != expected_keys:
+            return None
+        if any(isinstance(value, str) and _p01_private_text(value) for value in item.values()):
+            return None
+        identifier, status = item.get("id"), item.get("status")
+        if not isinstance(identifier, str) or not re.fullmatch(r"RQ-P01-[0-9]{3}", identifier) or identifier in identifiers:
+            return None
+        identifiers.add(identifier)
+        if not isinstance(status, str) or status not in {"open", "claimed", "completed"}:
+            return None
+        if not all(isinstance(item.get(key), str) and 1 <= len(item[key]) <= 160 for key in ("title", "description", "created_at")):
+            return None
+        if not re.fullmatch(r"2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", item["created_at"]):
+            return None
+        created_at = _p01_timestamp(item["created_at"])
+        if created_at is None:
+            return None
+        claimed = status in {"claimed", "completed"}
+        completed = status == "completed"
+        if (claimed != isinstance(item.get("claimed_by"), str) or claimed != isinstance(item.get("claimed_at"), str) or completed != isinstance(item.get("completed_at"), str) or completed != isinstance(item.get("resolution"), str)):
+            return None
+        if claimed and (not item["claimed_by"] or not re.fullmatch(r"2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", item["claimed_at"])):
+            return None
+        claimed_at = _p01_timestamp(item["claimed_at"]) if claimed else None
+        if claimed and (claimed_at is None or claimed_at < created_at):
+            return None
+        if completed and (not item["resolution"] or not re.fullmatch(r"2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", item["completed_at"])):
+            return None
+        completed_at = _p01_timestamp(item["completed_at"]) if completed else None
+        if completed and (completed_at is None or claimed_at is None or completed_at < claimed_at):
+            return None
+        if not claimed and any(item[key] is not None for key in ("claimed_by", "claimed_at", "completed_at", "resolution")):
+            return None
+        if claimed and not completed and any(item[key] is not None for key in ("completed_at", "resolution")):
+            return None
+        statuses.append(status)
+    if statuses != ["open", "claimed", "completed"]:
+        return None
+    prepared = {"open": 1, "claimed": 1, "completed": 1}
+    return prepared, {**prepared, "unresolved": 2}
+
+
+def _p01_prepared_defect(value: bytes | None) -> bool:
+    if value is None:
+        return False
+    expected = ast.parse("counts = {status.value: sum(ticket.status is status for ticket in tickets) for status in TicketStatus}").body[0]
+    try:
+        tree = ast.parse(value.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    functions = [item for item in tree.body if isinstance(item, ast.FunctionDef) and item.name == "_write_report"]
+    if len(functions) != 1 or not functions[0].body or ast.dump(functions[0].body[0], include_attributes=False) != ast.dump(expected, include_attributes=False):
+        return False
+    return not any(
+        isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) and target.value.id == "counts" and isinstance(target.slice, ast.Constant) and target.slice.value == "unresolved" for target in node.targets)
+        for node in ast.walk(functions[0])
+    )
+
+
+def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
+    data, root, attempt = context.predicate.data, context.root, context.attempt
+    paths = {name: str(data[name]) for name in ("spec", "plan", "board", "test", "code", "fixture", "source_identity")}
+    if _p01_one_commit(root, attempt) is None:
+        return False
+    if any(_p01_regular_blob(root, attempt.prepared, path) is None for path in (paths["board"], paths["test"], paths["code"], paths["fixture"], paths["source_identity"])):
+        return False
+    if any(_git_blob(root, attempt.prepared, path) is not None for path in (paths["spec"], paths["plan"])):
+        return False
+    fixture_models = _p01_fixture_models(_p01_regular_blob(root, attempt.prepared, paths["fixture"]) or b"")
+    identity = _p01_json(_p01_regular_blob(root, attempt.prepared, paths["source_identity"]) or b"")
+    if fixture_models is None or not _p01_source_identity(identity):
+        return False
+    prepared_model, intended_model = fixture_models
+    expected_model = {"open": 1, "claimed": 1, "completed": 1, "unresolved": 2}
+    if prepared_model == expected_model or intended_model != expected_model:
+        return False
+    return bool(
+        _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]))
+        and _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"]))
+        and _p01_prepared_defect(_p01_regular_blob(root, attempt.prepared, paths["code"]))
+        and _p01_exact_regression(_p01_regular_blob(root, attempt.prepared, paths["test"]), _p01_regular_blob(root, attempt.head, paths["test"]))
+        and _p01_exact_repair(_p01_regular_blob(root, attempt.prepared, paths["code"]), _p01_regular_blob(root, attempt.head, paths["code"]))
+        and run_git(root, ["diff", "--no-ext-diff", "--quiet", attempt.head], check=False).returncode == 0
+    )
+
+
 def _live_hygiene_inventory(
     root: Path, attempt: _Attempt
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -1206,10 +1613,8 @@ def _semantic(context: _SemanticContext) -> bool:
                 _git_blob(root, attempt.head, code),
             )
         )
-    if profile == "approved_spec_plan":
-        # Task 8 supplies an independently recomputable approval predicate and fixture.
-        # Learner-authored ``status: approved`` prose is never sufficient evidence.
-        return False
+    if profile == "feature_spec_plan":
+        return _p01_feature_spec_plan(context)
     if profile == "pr_receipt":
         return _valid_offline_p02_receipt(context, str(data["receipt"]))
     if profile == "accepted_adr":

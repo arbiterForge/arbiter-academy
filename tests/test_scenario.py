@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -59,6 +60,25 @@ def add_scenario(root: Path, lab_id: str) -> None:
     }), encoding="utf-8")
 
 
+def p01_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    """Create the smallest real repository that can prepare the P01 control-state seed."""
+    temporary = tempfile.TemporaryDirectory()
+    root = Path(temporary.name) / "repository"
+    root.mkdir()
+    source = Path(__file__).parents[1]
+    shutil.copytree(source / "academy", root / "academy")
+    shutil.copytree(source / ".codearbiter", root / ".codearbiter")
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "Academy Learner")
+    git(root, "config", "user.email", "learner@example.test")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+    git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+    git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
+    return temporary, root
+
+
 class ScenarioTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary, self.root = academy_git_fixture()
@@ -71,6 +91,66 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(prepared.base_sha, base)
         self.assertEqual((self.root / "exercise" / "seed.txt").read_text(encoding="utf-8"), "starting state\n")
         self.assertEqual(git(self.root, "log", "-1", "--format=%s"), "academy: prepare F01-fork-clone-doctor attempt 1")
+
+    def test_p01_control_state_seed_survives_prepare_and_reset_archive(self) -> None:
+        """Catches a seed omitted from the generic prepare/reset snapshot boundary."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        before = (root / ".codearbiter/open-tasks.md").read_bytes()
+        prepared = prepare_lab(root, "P01-feature-through-plan")
+        seeded = (root / ".codearbiter/open-tasks.md").read_bytes()
+        self.assertNotEqual(seeded, before)
+        self.assertIn(b"academy.feature.0002", seeded)
+
+        retry = reset_lab(
+            root,
+            "P01-feature-through-plan",
+            now=lambda: datetime(2026, 8, 4, tzinfo=timezone.utc),
+        )
+        archive = "academy/archive/P01-feature-through-plan/20260804T000000Z"
+        self.assertEqual(retry.attempt, prepared.attempt + 1)
+        self.assertEqual(
+            git(root, "show", f"{archive}:.codearbiter/open-tasks.md").encode(),
+            seeded.rstrip(b"\n"),
+        )
+        self.assertEqual((root / ".codearbiter/open-tasks.md").read_bytes(), seeded)
+
+    def test_p01_seed_symlink_is_rejected_before_branch_creation(self) -> None:
+        """Catches a control-state seed that traverses a symlink/reparse point."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = root / "academy/scenarios/P01-feature-through-plan/files/open-tasks.md"
+        outside = root / "outside-seed.md"
+        outside.write_bytes(source.read_bytes())
+        source.unlink()
+        try:
+            os.symlink(outside, source)
+        except OSError as error:
+            self.skipTest(f"symlink/reparse creation unavailable: {error}")
+        git(root, "add", "-A")
+        git(root, "commit", "-m", "unsafe P01 seed")
+        before = git(root, "rev-parse", "HEAD")
+        with self.assertRaisesRegex(PreparationError, "symlink or reparse"):
+            prepare_lab(root, "P01-feature-through-plan")
+        self.assertEqual(git(root, "rev-parse", "HEAD"), before)
+        self.assertFalse(git(root, "branch", "--list", "academy/P01-feature-through-plan/1"))
+
+    def test_p01_seed_prepare_rollback_restores_the_default_board(self) -> None:
+        """Catches a failed prepare that leaves the protected seed destination modified."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        before = (root / ".codearbiter/open-tasks.md").read_bytes()
+        hooks = Path(temporary.name) / "hooks"
+        hooks.mkdir()
+        hook = hooks / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        git(root, "config", "core.hooksPath", str(hooks))
+        with self.assertRaises(PreparationError):
+            prepare_lab(root, "P01-feature-through-plan")
+        self.assertEqual((root / ".codearbiter/open-tasks.md").read_bytes(), before)
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/P01-feature-through-plan/1"))
 
     def test_p02_prepare_and_reset_refuse_without_installed_authority_before_state_access(self) -> None:
         for operation in (prepare_lab, reset_lab):

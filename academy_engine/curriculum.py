@@ -95,7 +95,7 @@ _FOUNDATIONS_SCENARIOS = {
     "F04-fix-with-evidence": ("regression_first_fix", "workshop_queue/service.py", "defect-staged"),
 }
 _PRACTITIONER_SCENARIOS = {
-    "P01-feature-through-plan": ("feature_spec_plan", "academy-feature", "approval-required"),
+    "P01-feature-through-plan": ("feature_spec_plan", "workshop_queue/cli.py", "approval-required"),
     "P02-commit-review-pr": ("commit_review_pr", "learner-fork", "review-required"),
     "P03-record-an-adr": ("architecture_decision", "ADR-0004", "decision-open"),
     "P04-review-a-dependency": (
@@ -121,6 +121,7 @@ _PRACTITIONER_SCENARIOS = {
     ),
 }
 _INSTALLED_PREPARE_LABS = (
+    "P01-feature-through-plan",
     "P02-commit-review-pr",
     "P03-record-an-adr",
     "P04-review-a-dependency",

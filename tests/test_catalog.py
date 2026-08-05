@@ -91,6 +91,77 @@ class CatalogTests(unittest.TestCase):
             with self.subTest(unsafe=unsafe), self.assertRaisesRegex(CatalogError, "protected"):
                 load_manifest(dict(baseline, removals=[unsafe]))
 
+    def test_p01_can_declare_only_the_reviewed_board_control_state_seed(self) -> None:
+        """Catches generic overlays gaining authority to write protected control state."""
+        payload = {
+            "schema_version": 1,
+            "id": "P01-feature-through-plan",
+            "files": [{"source": "scenario.json", "destination": "training_scenarios/P01.json"}],
+            "control_state_seed": {
+                "source": "open-tasks.md",
+                "destination": ".codearbiter/open-tasks.md",
+            },
+            "removals": [],
+            "starting_task": "P01",
+            "checkpoint": "academy/checkpoints/P01-feature-through-plan.json",
+            "requires_push_safe_setup": False,
+        }
+        try:
+            manifest = load_manifest(payload)
+        except CatalogError:
+            manifest = None
+
+        self.assertIsNotNone(manifest)
+        self.assertEqual(
+            (manifest.control_state_seed.source, manifest.control_state_seed.destination),
+            ("open-tasks.md", ".codearbiter/open-tasks.md"),
+        )
+
+    def test_control_state_seed_rejects_other_labs_protected_sources_and_overlap(self) -> None:
+        """Catches the P01 exception broadening generic scenario write authority."""
+        baseline = {
+            "schema_version": 1,
+            "id": "P01-feature-through-plan",
+            "files": [{"source": "scenario.json", "destination": "training_scenarios/P01.json"}],
+            "control_state_seed": {
+                "source": "open-tasks.md",
+                "destination": ".codearbiter/open-tasks.md",
+            },
+            "removals": [],
+            "starting_task": "P01",
+            "checkpoint": "academy/checkpoints/P01-feature-through-plan.json",
+            "requires_push_safe_setup": False,
+        }
+        cases = (
+            (
+                "wrong-lab",
+                {**baseline, "id": "F01-fork-clone-doctor"},
+            ),
+            (
+                "wrong-target",
+                {**baseline, "control_state_seed": {"source": "open-tasks.md", "destination": ".codearbiter/CONTEXT.md"}},
+            ),
+            (
+                "protected-source",
+                {**baseline, "control_state_seed": {"source": ".codearbiter/open-tasks.md", "destination": ".codearbiter/open-tasks.md"}},
+            ),
+            (
+                "duplicate-source",
+                {**baseline, "files": [{"source": "open-tasks.md", "destination": "training_scenarios/P01.json"}]},
+            ),
+            (
+                "overlap",
+                {**baseline, "files": [{"source": "scenario.json", "destination": ".codearbiter/open-tasks.md"}]},
+            ),
+            (
+                "removal-overlap",
+                {**baseline, "removals": [".codearbiter/open-tasks.md"]},
+            ),
+        )
+        for label, payload in cases:
+            with self.subTest(label=label), self.assertRaises(CatalogError):
+                load_manifest(payload)
+
     def test_repository_catalog_maps_every_exact_manifest_and_checkpoint(self) -> None:
         root = Path(__file__).parents[1]
         catalog = Catalog.load(root / "academy" / "catalog.json")

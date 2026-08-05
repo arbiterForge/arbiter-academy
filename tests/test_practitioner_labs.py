@@ -215,6 +215,19 @@ class PractitionerCurriculumTests(unittest.TestCase):
             },
         )
 
+    def test_p01_separates_tdd_instruction_from_one_commit_checkpoint_proof(self) -> None:
+        """Catches guide copy claiming the non-executing P01 verifier proves repair history."""
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("Add and run a focused summary test before touching production code.", guide)
+        self.assertIn("one final green commit", guide)
+        self.assertIn("does not prove that you ran the test before production code", guide)
+        self.assertNotIn("Immutable Git history places", guide)
+        self.assertNotIn("a same-commit test/fix", guide)
+        self.assertNotIn("manufacture the required history", guide)
+
     def test_p02_teaches_exact_identity_ref_and_two_commit_receipt_workflow(self) -> None:
         guide = (
             SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"

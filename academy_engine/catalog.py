@@ -24,6 +24,9 @@ _EXACT_LABS = (
     ("U07-capstone", "power-user", 7),
 )
 _PROTECTED_SCENARIO_PARTS = frozenset({".git", ".academy", ".codearbiter", "academy"})
+_CONTROL_STATE_SEED_TARGETS = {
+    "P01-feature-through-plan": frozenset({".codearbiter/open-tasks.md"}),
+}
 
 
 class CatalogError(ValueError):
@@ -48,9 +51,16 @@ class OverlayFile:
 
 
 @dataclass(frozen=True)
+class ControlStateSeed:
+    source: str
+    destination: str
+
+
+@dataclass(frozen=True)
 class ScenarioManifest:
     id: str
     files: tuple[OverlayFile, ...]
+    control_state_seed: ControlStateSeed | None
     removals: tuple[str, ...]
     starting_task: str
     checkpoint: str
@@ -97,6 +107,15 @@ def _scenario_path(value: object, label: str) -> str:
     return path
 
 
+def _control_state_destination(lab_id: str, value: object) -> str:
+    path = _path(value, "scenario manifest control_state_seed.destination")
+    if path not in _CONTROL_STATE_SEED_TARGETS.get(lab_id, frozenset()):
+        raise CatalogError(
+            "scenario manifest binding is noncanonical: control_state_seed destination is not allowlisted."
+        )
+    return path
+
+
 def _lab_id(value: object, label: str) -> str:
     text = _string(value, label)
     if not _LAB_ID.fullmatch(text):
@@ -120,7 +139,18 @@ def _overlap(paths: tuple[str, ...], label: str) -> None:
 def load_manifest(payload: object) -> ScenarioManifest:
     """Validate one in-memory manifest without touching the filesystem."""
     data = _require_object(payload, "scenario manifest")
-    _only_keys(data, {"schema_version", "id", "files", "removals", "starting_task", "checkpoint", "requires_push_safe_setup"}, "scenario manifest")
+    keys = {
+        "schema_version",
+        "id",
+        "files",
+        "removals",
+        "starting_task",
+        "checkpoint",
+        "requires_push_safe_setup",
+    }
+    if "control_state_seed" in data:
+        keys.add("control_state_seed")
+    _only_keys(data, keys, "scenario manifest")
     if type(data["schema_version"]) is not int or data["schema_version"] != 1:
         raise CatalogError("scenario manifest schema_version must be 1.")
     lab_id = _lab_id(data["id"], "scenario manifest id")
@@ -138,6 +168,16 @@ def load_manifest(payload: object) -> ScenarioManifest:
         sources.append(source)
         destinations.append(destination)
         files.append(OverlayFile(source, destination))
+    seed_value = data.get("control_state_seed")
+    control_state_seed: ControlStateSeed | None = None
+    if seed_value is not None:
+        seed = _require_object(seed_value, "scenario manifest control_state_seed")
+        _only_keys(seed, {"source", "destination"}, "scenario manifest control_state_seed")
+        source = _scenario_path(seed["source"], "scenario manifest control_state_seed.source")
+        destination = _control_state_destination(lab_id, seed["destination"])
+        sources.append(source)
+        destinations.append(destination)
+        control_state_seed = ControlStateSeed(source, destination)
     if len(set(sources)) != len(sources):
         raise CatalogError("scenario manifest source paths must be unique.")
     _overlap(tuple(destinations), "scenario manifest destination")
@@ -152,6 +192,7 @@ def load_manifest(payload: object) -> ScenarioManifest:
     return ScenarioManifest(
         id=lab_id,
         files=tuple(files),
+        control_state_seed=control_state_seed,
         removals=removals,
         starting_task=_string(data["starting_task"], "scenario manifest starting_task"),
         checkpoint=_path(data["checkpoint"], "scenario manifest checkpoint"),
