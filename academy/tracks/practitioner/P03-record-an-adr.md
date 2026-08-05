@@ -34,6 +34,12 @@ arbiter-academy --repository $learnerRepository prepare P03-record-an-adr
 The scenario presents stable text versus structured JSON for Workshop Queue summaries. It does not
 pre-create an ADR, copy a SMARTS table, or append a decision-log entry.
 
+Before it creates the attempt branch, Academy reads the prospective Git author name. It accepts
+only 1–80 Unicode scalar values that start and end with a Letter or Number; internal characters may
+only be Letters, Numbers, ASCII spaces, `.`, `_`, `'`, or `-`. The exact name is captured again from
+the prepared commit with `%an` (not mailmapped `%aN`). No learner email is retained, rendered, or
+reported, and Academy will never echo a rejected name.
+
 ## Use your host
 
 Invoke the ADR lane with the bounded summary-format decision.
@@ -65,11 +71,14 @@ Read the existing decisions and decision log before allocating a number. Compare
 automation, schema-evolution, and local-first consequences of stable text and structured JSON.
 Complete the sanctioned ADR flow and accept one bounded option.
 
-The result must be `.codearbiter/decisions/0004-academy-lab.md` with substantive `Context`,
-`Decision`, and `Consequences` sections. Append the matching accepted record to
-`.codearbiter/decisions/decision-log.md`. Both artifacts must agree on ordinal, decision, lifecycle,
-and the learner identity captured at prepare. Commit them together after preparation. Do not
-overwrite or rename ADR 0003 and do not create a generic governance-event artifact.
+The result must be `.codearbiter/decisions/0004-academy-lab.md` with front matter for `status`,
+`date`, `title`, `decided-by`, `supersedes`, and `governs`, plus the native `Status`, `Context`,
+`Decision`, `Alternatives considered`, `Consequences`, and `Risks` sections. Append the matching
+accepted record to `.codearbiter/decisions/decision-log.md`; its prepared text must remain an
+append-only byte prefix. Both artifacts must agree on ordinal, date, decision, lifecycle, and the
+exact prepared identity. Use either one commit or two linear commits: if split, introduce the ADR
+before the log. Do not overwrite or rename ADR 0003 and do not create a generic governance-event
+artifact.
 
 ## Hints
 
@@ -91,9 +100,10 @@ accepted ordinal and bounded decision must match in both places.
 ## Success evidence
 
 The attempt introduces accepted ADR 0004 and a later or co-committed append-only decision-log entry,
-both after preparation and both attributed to the prepared learner identity. The verifier rejects
-duplicate 0003, missing canonical sections, stale or mismatched lifecycle/decision/attribution, and
-uncommitted lookalikes. No third event is required.
+both after preparation and both attributed to the prepared learner identity. The verifier derives
+the date and identity from immutable Git commits, then rejects duplicate 0003, missing canonical
+sections, stale or mismatched lifecycle/decision/attribution, wrong order, extra paths, generic
+event decoys, and uncommitted lookalikes. No third event is required.
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
@@ -103,7 +113,7 @@ arbiter-academy --repository $learnerRepository check P03-record-an-adr
 ## Recovery
 
 If the wrong number, decision, lifecycle, or attribution was recorded, preserve the attempt and
-reset:
+reset. Do not paste the rejected identity into an issue, commit, or retry note:
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path

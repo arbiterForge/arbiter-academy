@@ -1,5 +1,6 @@
 import json
 import hashlib
+import os
 import shutil
 import tempfile
 import subprocess
@@ -845,3 +846,276 @@ class CheckpointTests(unittest.TestCase):
             clean_alternate = evaluate_checkpoint(root, lab_id)
             self.assertFalse(clean_alternate.passed)
             self.assertIn("source_integrity", clean_alternate.failed_predicates)
+
+
+class P03NativeEvidenceTests(unittest.TestCase):
+    """Exercise the P03 evidence predicate against immutable, real Git history."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "config", "user.name", "Ada Learner"], cwd=self.root, check=True)
+        subprocess.run(["git", "config", "user.email", "p03-private-canary" + "@example.invalid"], cwd=self.root, check=True)
+        log = self.root / ".codearbiter/decisions/decision-log.md"
+        log.parent.mkdir(parents=True)
+        log.write_text("# Decision log\n\n", encoding="utf-8")
+        (self.root / ".codearbiter/decisions/0003-verifier-trust.md").write_text("# ADR-0003\n", encoding="utf-8")
+        (self.root / "README.md").write_text("base\n", encoding="utf-8")
+        self._commit("base")
+        subprocess.run(["git", "switch", "-c", "academy/P03-record-an-adr/1"], cwd=self.root, check=True, capture_output=True, text=True)
+        self._commit("academy: prepare P03-record-an-adr attempt 1", empty=True)
+        self.prepared = self._head()
+        self._write_valid_evidence("Ada Learner")
+        self._commit("record decision")
+        self.head = self._head()
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _head(self) -> str:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
+
+    def _commit(self, message: str, *, empty: bool = False) -> None:
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True, capture_output=True, text=True)
+        command = ["git", "commit", "-m", message]
+        if empty:
+            command.insert(2, "--allow-empty")
+        environment = os.environ.copy()
+        environment["GIT_AUTHOR_DATE"] = "2026-08-04T12:00:00-04:00"
+        environment["GIT_COMMITTER_DATE"] = "2026-08-04T12:00:00-04:00"
+        subprocess.run(command, cwd=self.root, env=environment, check=True, capture_output=True, text=True)
+
+    def _write_valid_evidence(self, name: str) -> None:
+        date = subprocess.run(["git", "show", "-s", "--format=%aI", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout[:10]
+        adr = self.root / ".codearbiter/decisions/0004-academy-lab.md"
+        adr.write_text(
+            "---\nstatus: accepted\ndate: " + date + "\ntitle: Choose the Workshop Queue summary-format boundary\n"
+            + "decided-by: " + name + "\nsupersedes: none\ngoverns: workshop_queue/cli.py\n---\n\n"
+            + "# ADR-0004 — Choose the Workshop Queue summary-format boundary\n\n## Status\n\nAccepted\n\n"
+            + "## Context\n\nStable text supports people; structured JSON supports automation.\n\n## Decision\n\n"
+            + "Use stable text for Workshop Queue summaries.\n\n## Alternatives considered\n\nStable text and structured JSON were considered.\n\n"
+            + "## Consequences\n\nStable text remains readable, while the rejected structured JSON costs a versioned schema.\n\n"
+            + "## Risks\n\nConsumers must parse text carefully.\n",
+            encoding="utf-8",
+        )
+        log = self.root / ".codearbiter/decisions/decision-log.md"
+        log.write_text(log.read_text(encoding="utf-8") + "## DECISION-0004 — ADR-0004 — Choose the Workshop Queue summary-format boundary\n\n"
+            + "**Date:** " + date + "\n**Status:** accepted\n**Supersedes:** none\n**Decided by:** " + name + "\n"
+            + "**Decision category:** architecture\n**Artifact-section-hash:** n/a\n\n## Variance summary\n\nStatus type: open-decision-closure\n\n"
+            + "## Decision\n\nUse stable text for Workshop Queue summaries.\n\n## SMARTS rationale\n\nStable and measurable.\n\n"
+            + "## Implementation implication\n\nKeep workshop_queue/cli.py stable.\n",
+            encoding="utf-8")
+
+    def test_p03_accepts_one_real_co_commit_with_native_artifacts(self) -> None:
+        from academy_engine.checkpoints import _p03_accepted_adr
+
+        attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self.head)
+        self.assertTrue(_p03_accepted_adr(self.root, attempt, ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+    def test_p03_accepts_the_equivalent_ordered_two_commit_history(self) -> None:
+        from academy_engine.checkpoints import _p03_accepted_adr
+
+        subprocess.run(["git", "reset", "--hard", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        self._write_valid_evidence("Ada Learner")
+        log = self.root / ".codearbiter/decisions/decision-log.md"
+        prepared_log = "# Decision log\n\n"
+        log.write_text(prepared_log, encoding="utf-8")
+        self._commit("record ADR")
+        log.write_text((self.root / ".codearbiter/decisions/decision-log.md").read_text(encoding="utf-8") + "## DECISION-0004 — ADR-0004 — Choose the Workshop Queue summary-format boundary\n\n"
+            + "**Date:** " + subprocess.run(["git", "show", "-s", "--format=%aI", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout[:10]
+            + "\n**Status:** accepted\n**Supersedes:** none\n**Decided by:** Ada Learner\n**Decision category:** architecture\n**Artifact-section-hash:** n/a\n\n## Variance summary\n\nStatus type: open-decision-closure\n\n## Decision\n\nUse stable text for Workshop Queue summaries.\n\n## SMARTS rationale\n\nStable and measurable.\n\n## Implementation implication\n\nKeep workshop_queue/cli.py stable.\n", encoding="utf-8")
+        self._commit("append decision log")
+        attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self._head())
+        self.assertTrue(_p03_accepted_adr(self.root, attempt, ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+    def test_p03_rejects_an_attribution_mismatch_even_when_old_headings_match(self) -> None:
+        from academy_engine.checkpoints import _p03_accepted_adr
+
+        subprocess.run(["git", "reset", "--hard", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        self._write_valid_evidence("Other Learner")
+        self._commit("record mismatched attribution")
+        attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self._head())
+        self.assertFalse(_p03_accepted_adr(self.root, attempt, ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+    def test_p03_log_is_ordered_unique_and_has_no_trailing_content(self) -> None:
+        from academy_engine.checkpoints import _git_blob, _p03_parse_log
+
+        prefix = _git_blob(self.root, self.prepared, ".codearbiter/decisions/decision-log.md")
+        head = _git_blob(self.root, self.head, ".codearbiter/decisions/decision-log.md")
+        self.assertIsNotNone(prefix)
+        self.assertIsNotNone(head)
+        for mutation in (
+            b"\n## Extra section\n",
+            b"**Status:** accepted\n",
+            b"## DECISION-0004 \xe2\x80\x94 ADR-0004 \xe2\x80\x94 Choose the Workshop Queue summary-format boundary\n",
+            b"**Supersedes:** none\n**Date:** 2026-08-04\n",
+        ):
+            with self.subTest(mutation=mutation[:16]):
+                candidate = head + mutation
+                self.assertFalse(_p03_parse_log(candidate, prefix, "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+
+    def test_p03_requires_the_prepared_log_blob_and_strict_adr_structure(self) -> None:
+        from academy_engine import checkpoints
+        from academy_engine.checkpoints import _p03_accepted_adr
+
+        attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self.head)
+        original = checkpoints._git_blob
+
+        def missing_prepared_log(root: Path, ref: str, path: str):
+            if ref == self.prepared and path == ".codearbiter/decisions/decision-log.md":
+                return None
+            return original(root, ref, path)
+
+        with mock.patch("academy_engine.checkpoints._git_blob", side_effect=missing_prepared_log):
+            self.assertFalse(checkpoints._p03_accepted_adr(self.root, attempt, ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        adr = original(self.root, self.head, ".codearbiter/decisions/0004-academy-lab.md")
+        self.assertIsNotNone(adr)
+        self.assertIsNotNone(checkpoints._p03_parse_adr(adr.replace(b"\n", b"\r\n"), "Ada Learner", "2026-08-04"))
+        self.assertIsNone(checkpoints._p03_parse_adr(adr + b"\n# Extra heading\n", "Ada Learner", "2026-08-04"))
+        self.assertIsNone(checkpoints._p03_parse_adr(adr.replace(b"costs a versioned schema", b"is merely another available format"), "Ada Learner", "2026-08-04"))
+
+    def test_p03_rejects_negated_cost_and_prohibited_log_markers_but_allows_multiline_narrative(self) -> None:
+        from academy_engine import checkpoints
+
+        adr = checkpoints._git_blob(self.root, self.head, ".codearbiter/decisions/0004-academy-lab.md")
+        prefix = checkpoints._git_blob(self.root, self.prepared, ".codearbiter/decisions/decision-log.md")
+        log = checkpoints._git_blob(self.root, self.head, ".codearbiter/decisions/decision-log.md")
+        self.assertIsNotNone(adr)
+        self.assertIsNotNone(prefix)
+        self.assertIsNotNone(log)
+        for replacement in (b"structured JSON has no cost", b"structured JSON is without risk"):
+            with self.subTest(replacement=replacement):
+                candidate = adr.replace(b"costs a versioned schema", replacement)
+                self.assertIsNone(checkpoints._p03_parse_adr(candidate, "Ada Learner", "2026-08-04"))
+        for marker in (b"Re-evaluation trigger", b"Resolves same-level conflict between"):
+            with self.subTest(marker=marker):
+                candidate = log.replace(b"Stable and measurable.", b"Stable and measurable. " + marker)
+                self.assertFalse(checkpoints._p03_parse_log(candidate, prefix, "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+        multiline = log.replace(b"Stable and measurable.", b"Stable and measurable.\nThis is a second bounded rationale line.")
+        self.assertTrue(checkpoints._p03_parse_log(multiline, prefix, "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+        injected_heading = log.replace(b"Stable and measurable.", b"Stable and measurable.\n# Injected heading")
+        self.assertFalse(checkpoints._p03_parse_log(injected_heading, prefix, "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+
+    def test_p03_native_artifact_mutation_matrix_rejects_each_schema_decoy(self) -> None:
+        """Keep the brief's native-artifact adversarial cases attached to immutable Git blobs."""
+        from academy_engine import checkpoints
+
+        adr = checkpoints._git_blob(self.root, self.head, ".codearbiter/decisions/0004-academy-lab.md")
+        prefix = checkpoints._git_blob(self.root, self.prepared, ".codearbiter/decisions/decision-log.md")
+        log = checkpoints._git_blob(self.root, self.head, ".codearbiter/decisions/decision-log.md")
+        self.assertIsNotNone(adr)
+        self.assertIsNotNone(prefix)
+        self.assertIsNotNone(log)
+        adr_mutations = (
+            adr.replace(b"ADR-0004", b"ADR-0005", 1),
+            adr.replace(b"status: accepted\n", b"", 1),
+            adr.replace(b"status: accepted\n", b"status: accepted\nstatus: accepted\n", 1),
+            adr.replace(b"## Status", b"## State", 1),
+            adr + b"\n# Duplicate ADR heading\n",
+            adr.replace(b"Accepted", b"Proposed", 1),
+            adr.replace(b"Use stable text for Workshop Queue summaries.", b"Use stable text for Workshop Queue summaries.\nUse structured JSON for Workshop Queue summaries.", 1),
+            adr.replace(b"Use stable text for Workshop Queue summaries.", b"No choice is recorded.", 1),
+            adr.replace(b"decided-by: Ada Learner", b"decided-by: 'Ada Learner'", 1),
+            adr.replace(b"decided-by: Ada Learner", b"decided-by: |\n  Ada Learner", 1),
+        )
+        for candidate in adr_mutations:
+            with self.subTest(kind="adr"):
+                self.assertIsNone(checkpoints._p03_parse_adr(candidate, "Ada Learner", "2026-08-04"))
+        log_mutations = (
+            log.replace(b"**Date:** 2026-08-04", b"**Date:** 1999-01-01", 1),
+            log.replace(b"Use stable text for Workshop Queue summaries.", b"Use structured JSON for Workshop Queue summaries.", 1),
+            log.replace(b"**Decided by:** Ada Learner", b"**Decided by:** 'Ada Learner'", 1),
+            log.replace(b"## Decision", b"## Decision\n\nUse stable text for Workshop Queue summaries.\n\n## Decision", 1),
+        )
+        for candidate in log_mutations:
+            with self.subTest(kind="log"):
+                self.assertFalse(checkpoints._p03_parse_log(candidate, prefix, "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+        self.assertFalse(checkpoints._p03_parse_log(log, prefix + b"rewritten", "Ada Learner", "2026-08-04", "Use stable text for Workshop Queue summaries."))
+
+    def test_p03_real_git_history_mutation_matrix_rejects_noncanonical_evidence(self) -> None:
+        """Exercise path/order/cleanliness mutations in real commits, not mocked history."""
+        from academy_engine.checkpoints import _p03_accepted_adr
+
+        def reset_with_valid() -> None:
+            subprocess.run(["git", "reset", "--hard", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+            self._write_valid_evidence("Ada Learner")
+
+        def attempt() -> _Attempt:
+            return _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self._head())
+
+        # The uncommitted lookalike is rejected without creating any learner evidence commit.
+        (self.root / ".codearbiter/decisions/0004-academy-lab.md").write_text("lookalike\n", encoding="utf-8")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+        subprocess.run(["git", "reset", "--hard", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True)
+
+        reset_with_valid()
+        (self.root / ".codearbiter/decisions/0004-academy-lab.md").rename(self.root / ".codearbiter/decisions/0004-alternate.md")
+        self._commit("alternate ADR filename")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        (self.root / "generic-governance-event.md").write_text("decoy\n", encoding="utf-8")
+        self._commit("generic event decoy")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        adr = self.root / ".codearbiter/decisions/0004-academy-lab.md"
+        adr_bytes = adr.read_bytes()
+        adr.unlink()
+        self._commit("log before ADR")
+        adr.write_bytes(adr_bytes)
+        self._commit("late ADR")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        self._commit("valid evidence")
+        (self.root / "README.md").write_text("later mutation\n", encoding="utf-8")
+        self._commit("extra path")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        (self.root / ".codearbiter/decisions/0003-verifier-trust.md").write_text("rewritten ADR-0003\n", encoding="utf-8")
+        self._commit("edit ADR-0003")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        self._commit("valid evidence")
+        subprocess.run(["git", "branch", "p03-merge-side", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "switch", "p03-merge-side"], cwd=self.root, check=True, capture_output=True, text=True)
+        (self.root / "README.md").write_text("side history\n", encoding="utf-8")
+        self._commit("side history")
+        subprocess.run(["git", "switch", "academy/P03-record-an-adr/1"], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "merge", "--no-ff", "p03-merge-side", "-m", "merge side history"], cwd=self.root, check=True, capture_output=True, text=True)
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+        reset_with_valid()
+        self._commit("valid evidence")
+        adr.write_text(adr.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        self._commit("later ADR mutation")
+        self.assertFalse(_p03_accepted_adr(self.root, attempt(), ".codearbiter/decisions/0004-academy-lab.md", ".codearbiter/decisions/decision-log.md"))
+
+    def test_p03_rejects_a_stale_copied_native_pair_from_a_prior_attempt(self) -> None:
+        """A byte-for-byte native pair must still bind to its introducing commit's date."""
+        from academy_engine import checkpoints
+
+        adr_path = ".codearbiter/decisions/0004-academy-lab.md"
+        log_path = ".codearbiter/decisions/decision-log.md"
+        prior_adr = checkpoints._git_blob(self.root, self.head, adr_path)
+        prior_log = checkpoints._git_blob(self.root, self.head, log_path)
+        self.assertIsNotNone(prior_adr)
+        self.assertIsNotNone(prior_log)
+        prior_attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self.head)
+        self.assertTrue(checkpoints._p03_accepted_adr(self.root, prior_attempt, adr_path, log_path))
+
+        subprocess.run(["git", "reset", "--hard", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        (self.root / adr_path).write_bytes(prior_adr)
+        (self.root / log_path).write_bytes(prior_log)
+        subprocess.run(["git", "add", adr_path, log_path], cwd=self.root, check=True, capture_output=True, text=True)
+        environment = os.environ.copy()
+        environment["GIT_AUTHOR_DATE"] = "2030-01-02T03:04:05+00:00"
+        environment["GIT_COMMITTER_DATE"] = "2030-01-02T03:04:05+00:00"
+        subprocess.run(["git", "commit", "-m", "copy prior native pair"], cwd=self.root, env=environment, check=True, capture_output=True, text=True)
+        copied_attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self._head())
+        self.assertFalse(checkpoints._p03_accepted_adr(self.root, copied_attempt, adr_path, log_path))

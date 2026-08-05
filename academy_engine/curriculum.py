@@ -192,9 +192,15 @@ _MATRIX_CASES = {
         "disconnected-regression",
         "overbroad-then-decoy-repair",
     ),
+    "P03-record-an-adr": (
+        "untouched", "partial", "wrong", "intended", "equivalent",
+        "invalid-attribution", "normalized-attribution", "mismatched-attribution",
+        "rewritten-log", "wrong-ordinal", "wrong-choice", "wrong-order",
+        "uncommitted", "extra-path", "generic-event-decoy",
+    ),
     **{
         lab_id: ("untouched", "partial", "wrong", "intended", "equivalent")
-        for lab_id in _PRACTITIONER_SCENARIOS
+        for lab_id in _PRACTITIONER_SCENARIOS if lab_id != "P03-record-an-adr"
     },
 }
 

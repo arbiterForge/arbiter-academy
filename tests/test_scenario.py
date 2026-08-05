@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from academy_engine.catalog import CatalogError
+from academy_engine.attribution import AttributionError
 from academy_engine.command import GitCommandError
 from academy_engine.exercise_state import ExerciseStateError
 from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
@@ -151,6 +152,36 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual((root / ".codearbiter/open-tasks.md").read_bytes(), before)
         self.assertEqual(git(root, "branch", "--show-current"), "main")
         self.assertFalse(git(root, "branch", "--list", "academy/P01-feature-through-plan/1"))
+
+    def test_p03_rejects_unsafe_attribution_before_attempt_branch_mutation(self) -> None:
+        """Catches P03 inheriting generic preparation before its identity preflight."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        before = git(root, "rev-parse", "HEAD")
+        with patch(
+            "academy_engine.scenario.prospective_author_name",
+            side_effect=AttributionError("P03 preparation requires a display-safe Git author name."),
+        ) as prospective:
+            with self.assertRaisesRegex(PreparationError, "display-safe Git author") as caught:
+                prepare_lab(root, "P03-record-an-adr")
+        prospective.assert_called_once_with(root.resolve(), trust_local_config=True)
+        self.assertEqual(git(root, "rev-parse", "HEAD"), before)
+        self.assertFalse(git(root, "branch", "--list", "academy/P03-record-an-adr/1"))
+        self.assertNotIn("p03-private-canary", str(caught.exception))
+
+    def test_p03_prepared_commit_must_match_prospective_author_and_rolls_back(self) -> None:
+        """Catches a safe initial identity being replaced by a mismatched prepare commit."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        before = git(root, "rev-parse", "HEAD")
+        with patch("academy_engine.scenario.prospective_author_name", return_value="Ada Learner"), patch(
+            "academy_engine.scenario.commit_author_name", return_value="Other Learner"
+        ):
+            with self.assertRaisesRegex(PreparationError, "committed attribution"):
+                prepare_lab(root, "P03-record-an-adr")
+        self.assertEqual(git(root, "rev-parse", "HEAD"), before)
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/P03-record-an-adr/1"))
 
     def test_p02_prepare_and_reset_refuse_without_installed_authority_before_state_access(self) -> None:
         for operation in (prepare_lab, reset_lab):
@@ -610,9 +641,9 @@ class ScenarioTests(unittest.TestCase):
 
     def test_later_lab_with_harmless_local_config_and_no_p02_state_prepares_without_creating_state(self) -> None:
         """Catches a read-only P02 locator that applies mutation-policy config validation."""
-        add_scenario(self.root, "P03-record-an-adr")
-        git(self.root, "add", "academy/scenarios/P03-record-an-adr")
-        git(self.root, "commit", "-m", "add P03 fixture")
+        add_scenario(self.root, "P04-review-a-dependency")
+        git(self.root, "add", "academy/scenarios/P04-review-a-dependency")
+        git(self.root, "commit", "-m", "add P04 fixture")
         git(self.root, "config", "pull.rebase", "false")
         state_root = Path(self.temporary.name) / "absent-installed-state"
 
@@ -621,12 +652,12 @@ class ScenarioTests(unittest.TestCase):
                 "academy_engine.external_state.resolve_state_root",
                 return_value=state_root,
             ):
-                result = prepare_lab(self.root, "P03-record-an-adr")
+                result = prepare_lab(self.root, "P04-review-a-dependency")
         finally:
             self.assertFalse(state_root.exists())
 
-        self.assertEqual(result.lab_id, "P03-record-an-adr")
-        self.assertEqual(result.branch, "academy/P03-record-an-adr/1")
+        self.assertEqual(result.lab_id, "P04-review-a-dependency")
+        self.assertEqual(result.branch, "academy/P04-review-a-dependency/1")
 
     def test_later_lab_blocks_when_only_stale_p02_epochs_exist(self) -> None:
         add_scenario(self.root, "P03-record-an-adr")

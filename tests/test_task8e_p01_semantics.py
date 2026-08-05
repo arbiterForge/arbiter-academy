@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -14,13 +15,14 @@ from academy_engine.scenario import prepare_lab
 SOURCE = Path(__file__).resolve().parents[1]
 
 
-def git(root: Path, *arguments: str) -> str:
+def git(root: Path, *arguments: str, env: dict[str, str] | None = None) -> str:
     result = subprocess.run(
         ["git", *arguments],
         cwd=root,
         text=True,
         encoding="utf-8",
         capture_output=True,
+        env=None if env is None else {**os.environ, **env},
         check=True,
     )
     return result.stdout.strip()
@@ -109,7 +111,16 @@ class P01PreparationSemanticsTests(unittest.TestCase):
                 encoding="utf-8",
             )
             git(root, "add", ".codearbiter/specs/academy-feature.md", ".codearbiter/plans/academy-feature.md", ".codearbiter/open-tasks.md", "tests/test_cli.py", "workshop_queue/cli.py")
-            git(root, "commit", "-m", "feat: add unresolved summary")
+            git(
+                root,
+                "commit",
+                "-m",
+                "feat: add unresolved summary",
+                env={
+                    "GIT_AUTHOR_DATE": "2026-08-04T12:00:00+00:00",
+                    "GIT_COMMITTER_DATE": "2026-08-04T12:00:00+00:00",
+                },
+            )
             head = git(root, "rev-parse", "HEAD")
             predicate = Predicate(
                 "feature_spec_plan_commit",

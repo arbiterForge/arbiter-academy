@@ -14,6 +14,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from academy_engine.catalog import Catalog, load_manifest
+from academy_engine.attribution import AttributionError, commit_author_name, validate_display_name
 from academy_engine.command import repository_root, run_git, validate_repository_git_config
 from academy_engine.exercise_state import (
     P02AttemptIdentity,
@@ -1410,6 +1411,165 @@ def _p01_prepared_defect(value: bytes | None) -> bool:
     )
 
 
+_P03_ADR = ".codearbiter/decisions/0004-academy-lab.md"
+_P03_LOG = ".codearbiter/decisions/decision-log.md"
+_P03_TITLE = "Choose the Workshop Queue summary-format boundary"
+_P03_CHOICES = (
+    "Use stable text for Workshop Queue summaries.",
+    "Use structured JSON for Workshop Queue summaries.",
+)
+
+
+def _p03_utf8(blob: bytes | None) -> str | None:
+    if blob is None:
+        return None
+    try:
+        return blob.decode("utf-8", "strict")
+    except UnicodeDecodeError:
+        return None
+
+
+def _p03_front_matter(text: str) -> tuple[dict[str, str], str] | None:
+    match = re.fullmatch(r"---\r?\n(?P<fields>(?:[^\r\n]+\r?\n)+)---\r?\n\r?\n(?P<body>.*)", text, re.DOTALL)
+    if match is None:
+        return None
+    fields: dict[str, str] = {}
+    for line in match.group("fields").splitlines():
+        key, marker, value = line.partition(": ")
+        if not marker or not key or key in fields or not re.fullmatch(r"[a-z-]+", key):
+            return None
+        if not value or value[:1] in "'\"|>" or value.endswith(" "):
+            return None
+        fields[key] = value
+    return fields, match.group("body")
+
+
+def _p03_sections(body: str) -> dict[str, str] | None:
+    h1 = f"# ADR-0004 — {_P03_TITLE}"
+    h1_matches = list(re.finditer(r"(?m)^# (?P<name>[^\r\n]+)\r?$", body))
+    if len(h1_matches) != 1 or h1_matches[0].group("name") != h1[2:]:
+        return None
+    if re.match(rf"^{re.escape(h1)}\r?\n", body) is None:
+        return None
+    matches = list(re.finditer(r"(?m)^## (?P<name>[^\r\n]+)\r?$", body))
+    required = ("Status", "Context", "Decision", "Alternatives considered", "Consequences", "Risks")
+    if tuple(match.group("name") for match in matches) != required:
+        return None
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
+        sections[match.group("name")] = body[match.end() : end].strip()
+    return sections
+
+
+def _p03_parse_adr(blob: bytes | None, author: str, date: str) -> tuple[str, str] | None:
+    text = _p03_utf8(blob)
+    if text is None:
+        return None
+    parsed = _p03_front_matter(text)
+    if parsed is None:
+        return None
+    fields, body = parsed
+    expected = {
+        "status": "accepted", "date": date, "title": _P03_TITLE,
+        "decided-by": author, "supersedes": "none", "governs": "workshop_queue/cli.py",
+    }
+    if fields != expected:
+        return None
+    sections = _p03_sections(body)
+    if sections is None or sections["Status"] != "Accepted":
+        return None
+    if not all(phrase.casefold() in sections["Context"].casefold() for phrase in ("stable text", "structured json")):
+        return None
+    if not all(phrase.casefold() in sections["Alternatives considered"].casefold() for phrase in ("stable text", "structured json")):
+        return None
+    choices = tuple(choice for choice in _P03_CHOICES if re.search(rf"(?m)^{re.escape(choice)}$", sections["Decision"]))
+    if len(choices) != 1 or sections["Decision"].strip() != choices[0]:
+        return None
+    rejected = _P03_CHOICES[1] if choices[0] == _P03_CHOICES[0] else _P03_CHOICES[0]
+    consequence = sections["Consequences"].casefold()
+    chosen_format = "stable text" if choices[0] == _P03_CHOICES[0] else "structured json"
+    rejected_format = "structured json" if chosen_format == "stable text" else "stable text"
+    cost = r"(?:costs?|trade-?off|risks?|drawbacks?|expenses?|burdens?|overhead|version(?:ing)?)"
+    negated_cost = re.compile(
+        rf"(?:\b(?:no|without|not|never|zero)\b.{{0,24}}{cost}|{cost}.{{0,24}}\b(?:no|without|not|never|zero)\b)",
+        re.IGNORECASE,
+    )
+    affirmative_cost = re.compile(
+        rf"{re.escape(rejected_format)}.{{0,100}}{cost}|{cost}.{{0,100}}{re.escape(rejected_format)}",
+        re.IGNORECASE,
+    )
+    sentences = re.split(r"(?<=[.!?])\s+", consequence)
+    if chosen_format not in consequence or not any(
+        affirmative_cost.search(sentence) and not negated_cost.search(sentence)
+        for sentence in sentences
+    ):
+        return None
+    return choices[0], text
+
+
+def _p03_parse_log(blob: bytes | None, prefix: bytes, author: str, date: str, choice: str) -> bool:
+    if blob is None or not prefix or not blob.startswith(prefix):
+        return False
+    suffix = _p03_utf8(blob[len(prefix) :])
+    if suffix is None:
+        return False
+    header = "## DECISION-0004 — ADR-0004 — " + _P03_TITLE
+    nl = r"\r?\n"
+    body = r"(?P<{name}>[^\r\n](?:(?!\r?\n(?:#+ |\*\*)).)*?)"
+    pattern = (
+        rf"{re.escape(header)}{nl}{nl}"
+        rf"\*\*Date:\*\* {re.escape(date)}{nl}"
+        rf"\*\*Status:\*\* accepted{nl}"
+        rf"\*\*Supersedes:\*\* none{nl}"
+        rf"\*\*Decided by:\*\* {re.escape(author)}{nl}"
+        rf"\*\*Decision category:\*\* architecture{nl}"
+        rf"\*\*Artifact-section-hash:\*\* n/a{nl}{nl}"
+        rf"## Variance summary{nl}{nl}{body.format(name='variance')}{nl}{nl}"
+        rf"## Decision{nl}{nl}{re.escape(choice)}{nl}{nl}"
+        rf"## SMARTS rationale{nl}{nl}{body.format(name='smarts')}{nl}{nl}"
+        rf"## Implementation implication{nl}{nl}{body.format(name='implication')}{nl}"
+    )
+    if "Re-evaluation trigger" in suffix or "Resolves same-level conflict between" in suffix:
+        return False
+    match = re.fullmatch(pattern, suffix, re.DOTALL)
+    return bool(match and "Status type: open-decision-closure" in match.group("variance"))
+
+
+def _p03_accepted_adr(root: Path, attempt: _Attempt, adr: str, decision_log: str) -> bool:
+    """Validate P03 from immutable blobs and its narrow linear learner range."""
+    if adr != _P03_ADR or decision_log != _P03_LOG:
+        return False
+    if run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout:
+        return False
+    try:
+        author = commit_author_name(root, attempt.prepared)
+    except AttributionError:
+        return False
+    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
+    if len(commits) not in {1, 2} or commits[-1] != attempt.head:
+        return False
+    parent = attempt.prepared
+    for commit in commits:
+        if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
+            return False
+        parent = commit
+    changed = [set(_commit_paths(root, commit)) for commit in commits]
+    if set().union(*changed) != {adr, decision_log}:
+        return False
+    adr_commits = _path_commits(root, attempt.prepared, attempt.head, adr)
+    log_commits = _path_commits(root, attempt.prepared, attempt.head, decision_log)
+    if len(adr_commits) != 1 or len(log_commits) != 1 or (len(commits) == 2 and commits.index(adr_commits[0]) >= commits.index(log_commits[0])):
+        return False
+    date_value = run_git(root, ["show", "-s", "--format=%aI", adr_commits[0]], check=False).stdout.strip()
+    date_match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}", date_value)
+    if date_match is None:
+        return False
+    choice = _p03_parse_adr(_git_blob(root, attempt.head, adr), author, date_match.group(1))
+    prepared_log = _git_blob(root, attempt.prepared, decision_log)
+    return bool(prepared_log is not None and choice and _p03_parse_log(_git_blob(root, attempt.head, decision_log), prepared_log, author, date_match.group(1), choice[0]))
+
+
 def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     data, root, attempt = context.predicate.data, context.root, context.attempt
     paths = {name: str(data[name]) for name in ("spec", "plan", "board", "test", "code", "fixture", "source_identity")}
@@ -1619,14 +1779,7 @@ def _semantic(context: _SemanticContext) -> bool:
         return _valid_offline_p02_receipt(context, str(data["receipt"]))
     if profile == "accepted_adr":
         adr, decision_log = str(data["adr"]), str(data["decision_log"])
-        adr_text, log_text = _changed_document(context, adr), _changed_document(context, decision_log)
-        adr_id = Path(adr).stem.split("-", 1)[0]
-        return bool(
-            _headings(adr_text, ("Context", "Decision", "Consequences"))
-            and "status: accepted" in (adr_text or "").casefold()
-            and log_text
-            and adr_id in log_text
-        )
+        return _p03_accepted_adr(root, attempt, adr, decision_log)
     if profile == "dependency_review":
         review = _changed_document(context, str(data["review"]))
         project = str(data["project"])

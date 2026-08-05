@@ -18,6 +18,11 @@ from academy_engine.catalog import (
     _CONTROL_STATE_SEED_TARGETS,
     load_manifest_file,
 )
+from academy_engine.attribution import (
+    AttributionError,
+    commit_author_name,
+    prospective_author_name,
+)
 from academy_engine.command import GitCommandError, repository_root, run_git as _run_git
 from academy_engine.exercise_state import (
     ExerciseStateError,
@@ -372,7 +377,12 @@ def prepare_lab(
             lab_id,
             installed_authority=installed_authority,
         )
-    except (ExerciseStateError, ExternalStateError) as error:
+        prospective_name = (
+            prospective_author_name(repository, trust_local_config=True)
+            if lab_id == "P03-record-an-adr"
+            else None
+        )
+    except (ExerciseStateError, ExternalStateError, AttributionError) as error:
         raise PreparationError(str(error)) from error
     repository, lab, manifest, operations, attempt, base_sha = _prepare_inputs(root, lab_id)
     branch = f"academy/{lab.id}/{attempt}"
@@ -397,14 +407,16 @@ def prepare_lab(
                 run_git(repository, ["add", "-A", "--", *targets])
             run_git(repository, ["commit", "--allow-empty", "-m", f"academy: prepare {lab.id} attempt {attempt}"])
             commit_sha = run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
-        except (GitCommandError, OSError, PathBoundaryError) as error:
+            if prospective_name is not None and commit_author_name(repository, commit_sha) != prospective_name:
+                raise AttributionError("P03 committed attribution is invalid.")
+        except (GitCommandError, OSError, PathBoundaryError, AttributionError) as error:
             try:
                 run_git(repository, ["reset"])
                 _restore_snapshots(repository, snapshots)
                 if _branch(repository) != original_branch:
                     run_git(repository, ["switch", original_branch])
                 if branch_created:
-                    run_git(repository, ["update-ref", "-d", f"refs/heads/{branch}", base_sha])
+                    run_git(repository, ["update-ref", "-d", f"refs/heads/{branch}"])
             except (GitCommandError, OSError, PathBoundaryError) as rollback_error:
                 raise PreparationError(f"{error} (rollback failed: {rollback_error})") from rollback_error
             raise _fail(error) from error

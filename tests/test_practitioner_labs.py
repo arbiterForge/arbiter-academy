@@ -409,8 +409,29 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 40)
+        self.assertEqual(report.matrix_cells, 50)
         self.assertNotIn(str(SOURCE), report.render())
+
+    def test_p03_freezes_the_native_evidence_adversarial_matrix_and_privacy_guide(self) -> None:
+        """Catches P03 falling back to the generic five-cell declaration or vague learner contract."""
+        from academy_engine.curriculum import _MATRIX_CASES
+
+        self.assertEqual(
+            _MATRIX_CASES["P03-record-an-adr"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent",
+                "invalid-attribution", "normalized-attribution", "mismatched-attribution",
+                "rewritten-log", "wrong-ordinal", "wrong-choice", "wrong-order",
+                "uncommitted", "extra-path", "generic-event-decoy",
+            ),
+        )
+        guide = (SOURCE / "academy/tracks/practitioner/P03-record-an-adr.md").read_text(encoding="utf-8")
+        for required in (
+            "1–80 Unicode scalar values", "No learner email", "one commit or two linear commits",
+            "`%an`", "append-only byte prefix", "never echo a rejected name",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""
@@ -514,7 +535,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("40 matrix cells", result.stdout)
+        self.assertIn("50 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())
