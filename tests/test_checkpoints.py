@@ -1119,3 +1119,488 @@ class P03NativeEvidenceTests(unittest.TestCase):
         subprocess.run(["git", "commit", "-m", "copy prior native pair"], cwd=self.root, env=environment, check=True, capture_output=True, text=True)
         copied_attempt = _Attempt("academy/P03-record-an-adr/1", 1, self.prepared, "0" * 40, self._head())
         self.assertFalse(checkpoints._p03_accepted_adr(self.root, copied_attempt, adr_path, log_path))
+
+
+class P04NativeDependencyReviewTests(unittest.TestCase):
+    """Exercise P04 against immutable candidate blobs and real learner Git history."""
+
+    review_path = ".codearbiter/reports/academy/P04-dependency-review.md"
+    lock_path = "requirements.lock"
+    wrapper_path = ".codearbiter/reports/academy/P04-approved-dependency.lock.json"
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "config", "user.name", "Fixture"], cwd=self.root, check=True)
+        subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=self.root, check=True)
+        source = Path(__file__).resolve().parents[1] / "academy/candidates/P04-review-a-dependency"
+        shutil.copytree(source, self.root / "academy/candidates/P04-review-a-dependency")
+        (self.root / "pyproject.toml").write_text("[project]\nname = 'fixture'\nversion = '0'\nrequires-python = '>=3.10'\n", encoding="utf-8")
+        (self.root / "README.md").write_text("base\n", encoding="utf-8")
+        self._commit("base")
+        subprocess.run(["git", "switch", "-c", "academy/P04-review-a-dependency/1"], cwd=self.root, check=True, capture_output=True, text=True)
+        self._commit("academy: prepare P04-review-a-dependency attempt 1", empty=True)
+        self.prepared = self._head()
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _head(self) -> str:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
+
+    def _commit(self, message: str, *, empty: bool = False, raw_paths: dict[str, bytes] | None = None) -> None:
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True, capture_output=True, text=True)
+        for relative, raw in (raw_paths or {}).items():
+            object_id = subprocess.run(
+                ["git", "hash-object", "-w", "--stdin"], cwd=self.root, input=raw, check=True, capture_output=True
+            ).stdout.decode("ascii").strip()
+            subprocess.run(
+                ["git", "update-index", "--add", "--cacheinfo", f"100644,{object_id},{relative}"],
+                cwd=self.root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        command = ["git", "commit", "-m", message]
+        if empty:
+            command.insert(2, "--allow-empty")
+        subprocess.run(command, cwd=self.root, check=True, capture_output=True, text=True)
+
+    def _review(self, decision: str) -> str:
+        prepared = subprocess.run(
+            ["git", "show", f"{self.prepared}:pyproject.toml"],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+        ).stdout
+        digest = hashlib.sha256(prepared).hexdigest()
+        labels = (
+            "# P04 Dependency Review - python-dateutil==2.9.0.post0\nAcademy-Schema-Version: 1\n"
+            f"Project-SHA256: {digest}\nCandidate: python-dateutil==2.9.0.post0\n"
+            "Candidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+            "Candidate-SHA256: a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427\n"
+            "Closure-Requirement: six>=1.5\nClosure-Package: six==1.17.0\n"
+            "Closure-Artifact: six-1.17.0-py2.py3-none-any.whl\n"
+            "Closure-SHA256: 4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274\n"
+            "Install-Policy: no-install-in-p04\n\n"
+        )
+        sections = {
+            "Candidate": "python-dateutil==2.9.0.post0 uses python_dateutil-2.9.0.post0-py2.py3-none-any.whl with complete six>=1.5 and six==1.17.0 closure in six-1.17.0-py2.py3-none-any.whl.",
+            "Provenance": "PyPI distribution python-dateutil imports dateutil; dateutil/dateutil and benjaminp/six filenames and hashes bind bytes.",
+            "License": "Apache-2.0 OR BSD-3-Clause and MIT; python_dateutil-2.9.0.post0.LICENSE ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e; six-1.17.0.LICENSE 4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0; Apache-2.0.txt cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30.",
+            "Maintenance": "Frozen 2026-07-31 review snapshot, not current truth.",
+            "Known vulnerabilities": "Frozen 2026-07-31 review snapshot, not a guarantee.",
+            "Supply chain": "pure-Python universal wheels, no sdist, no resolver-selected artifact, and no install during P04.",
+            "Compatibility": "Academy Python 3.10+; Requires-Python !=3.0.*,!=3.1.*,!=3.2.*,>=2.7 and >=2.7, !=3.0.*, !=3.1.*, !=3.2.*.",
+            "Alternatives": "Use a bounded datetime.strptime parser with finite formats, length limit, deterministic timezone/default rules, and fail-closed trailing-content behavior.",
+            "SMARTS": "| Lens | Bounded stdlib | Two-wheel closure |\n| --- | --- | --- |\n| Scalable | Strong. Finite policy. | Adequate. Broader surface. |\n| Maintainable | Strong. No lifecycle. | Weak. Two packages. |\n| Available | Strong. Offline. | Adequate. Cached bytes. |\n| Reliable | Strong. Fail closed. | Adequate. Broad parser. |\n| Testable | Strong. Small matrix. | Adequate. More behavior. |\n| Securable | Strong. No acquisition. | Weak. Publisher chain. |",
+            "Decision": "Bounded stdlib parser is selected.\nDecision: reject" if decision == "reject" else "Broader parsing surface is required; install is deferred.\nDecision: accept",
+        }
+        return labels + "".join(f"## {name}\n\n{sections[name]}\n\n" for name in sections)
+
+    def _attempt(self) -> _Attempt:
+        return _Attempt("academy/P04-review-a-dependency/1", 1, self.prepared, "0" * 40, self._head())
+
+    def _write_review(self, decision: str, *replacements: tuple[str, str]) -> Path:
+        """Write a hand-authored learner report whose mutations remain real Git content."""
+        text = self._review(decision)
+        for old, new in replacements:
+            self.assertIn(old, text)
+            text = text.replace(old, new, 1)
+        review = self.root / self.review_path
+        review.parent.mkdir(parents=True, exist_ok=True)
+        review.write_text(text, encoding="utf-8")
+        return review
+
+    def _reset_to_prepared(self, prepared: str) -> None:
+        subprocess.run(["git", "reset", "--hard", prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "clean", "-fd"], cwd=self.root, check=True, capture_output=True, text=True)
+        for relative in (self.review_path, self.lock_path, self.wrapper_path):
+            path = self.root / relative
+            if path.exists():
+                path.unlink()
+        self.prepared = prepared
+
+    def test_rejects_any_extra_prepared_candidate_path(self) -> None:
+        """Catches a checker that reads only known candidate names and ignores prepared decoys."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        candidate_root = self.root / "academy/candidates/P04-review-a-dependency"
+        for filename in ("NOTICE.txt", "PATENT", "third-wheel.whl"):
+            (candidate_root / filename).write_bytes(b"decoy\n")
+        self._commit("prepare candidate notice patent and payload decoys")
+        self._commit("academy: prepare P04 candidate decoys", empty=True)
+        self.prepared = self._head()
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_report_that_omits_substantive_review_contract_terms(self) -> None:
+        """Catches a headings-only parser that accepts vague licensing, snapshot, closure, or fallback claims."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        mutations = {
+            "license-hash": (
+                "ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e",
+                "0" * 64,
+            ),
+            "maintenance-disclaimer": (
+                "Frozen 2026-07-31 review snapshot, not current truth.",
+                "Frozen 2026-07-31 review snapshot.",
+            ),
+            "vulnerability-disclaimer": (
+                "Frozen 2026-07-31 review snapshot, not a guarantee.",
+                "Frozen 2026-07-31 review snapshot.",
+            ),
+            "alternative-default-and-trailing": (
+                "Use a bounded datetime.strptime parser with finite formats, length limit, deterministic timezone/default rules, and fail-closed trailing-content behavior.",
+                "Use a bounded datetime.strptime parser with finite formats, length limit, deterministic timezone rules, and fail-closed behavior.",
+            ),
+            "candidate-closure": (
+                "python-dateutil==2.9.0.post0 uses python_dateutil-2.9.0.post0-py2.py3-none-any.whl with complete six>=1.5 and six==1.17.0 closure in six-1.17.0-py2.py3-none-any.whl.",
+                "python-dateutil==2.9.0.post0 with six==1.17.0.",
+            ),
+            "provenance-filenames": (
+                "PyPI distribution python-dateutil imports dateutil; dateutil/dateutil and benjaminp/six filenames and hashes bind bytes.",
+                "PyPI distribution python-dateutil imports dateutil; dateutil/dateutil and benjaminp/six hashes bind bytes.",
+            ),
+        }
+        for name, replacement in mutations.items():
+            with self.subTest(name=name):
+                old, new = replacement
+                self._write_review("reject", (old, new))
+                self._commit(f"record incomplete P04 review {name}")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+                self._reset_to_prepared(original_prepared)
+
+    def test_accepts_real_reject_and_two_commit_acceptance_paths(self) -> None:
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        review = self.root / self.review_path
+        review.parent.mkdir(parents=True)
+        review.write_text(self._review("reject"), encoding="utf-8")
+        self._commit("record P04 rejection")
+        self.assertTrue(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+        subprocess.run(["git", "reset", "--hard", self.prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        review.parent.mkdir(parents=True)
+        review.write_text(self._review("accept"), encoding="utf-8")
+        self._commit("record P04 acceptance")
+        (self.root / "pyproject.toml").write_text("[project]\nname = 'fixture'\nversion = '0'\nrequires-python = '>=3.10'\ndependencies = ['python-dateutil==2.9.0.post0']\n", encoding="utf-8")
+        (self.root / self.lock_path).write_text("python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl\nsix==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl\n", encoding="utf-8")
+        wrapper = {"schema_version": 1, "name": "python-dateutil", "version": "2.9.0.post0", "artifact": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", "sha256": "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", "install_policy": "later-only-after-review"}
+        target = self.root / self.wrapper_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(json.dumps(wrapper, separators=(",", ":"), ensure_ascii=True).encode("utf-8") + b"\n")
+        self._commit("record accepted P04 dependency evidence")
+        self.assertTrue(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_uncommitted_review_and_extra_history_path(self) -> None:
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        review = self.root / self.review_path
+        review.parent.mkdir(parents=True)
+        review.write_text(self._review("reject"), encoding="utf-8")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        self._commit("record P04 rejection")
+        (self.root / "README.md").write_text("unexpected\n", encoding="utf-8")
+        self._commit("unrelated path")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_stale_label_section_and_closure_report_mutations(self) -> None:
+        """Catches committed reports that look native but break a bound header or unique section contract."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        prepared_digest = hashlib.sha256(
+            subprocess.run(["git", "show", f"{self.prepared}:pyproject.toml"], cwd=self.root, check=True, capture_output=True).stdout
+        ).hexdigest()
+        mutations = {
+            "stale-project-digest": (f"Project-SHA256: {prepared_digest}", "Project-SHA256: " + "0" * 64),
+            "unknown-header-label": ("Candidate: python-dateutil==2.9.0.post0", "Candidate-Name: python-dateutil==2.9.0.post0"),
+            "unknown-section": ("## Alternatives\n\n", "## Fallback\n\n"),
+            "wrong-closure": ("Closure-Requirement: six>=1.5", "Closure-Requirement: six>=9"),
+        }
+        for name, (old, new) in mutations.items():
+            with self.subTest(name=name):
+                self._write_review("reject", (old, new))
+                self._commit(f"record malformed P04 review {name}")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+                self._reset_to_prepared(original_prepared)
+
+    def test_rejects_nonblank_duplicate_or_unknown_h2_heading(self) -> None:
+        """Catches a heading parser that ignores malformed H2 declarations inside an otherwise valid section."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        mutations = {
+            "duplicate": ("## Candidate\n\n", "## Candidate\n\n## Candidate\ninjected duplicate\n"),
+            "unknown": ("## Candidate\n\n", "## Candidate\n\n## Unreviewed\ninjected unknown\n"),
+        }
+        for name, (old, new) in mutations.items():
+            with self.subTest(name=name):
+                self._write_review("reject", (old, new))
+                self._commit(f"record malformed nonblank H2 {name}")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+                self._reset_to_prepared(original_prepared)
+
+    def test_rejects_duplicate_reordered_or_semantically_contradictory_review(self) -> None:
+        """Catches native-shaped reports with reordered grammar, truncated SMARTS, or an outcome that contradicts its rationale."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        mutations = {
+            "duplicate-label": (
+                "Install-Policy: no-install-in-p04\n\n",
+                "Install-Policy: no-install-in-p04\nCandidate: python-dateutil==2.9.0.post0\n\n",
+            ),
+            "reordered-label": (
+                "Candidate: python-dateutil==2.9.0.post0\nCandidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n",
+                "Candidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\nCandidate: python-dateutil==2.9.0.post0\n",
+            ),
+            "duplicate-section": ("## Candidate\n\n", "## Candidate\n\n## Candidate\n\nduplicate\n\n"),
+            "reordered-section": ("## Candidate\n\n", "## Provenance\n\n"),
+            "incomplete-smarts": ("| Securable | Strong. No acquisition. | Weak. Publisher chain. |\n", ""),
+        }
+        for name, (old, new) in mutations.items():
+            with self.subTest(name=name):
+                self._write_review("reject", (old, new))
+                self._commit(f"record contradictory P04 review {name}")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+                self._reset_to_prepared(original_prepared)
+
+    def test_rejects_contradictory_decision_in_an_otherwise_valid_two_commit_acceptance(self) -> None:
+        """Catches an accepted topology whose review still selects the bounded stdlib alternative."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        self._write_review(
+            "accept",
+            (
+                "Broader parsing surface is required; install is deferred.\nDecision: accept",
+                "Bounded stdlib parser is selected. Broader parsing surface is required; install is deferred.\nDecision: accept",
+            ),
+        )
+        self._commit("record contradictory P04 acceptance")
+        self._write_acceptance_artifacts()
+        self._commit("record otherwise valid P04 adoption")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_isolated_required_report_identity_and_structure_mutations(self) -> None:
+        """Catches missing, wrong, extra, filename, and order mutations in a committed otherwise-valid rejection."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        mutations = {
+            "missing-label": ("Candidate-SHA256: a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427\n", ""),
+            "missing-section": ("## Compatibility\n\n", ""),
+            "wrong-candidate": ("Candidate: python-dateutil==2.9.0.post0", "Candidate: python-dateutil==0"),
+            "missing-six": ("Closure-Package: six==1.17.0\n", ""),
+            "wrong-six": ("Closure-Package: six==1.17.0", "Closure-Package: six==0"),
+            "extra-six": ("Install-Policy: no-install-in-p04\n\n", "Install-Policy: no-install-in-p04\nClosure-Package: six==1.17.1\n\n"),
+            "candidate-filename": ("python_dateutil-2.9.0.post0-py2.py3-none-any.whl", "python_dateutil-other.whl"),
+            "closure-filename": ("six-1.17.0-py2.py3-none-any.whl", "six-other.whl"),
+            "label-order": (
+                "Candidate: python-dateutil==2.9.0.post0\nCandidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n",
+                "Candidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\nCandidate: python-dateutil==2.9.0.post0\n",
+            ),
+        }
+        for name, (old, new) in mutations.items():
+            self._reset_to_prepared(original_prepared)
+            with self.subTest(name=name):
+                self._write_review("reject", (old, new))
+                self._commit(f"record isolated malformed P04 {name}")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_review_amended_after_a_valid_adoption(self) -> None:
+        """Catches an actual amend that folds a later review edit into an otherwise valid adoption commit."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        review = self._write_review("accept")
+        self._commit("record P04 acceptance")
+        self._write_acceptance_artifacts()
+        self._commit("record valid P04 adoption")
+        self.assertTrue(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        changed = review.read_text(encoding="utf-8").replace("Strong. Finite policy.", "Strong. Bounded policy.", 1)
+        review.write_text(changed, encoding="utf-8")
+        subprocess.run(["git", "add", self.review_path], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "commit", "--amend", "--no-edit"], cwd=self.root, check=True, capture_output=True, text=True)
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def _write_acceptance_artifacts(self, *, lock: bytes | None = None, wrapper: bytes | None = None) -> None:
+        (self.root / "pyproject.toml").write_text(
+            "[project]\nname = 'fixture'\nversion = '0'\nrequires-python = '>=3.10'\ndependencies = ['python-dateutil==2.9.0.post0']\n",
+            encoding="utf-8",
+        )
+        (self.root / self.lock_path).write_bytes(lock or (
+            b"python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+            b"six==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl\n"
+        ))
+        target = self.root / self.wrapper_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(wrapper or (
+            b'{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}\n'
+        ))
+
+    def test_rejects_same_commit_adoption_and_prior_touch_revert(self) -> None:
+        """Catches adoption smuggled into review or a lock touched before review and later removed."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        self._write_review("accept")
+        self._write_acceptance_artifacts()
+        self._commit("record review and adoption together")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+        self._reset_to_prepared(self.prepared)
+        (self.root / self.lock_path).write_text("temporary\n", encoding="utf-8")
+        self._commit("touch lock before review")
+        (self.root / self.lock_path).unlink()
+        self._commit("revert lock before review")
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_wrong_accepted_lock_wrapper_and_rejected_project_drift(self) -> None:
+        """Catches acceptance artifacts that differ by bytes and rejection that later changes project state."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        cases = {
+            "wrong-lock": (b"python-dateutil==2.9.0.post0\n", None),
+            "wrong-wrapper": (None, b'{"schema_version":2}\n'),
+        }
+        for name, (lock, wrapper) in cases.items():
+            with self.subTest(name=name):
+                self._write_review("accept")
+                self._commit("record P04 acceptance")
+                self._write_acceptance_artifacts(lock=lock, wrapper=wrapper)
+                self._commit(f"record {name} P04 adoption")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+                self._reset_to_prepared(original_prepared)
+
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        (self.root / "pyproject.toml").write_text(
+            "[project]\nname = 'fixture'\nversion = '0'\nrequires-python = '>=3.10'\ndependencies = ['python-dateutil==2.9.0.post0']\n",
+            encoding="utf-8",
+        )
+        self._commit("drift rejected project")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_manifest_touch_revert_review_after_adoption_and_merge_history(self) -> None:
+        """Catches forbidden pre-review candidate changes and history that is not a linear review then adoption proof."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        manifest = self.root / "academy/candidates/P04-review-a-dependency/candidate-set.json"
+        original_manifest = manifest.read_bytes()
+        manifest.write_bytes(original_manifest + b" ")
+        self._commit("touch candidate manifest before review")
+        manifest.write_bytes(original_manifest)
+        self._commit("revert candidate manifest before review")
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        self._reset_to_prepared(original_prepared)
+
+        self._write_acceptance_artifacts()
+        self._commit("adopt before review")
+        self._write_review("accept")
+        self._commit("review after adoption")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        self._reset_to_prepared(original_prepared)
+
+        subprocess.run(["git", "switch", "-c", "p04-side", original_prepared], cwd=self.root, check=True, capture_output=True, text=True)
+        (self.root / "README.md").write_text("side\n", encoding="utf-8")
+        self._commit("side change")
+        subprocess.run(["git", "switch", "academy/P04-review-a-dependency/1"], cwd=self.root, check=True, capture_output=True, text=True)
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        subprocess.run(["git", "merge", "--no-ff", "p04-side", "-m", "merge side"], cwd=self.root, check=True, capture_output=True, text=True)
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_lock_variants_and_partial_or_split_acceptance(self) -> None:
+        """Catches lock-file variants and acceptance evidence that is incomplete or split across commits."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        canonical_lock = (
+            b"python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+            b"six==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl\n"
+        )
+        variants = {
+            "crlf": canonical_lock.replace(b"\n", b"\r\n"),
+            "no-final-lf": canonical_lock.rstrip(b"\n"),
+            "index": b"--index-url https://invalid.example\n" + canonical_lock,
+            "editable": b"-e .\n" + canonical_lock,
+            "marker": canonical_lock.replace(b"six==1.17.0", b"six==1.17.0 ; python_version >= '3.10'"),
+            "alternate-hash": canonical_lock.replace(b"a8b2bc", b"b8b2bc"),
+            "extra-dependency": canonical_lock + b"example==1 --hash=sha256:" + b"0" * 64 + b"\n",
+            "reordered": canonical_lock.splitlines(keepends=True)[1] + canonical_lock.splitlines(keepends=True)[0],
+        }
+        for name, lock in variants.items():
+            self._reset_to_prepared(original_prepared)
+            with self.subTest(name=name):
+                self._write_review("accept")
+                self._commit("record P04 acceptance")
+                self._write_acceptance_artifacts(lock=lock)
+                self._commit(f"record {name} lock", raw_paths={self.lock_path: lock})
+                committed_lock = subprocess.run(
+                    ["git", "show", f"HEAD:{self.lock_path}"], cwd=self.root, check=True, capture_output=True
+                ).stdout
+                self.assertEqual(committed_lock, lock)
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+        self._reset_to_prepared(original_prepared)
+        self._write_review("accept")
+        self._commit("record P04 acceptance")
+        (self.root / "pyproject.toml").write_text(
+            "[project]\nname = 'fixture'\nversion = '0'\nrequires-python = '>=3.10'\ndependencies = ['python-dateutil==2.9.0.post0']\n",
+            encoding="utf-8",
+        )
+        self._commit("partial adoption")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        (self.root / self.lock_path).write_bytes(canonical_lock)
+        target = self.root / self.wrapper_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b'{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}\n')
+        self._commit("split remaining adoption")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+    def test_rejects_wrapper_variants_alone_and_rejected_lock_drift(self) -> None:
+        """Catches a direct-candidate wrapper used alone or mutated despite a native-looking JSON shape."""
+        from academy_engine.checkpoints import _p04_dependency_review
+
+        original_prepared = self.prepared
+        canonical_wrapper = b'{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}\n'
+        variants = {
+            "policy": canonical_wrapper.replace(b"later-only-after-review", b"install-now"),
+            "key": canonical_wrapper.replace(b'"schema_version"', b'"schema"'),
+            "order": b'{"name":"python-dateutil","schema_version":1,"version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}\n',
+            "newline": canonical_wrapper.rstrip(b"\n"),
+        }
+        for name, wrapper in variants.items():
+            self._reset_to_prepared(original_prepared)
+            with self.subTest(name=name):
+                self._write_review("accept")
+                self._commit("record P04 acceptance")
+                self._write_acceptance_artifacts(wrapper=wrapper)
+                self._commit(f"record {name} wrapper")
+                self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+        self._reset_to_prepared(original_prepared)
+        self._write_review("accept")
+        self._commit("record P04 acceptance")
+        target = self.root / self.wrapper_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(canonical_wrapper)
+        self._commit("wrapper-only adoption")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+        self._reset_to_prepared(original_prepared)
+
+        self._write_review("reject")
+        self._commit("record P04 rejection")
+        (self.root / self.lock_path).write_text("drift\n", encoding="utf-8")
+        self._commit("drift rejected lock")
+        self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))

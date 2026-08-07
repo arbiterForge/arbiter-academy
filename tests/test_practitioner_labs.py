@@ -409,7 +409,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 50)
+        self.assertEqual(report.matrix_cells, 64)
         self.assertNotIn(str(SOURCE), report.render())
 
     def test_p03_freezes_the_native_evidence_adversarial_matrix_and_privacy_guide(self) -> None:
@@ -432,6 +432,29 @@ class PractitionerCurriculumTests(unittest.TestCase):
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
+
+    def test_p04_freezes_offline_candidate_review_matrix_and_no_install_guide(self) -> None:
+        """Catches P04 drifting back to generic review prose or an install-oriented exercise."""
+        from academy_engine.curriculum import _MATRIX_CASES
+
+        self.assertEqual(
+            _MATRIX_CASES["P04-review-a-dependency"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent", "candidate-tampered",
+                "license-tampered", "apache-missing", "invented-notice", "stale-project-hash",
+                "incomplete-review", "pre-review-manifest-edit", "same-commit-adoption", "incomplete-closure",
+                "wrong-lock", "wrong-wrapper", "extra-dependency", "uncommitted", "extra-path",
+            ),
+        )
+        guide = (SOURCE / "academy/tracks/practitioner/P04-review-a-dependency.md").read_text(encoding="utf-8")
+        for required in (
+            "candidate-set.json", "review-only-never-install", "Known", "Supply chain",
+            "Install-Policy: no-install-in-p04", "2026-07-31", "No NOTICE", "no install during P04",
+            "one later", "external installation",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        self.assertNotIn("pip install", guide)
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""
@@ -535,7 +558,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("50 matrix cells", result.stdout)
+        self.assertIn("64 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())

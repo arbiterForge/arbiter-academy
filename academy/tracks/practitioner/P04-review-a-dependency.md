@@ -33,7 +33,10 @@ arbiter-academy --repository $learnerRepository prepare P04-review-a-dependency
 ```
 
 The scenario requests `python-dateutil==2.9.0.post0` for legacy date input and supplies stable
-candidate metadata. It does not install, vendor, pre-approve, or add the package to project files.
+candidate metadata. Read the immutable offline set at
+`academy/candidates/P04-review-a-dependency/candidate-set.json`; its policy is
+`review-only-never-install`. It does not install, vendor, pre-approve, or add the package to project
+files.
 
 ## Use your host
 
@@ -66,6 +69,26 @@ Review the exact candidate and prepared project digest. Record provenance, licen
 signals, compatibility, the bounded stdlib alternative, rationale, all SMARTS lenses, and reviewer
 outcome in `.codearbiter/reports/academy/P04-dependency-review.md` before any other project change.
 
+Use the native report labels exactly: `Academy-Schema-Version`, `Project-SHA256`, `Candidate`,
+`Candidate-Artifact`, `Candidate-SHA256`, `Closure-Requirement`, `Closure-Package`,
+`Closure-Artifact`, `Closure-SHA256`, and `Install-Policy`. The policy label is:
+
+```text
+Install-Policy: no-install-in-p04
+```
+
+Then add these H2 sections in order: Candidate, Provenance, License, Maintenance, Known
+vulnerabilities, Supply chain, Compatibility, Alternatives, SMARTS, Decision. State that maintenance
+and vulnerability statements are the frozen **2026-07-31** review snapshot, not live registry truth.
+The supply-chain section records pure-Python universal wheels, no sdist, no resolver-selected
+artifact, and **no install during P04**. License evidence names the two wheel-derived LICENSE files
+and `Apache-2.0.txt`; there is **No NOTICE** or patent payload to invent.
+
+Your SMARTS table compares the bounded standard-library parser with the two-wheel closure on every
+lens. The intended decision says `Decision: reject` after selecting the bounded stdlib parser. A
+valid accepting review must explain why the broader parsing surface is required and that external
+installation remains deferred.
+
 For the intended rejection, choose the bounded stdlib parser and leave `pyproject.toml`,
 `requirements.lock`, and `.codearbiter/reports/academy/P04-approved-dependency.lock.json` absent or
 unchanged. Install nothing.
@@ -88,8 +111,9 @@ The wrapper is exactly:
 {"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}
 ```
 
-Commit manifest, environment lock, and wrapper together only after review. Do not install a package
-in either variant.
+Commit manifest, environment lock, and wrapper together only after review, in **one later governed
+commit**. Do not install a package in either variant; an external installation is separate future
+evidence and P04 never claims to prove whether an unrelated global installation occurred.
 
 ## Hints
 

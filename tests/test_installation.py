@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -15,6 +16,15 @@ from pathlib import Path
 
 SETUPTOOLS_WHEEL_NAME = "setuptools-83.0.0-py3-none-any.whl"
 SETUPTOOLS_SHA256 = "29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3"
+P04_CANDIDATE_DIRECTORY = "academy/candidates/P04-review-a-dependency"
+P04_CANDIDATE_FILES = (
+    "candidate-set.json",
+    "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+    "six-1.17.0-py2.py3-none-any.whl",
+    "python_dateutil-2.9.0.post0.LICENSE",
+    "six-1.17.0.LICENSE",
+    "Apache-2.0.txt",
+)
 
 
 def verified_wheelhouse(value: str | None) -> Path:
@@ -125,6 +135,104 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
+    def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
+        """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
+        wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
+        repository = Path(__file__).resolve().parents[1]
+        expected = {
+            name: (repository / P04_CANDIDATE_DIRECTORY / name).read_bytes()
+            for name in P04_CANDIDATE_FILES
+        }
+        self.assertEqual(
+            {path.name for path in (repository / P04_CANDIDATE_DIRECTORY).iterdir() if path.is_file()},
+            set(P04_CANDIDATE_FILES),
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            scratch = Path(temporary_directory)
+            source = scratch / "source"
+            shutil.copytree(repository, source, ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"))
+            build_venv = scratch / "build-venv"
+            subprocess.run([sys.executable, "-m", "venv", str(build_venv)], check=True, capture_output=True, text=True)
+            build_python = build_venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            bootstrap = subprocess.run(
+                [str(build_python), "-m", "pip", "install", "--no-index", "--find-links", str(wheelhouse), "--no-deps", "setuptools==83.0.0"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(bootstrap.returncode, 0, bootstrap.stdout + bootstrap.stderr)
+            dist = scratch / "dist"
+            dist.mkdir()
+            sdist = subprocess.run(
+                [str(build_python), "-c", "from setuptools.build_meta import build_sdist; print(build_sdist(r'" + str(dist) + "'))"],
+                cwd=source,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(sdist.returncode, 0, sdist.stdout + sdist.stderr)
+            archive = next(dist.glob("workshop_queue-*.tar.gz"))
+            with tarfile.open(archive, "r:gz") as contents:
+                names = set(contents.getnames())
+                prefix = next(name.split("/", 1)[0] for name in names if name.endswith("/pyproject.toml"))
+                self.assertEqual(
+                    {name.rsplit("/", 1)[-1] for name in names if f"/{P04_CANDIDATE_DIRECTORY}/" in name},
+                    set(P04_CANDIDATE_FILES),
+                )
+                for name, raw in expected.items():
+                    member = contents.extractfile(f"{prefix}/{P04_CANDIDATE_DIRECTORY}/{name}")
+                    self.assertIsNotNone(member, name)
+                    assert member is not None
+                    self.assertEqual(member.read(), raw, name)
+
+            wheel_directory = scratch / "wheel"
+            wheel_directory.mkdir()
+            build = subprocess.run(
+                [str(build_python), "-m", "pip", "wheel", "--no-index", "--find-links", str(wheelhouse), "--no-deps", "--wheel-dir", str(wheel_directory), str(source)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
+            with zipfile.ZipFile(wheel) as contents:
+                names = set(contents.namelist())
+                resource_prefix = "workshop_queue-0.1.0.data/data/share/arbiter-academy/academy/candidates/P04-review-a-dependency/"
+                self.assertEqual({name.removeprefix(resource_prefix) for name in names if name.startswith(resource_prefix)}, set(P04_CANDIDATE_FILES))
+                for name, raw in expected.items():
+                    self.assertEqual(contents.read(resource_prefix + name), raw, name)
+                metadata = contents.read("workshop_queue-0.1.0.dist-info/METADATA").decode("utf-8")
+                self.assertNotIn("Requires-Dist:", metadata)
+
+            installed_venv = scratch / "installed-venv"
+            subprocess.run([sys.executable, "-m", "venv", str(installed_venv)], check=True, capture_output=True, text=True)
+            installed_python = installed_venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            install = subprocess.run(
+                [str(installed_python), "-m", "pip", "install", "--no-index", "--find-links", str(wheelhouse), "--no-deps", str(wheel)],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(install.returncode, 0, install.stdout + install.stderr)
+            data_root = Path(subprocess.run(
+                [str(installed_python), "-c", "import sysconfig; print(sysconfig.get_paths()['data'])"],
+                text=True,
+                capture_output=True,
+                check=True,
+            ).stdout.strip())
+            installed_root = data_root / "share/arbiter-academy/academy/candidates/P04-review-a-dependency"
+            self.assertEqual({path.name for path in installed_root.iterdir() if path.is_file()}, set(P04_CANDIDATE_FILES))
+            for name, raw in expected.items():
+                self.assertEqual((installed_root / name).read_bytes(), raw, name)
+            imports = subprocess.run(
+                [str(installed_python), "-c", "import academy_engine, sys; print(sorted(set(sys.modules).intersection({'dateutil', 'six'})))"],
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            self.assertEqual(imports.stdout.strip(), "[]")
+
     def test_installed_cli_seeds_writable_app_data_without_changing_site_packages(self) -> None:
         wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
         repository = Path(__file__).resolve().parents[1]

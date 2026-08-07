@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import stat
+import tomllib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 from academy_engine.catalog import Catalog, load_manifest
+from academy_engine.candidate_data import CandidateDataError, P04_CANDIDATE_ROOT, validate_p04_candidate_blobs
 from academy_engine.attribution import AttributionError, commit_author_name, validate_display_name
 from academy_engine.command import repository_root, run_git, validate_repository_git_config
 from academy_engine.exercise_state import (
@@ -1570,6 +1572,191 @@ def _p03_accepted_adr(root: Path, attempt: _Attempt, adr: str, decision_log: str
     return bool(prepared_log is not None and choice and _p03_parse_log(_git_blob(root, attempt.head, decision_log), prepared_log, author, date_match.group(1), choice[0]))
 
 
+_P04_REVIEW = ".codearbiter/reports/academy/P04-dependency-review.md"
+_P04_LOCK = "requirements.lock"
+_P04_WRAPPER = ".codearbiter/reports/academy/P04-approved-dependency.lock.json"
+_P04_SECTIONS = (
+    "Candidate", "Provenance", "License", "Maintenance", "Known vulnerabilities",
+    "Supply chain", "Compatibility", "Alternatives", "SMARTS", "Decision",
+)
+_P04_LOCK_BYTES = (
+    b"python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+    b"six==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl\n"
+)
+_P04_WRAPPER_BYTES = (
+    b'{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}\n'
+)
+_P04_HEADER_PREFIX = (
+    "# P04 Dependency Review - python-dateutil==2.9.0.post0\n"
+    "Academy-Schema-Version: 1\n"
+)
+_P04_HEADER_SUFFIX = (
+    "Candidate: python-dateutil==2.9.0.post0\n"
+    "Candidate-Artifact: python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+    "Candidate-SHA256: a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427\n"
+    "Closure-Requirement: six>=1.5\n"
+    "Closure-Package: six==1.17.0\n"
+    "Closure-Artifact: six-1.17.0-py2.py3-none-any.whl\n"
+    "Closure-SHA256: 4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274\n"
+    "Install-Policy: no-install-in-p04\n"
+)
+
+
+def _p04_review_text(blob: bytes | None, project_digest: str) -> str | None:
+    if blob is None or blob.startswith(b"\xef\xbb\xbf") or b"\r" in blob:
+        return None
+    try:
+        text = blob.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    required_header = _P04_HEADER_PREFIX + f"Project-SHA256: {project_digest}\n" + _P04_HEADER_SUFFIX + "\n"
+    if not text.startswith(required_header):
+        return None
+    body = text[len(required_header) :]
+    all_headings = list(re.finditer(r"(?m)^## ([^\n]+)\n", body))
+    if (
+        [match.group(1) for match in all_headings] != list(_P04_SECTIONS)
+        or any(not body[match.end() :].startswith("\n") for match in all_headings)
+    ):
+        return None
+    matches = list(re.finditer(r"(?m)^## ([^\n]+)\n\n", body))
+    if [match.group(1) for match in matches] != list(_P04_SECTIONS) or not matches or matches[0].start() != 0:
+        return None
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
+        content = body[match.end() : end].strip()
+        if not content:
+            return None
+        sections[match.group(1)] = content
+    required_words = {
+        "Candidate": (
+            "python-dateutil==2.9.0.post0", "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+            "six>=1.5", "six==1.17.0", "six-1.17.0-py2.py3-none-any.whl", "complete",
+        ),
+        "Provenance": (
+            "PyPI", "dateutil", "dateutil/dateutil", "benjaminp/six", "filename", "hash", "bind",
+        ),
+        "License": (
+            "Apache-2.0 OR BSD-3-Clause", "MIT", "python_dateutil-2.9.0.post0.LICENSE",
+            "ba00f51a0d92823b5a1cde27d8b5b9d2321e67ed8da9bc163eff96d5e17e577e",
+            "six-1.17.0.LICENSE", "4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0",
+            "Apache-2.0.txt", "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        ),
+        "Maintenance": ("Frozen 2026-07-31 review snapshot", "not current truth"),
+        "Known vulnerabilities": ("Frozen 2026-07-31 review snapshot", "not a guarantee"),
+        "Supply chain": ("pure-Python", "no sdist", "no resolver", "no install"),
+        "Compatibility": ("Python 3.10+", "Requires-Python"),
+        "Alternatives": ("datetime.strptime", "finite", "length", "timezone", "default", "fail-closed", "trailing"),
+    }
+    if any(any(word not in sections[name] for word in words) for name, words in required_words.items()):
+        return None
+    table = [line.strip() for line in sections["SMARTS"].splitlines()]
+    if len(table) != 8 or table[:2] != ["| Lens | Bounded stdlib | Two-wheel closure |", "| --- | --- | --- |"]:
+        return None
+    lenses = ("Scalable", "Maintainable", "Available", "Reliable", "Testable", "Securable")
+    allowed = ("Strong.", "Adequate.", "Weak.", "Indifferent.")
+    for line, lens in zip(table[2:], lenses, strict=True):
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) != 3 or cells[0] != lens or any(not cell.startswith(allowed) or len(cell.split()) > 25 for cell in cells[1:]):
+            return None
+    decision_body = sections["Decision"].casefold()
+    decision = sections["Decision"].splitlines()[-1]
+    if decision == "Decision: reject":
+        return "reject" if (
+            "bounded stdlib parser is selected" in decision_body
+            and "broader parsing surface is required" not in decision_body
+        ) else None
+    if decision == "Decision: accept":
+        return "accept" if (
+            "broader parsing surface is required" in decision_body
+            and "install is deferred" in decision_body
+            and "bounded stdlib parser is selected" not in decision_body
+        ) else None
+    return None
+
+
+def _p04_prepared_candidates(root: Path, prepared: str) -> bool:
+    names = (
+        "candidate-set.json", "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+        "six-1.17.0-py2.py3-none-any.whl", "python_dateutil-2.9.0.post0.LICENSE",
+        "six-1.17.0.LICENSE", "Apache-2.0.txt",
+    )
+    expected_paths = {f"{P04_CANDIDATE_ROOT}/{name}" for name in names}
+    listed_paths = {
+        line for line in run_git(root, ["ls-tree", "-r", "--name-only", prepared, "--", P04_CANDIDATE_ROOT], check=False).stdout.splitlines()
+        if line
+    }
+    if listed_paths != expected_paths:
+        return False
+    blobs = {name: _git_blob(root, prepared, f"{P04_CANDIDATE_ROOT}/{name}") for name in names}
+    if any(value is None for value in blobs.values()):
+        return False
+    try:
+        validate_p04_candidate_blobs({name: value for name, value in blobs.items() if value is not None})
+    except CandidateDataError:
+        return False
+    return True
+
+
+def _p04_linear_range(root: Path, attempt: _Attempt) -> tuple[str, ...] | None:
+    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
+    if not commits or commits[-1] != attempt.head:
+        return None
+    parent = attempt.prepared
+    for commit in commits:
+        if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
+            return None
+        parent = commit
+    return commits
+
+
+def _p04_projects_match(prepared: bytes, head: bytes) -> bool:
+    try:
+        before = tomllib.loads(prepared.decode("utf-8"))
+        after = tomllib.loads(head.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return False
+    expected = copy.deepcopy(before)
+    project = expected.get("project")
+    if not isinstance(project, dict):
+        return False
+    project["dependencies"] = ["python-dateutil==2.9.0.post0"]
+    return after == expected
+
+
+def _p04_dependency_review(root: Path, attempt: _Attempt, review: str, project: str) -> bool:
+    """Validate P04's immutable candidate evidence and review-before-adoption history."""
+    if review != _P04_REVIEW or project != "pyproject.toml":
+        return False
+    if run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout or not _p04_prepared_candidates(root, attempt.prepared):
+        return False
+    prepared_project = _git_blob(root, attempt.prepared, project)
+    head_project = _git_blob(root, attempt.head, project)
+    decision = _p04_review_text(_git_blob(root, attempt.head, review), _raw_digest(prepared_project or b""))
+    commits = _p04_linear_range(root, attempt)
+    if prepared_project is None or head_project is None or decision is None or commits is None:
+        return False
+    if decision == "reject":
+        return bool(
+            len(commits) == 1
+            and set(_commit_paths(root, commits[0])) == {review}
+            and head_project == prepared_project
+            and _git_blob(root, attempt.head, _P04_LOCK) == _git_blob(root, attempt.prepared, _P04_LOCK)
+            and _git_blob(root, attempt.head, _P04_WRAPPER) == _git_blob(root, attempt.prepared, _P04_WRAPPER)
+        )
+    if len(commits) != 2 or set(_commit_paths(root, commits[0])) != {review}:
+        return False
+    if _p04_review_text(_git_blob(root, commits[0], review), _raw_digest(prepared_project)) != "accept":
+        return False
+    return bool(
+        set(_commit_paths(root, commits[1])) == {project, _P04_LOCK, _P04_WRAPPER}
+        and _p04_projects_match(prepared_project, head_project)
+        and _git_blob(root, attempt.head, _P04_LOCK) == _P04_LOCK_BYTES
+        and _git_blob(root, attempt.head, _P04_WRAPPER) == _P04_WRAPPER_BYTES
+    )
+
+
 def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     data, root, attempt = context.predicate.data, context.root, context.attempt
     paths = {name: str(data[name]) for name in ("spec", "plan", "board", "test", "code", "fixture", "source_identity")}
@@ -1781,15 +1968,7 @@ def _semantic(context: _SemanticContext) -> bool:
         adr, decision_log = str(data["adr"]), str(data["decision_log"])
         return _p03_accepted_adr(root, attempt, adr, decision_log)
     if profile == "dependency_review":
-        review = _changed_document(context, str(data["review"]))
-        project = str(data["project"])
-        project_blob = _git_blob(root, attempt.prepared, project)
-        return bool(
-            _headings(review, ("Candidate", "Provenance", "License", "Supply chain", "SMARTS", "Decision"))
-            and project_blob is not None
-            and _git_blob(root, attempt.head, project) == project_blob
-            and f"Project-SHA256: {_raw_digest(project_blob)}" in (review or "")
-        )
+        return _p04_dependency_review(root, attempt, str(data["review"]), str(data["project"]))
     if profile == "checkpoint_remediation":
         report = _json(root, attempt.head, str(data["report"]))
         if not report or not _changed(root, attempt.prepared, attempt.head, str(data["report"])):

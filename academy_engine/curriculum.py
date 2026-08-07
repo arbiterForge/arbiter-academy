@@ -198,9 +198,15 @@ _MATRIX_CASES = {
         "rewritten-log", "wrong-ordinal", "wrong-choice", "wrong-order",
         "uncommitted", "extra-path", "generic-event-decoy",
     ),
+    "P04-review-a-dependency": (
+        "untouched", "partial", "wrong", "intended", "equivalent", "candidate-tampered",
+        "license-tampered", "apache-missing", "invented-notice", "stale-project-hash",
+        "incomplete-review", "pre-review-manifest-edit", "same-commit-adoption", "incomplete-closure",
+        "wrong-lock", "wrong-wrapper", "extra-dependency", "uncommitted", "extra-path",
+    ),
     **{
         lab_id: ("untouched", "partial", "wrong", "intended", "equivalent")
-        for lab_id in _PRACTITIONER_SCENARIOS if lab_id != "P03-record-an-adr"
+        for lab_id in _PRACTITIONER_SCENARIOS if lab_id not in {"P03-record-an-adr", "P04-review-a-dependency"}
     },
 }
 
