@@ -25,6 +25,7 @@ REQUIRED_FILES = {
     "open-questions.md",
     "sprint-log.md",
     "overrides.log",
+    "last-checkpoint",
     "gate-events.log",
     "decisions/0001-json-storage-boundary.md",
     "decisions/0002-explicit-ticket-state-machine.md",
@@ -192,6 +193,19 @@ class ProjectStateTests(unittest.TestCase):
             logs["gate-events.log"],
             r"(?m)^\[2026-07-20T09:20:00Z\] REMIND \[H-12\] host=academy hook=fixture.py \|",
         )
+
+    def test_checkpoint_marker_preserves_overrides_after_the_baseline_fixture(self):
+        override_entries = [
+            line
+            for line in (STATE_ROOT / "overrides.log").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        checkpoint_count = int(
+            (STATE_ROOT / "last-checkpoint").read_text(encoding="utf-8").strip()
+        )
+
+        self.assertEqual(checkpoint_count, 1)
+        self.assertEqual(len(override_entries) - checkpoint_count, 1)
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (
