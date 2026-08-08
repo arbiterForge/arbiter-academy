@@ -1,0 +1,19 @@
+{
+  "release": "preview-0.1",
+  "available_labs": [
+    "F01-fork-clone-doctor",
+    "F02-orient-to-state",
+    "F03-work-the-board",
+    "F04-fix-with-evidence",
+    "P01-feature-through-plan",
+    "P02-commit-review-pr",
+    "P03-record-an-adr",
+    "P04-review-a-dependency"
+  ],
+  "coming_next": [
+    "P05-checkpoint-remediation",
+    "P06-context-drift-recovery",
+    "P07-threat-model"
+  ],
+  "catalog_sha256": "ab68e70807c84a9e37d1d16f7e175a44657afd38122d604866da205c91dc3c96"
+}

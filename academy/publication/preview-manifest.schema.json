@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Arbiter Academy Preview 0.1 publication manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["release", "available_labs", "coming_next", "catalog_sha256"],
+  "properties": {
+    "release": {"const": "preview-0.1"},
+    "available_labs": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": false,
+      "prefixItems": [
+        {"const": "F01-fork-clone-doctor"},
+        {"const": "F02-orient-to-state"},
+        {"const": "F03-work-the-board"},
+        {"const": "F04-fix-with-evidence"},
+        {"const": "P01-feature-through-plan"},
+        {"const": "P02-commit-review-pr"},
+        {"const": "P03-record-an-adr"},
+        {"const": "P04-review-a-dependency"}
+      ]
+    },
+    "coming_next": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": false,
+      "prefixItems": [
+        {"const": "P05-checkpoint-remediation"},
+        {"const": "P06-context-drift-recovery"},
+        {"const": "P07-threat-model"}
+      ]
+    },
+    "catalog_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
