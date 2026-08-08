@@ -94,6 +94,10 @@ def _validate_known_ordered_closure(catalog: Catalog, available_labs: tuple[str,
             )
 
 
+def _same_json_value(left: object, right: object) -> bool:
+    return type(left) is type(right) and left == right
+
+
 def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
     schema_path = root / "academy" / "catalog.schema.json"
     try:
@@ -115,7 +119,7 @@ def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
         try:
             constants = pinned["properties"]
             matches = all(
-                constants[field]["const"] == getattr(lab, field)
+                _same_json_value(constants[field]["const"], getattr(lab, field))
                 for field in _SCHEMA_PINNED_FIELDS
             )
         except (KeyError, TypeError):

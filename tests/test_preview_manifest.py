@@ -89,6 +89,22 @@ class PreviewManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "catalog schema"):
                 validate_preview_manifest(root, self.make_manifest(root))
 
+    def test_preview_manifest_rejects_a_boolean_schema_order_pin(self) -> None:
+        """Catches JSON Schema treating a boolean order pin as catalog integer 1."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            academy = root / "academy"
+            academy.mkdir()
+            for name in ("catalog.json", "catalog.schema.json"):
+                (academy / name).write_bytes((self.root / "academy" / name).read_bytes())
+            schema_path = academy / "catalog.schema.json"
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            schema["properties"]["labs"]["prefixItems"][0]["properties"]["order"]["const"] = True
+            schema_path.write_text(json.dumps(schema), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "catalog schema"):
+                validate_preview_manifest(root, self.make_manifest(root))
+
     def test_load_preview_manifest_returns_the_reviewed_public_boundary(self) -> None:
         """Catches a checked-in manifest that does not represent the reviewed release."""
         manifest = load_preview_manifest(self.root)
