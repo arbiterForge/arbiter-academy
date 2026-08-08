@@ -475,9 +475,18 @@ class PractitionerCurriculumTests(unittest.TestCase):
         for required in (
             "test-only RED", "code-only GREEN", "schema_version", "red_commit",
             "remediation_commit", "receipt last", "not evidence that either command was invoked",
+            "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
+        for obsolete in (
+            "shared changed paths",
+            "real shared path",
+            "shared affected paths",
+            "actually intersects it",
+        ):
+            with self.subTest(obsolete=obsolete):
+                self.assertNotIn(obsolete, guide)
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""

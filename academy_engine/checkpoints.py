@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import stat
+import tokenize
 import tomllib
 from dataclasses import dataclass
 from datetime import datetime
@@ -696,11 +697,7 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
     )
     if prepared_test is None or red_test is None or head_test != red_test:
         return False
-    try:
-        ast.parse(red_test.decode("utf-8"), filename="tests/test_cli.py")
-    except (UnicodeDecodeError, SyntaxError):
-        return False
-    if b"test_report_json_counts_blocked_ticket_as_unresolved" in prepared_test or not _p05_red_regression_is_exact(red_test):
+    if not _p05_red_regression(prepared_test, red_test):
         return False
     prepared_cli = _git_blob(root, attempt.prepared, "workshop_queue/cli.py")
     remediation_cli = _git_blob(root, remediation, "workshop_queue/cli.py")
@@ -715,6 +712,26 @@ _P05_FINDING = (
     "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
 )
 
+_P05_RED_REGRESSION_SOURCE = (
+    "def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+    "    tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n"
+    "    tickets[0][\"id\"] = \"RQ-105\"\n"
+    "    self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n"
+    "    claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+    "    block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n"
+    "    report = self.run_cli(\"report\", \"--format\", \"json\")\n"
+    "    self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n"
+    "    self.assertEqual(block_result.returncode, 0, block_result.stderr)\n"
+    "    self.assertEqual(report.returncode, 0, report.stderr)\n"
+    "    parsed = json.loads(report.stdout)\n"
+    "    self.assertEqual(parsed[\"blocked\"], 1)\n"
+    "    self.assertEqual(parsed[\"unresolved\"], 1)\n"
+)
+_P05_RED_REGRESSION_AST = ast.dump(
+    ast.parse(_P05_RED_REGRESSION_SOURCE, filename="tests/test_cli.py").body[0],
+    include_attributes=False,
+)
+
 
 def _p05_finding_is_exact(text: str | None) -> bool:
     """Accept only the short, reviewable P05 finding grammar.
@@ -725,186 +742,90 @@ def _p05_finding_is_exact(text: str | None) -> bool:
     return text == _P05_FINDING
 
 
-def _p05_red_regression_is_exact(raw: bytes) -> bool:
-    """Inspect the named committed regression without running learner code."""
+def _p05_source_is_utf8(raw: bytes) -> bool:
+    lines = iter(raw.splitlines(keepends=True))
     try:
-        text = raw.decode("utf-8")
-        tree = ast.parse(text, filename="tests/test_cli.py")
+        encoding, _ = tokenize.detect_encoding(lambda: next(lines, b""))
+    except SyntaxError:
+        return False
+    return encoding == "utf-8"
+
+
+def _p05_red_regression(prepared_raw: bytes, red_raw: bytes) -> bool:
+    """Require RED to add only the named direct test method to the prepared AST."""
+    if not _p05_source_is_utf8(prepared_raw) or not _p05_source_is_utf8(red_raw):
+        return False
+    try:
+        prepared_tree = ast.parse(prepared_raw.decode("utf-8"), filename="tests/test_cli.py")
+        red_tree = ast.parse(red_raw.decode("utf-8"), filename="tests/test_cli.py")
     except (UnicodeDecodeError, SyntaxError):
         return False
-    owner = next((node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"), None)
-    if owner is None:
+
+    def owners(tree: ast.Module) -> list[ast.ClassDef]:
+        return [
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"
+        ]
+
+    prepared_owners = owners(prepared_tree)
+    red_owners = owners(red_tree)
+    if len(prepared_owners) != 1 or len(red_owners) != 1:
         return False
-    method = next((node for node in owner.body if isinstance(node, ast.FunctionDef) and node.name == "test_report_json_counts_blocked_ticket_as_unresolved"), None)
-    if method is None:
+
+    method_name = "test_report_json_counts_blocked_ticket_as_unresolved"
+    prepared_methods = [
+        node
+        for node in prepared_owners[0].body
+        if isinstance(node, ast.FunctionDef) and node.name == method_name
+    ]
+    red_methods = [
+        node
+        for node in red_owners[0].body
+        if isinstance(node, ast.FunctionDef) and node.name == method_name
+    ]
+    if prepared_methods or len(red_methods) != 1 or red_methods[0].decorator_list:
         return False
 
-    body = tuple(method.body)
-
-    def self_run_cli(node: ast.AST, command: tuple[str, ...]) -> bool:
-        return (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "self"
-            and node.func.attr == "run_cli"
-            and not node.keywords
-            and len(node.args) == len(command)
-            and tuple(argument.value for argument in node.args if isinstance(argument, ast.Constant) and isinstance(argument.value, str)) == command
-        )
-
-    assignments = {
-        statement.targets[0].id: statement.value
-        for statement in body
-        if isinstance(statement, ast.Assign)
-        and len(statement.targets) == 1
-        and isinstance(statement.targets[0], ast.Name)
-    }
-
-    def setup_precedes(command_indexes: tuple[int, ...]) -> bool:
-        if not command_indexes:
-            return False
-
-        def fixture_read(statement: ast.stmt) -> bool:
-            if not isinstance(statement, ast.Assign) or not isinstance(statement.value, ast.Call):
-                return False
-            load = statement.value
-            if not (
-                len(statement.targets) == 1
-                and isinstance(statement.targets[0], ast.Name)
-                and statement.targets[0].id == "tickets"
-                and isinstance(load.func, ast.Attribute)
-                and isinstance(load.func.value, ast.Name)
-                and load.func.value.id == "json"
-                and load.func.attr == "loads"
-                and len(load.args) == 1
-            ):
-                return False
-            read = load.args[0]
-            return (
-                isinstance(read, ast.Call)
-                and isinstance(read.func, ast.Attribute)
-                and isinstance(read.func.value, ast.Attribute)
-                and isinstance(read.func.value.value, ast.Name)
-                and read.func.value.value.id == "self"
-                and read.func.value.attr == "fixture"
-                and read.func.attr == "read_text"
-                and not read.args
-                and len(read.keywords) == 1
-                and read.keywords[0].arg == "encoding"
-                and isinstance(read.keywords[0].value, ast.Constant)
-                and read.keywords[0].value.value == "utf-8"
-            )
-
-        def ticket_id(statement: ast.stmt) -> bool:
-            target = statement.targets[0] if isinstance(statement, ast.Assign) and len(statement.targets) == 1 else None
-            return (
-                isinstance(target, ast.Subscript)
-                and isinstance(target.slice, ast.Constant)
-                and target.slice.value == "id"
-                and isinstance(target.value, ast.Subscript)
-                and isinstance(target.value.value, ast.Name)
-                and target.value.value.id == "tickets"
-                and isinstance(target.value.slice, ast.Constant)
-                and target.value.slice.value == 0
-                and isinstance(statement.value, ast.Constant)
-                and statement.value.value == "RQ-105"
-            )
-
-        def fixture_write(statement: ast.stmt) -> bool:
-            if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
-                return False
-            write = statement.value
-            if not (
-                isinstance(write.func, ast.Attribute)
-                and isinstance(write.func.value, ast.Attribute)
-                and isinstance(write.func.value.value, ast.Name)
-                and write.func.value.value.id == "self"
-                and write.func.value.attr == "fixture"
-                and write.func.attr == "write_text"
-                and len(write.args) == 1
-                and len(write.keywords) == 1
-                and write.keywords[0].arg == "encoding"
-                and isinstance(write.keywords[0].value, ast.Constant)
-                and write.keywords[0].value.value == "utf-8"
-            ):
-                return False
-            dump = write.args[0]
-            return (
-                isinstance(dump, ast.Call)
-                and isinstance(dump.func, ast.Attribute)
-                and isinstance(dump.func.value, ast.Name)
-                and dump.func.value.id == "json"
-                and dump.func.attr == "dumps"
-                and len(dump.args) == 1
-                and isinstance(dump.args[0], ast.Name)
-                and dump.args[0].id == "tickets"
-                and not dump.keywords
-            )
-
-        setup = (
-            tuple(index for index, statement in enumerate(body) if fixture_read(statement)),
-            tuple(index for index, statement in enumerate(body) if ticket_id(statement)),
-            tuple(index for index, statement in enumerate(body) if fixture_write(statement)),
-        )
-        return all(indexes for indexes in setup) and max(indexes[0] for indexes in setup) < min(command_indexes)
-
-    expected = {
-        "claim_result": ("claim", "RQ-105", "--volunteer", "Sam"),
-        "block_result": ("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance"),
-        "report": ("report", "--format", "json"),
-    }
-    if not all(self_run_cli(assignments.get(name), command) for name, command in expected.items()):
-        return False
-    command_indexes = tuple(
-        index
-        for index, statement in enumerate(body)
-        if isinstance(statement, ast.Assign)
-        and len(statement.targets) == 1
-        and isinstance(statement.targets[0], ast.Name)
-        and statement.targets[0].id in expected
+    red_without_regression = copy.deepcopy(red_tree)
+    red_owner = owners(red_without_regression)[0]
+    red_owner.body = [
+        node
+        for node in red_owner.body
+        if not (isinstance(node, ast.FunctionDef) and node.name == method_name)
+    ]
+    return (
+        ast.dump(prepared_tree, include_attributes=False)
+        == ast.dump(red_without_regression, include_attributes=False)
+        and _p05_red_regression_is_exact(red_raw)
     )
-    if not setup_precedes(command_indexes):
+
+
+def _p05_red_regression_is_exact(raw: bytes) -> bool:
+    """Compare the committed direct regression with the exact taught method AST."""
+    if not _p05_source_is_utf8(raw):
         return False
-
-    def is_report_parse(node: ast.AST) -> bool:
-        return (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "json"
-            and node.func.attr == "loads"
-            and len(node.args) == 1
-            and not node.keywords
-            and isinstance(node.args[0], ast.Attribute)
-            and isinstance(node.args[0].value, ast.Name)
-            and node.args[0].value.id == "report"
-            and node.args[0].attr == "stdout"
-        )
-
-    parsed = {name for name, value in assignments.items() if is_report_parse(value)}
-    if not parsed:
+    try:
+        tree = ast.parse(raw.decode("utf-8"), filename="tests/test_cli.py")
+    except (UnicodeDecodeError, SyntaxError):
         return False
-
-    def asserted_count(statement: ast.stmt, key: str) -> bool:
-        return (
-            isinstance(statement, ast.Expr)
-            and isinstance(statement.value, ast.Call)
-            and isinstance(statement.value.func, ast.Attribute)
-            and isinstance(statement.value.func.value, ast.Name)
-            and statement.value.func.value.id == "self"
-            and statement.value.func.attr == "assertEqual"
-            and len(statement.value.args) >= 2
-            and isinstance(statement.value.args[0], ast.Subscript)
-            and isinstance(statement.value.args[0].value, ast.Name)
-            and statement.value.args[0].value.id in parsed
-            and isinstance(statement.value.args[0].slice, ast.Constant)
-            and statement.value.args[0].slice.value == key
-            and isinstance(statement.value.args[1], ast.Constant)
-            and statement.value.args[1].value == 1
-        )
-
-    return all(any(asserted_count(statement, key) for statement in body) for key in ("blocked", "unresolved"))
+    owners = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"
+    ]
+    if len(owners) != 1:
+        return False
+    methods = [
+        node
+        for node in owners[0].body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "test_report_json_counts_blocked_ticket_as_unresolved"
+    ]
+    return (
+        len(methods) == 1
+        and ast.dump(methods[0], include_attributes=False) == _P05_RED_REGRESSION_AST
+    )
 
 
 def _headings(text: str | None, required: tuple[str, ...]) -> bool:
