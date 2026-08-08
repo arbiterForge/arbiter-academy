@@ -25,6 +25,7 @@ def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None)
     manifest = load_preview_manifest(root)
     commit = _validate_release_sha(release_sha)
     templates = _load_templates(root)
+    expected_files = _expected_files(manifest)
     expected_paths = _expected_paths(manifest)
     _reject_unexpected_generated_paths(out, expected_paths)
 
@@ -33,6 +34,7 @@ def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None)
         for lab_id in manifest.available_labs
     }
     rendered_pages = _render_pages(manifest, lessons, templates, commit)
+    _validate_rendered_inventory(rendered_pages, expected_files)
 
     for relative_path, content in rendered_pages.items():
         destination = out / relative_path
@@ -57,12 +59,19 @@ def _load_templates(root: Path) -> dict[str, Template]:
     return templates
 
 
-def _expected_paths(manifest: PreviewManifest) -> set[Path]:
-    paths = {Path("index.html"), Path("release.json"), Path("labs"), Path("recovery"), Path("recovery/index.html")}
+def _expected_files(manifest: PreviewManifest) -> set[Path]:
+    paths = {Path("index.html"), Path("release.json"), Path("recovery/index.html")}
     for lab_id in manifest.available_labs:
-        paths.add(Path("labs") / lab_id)
         paths.add(Path("labs") / lab_id / "index.html")
     return paths
+
+
+def _expected_paths(manifest: PreviewManifest) -> set[Path]:
+    return _expected_files(manifest) | {
+        Path("labs"),
+        Path("recovery"),
+        *(Path("labs") / lab_id for lab_id in manifest.available_labs),
+    }
 
 
 def _reject_unexpected_generated_paths(out: Path, expected_paths: set[Path]) -> None:
@@ -74,6 +83,20 @@ def _reject_unexpected_generated_paths(out: Path, expected_paths: set[Path]) -> 
     unexpected = sorted(str(path) for path in found_paths - expected_paths)
     if unexpected:
         raise ValueError(f"unexpected generated path(s): {', '.join(unexpected)}")
+
+
+def _validate_rendered_inventory(rendered_pages: dict[Path, str], approved_files: set[Path]) -> None:
+    rendered_paths = set(rendered_pages)
+    invalid = sorted(
+        str(path)
+        for path in rendered_paths
+        if path.is_absolute() or ".." in path.parts or path not in approved_files
+    )
+    if invalid:
+        raise ValueError(f"rendered destination(s) are not approved: {', '.join(invalid)}")
+    if rendered_paths != approved_files:
+        missing = sorted(str(path) for path in approved_files - rendered_paths)
+        raise ValueError(f"rendered inventory is incomplete: {', '.join(missing)}")
 
 
 def _read_public_lesson(root: Path, lab_id: str) -> dict[str, str]:

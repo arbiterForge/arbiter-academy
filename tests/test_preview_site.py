@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import scripts.build_preview_site as preview_site
 from scripts.build_preview_site import build_preview_site
 
 
@@ -27,6 +30,72 @@ class PreviewSiteTests(unittest.TestCase):
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("P05 \u2014 in verification", index)
         self.assertNotIn('href="labs/P05-checkpoint-remediation/', index)
+
+    def test_build_emits_the_exact_reviewed_file_inventory_and_index_boundary(self) -> None:
+        """Catches an unreviewed page, link, or status entry reaching the public artifact."""
+        build_preview_site(self.root, self.out, release_sha="f" * 40)
+
+        expected_labs = (
+            "F01-fork-clone-doctor",
+            "F02-orient-to-state",
+            "F03-work-the-board",
+            "F04-fix-with-evidence",
+            "P01-feature-through-plan",
+            "P02-commit-review-pr",
+            "P03-record-an-adr",
+            "P04-review-a-dependency",
+        )
+        expected_files = {
+            "index.html",
+            "recovery/index.html",
+            "release.json",
+            *(f"labs/{lab_id}/index.html" for lab_id in expected_labs),
+        }
+        actual_files = {
+            path.relative_to(self.out).as_posix()
+            for path in self.out.rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(actual_files, expected_files)
+
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        expected_links = [f'labs/{lab_id}/index.html' for lab_id in expected_labs]
+        actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
+        self.assertEqual(actual_links, expected_links)
+        self.assertEqual(
+            re.findall(r"<li>(P0[5-7]) \u2014 in verification</li>", index),
+            ["P05", "P06", "P07"],
+        )
+        for future_lab in (
+            "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
+            "P07-threat-model",
+        ):
+            self.assertFalse((self.out / "labs" / future_lab / "index.html").exists())
+            self.assertNotIn(future_lab, index)
+
+    def test_rendered_inventory_rejects_destinations_outside_the_approved_file_set(self) -> None:
+        """Catches a future renderer adding a private, absolute, or traversing destination."""
+        approved = {Path("index.html"), Path("release.json")}
+        for rendered in (
+            {Path("index.html"): "home"},
+            {Path("index.html"): "home", Path("academy/catalog.json"): "private"},
+            {Path("index.html"): "home", Path("../outside.html"): "outside"},
+            {Path("index.html"): "home", Path.cwd() / "absolute.html": "absolute"},
+        ):
+            with self.assertRaisesRegex(ValueError, "rendered"):
+                preview_site._validate_rendered_inventory(rendered, approved)
+
+    def test_build_rejects_an_unapproved_renderer_destination_before_writing(self) -> None:
+        """Catches a future renderer bypassing the reviewed output inventory."""
+        with patch.object(
+            preview_site,
+            "_render_pages",
+            return_value={Path("academy/catalog.json"): "private"},
+        ):
+            with self.assertRaisesRegex(ValueError, "rendered"):
+                build_preview_site(self.root, self.out, release_sha="0" * 40)
+        self.assertFalse(self.out.exists())
 
     def test_release_json_uses_build_time_sha_and_never_copies_internal_catalog(self) -> None:
         """Catches release provenance drift or publication of the private catalog."""
