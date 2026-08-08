@@ -15,5 +15,6 @@
     "P06-context-drift-recovery",
     "P07-threat-model"
   ],
+  "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",
   "catalog_sha256": "ab68e70807c84a9e37d1d16f7e175a44657afd38122d604866da205c91dc3c96"
 }

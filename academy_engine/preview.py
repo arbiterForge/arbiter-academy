@@ -8,6 +8,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from academy_engine.catalog import Catalog, CatalogError
 
@@ -28,6 +29,12 @@ _COMING_NEXT = (
     "P06-context-drift-recovery",
     "P07-threat-model",
 )
+_DISCUSSIONS_ORIGIN = "github.com"
+_DISCUSSIONS_PATH = "/arbiterForge/arbiter-academy/discussions"
+_DISCUSSIONS_PATH_PATTERN = re.compile(
+    rf"{re.escape(_DISCUSSIONS_PATH)}(?:/[A-Za-z0-9_~-][A-Za-z0-9._~-]*)*/?"
+)
+_ASCII_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
 
@@ -37,6 +44,7 @@ class PreviewManifest:
     release: str
     available_labs: tuple[str, ...]
     coming_next: tuple[str, ...]
+    discussion_url: str
     catalog_sha256: str
 
 
@@ -56,13 +64,35 @@ def _require_ids(value: object, label: str) -> tuple[str, ...]:
 
 
 def _require_exact_keys(data: Mapping[str, object]) -> None:
-    expected = {"release", "available_labs", "coming_next", "catalog_sha256"}
+    expected = {"release", "available_labs", "coming_next", "discussion_url", "catalog_sha256"}
     unknown = set(data) - expected
     missing = expected - set(data)
     if unknown:
         raise ValueError(f"preview manifest has unknown key(s): {', '.join(sorted(unknown))}")
     if missing:
         raise ValueError(f"preview manifest is missing key(s): {', '.join(sorted(missing))}")
+
+
+def _validate_discussion_url(value: object) -> str:
+    if not isinstance(value, str) or _ASCII_CONTROL.search(value):
+        raise ValueError("preview manifest discussion_url must be an HTTPS GitHub Discussions URL")
+    parsed = urlsplit(value)
+    path = unquote(parsed.path)
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc != _DISCUSSIONS_ORIGIN
+        or parsed.query
+        or parsed.fragment
+        or parsed.path != path
+        or "\\" in value
+        or "\\" in path
+        or not _DISCUSSIONS_PATH_PATTERN.fullmatch(path)
+    ):
+        raise ValueError(
+            "preview manifest discussion_url must stay within "
+            "https://github.com/arbiterForge/arbiter-academy/discussions"
+        )
+    return value
 
 
 def _validate_catalog_hash(catalog_path: Path, value: object) -> str:
@@ -151,13 +181,14 @@ def validate_preview_manifest(
 
     available_labs = _require_ids(manifest["available_labs"], "available_labs")
     coming_next = _require_ids(manifest["coming_next"], "coming_next")
+    discussion_url = _validate_discussion_url(manifest["discussion_url"])
     _validate_known_ordered_closure(catalog, available_labs)
     if available_labs != _AVAILABLE_LABS:
         raise ValueError("preview manifest available_labs contains lab(s) not eligible for Preview 0.1")
     if coming_next != _COMING_NEXT:
         raise ValueError("preview manifest coming_next must list only the reviewed status-only P05-P07 labs")
 
-    return PreviewManifest(release, available_labs, coming_next, catalog_sha256)
+    return PreviewManifest(release, available_labs, coming_next, discussion_url, catalog_sha256)
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:

@@ -18,6 +18,11 @@ def build_and_list_html(root: Path, out: Path) -> list[Path]:
     return sorted(out.rglob("*.html"))
 
 
+def read_home(root: Path, out: Path) -> str:
+    build_preview_site(root, out, release_sha="1" * 40)
+    return (out / "index.html").read_text(encoding="utf-8")
+
+
 class PreviewSiteTests(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(__file__).parents[1]
@@ -36,6 +41,111 @@ class PreviewSiteTests(unittest.TestCase):
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("P05 \u2014 in verification", index)
         self.assertNotIn('href="labs/P05-checkpoint-remediation/', index)
+
+    def test_home_names_fork_before_clone_and_never_invites_push_to_official_origin(self) -> None:
+        """Catches onboarding that starts from or sends learner work to the canonical repository."""
+        html = read_home(self.root, self.out)
+
+        self.assertIn("Fork the Academy", html)
+        self.assertIn("your fork", html)
+        self.assertLess(html.index("Fork the Academy"), html.index("Clone your fork"))
+        self.assertIn(
+            "git clone https://github.com/&lt;your-account&gt;/arbiter-academy.git",
+            html,
+        )
+        self.assertNotIn("push to arbiterForge/arbiter-academy", html)
+
+    def test_home_states_preview_scope_prerequisites_pacing_and_exact_workflow(self) -> None:
+        """Catches public guidance that overstates the preview or omits its runnable workflow."""
+        html = read_home(self.root, self.out)
+
+        self.assertIn("eight available labs", html)
+        self.assertIn("20–35 minutes", html)
+        self.assertIn("Git", html)
+        self.assertIn("codeArbiter", html)
+        self.assertIn("P05–P07 are status-only", html)
+        self.assertIn("Power User labs are not included", html)
+        for operation in ("prepare", "check", "reset"):
+            self.assertIn(
+                f"arbiter-academy --repository &lt;learner-repository&gt; {operation} &lt;lab-id&gt;",
+                html,
+            )
+        self.assertIn('href="recovery/index.html"', html)
+
+    def test_home_workflow_is_one_semantic_five_step_ordered_list(self) -> None:
+        """Catches visual numbering that exposes no ordered-list structure to assistive tech."""
+        html = read_home(self.root, self.out)
+        workflow = html.split("<h2>Start safely</h2>", 1)[1].split(
+            '<p>The installed verifier is the trust anchor.', 1
+        )[0]
+
+        self.assertEqual(workflow.count("<ol>"), 1)
+        self.assertEqual(workflow.count("</ol>"), 1)
+        self.assertEqual(workflow.count("<li>"), 5)
+        self.assertEqual(workflow.count("</li>"), 5)
+        self.assertNotRegex(workflow, r"<strong>[1-5]\. ")
+
+    def test_feedback_url_is_https_github_discussions_and_is_rendered(self) -> None:
+        """Catches feedback being hidden or routed away from the reviewed Discussions boundary."""
+        html = read_home(self.root, self.out)
+
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy/discussions"',
+            html,
+        )
+
+    def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
+        """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
+        source = self._copy_public_source()
+        manifest_path = source / "academy" / "publication" / "preview-0.1.json"
+        original = json.loads(manifest_path.read_text(encoding="utf-8"))
+        invalid_urls = (
+            None,
+            "http://github.com/arbiterForge/arbiter-academy/discussions",
+            "https://github.com/arbiterForge/arbiter-academy/issues",
+            "https://github.com.evil.example/arbiterForge/arbiter-academy/discussions",
+            "https://github.com/arbiterForge/arbiter-academy/discussions-archive",
+            "https://github.com/arbiterForge/arbiter-academy/discussions/..\\issues",
+            "https://github.com/arbiterForge/arbiter-academy/discussions/%5c..%5cissues",
+            "https://github.com/arbiterForge/arbiter-academy/discussions/%2e%2e/issues",
+            "\x00https://github.com/arbiterForge/arbiter-academy/discussions",
+            "https://github.com/arbiterForge/arbiter-academy/discus\tsions",
+            "https://github.com/arbiterForge/arbiter-academy/discus\nsions",
+        )
+
+        for index, discussion_url in enumerate(invalid_urls):
+            with self.subTest(discussion_url=discussion_url):
+                manifest = dict(original)
+                if discussion_url is None:
+                    manifest.pop("discussion_url", None)
+                else:
+                    manifest["discussion_url"] = discussion_url
+                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                destination = self.out.parent / f"invalid-{index}"
+                with self.assertRaisesRegex(ValueError, "discussion_url"):
+                    build_preview_site(source, destination, release_sha="2" * 40)
+                self.assertFalse(destination.exists())
+
+    def test_recovery_page_preserves_evidence_and_routes_prepare_check_reset(self) -> None:
+        """Catches recovery guidance that hides evidence or treats an in-checkout check as trusted."""
+        build_preview_site(self.root, self.out, release_sha="3" * 40)
+        html = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("Preserve the failed attempt", html)
+        self.assertIn(
+            "arbiter-academy --repository &lt;learner-repository&gt; check &lt;lab-id&gt;",
+            html,
+        )
+        self.assertIn(
+            "arbiter-academy --repository &lt;learner-repository&gt; reset &lt;lab-id&gt;",
+            html,
+        )
+        self.assertIn("installed verifier", html)
+        self.assertIn("your fork", html)
+        self.assertIn(
+            "Reset already prepares the next numbered attempt; do not run prepare again.",
+            html,
+        )
 
     def test_build_emits_the_exact_reviewed_file_inventory_and_index_boundary(self) -> None:
         """Catches an unreviewed page, link, or status entry reaching the public artifact."""

@@ -157,6 +157,7 @@ def _render_pages(
             templates["index"].substitute(
                 available_labs=available_labs,
                 coming_next=coming_next,
+                discussion_url=escape(manifest.discussion_url, quote=True),
             ),
         ),
         Path("recovery/index.html"): _page(

@@ -3,7 +3,7 @@
   "title": "Arbiter Academy Preview 0.1 publication manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["release", "available_labs", "coming_next", "catalog_sha256"],
+  "required": ["release", "available_labs", "coming_next", "discussion_url", "catalog_sha256"],
   "properties": {
     "release": {"const": "preview-0.1"},
     "available_labs": {
@@ -32,6 +32,10 @@
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"}
       ]
+    },
+    "discussion_url": {
+      "type": "string",
+      "pattern": "^https://github\\.com/arbiterForge/arbiter-academy/discussions(?:/[A-Za-z0-9_~-][A-Za-z0-9._~-]*)*/?$"
     },
     "catalog_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   }

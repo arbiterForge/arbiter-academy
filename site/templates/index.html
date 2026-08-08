@@ -1,5 +1,18 @@
 <h1>Arbiter Academy Preview 0.1</h1>
-<p>A static, public introduction to the reviewed Academy labs.</p>
+<p>Practice codeArbiter in a real Git repository through eight available labs, paced at 20–35 minutes each.</p>
+<h2>Before you begin</h2>
+<p>You need Git, a GitHub account, codeArbiter, and the reviewed <code>arbiter-academy</code> package installed outside the learner checkout.</p>
+<h2>Start safely</h2>
+<ol>
+<li><strong>Fork the Academy.</strong> Create your own GitHub fork of <code>arbiterForge/arbiter-academy</code>.</li>
+<li><strong>Clone your fork.</strong> <code>git clone https://github.com/&lt;your-account&gt;/arbiter-academy.git</code><p>Work only in that clone. Your <code>origin</code> and every push destination must be your fork; the canonical Academy repository is reference-only.</p></li>
+<li><strong>Prepare a lab.</strong> From the installed Academy CLI, select the learner checkout explicitly:<p><code>arbiter-academy --repository &lt;learner-repository&gt; prepare &lt;lab-id&gt;</code></p></li>
+<li><strong>Work and check.</strong> Complete the lesson with codeArbiter and Git, then use the installed verifier:<p><code>arbiter-academy --repository &lt;learner-repository&gt; check &lt;lab-id&gt;</code></p></li>
+<li><strong>Reset only for a documented retry.</strong> Preserve the failed attempt, return it to a clean state, then run:<p><code>arbiter-academy --repository &lt;learner-repository&gt; reset &lt;lab-id&gt;</code></p></li>
+</ol>
+<p>The installed verifier is the trust anchor. The selected learner checkout, including its Git and artifact data, is untrusted input.</p>
+<h2>Preview limits</h2>
+<p>Preview 0.1 is static, local training. P05–P07 are status-only, P08 and the Power User labs are not included, and this Preview provides no hosted execution, hosted verification, or signed credential.</p>
 <h2>Available labs</h2>
 <ul>
 $available_labs
@@ -9,4 +22,6 @@ $available_labs
 <ul>
 $coming_next
 </ul>
-<p><a href="recovery/index.html">Recovery guidance</a></p>
+<h2>Help and feedback</h2>
+<p><a href="recovery/index.html">Recovery guidance</a> explains how to preserve evidence and begin a safe retry.</p>
+<p>Questions or Preview feedback belong in <a href="$discussion_url">Academy GitHub Discussions</a>.</p>

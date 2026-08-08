@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +25,7 @@ COMING_NEXT = [
     "P06-context-drift-recovery",
     "P07-threat-model",
 ]
+DISCUSSION_URL = "https://github.com/arbiterForge/arbiter-academy/discussions"
 
 
 class PreviewManifestTests(unittest.TestCase):
@@ -36,6 +38,7 @@ class PreviewManifestTests(unittest.TestCase):
             "release": "preview-0.1",
             "available_labs": PREVIEW_0_1,
             "coming_next": COMING_NEXT,
+            "discussion_url": DISCUSSION_URL,
             "catalog_sha256": hashlib.sha256(
                 (root / "academy" / "catalog.json").read_bytes()
             ).hexdigest(),
@@ -72,6 +75,51 @@ class PreviewManifestTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "catalog_sha256"):
             validate_preview_manifest(self.root, manifest)
+
+    def test_preview_manifest_accepts_only_the_reviewed_discussions_url_boundary(self) -> None:
+        """Catches feedback routing to insecure, lookalike, or unrelated GitHub destinations."""
+        accepted = (
+            DISCUSSION_URL,
+            f"{DISCUSSION_URL}/categories/general",
+        )
+        rejected = (
+            None,
+            f"http://github.com/arbiterForge/arbiter-academy/discussions",
+            "https://github.com/arbiterForge/arbiter-academy/issues",
+            "https://github.com.evil.example/arbiterForge/arbiter-academy/discussions",
+            f"{DISCUSSION_URL}-archive",
+            f"{DISCUSSION_URL}/..\\issues",
+            f"{DISCUSSION_URL}/%5c..%5cissues",
+            f"{DISCUSSION_URL}/%2e%2e/issues",
+            f"\x00{DISCUSSION_URL}",
+            DISCUSSION_URL.replace("discussions", "discus\tsions"),
+            DISCUSSION_URL.replace("discussions", "discus\nsions"),
+        )
+        schema = json.loads(
+            (self.root / "academy" / "publication" / "preview-manifest.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        schema_pattern = schema["properties"]["discussion_url"]["pattern"]
+
+        for discussion_url in accepted:
+            with self.subTest(accepted=discussion_url):
+                self.assertIsNotNone(re.fullmatch(schema_pattern, discussion_url))
+                manifest = validate_preview_manifest(
+                    self.root,
+                    self.make_manifest(discussion_url=discussion_url),
+                )
+                self.assertEqual(manifest.discussion_url, discussion_url)
+
+        for discussion_url in rejected:
+            with self.subTest(rejected=discussion_url):
+                if isinstance(discussion_url, str):
+                    self.assertIsNone(re.fullmatch(schema_pattern, discussion_url))
+                with self.assertRaisesRegex(ValueError, "discussion_url"):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_manifest(discussion_url=discussion_url),
+                    )
 
     def test_preview_manifest_rejects_a_catalog_schema_with_drifted_pinned_inventory(self) -> None:
         """Catches catalog-schema pins no longer matching the catalog the preview publishes."""
@@ -112,6 +160,7 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertEqual(manifest.release, "preview-0.1")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_1))
         self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
+        self.assertEqual(manifest.discussion_url, DISCUSSION_URL)
 
 
 if __name__ == "__main__":
