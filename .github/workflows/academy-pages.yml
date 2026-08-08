@@ -1,0 +1,107 @@
+name: Academy Pages
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out the release candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Run the exhaustive milestone test suite
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Check Python indentation
+        run: python -m tabnanny academy_engine scripts tests workshop_queue
+
+      - name: Compile Python sources
+        run: python -m compileall -q academy_engine scripts tests workshop_queue
+
+      - name: Verify project state
+        run: python -m unittest tests.test_project_state -v
+
+      - name: Build the Preview 0.1 site
+        run: >-
+          python scripts/build_preview_site.py
+          --output site/generated
+          --release-sha "$GITHUB_SHA"
+
+      - name: Check the generated site
+        run: python scripts/check_preview_site.py site/generated
+
+      - name: Scan every tracked file for secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan_root="$RUNNER_TEMP/academy-secret-scan"
+          mkdir -p "$scan_root"
+          object_format="$(git -C "$GITHUB_WORKSPACE" rev-parse --show-object-format)"
+          git -C "$scan_root" init --quiet --object-format="$object_format"
+          git -C "$GITHUB_WORKSPACE" ls-tree -r -z HEAD |
+            while IFS= read -r -d '' entry; do
+              metadata="${entry%%$'\t'*}"
+              path="${entry#*$'\t'}"
+              read -r mode object_type object_id <<< "$metadata"
+              if [[ "$mode" == "160000" ]]; then
+                continue
+              fi
+              if [[ "$object_type" != "blob" ]]; then
+                echo "ERROR: unexpected non-blob tree entry." >&2
+                exit 2
+              fi
+              imported="$({
+                git -C "$GITHUB_WORKSPACE" cat-file blob "$object_id"
+              } | git -C "$scan_root" hash-object -w --stdin)"
+              if [[ "$imported" != "$object_id" ]]; then
+                echo "ERROR: reconstructed blob identity mismatch." >&2
+                exit 2
+              fi
+              git -C "$scan_root" update-index --add \
+                --cacheinfo "$mode,$object_id,$path"
+            done
+          (
+            cd "$scan_root"
+            python "$GITHUB_WORKSPACE/scripts/scan_secrets.py" --staged
+          )
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/generated
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
