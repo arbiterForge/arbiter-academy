@@ -2,18 +2,30 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
+import stat
+import sys
 from html import escape
 from pathlib import Path
 from string import Template
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from academy_engine.preview import PreviewManifest, load_preview_manifest
 
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _FRONTMATTER_FIELDS = ("title", "outcome", "next_lab")
+_PUBLIC_ASSET_FILES = (
+    Path("assets/academy.css"),
+    Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
+    Path("assets/fonts/manrope-latin-wght-normal.woff2"),
+)
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
@@ -22,29 +34,44 @@ def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None)
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
     """
+    _reject_unsafe_lexical_components(out)
     manifest = load_preview_manifest(root)
     commit = _validate_release_sha(release_sha)
     templates = _load_templates(root)
     expected_files = _expected_files(manifest)
     expected_paths = _expected_paths(manifest)
+    _reject_unsafe_generated_paths(out, expected_paths, expected_files)
     _reject_unexpected_generated_paths(out, expected_paths)
+    assets = _load_public_assets(root)
 
     lessons = {
         lab_id: _read_public_lesson(root, lab_id)
         for lab_id in manifest.available_labs
     }
     rendered_pages = _render_pages(manifest, lessons, templates, commit)
-    _validate_rendered_inventory(rendered_pages, expected_files)
+    _validate_rendered_inventory(rendered_pages, _expected_rendered_files(manifest))
 
     for relative_path, content in rendered_pages.items():
         destination = out / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
+    for relative_path, content in assets.items():
+        destination = out / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
+
+    actual_files = {
+        path.relative_to(out)
+        for path in out.rglob("*")
+        if path.is_file()
+    }
+    if actual_files != expected_files:
+        raise ValueError("generated file inventory does not match the reviewed Preview artifact")
 
 
 def _validate_release_sha(release_sha: str | None) -> str:
     if not isinstance(release_sha, str) or not _SHA.fullmatch(release_sha):
-        raise ValueError("ACADEMY_RELEASE_SHA must be a lowercase 40-character Git commit SHA")
+        raise ValueError("release SHA must be a lowercase 40-character Git commit SHA")
     return release_sha
 
 
@@ -59,19 +86,84 @@ def _load_templates(root: Path) -> dict[str, Template]:
     return templates
 
 
-def _expected_files(manifest: PreviewManifest) -> set[Path]:
+def _load_public_assets(root: Path) -> dict[Path, bytes]:
+    assets: dict[Path, bytes] = {}
+    for relative in _PUBLIC_ASSET_FILES:
+        source = root / "site" / relative
+        if source.is_symlink() or not source.is_file():
+            raise ValueError(f"reviewed public asset is missing or unsafe: {relative.as_posix()}")
+        try:
+            assets[relative] = source.read_bytes()
+        except OSError as error:
+            raise ValueError(f"could not read reviewed public asset {relative.as_posix()}: {error}") from error
+    return assets
+
+
+def _expected_rendered_files(manifest: PreviewManifest) -> set[Path]:
     paths = {Path("index.html"), Path("release.json"), Path("recovery/index.html")}
     for lab_id in manifest.available_labs:
         paths.add(Path("labs") / lab_id / "index.html")
     return paths
 
 
+def _expected_files(manifest: PreviewManifest) -> set[Path]:
+    return _expected_rendered_files(manifest) | set(_PUBLIC_ASSET_FILES)
+
+
 def _expected_paths(manifest: PreviewManifest) -> set[Path]:
-    return _expected_files(manifest) | {
-        Path("labs"),
-        Path("recovery"),
-        *(Path("labs") / lab_id for lab_id in manifest.available_labs),
-    }
+    paths = set(_expected_files(manifest))
+    for file_path in tuple(paths):
+        parent = file_path.parent
+        while parent != Path("."):
+            paths.add(parent)
+            parent = parent.parent
+    return paths
+
+
+def _is_symlink_or_reparse(details: os.stat_result) -> bool:
+    attributes = getattr(details, "st_file_attributes", 0)
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return stat.S_ISLNK(details.st_mode) or bool(attributes & reparse_flag)
+
+
+def _reject_unsafe_lexical_components(out: Path) -> None:
+    absolute = Path(os.path.abspath(out))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        try:
+            details = current.lstat()
+        except FileNotFoundError:
+            break
+        except OSError as error:
+            raise ValueError(f"could not inspect generated output path {current}: {error}") from error
+        if _is_symlink_or_reparse(details):
+            raise ValueError(f"generated output path is a symlink or reparse point: {current}")
+
+
+def _reject_unsafe_generated_paths(
+    out: Path,
+    expected_paths: set[Path],
+    expected_files: set[Path],
+) -> None:
+    candidates = (Path("."), *sorted(expected_paths, key=lambda path: (len(path.parts), str(path))))
+    for relative in candidates:
+        candidate = out if relative == Path(".") else out / relative
+        try:
+            details = candidate.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            raise ValueError(f"could not inspect generated output path {candidate}: {error}") from error
+        if _is_symlink_or_reparse(details):
+            raise ValueError(f"generated output path is a symlink or reparse point: {candidate}")
+        if relative in expected_files:
+            if not stat.S_ISREG(details.st_mode) or details.st_nlink != 1:
+                raise ValueError(
+                    f"generated output leaf must be an unshared regular file: {candidate}"
+                )
+        elif not stat.S_ISDIR(details.st_mode):
+            raise ValueError(f"generated output path is not a directory: {candidate}")
 
 
 def _reject_unexpected_generated_paths(out: Path, expected_paths: set[Path]) -> None:
@@ -159,11 +251,13 @@ def _render_pages(
                 coming_next=coming_next,
                 discussion_url=escape(manifest.discussion_url, quote=True),
             ),
+            root_prefix="",
         ),
         Path("recovery/index.html"): _page(
             templates,
             "Recovery | Arbiter Academy Preview 0.1",
             templates["recovery"].substitute(),
+            root_prefix="../",
         ),
         Path("release.json"): json.dumps(
             {"release": manifest.release, "commit": commit},
@@ -187,21 +281,41 @@ def _render_pages(
                 outcome=escape(lesson["outcome"]),
                 next_step=next_step,
             ),
+            root_prefix="../../",
         )
     return pages
 
 
-def _page(templates: dict[str, Template], title: str, body: str) -> str:
-    return templates["base"].substitute(title=escape(title), body=body)
+def _page(
+    templates: dict[str, Template],
+    title: str,
+    body: str,
+    *,
+    root_prefix: str,
+) -> str:
+    return templates["base"].substitute(
+        title=escape(title),
+        body=body,
+        home_url=f"{root_prefix}index.html",
+        recovery_url=f"{root_prefix}recovery/index.html",
+        stylesheet_url=f"{root_prefix}assets/academy.css",
+    )
 
 
 def _lab_code(lab_id: str) -> str:
     return lab_id.partition("-")[0]
 
 
-def main() -> None:
-    root = Path(__file__).parents[1]
-    build_preview_site(root, root / "site" / "generated", release_sha=os.environ.get("ACADEMY_RELEASE_SHA"))
+def main(arguments: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--release-sha", required=True)
+    options = parser.parse_args(arguments)
+    build_preview_site(
+        _REPOSITORY_ROOT,
+        options.output,
+        release_sha=options.release_sha,
+    )
 
 
 if __name__ == "__main__":

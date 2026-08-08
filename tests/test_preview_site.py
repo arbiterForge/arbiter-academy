@@ -2,15 +2,21 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 import scripts.build_preview_site as preview_site
+import scripts.check_preview_site as preview_checker
 from scripts.build_preview_site import build_preview_site
+from scripts.check_preview_site import check_preview_site
 
 
 def build_and_list_html(root: Path, out: Path) -> list[Path]:
@@ -162,6 +168,9 @@ class PreviewSiteTests(unittest.TestCase):
             "P04-review-a-dependency",
         )
         expected_files = {
+            "assets/academy.css",
+            "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
+            "assets/fonts/manrope-latin-wght-normal.woff2",
             "index.html",
             "recovery/index.html",
             "release.json",
@@ -189,6 +198,310 @@ class PreviewSiteTests(unittest.TestCase):
         ):
             self.assertFalse((self.out / "labs" / future_lab / "index.html").exists())
             self.assertNotIn(future_lab, index)
+
+    def test_build_cli_honors_output_and_release_sha(self) -> None:
+        """Catches the release workflow arguments being ignored by the real script entry point."""
+        release_sha = "4" * 40
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/build_preview_site.py",
+                "--output",
+                str(self.out),
+                "--release-sha",
+                release_sha,
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            json.loads((self.out / "release.json").read_text(encoding="utf-8")),
+            {"release": "preview-0.1", "commit": release_sha},
+        )
+
+    def test_build_copies_only_the_reviewed_runtime_assets(self) -> None:
+        """Catches Pages artifacts that omit fonts/CSS or publish unreviewed source assets."""
+        build_preview_site(self.root, self.out, release_sha="5" * 40)
+
+        actual_assets = {
+            path.relative_to(self.out).as_posix()
+            for path in (self.out / "assets").rglob("*")
+            if path.is_file()
+        }
+        self.assertEqual(
+            actual_assets,
+            {
+                "assets/academy.css",
+                "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
+                "assets/fonts/manrope-latin-wght-normal.woff2",
+            },
+        )
+        for relative in actual_assets:
+            self.assertEqual(
+                (self.out / relative).read_bytes(),
+                (self.root / "site" / relative).read_bytes(),
+            )
+
+    def test_generated_internal_urls_are_project_pages_safe_and_resolve(self) -> None:
+        """Catches root-relative links that escape the /arbiter-academy Pages prefix."""
+        pages = build_and_list_html(self.root, self.out)
+
+        for page in pages:
+            html = page.read_text(encoding="utf-8")
+            for target in re.findall(r'(?:href|src)=["\']([^"\']+)', html):
+                parsed = urlsplit(target)
+                if parsed.scheme in {"http", "https"} or target.startswith("#"):
+                    continue
+                with self.subTest(page=page.relative_to(self.out), target=target):
+                    self.assertFalse(parsed.path.startswith("/"), target)
+                    resolved = (page.parent / parsed.path).resolve()
+                    resolved.relative_to(self.out.resolve())
+                    self.assertTrue(resolved.is_file(), target)
+
+    def test_static_checker_accepts_the_artifact_then_rejects_a_broken_local_link(self) -> None:
+        """Catches a release checker that passes missing project-local destinations."""
+        build_preview_site(self.root, self.out, release_sha="6" * 40)
+        command = [sys.executable, "scripts/check_preview_site.py", str(self.out)]
+
+        accepted = subprocess.run(
+            command,
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+        index = self.out / "index.html"
+        index.write_text(
+            index.read_text(encoding="utf-8").replace(
+                'href="recovery/index.html"',
+                'href="missing/index.html"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        rejected = subprocess.run(
+            command,
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("broken internal link", rejected.stderr)
+
+    def test_build_rejects_redirected_output_paths_before_external_write(self) -> None:
+        """Catches output roots, expected leaves, or directories redirected outside the artifact."""
+        cases = ("output-root", "expected-leaf", "expected-directory")
+        for case in cases:
+            with self.subTest(case=case):
+                destination = self.out.parent / case
+                outside = self.out.parent / f"outside-{case}"
+                outside.mkdir()
+                sentinel = outside / "index.html"
+                sentinel.write_bytes(b"external sentinel")
+                redirect: Path
+
+                if case == "output-root":
+                    redirect = destination
+                    self._make_directory_redirect(redirect, outside)
+                elif case == "expected-leaf":
+                    destination.mkdir()
+                    redirect = destination / "index.html"
+                    try:
+                        redirect.symlink_to(sentinel)
+                    except OSError as error:
+                        self.skipTest(f"file symlinks are unavailable: {error}")
+                else:
+                    (destination / "labs").mkdir(parents=True)
+                    redirect = destination / "labs" / "F01-fork-clone-doctor"
+                    try:
+                        redirect.symlink_to(outside, target_is_directory=True)
+                    except OSError as error:
+                        self.skipTest(f"directory symlinks are unavailable: {error}")
+
+                try:
+                    with self.assertRaisesRegex(ValueError, "symlink or reparse"):
+                        build_preview_site(self.root, destination, release_sha="7" * 40)
+                    self.assertEqual(sentinel.read_bytes(), b"external sentinel")
+                finally:
+                    if os.path.lexists(redirect):
+                        if redirect.is_dir() and not redirect.is_symlink():
+                            os.rmdir(redirect)
+                        else:
+                            redirect.unlink()
+
+    def test_static_checker_rejects_external_and_missing_local_css_import_forms(self) -> None:
+        """Catches quoted or url() imports escaping the reviewed stylesheet inventory."""
+        imports = (
+            ('@import "https://assets.example/remote.css";', "unapproved external URL"),
+            ('@import url("https://assets.example/remote.css");', "unapproved external URL"),
+            (
+                '@import "https://github.com/arbiterForge/arbiter-academy/discussions";',
+                "unapproved external URL",
+            ),
+            ('@import "missing.css";', "broken internal link"),
+            ('@import url("missing.css");', "broken internal link"),
+        )
+        for index, (directive, message) in enumerate(imports):
+            with self.subTest(directive=directive):
+                destination = self.out.parent / f"css-import-{index}"
+                build_preview_site(self.root, destination, release_sha="8" * 40)
+                stylesheet = destination / "assets" / "academy.css"
+                stylesheet.write_text(
+                    f"{directive}\n{stylesheet.read_text(encoding='utf-8')}",
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, message):
+                    preview_checker._check_stylesheet_dependencies(
+                        destination,
+                        stylesheet,
+                        stylesheet.read_text(encoding="utf-8"),
+                    )
+
+    def test_static_checker_rejects_a_symlink_artifact_root_before_resolve(self) -> None:
+        """Catches resolving away the caller-supplied artifact-root trust boundary."""
+        build_preview_site(self.root, self.out, release_sha="9" * 40)
+        redirected = self.out.parent / "artifact-root-link"
+        try:
+            redirected.symlink_to(self.out, target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"directory symlinks are unavailable: {error}")
+        try:
+            with self.assertRaisesRegex(ValueError, "real directory"):
+                check_preview_site(redirected)
+        finally:
+            if os.path.lexists(redirected):
+                redirected.unlink()
+
+    def test_build_rejects_a_redirected_output_ancestor_before_external_write(self) -> None:
+        """Catches a safe-looking output leaf reached through an ancestor junction or symlink."""
+        outside = self.out.parent / "outside-output-ancestor"
+        destination = outside / "generated"
+        destination.mkdir(parents=True)
+        sentinel = destination / "index.html"
+        sentinel.write_bytes(b"ancestor sentinel")
+        redirected = self.out.parent / "redirected-output-parent"
+        self._make_directory_redirect(redirected, outside)
+        try:
+            with self.assertRaisesRegex(ValueError, "symlink or reparse"):
+                build_preview_site(
+                    self.root,
+                    redirected / "generated",
+                    release_sha="a" * 40,
+                )
+            self.assertEqual(sentinel.read_bytes(), b"ancestor sentinel")
+        finally:
+            if os.path.lexists(redirected):
+                if redirected.is_dir() and not redirected.is_symlink():
+                    os.rmdir(redirected)
+                else:
+                    redirected.unlink()
+
+    def test_static_checker_rejects_a_redirected_artifact_ancestor_before_resolve(self) -> None:
+        """Catches resolving through a caller-supplied ancestor junction before inspection."""
+        outside = self.out.parent / "outside-checker-ancestor"
+        artifact = outside / "artifact"
+        build_preview_site(self.root, artifact, release_sha="b" * 40)
+        redirected = self.out.parent / "redirected-checker-parent"
+        self._make_directory_redirect(redirected, outside)
+        try:
+            with self.assertRaisesRegex(ValueError, "symlink or reparse"):
+                check_preview_site(redirected / "artifact")
+        finally:
+            if os.path.lexists(redirected):
+                if redirected.is_dir() and not redirected.is_symlink():
+                    os.rmdir(redirected)
+                else:
+                    redirected.unlink()
+
+    def test_build_rejects_a_hardlinked_expected_leaf_before_external_write(self) -> None:
+        """Catches writes through a shared leaf in the approved output inventory."""
+        hardlink_output = self.out.parent / "hardlink-output"
+        hardlink_output.mkdir()
+        sentinel = self.out.parent / "hardlink-sentinel.html"
+        sentinel.write_bytes(b"hardlink sentinel")
+        os.link(sentinel, hardlink_output / "index.html")
+        self.assertGreater(sentinel.stat().st_nlink, 1)
+
+        with self.assertRaisesRegex(ValueError, "unshared regular file"):
+            build_preview_site(self.root, hardlink_output, release_sha="c" * 40)
+        self.assertEqual(sentinel.read_bytes(), b"hardlink sentinel")
+
+    def test_build_rejects_a_nonregular_expected_leaf_before_write(self) -> None:
+        """Catches a directory or other non-file occupying an approved output leaf."""
+        nonregular_output = self.out.parent / "nonregular-output"
+        nonregular_output.mkdir()
+        (nonregular_output / "release.json").mkdir()
+        with self.assertRaisesRegex(ValueError, "unshared regular file"):
+            build_preview_site(self.root, nonregular_output, release_sha="d" * 40)
+
+    def test_static_checker_pins_each_reviewed_runtime_asset_digest(self) -> None:
+        """Catches any byte mutation in the exact CSS and font artifacts reviewed for Preview 0.1."""
+        assets = (
+            "assets/academy.css",
+            "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
+            "assets/fonts/manrope-latin-wght-normal.woff2",
+        )
+        for index, relative in enumerate(assets):
+            with self.subTest(asset=relative):
+                destination = self.out.parent / f"asset-digest-{index}"
+                build_preview_site(self.root, destination, release_sha="e" * 40)
+                asset = destination / relative
+                content = asset.read_bytes()
+                asset.write_bytes(content[:-1] + bytes((content[-1] ^ 1,)))
+                with self.assertRaisesRegex(ValueError, "runtime asset digest mismatch"):
+                    check_preview_site(destination)
+
+    def test_static_checker_rejects_comment_case_and_escape_css_mutations_by_digest(self) -> None:
+        """Catches CSS-tokenizer evasions without relying on parsing attacker-controlled CSS."""
+        mutations = (
+            '/* @import "https://assets.example/comment.css"; */',
+            '@IMPORT "https://assets.example/case.css";',
+            '@\\69 mport "https://assets.example/escape.css";',
+        )
+        for index, mutation in enumerate(mutations):
+            with self.subTest(mutation=mutation):
+                destination = self.out.parent / f"css-digest-{index}"
+                build_preview_site(self.root, destination, release_sha="f" * 40)
+                stylesheet = destination / "assets" / "academy.css"
+                stylesheet.write_text(
+                    f"{stylesheet.read_text(encoding='utf-8')}\n{mutation}\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "runtime asset digest mismatch"):
+                    check_preview_site(destination)
+
+    def test_static_checker_rejects_unapproved_html_fetch_surfaces(self) -> None:
+        """Catches fetch-capable elements and attributes outside the reviewed HTML vocabulary."""
+        discussion = "https://github.com/arbiterForge/arbiter-academy/discussions"
+        injections = (
+            f'<a href="#main-content" srcset="{discussion} 1x">source set</a>',
+            f'<p style="background-image: url({discussion})">inline style</p>',
+            f'<style>@import "{discussion}";</style>',
+            f'<script src="{discussion}"></script>',
+            f'<img src="{discussion}" alt="external image">',
+            f'<link rel="stylesheet" href="{discussion}">',
+        )
+        for index, injection in enumerate(injections):
+            with self.subTest(injection=injection):
+                destination = self.out.parent / f"html-surface-{index}"
+                build_preview_site(self.root, destination, release_sha="0" * 40)
+                page = destination / "index.html"
+                page.write_text(
+                    page.read_text(encoding="utf-8").replace(
+                        "</body>",
+                        f"{injection}\n</body>",
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "disallowed HTML|unapproved external URL"):
+                    check_preview_site(destination)
 
     def test_rendered_inventory_rejects_destinations_outside_the_approved_file_set(self) -> None:
         """Catches a future renderer adding a private, absolute, or traversing destination."""
@@ -240,7 +553,7 @@ class PreviewSiteTests(unittest.TestCase):
 
     def test_build_rejects_malformed_sha_and_unexpected_generated_path(self) -> None:
         """Catches untraceable releases and stale output outside the approved artifact set."""
-        with self.assertRaisesRegex(ValueError, "ACADEMY_RELEASE_SHA"):
+        with self.assertRaisesRegex(ValueError, "release SHA"):
             build_preview_site(self.root, self.out, release_sha="not-a-sha")
 
         self.out.mkdir()
@@ -273,7 +586,7 @@ class PreviewSiteTests(unittest.TestCase):
             )
 
         index = (self.out / "index.html").read_text(encoding="utf-8")
-        self.assertIn('href="/assets/academy.css"', index)
+        self.assertIn('href="assets/academy.css"', index)
 
         asset_root = self.root / "site" / "assets"
         stylesheet = asset_root / "academy.css"
@@ -307,7 +620,23 @@ class PreviewSiteTests(unittest.TestCase):
                 academy / "tracks" / track,
             )
         shutil.copytree(self.root / "site" / "templates", source / "site" / "templates")
+        shutil.copytree(self.root / "site" / "assets", source / "site" / "assets")
         return source
+
+    def _make_directory_redirect(self, link: Path, target: Path) -> None:
+        if os.name != "nt":
+            link.symlink_to(target, target_is_directory=True)
+            return
+        command = Path(os.environ["SystemRoot"]) / "System32" / "cmd.exe"
+        created = subprocess.run(
+            [str(command), "/d", "/v:off", "/c", "mklink", "/J", str(link), str(target)],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
 
 
 if __name__ == "__main__":
