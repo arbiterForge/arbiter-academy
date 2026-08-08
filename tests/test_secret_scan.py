@@ -772,28 +772,39 @@ class StagedSecretScanTests(unittest.TestCase):
 
     def test_manifest_byte_cap_is_exact(self) -> None:
         """Catches unbounded index-manifest capture and cap off-by-one errors."""
-        cap = 2 * 1024 * 1024
-        record_overhead = 51
-        for delta, expected in ((-1, 0), (0, 0), (1, 2)):
-            with self.subTest(delta=delta):
-                fixture = IndexedRepository()
-                self.addCleanup(fixture.close)
-                object_id = fixture.hash_blob(b"clean\n")
-                target_path_bytes = cap + delta - 1024 * record_overhead
-                base, remainder = divmod(target_path_bytes, 1024)
-                lengths = [base + (1 if index < remainder else 0) for index in range(1024)]
-                fixture.add_index_records(
-                    [
-                        (self._long_index_path(index, length), object_id)
-                        for index, length in enumerate(lengths)
+        scanner = load_scanner_module()
+        production_cap = 2 * 1024 * 1024
+        self.assertEqual(scanner.MAX_MANIFEST_BYTES, production_cap)
+        cap = 256
+        record_overhead = len(b"100644 ") + 40 + len(b" 0\t") + len(b"\0")
+        record_count = 4
+
+        with mock.patch.object(scanner, "MAX_MANIFEST_BYTES", cap):
+            for delta, expected in ((-1, False), (0, False), (1, True)):
+                with self.subTest(delta=delta):
+                    fixture = IndexedRepository()
+                    self.addCleanup(fixture.close)
+                    object_id = fixture.hash_blob(b"clean\n")
+                    target_path_bytes = cap + delta - record_count * record_overhead
+                    base, remainder = divmod(target_path_bytes, record_count)
+                    lengths = [
+                        base + (1 if index < remainder else 0)
+                        for index in range(record_count)
                     ]
-                )
+                    fixture.replace_raw_index_records(
+                        [
+                            (self._long_index_path(index, length), object_id)
+                            for index, length in enumerate(lengths)
+                        ]
+                    )
 
-                result = fixture.scan()
-
-                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
-                if expected == 2:
-                    self.assertIn(b"resource-limits", result.stderr)
+                    if expected:
+                        with self.assertRaises(scanner.InspectionError) as raised:
+                            scanner.scan_staged(fixture.root)
+                        self.assertEqual(raised.exception.operation, "resource-limits")
+                    else:
+                        count, findings, suppressed = scanner.scan_staged(fixture.root)
+                        self.assertEqual((count, findings, suppressed), (record_count, [], False))
 
     def test_complete_index_over_manifest_cap_fails_with_only_one_small_change(self) -> None:
         """Catches selected-only cap accounting that ignores the complete raw index."""
