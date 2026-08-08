@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -28,13 +30,14 @@ class PreviewManifestTests(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(__file__).parents[1]
 
-    def make_manifest(self, **changes: object) -> dict[str, object]:
+    def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
+        root = root or self.root
         manifest: dict[str, object] = {
             "release": "preview-0.1",
             "available_labs": PREVIEW_0_1,
             "coming_next": COMING_NEXT,
             "catalog_sha256": hashlib.sha256(
-                (self.root / "academy" / "catalog.json").read_bytes()
+                (root / "academy" / "catalog.json").read_bytes()
             ).hexdigest(),
         }
         manifest.update(changes)
@@ -69,6 +72,22 @@ class PreviewManifestTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "catalog_sha256"):
             validate_preview_manifest(self.root, manifest)
+
+    def test_preview_manifest_rejects_a_catalog_schema_with_drifted_pinned_inventory(self) -> None:
+        """Catches catalog-schema pins no longer matching the catalog the preview publishes."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            academy = root / "academy"
+            academy.mkdir()
+            for name in ("catalog.json", "catalog.schema.json"):
+                (academy / name).write_bytes((self.root / "academy" / name).read_bytes())
+            schema_path = academy / "catalog.schema.json"
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            schema["properties"]["labs"]["prefixItems"][0]["properties"]["id"]["const"] = "F99-schema-drift"
+            schema_path.write_text(json.dumps(schema), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "catalog schema"):
+                validate_preview_manifest(root, self.make_manifest(root))
 
     def test_load_preview_manifest_returns_the_reviewed_public_boundary(self) -> None:
         """Catches a checked-in manifest that does not represent the reviewed release."""

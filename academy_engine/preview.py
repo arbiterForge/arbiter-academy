@@ -29,6 +29,7 @@ _COMING_NEXT = (
     "P07-threat-model",
 )
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,36 @@ def _validate_known_ordered_closure(catalog: Catalog, available_labs: tuple[str,
             )
 
 
+def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
+    schema_path = root / "academy" / "catalog.schema.json"
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        labs_schema = schema["properties"]["labs"]
+        prefix_items = labs_schema["prefixItems"]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise ValueError(f"could not read catalog schema lock: {error}") from error
+    if (
+        not isinstance(labs_schema, Mapping)
+        or not isinstance(prefix_items, list)
+        or len(prefix_items) != len(catalog.labs)
+        or labs_schema.get("minItems") != len(catalog.labs)
+        or labs_schema.get("maxItems") != len(catalog.labs)
+        or labs_schema.get("items") is not False
+    ):
+        raise ValueError("catalog schema pinned inventory does not match the catalog")
+    for lab, pinned in zip(catalog.labs, prefix_items, strict=True):
+        try:
+            constants = pinned["properties"]
+            matches = all(
+                constants[field]["const"] == getattr(lab, field)
+                for field in _SCHEMA_PINNED_FIELDS
+            )
+        except (KeyError, TypeError):
+            matches = False
+        if not matches:
+            raise ValueError("catalog schema pinned inventory does not match the catalog")
+
+
 def validate_preview_manifest(
     root: Path, data: Mapping[str, object] | None = None
 ) -> PreviewManifest:
@@ -112,6 +143,7 @@ def validate_preview_manifest(
         catalog = Catalog.load(catalog_path)
     except CatalogError as error:
         raise ValueError(f"could not validate Academy catalog: {error}") from error
+    _validate_catalog_schema_lock(root, catalog)
 
     available_labs = _require_ids(manifest["available_labs"], "available_labs")
     coming_next = _require_ids(manifest["coming_next"], "coming_next")
