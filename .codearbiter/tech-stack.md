@@ -21,14 +21,39 @@ python -m tabnanny academy_engine workshop_queue scripts tests
 
 ## Verification
 
+### Bounded lab and publication cells
+
+For an ordinary bounded cell, run every focused affected and cross-lab test named
+by its approved plan or report. The recorded command must include the direct
+behavior suite, structural or curriculum consumers, and any shared-state
+dependents identified during implementation or review. A convenient narrow test
+is not sufficient evidence when an affected consumer exists.
+
 ```sh
-python -m unittest discover -v
-python -m compileall workshop_queue tests
+python -m unittest <affected modules, classes, or methods> -v
+python -m tabnanny academy_engine workshop_queue scripts tests
+python -m compileall academy_engine workshop_queue scripts tests
 python -m unittest tests.test_project_state -v
 python scripts/scan_secrets.py --staged
 ```
 
-`python -m compileall workshop_queue tests` is syntax verification, not lint.
+The exact focused unittest command and its cross-lab rationale are commit-gate
+evidence. Independent review remains required. `compileall` is syntax
+verification, not lint.
+
+### Integration and release milestones
+
+Run the complete real-Git suite at Practitioner consolidation, first-draft
+completion, every release or PR gate, or earlier after a demonstrated broad
+shared-state regression:
+
+```sh
+python -m unittest discover -v
+python -m tabnanny academy_engine workshop_queue scripts tests
+python -m compileall academy_engine workshop_queue scripts tests
+python -m unittest tests.test_project_state -v
+python scripts/scan_secrets.py --staged
+```
 
 The secret scan reads added, copied, modified, and renamed blobs from Git's staged
 index by object identity; it does not substitute mutable worktree content. Exit `1`
@@ -38,9 +63,9 @@ cannot be completed.
 The application remains dependency-free at runtime. Repository verification also
 requires the externally installed Academy verifier and the reviewed offline wheel
 proof. An installation test may report its documented offline prerequisite skip only
-when the reviewed build backend is unavailable; required release/acceptance runs supply
-that backend. All other test results must pass. The baseline is [the 2026-07-20
-checkpoint](checkpoints/2026-07-20-baseline.md).
+when the reviewed build backend is unavailable; required release and milestone runs
+supply that backend. All other selected or exhaustive test results must pass. The
+baseline is [the 2026-07-20 checkpoint](checkpoints/2026-07-20-baseline.md).
 
 No database server, external API, paid service, or hosted CI requirement belongs to
 this Academy fixture.
