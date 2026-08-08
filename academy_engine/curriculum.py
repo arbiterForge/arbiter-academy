@@ -104,9 +104,7 @@ _PRACTITIONER_SCENARIOS = {
         "install-blocked",
     ),
     "P05-checkpoint-remediation": (
-        "finding_remediation",
-        "workshop-queue-finding",
-        "finding-open",
+        "finding_remediation", "workshop-queue-finding", "finding-open",
     ),
     "P06-context-drift-recovery": (
         "provenance_recovery",
@@ -204,9 +202,18 @@ _MATRIX_CASES = {
         "incomplete-review", "pre-review-manifest-edit", "same-commit-adoption", "incomplete-closure",
         "wrong-lock", "wrong-wrapper", "extra-dependency", "uncommitted", "extra-path",
     ),
+    "P05-checkpoint-remediation": (
+        "untouched", "partial", "wrong", "intended", "equivalent",
+        "blocked-state-missing", "blocked-not-persisted", "defect-not-staged",
+        "json-only-finding", "red-not-meaningful", "red-after-green",
+        "changed-red-test", "broad-repair", "wrong-history-order",
+        "receipt-too-early", "copied-attempt", "uncommitted",
+        "malformed-receipt", "unsafe-path", "generic-event-decoy",
+        "host-invocation-claim",
+    ),
     **{
         lab_id: ("untouched", "partial", "wrong", "intended", "equivalent")
-        for lab_id in _PRACTITIONER_SCENARIOS if lab_id not in {"P03-record-an-adr", "P04-review-a-dependency"}
+        for lab_id in _PRACTITIONER_SCENARIOS if lab_id not in {"P03-record-an-adr", "P04-review-a-dependency", "P05-checkpoint-remediation"}
     },
 }
 

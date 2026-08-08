@@ -39,6 +39,7 @@ from academy_engine.exercise_state import (
 )
 from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.paths import PathBoundaryError, ensure_within
+from academy_engine.p05_fixture import P05FixtureError, stage_p05_fixture
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
@@ -63,6 +64,12 @@ _P02_STATE_REACHABLE_LABS = frozenset(
 )
 _P02_AUTHORITY_REQUIRED = (
     "P02 exercise records require installed Academy authority."
+)
+_P05_FIXTURE_TARGETS = (
+    "tests/test_cli.py",
+    "workshop_queue/cli.py",
+    "workshop_queue/model.py",
+    "workshop_queue/service.py",
 )
 
 
@@ -251,9 +258,17 @@ def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Pat
     return tuple(operations)
 
 
-def _snapshots(root: Path, manifest: ScenarioManifest, operations: tuple[tuple[Path, Path], ...], backup_root: Path) -> tuple[_Snapshot, ...]:
+def _snapshots(
+    root: Path,
+    manifest: ScenarioManifest,
+    operations: tuple[tuple[Path, Path], ...],
+    backup_root: Path,
+    *,
+    extra_targets: tuple[str, ...] = (),
+) -> tuple[_Snapshot, ...]:
     targets: list[Path] = [ensure_within(root, Path(removal)) for removal in manifest.removals]
     targets.extend(ensure_within(root, destination.relative_to(root)) for _, destination in operations)
+    targets.extend(ensure_within(root, Path(target)) for target in extra_targets)
     snapshots: list[_Snapshot] = []
     for index, target in enumerate(targets):
         backup = backup_root / str(index)
@@ -388,7 +403,14 @@ def prepare_lab(
     branch = f"academy/{lab.id}/{attempt}"
     original_branch = _branch(repository)
     with tempfile.TemporaryDirectory(prefix="academy-scenario-") as temporary:
-        snapshots = _snapshots(repository, manifest, operations, Path(temporary))
+        fixture_targets = _P05_FIXTURE_TARGETS if lab.id == "P05-checkpoint-remediation" else ()
+        snapshots = _snapshots(
+            repository,
+            manifest,
+            operations,
+            Path(temporary),
+            extra_targets=fixture_targets,
+        )
         branch_created = False
         try:
             run_git(repository, ["switch", "-c", branch, base_sha])
@@ -403,13 +425,15 @@ def prepare_lab(
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, destination)
                 targets.append(destination.relative_to(repository).as_posix())
+            if lab.id == "P05-checkpoint-remediation":
+                targets.extend(stage_p05_fixture(repository, base=base_sha))
             if targets:
                 run_git(repository, ["add", "-A", "--", *targets])
             run_git(repository, ["commit", "--allow-empty", "-m", f"academy: prepare {lab.id} attempt {attempt}"])
             commit_sha = run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
             if prospective_name is not None and commit_author_name(repository, commit_sha) != prospective_name:
                 raise AttributionError("P03 committed attribution is invalid.")
-        except (GitCommandError, OSError, PathBoundaryError, AttributionError) as error:
+        except (GitCommandError, OSError, PathBoundaryError, AttributionError, P05FixtureError) as error:
             try:
                 run_git(repository, ["reset"])
                 _restore_snapshots(repository, snapshots)

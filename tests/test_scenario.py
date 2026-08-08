@@ -80,6 +80,42 @@ def p01_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     return temporary, root
 
 
+def p05_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    """Create a P04-shaped learner repository for the real P05 preparation path."""
+    temporary = tempfile.TemporaryDirectory()
+    root = Path(temporary.name) / "repository"
+    root.mkdir()
+    (root / "data").mkdir()
+    source = Path(__file__).parents[1]
+    for relative in ("academy", ".codearbiter", "workshop_queue", "tests"):
+        shutil.copytree(source / relative, root / relative, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copyfile(source / ".gitignore", root / ".gitignore")
+    shutil.copyfile(source / "pyproject.toml", root / "pyproject.toml")
+    for relative in (
+        "workshop_queue/model.py",
+        "workshop_queue/service.py",
+        "workshop_queue/cli.py",
+        "tests/test_cli.py",
+    ):
+        (root / relative).write_bytes(
+            subprocess.run(
+                ["git", "show", f"b0dc9e5:{relative}"],
+                cwd=source,
+                check=True,
+                capture_output=True,
+            ).stdout
+        )
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "Academy Learner")
+    git(root, "config", "user.email", "learner@example.test")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+    git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+    git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
+    return temporary, root
+
+
 class ScenarioTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary, self.root = academy_git_fixture()
@@ -92,6 +128,144 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(prepared.base_sha, base)
         self.assertEqual((self.root / "exercise" / "seed.txt").read_text(encoding="utf-8"), "starting state\n")
         self.assertEqual(git(self.root, "log", "-1", "--format=%s"), "academy: prepare F01-fork-clone-doctor attempt 1")
+
+    def test_p05_prepare_and_reset_stage_the_real_blocked_summary_defect(self) -> None:
+        temporary, root = p05_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+
+        prepared = prepare_lab(root, "P05-checkpoint-remediation")
+        paths = tuple(
+            git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", prepared.commit_sha).splitlines()
+        )
+        self.assertEqual(
+            paths,
+            (
+                "tests/test_cli.py",
+                "training_scenarios/P05-checkpoint-remediation.json",
+                "workshop_queue/cli.py",
+                "workshop_queue/model.py",
+                "workshop_queue/service.py",
+            ),
+        )
+        observed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                "tests.test_cli.WorkshopQueueCliTests.test_p05_prepared_blocked_ticket_persists_before_summary_defect",
+                "-v",
+            ],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(observed.returncode, 0, observed.stderr)
+        shutil.rmtree(root / "data")
+        self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
+
+        retry = reset_lab(
+            root,
+            "P05-checkpoint-remediation",
+            now=lambda: datetime(2026, 8, 7, tzinfo=timezone.utc),
+        )
+        archive = "academy/archive/P05-checkpoint-remediation/20260807T000000Z"
+        self.assertEqual(retry.attempt, 2)
+        self.assertEqual(
+            git(root, "show", f"{archive}:workshop_queue/cli.py"),
+            git(root, "show", f"{prepared.commit_sha}:workshop_queue/cli.py"),
+        )
+
+    def test_p02_patch_remains_applicable_before_p05_stages_its_fixture(self) -> None:
+        """P05 may generate blocked behavior, but must not alter the shared P02 source."""
+        temporary, root = p05_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = Path(__file__).parents[1]
+        for relative in (
+            "workshop_queue/model.py",
+            "workshop_queue/service.py",
+            "workshop_queue/cli.py",
+            "tests/test_cli.py",
+            "tests/test_model.py",
+            "tests/test_service.py",
+        ):
+            (root / relative).write_bytes((source / relative).read_bytes())
+        git(root, "add", "workshop_queue", "tests")
+        if git(root, "status", "--porcelain"):
+            git(root, "commit", "-m", "shared source under test")
+
+        patch = root / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        checked = subprocess.run(
+            ["git", "apply", "--check", "--", str(patch)],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        applied = subprocess.run(
+            ["git", "apply", "--", str(patch)],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(applied.returncode, 0, applied.stderr)
+        self.assertNotEqual(git(root, "status", "--porcelain"), "")
+        git(root, "add", ".codearbiter/tech-stack.md", "workshop_queue/cli.py", "tests/test_cli.py")
+        git(root, "commit", "-m", "learner: add unresolved report coverage")
+        self.assertEqual(git(root, "log", "-1", "--format=%s"), "learner: add unresolved report coverage")
+
+        prepared = prepare_lab(root, "P05-checkpoint-remediation")
+        observed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                "tests.test_cli.WorkshopQueueCliTests.test_p05_prepared_blocked_ticket_persists_before_summary_defect",
+                "-v",
+            ],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(prepared.lab_id, "P05-checkpoint-remediation")
+        self.assertEqual(observed.returncode, 0, observed.stderr)
+
+    def test_p05_prepare_commit_failure_restores_all_five_fixture_targets(self) -> None:
+        temporary, root = p05_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        original = {
+            path: (root / path).read_bytes()
+            for path in (
+                "tests/test_cli.py",
+                "workshop_queue/cli.py",
+                "workshop_queue/model.py",
+                "workshop_queue/service.py",
+            )
+        }
+        overlay = root / "training_scenarios/P05-checkpoint-remediation.json"
+        self.assertFalse(overlay.exists())
+        hooks = Path(temporary.name) / "hooks"
+        hooks.mkdir()
+        hook = hooks / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        git(root, "config", "core.hooksPath", str(hooks))
+
+        with self.assertRaises(PreparationError):
+            prepare_lab(root, "P05-checkpoint-remediation")
+
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/P05-checkpoint-remediation/1"))
+        self.assertFalse(overlay.exists())
+        for path, contents in original.items():
+            self.assertEqual((root / path).read_bytes(), contents)
 
     def test_p01_control_state_seed_survives_prepare_and_reset_archive(self) -> None:
         """Catches a seed omitted from the generic prepare/reset snapshot boundary."""

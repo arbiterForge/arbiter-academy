@@ -409,7 +409,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 64)
+        self.assertEqual(report.matrix_cells, 80)
         self.assertNotIn(str(SOURCE), report.render())
 
     def test_p03_freezes_the_native_evidence_adversarial_matrix_and_privacy_guide(self) -> None:
@@ -455,6 +455,29 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
         self.assertNotIn("pip install", guide)
+
+    def test_p05_freezes_remediation_evidence_matrix_and_receipt_guidance(self) -> None:
+        from academy_engine.curriculum import _MATRIX_CASES
+
+        self.assertEqual(
+            _MATRIX_CASES["P05-checkpoint-remediation"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent",
+                "blocked-state-missing", "blocked-not-persisted", "defect-not-staged",
+                "json-only-finding", "red-not-meaningful", "red-after-green",
+                "changed-red-test", "broad-repair", "wrong-history-order",
+                "receipt-too-early", "copied-attempt", "uncommitted",
+                "malformed-receipt", "unsafe-path", "generic-event-decoy",
+                "host-invocation-claim",
+            ),
+        )
+        guide = (SOURCE / "academy/tracks/practitioner/P05-checkpoint-remediation.md").read_text(encoding="utf-8")
+        for required in (
+            "test-only RED", "code-only GREEN", "schema_version", "red_commit",
+            "remediation_commit", "receipt last", "not evidence that either command was invoked",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""
@@ -558,7 +581,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("64 matrix cells", result.stdout)
+        self.assertIn("80 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())

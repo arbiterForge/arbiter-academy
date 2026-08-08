@@ -25,6 +25,8 @@ from academy_engine.checkpoints import (
     _p01_fixture_models,
     _p01_prepared_defect,
     _p01_source_identity,
+    _p05_finding_is_exact,
+    _p05_red_regression_is_exact,
     _semantic,
     _validate_prepare,
     evaluate_checkpoint,
@@ -32,6 +34,7 @@ from academy_engine.checkpoints import (
     load_contracts,
 )
 from academy_engine.exercise_state import P08AttemptIdentity
+from academy_engine.p05_fixture import stage_p05_fixture
 
 
 class CheckpointTests(unittest.TestCase):
@@ -44,6 +47,216 @@ class CheckpointTests(unittest.TestCase):
         self.write({"schema_version": 2, "id": "F01-fork-clone-doctor", "predicates": [{"id": "remote_and_doctor", "type": "lab_semantics", "profile": "remote_doctor", "artifact": ".codearbiter/reports/academy/F01-doctor.json"}]})
 
     def tearDown(self): self.temp.cleanup()
+
+    def test_p05_accepts_only_the_committed_finding_red_green_receipt_chain(self):
+        source = Path(__file__).resolve().parents[1]
+        root = self.root / "p05"
+        root.mkdir()
+        for relative in ("academy", "workshop_queue", "tests"):
+            shutil.copytree(source / relative, root / relative, ignore=shutil.ignore_patterns("__pycache__"))
+        for relative in (
+            "workshop_queue/model.py",
+            "workshop_queue/service.py",
+            "workshop_queue/cli.py",
+            "tests/test_cli.py",
+        ):
+            (root / relative).write_bytes(
+                subprocess.run(["git", "show", f"b0dc9e5:{relative}"], cwd=source, check=True, capture_output=True).stdout
+            )
+        (root / "training_scenarios").mkdir()
+        subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "P05 Test"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "p05-test@example.invalid"], cwd=root, check=True)
+        subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+        base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+        subprocess.run(["git", "switch", "-c", "academy/P05-checkpoint-remediation/1"], cwd=root, check=True, capture_output=True)
+        staged = stage_p05_fixture(root, base=base)
+        shutil.copyfile(
+            root / "academy/scenarios/P05-checkpoint-remediation/files/scenario.json",
+            root / "training_scenarios/P05-checkpoint-remediation.json",
+        )
+        subprocess.run(["git", "add", "training_scenarios/P05-checkpoint-remediation.json", *staged], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "academy: prepare P05-checkpoint-remediation attempt 1"], cwd=root, check=True, capture_output=True)
+        prepared = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+        finding_path = root / ".codearbiter/reports/academy/P05-finding.md"
+        finding_path.parent.mkdir(parents=True)
+        finding_path.write_text(
+            "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+            "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+            "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", ".codearbiter/reports/academy/P05-finding.md"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "record P05 finding"], cwd=root, check=True, capture_output=True)
+        finding = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+        test_path = root / "tests/test_cli.py"
+        red_test = (
+            "\n    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+            "        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n"
+            "        tickets[0][\"id\"] = \"RQ-105\"\n"
+            "        self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n"
+            "        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+            "        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n"
+            "        report = self.run_cli(\"report\", \"--format\", \"json\")\n"
+            "        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n"
+            "        self.assertEqual(block_result.returncode, 0, block_result.stderr)\n"
+            "        self.assertEqual(report.returncode, 0, report.stderr)\n"
+            "        parsed = json.loads(report.stdout)\n"
+            "        self.assertEqual(parsed[\"blocked\"], 1)\n"
+            "        self.assertEqual(parsed[\"unresolved\"], 1)\n\n"
+        )
+        test_path.write_text(
+            test_path.read_text(encoding="utf-8").replace("\n\nif __name__ == \"__main__\":", red_test + "if __name__ == \"__main__\":"),
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "tests/test_cli.py"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "add P05 regression"], cwd=root, check=True, capture_output=True)
+        red = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+        cli_path = root / "workshop_queue/cli.py"
+        cli_path.write_text(
+            cli_path.read_text(encoding="utf-8").replace(
+                "sum(ticket.status in {TicketStatus.OPEN, TicketStatus.CLAIMED} for ticket in tickets)",
+                "sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets)",
+            ),
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "workshop_queue/cli.py"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "repair P05 unresolved summary"], cwd=root, check=True, capture_output=True)
+        remediation = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+        receipt = root / ".codearbiter/checkpoints/P05-academy.json"
+        receipt.parent.mkdir(parents=True)
+        receipt.write_bytes(
+            json.dumps(
+                {
+                    "affected_paths": ["tests/test_cli.py", "workshop_queue/cli.py"],
+                    "finding_commit": finding,
+                    "finding_id": "ACADEMY-P05-BLOCKED-UNRESOLVED",
+                    "red_commit": red,
+                    "remediation_commit": remediation,
+                    "schema_version": 2,
+                    "status": "remediated",
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+            + b"\n"
+        )
+        subprocess.run(["git", "add", ".codearbiter/checkpoints/P05-academy.json"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-m", "record P05 receipt"], cwd=root, check=True, capture_output=True)
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+        attempt = _Attempt("academy/P05-checkpoint-remediation/1", 1, prepared, base, head)
+        predicate = Predicate("finding_remediation_link", "lab_semantics", {"profile": "checkpoint_remediation", "report": ".codearbiter/checkpoints/P05-academy.json"})
+
+        self.assertTrue(_semantic(_SemanticContext(root, attempt, predicate)))
+        receipt_data = json.loads(receipt.read_text(encoding="utf-8"))
+        mutations = {
+            "extra-field": {**receipt_data, "proof": "synthetic"},
+            "missing-red": {key: value for key, value in receipt_data.items() if key != "red_commit"},
+            "wrong-status": {**receipt_data, "status": "open"},
+            "same-role-commit": {**receipt_data, "red_commit": finding},
+            "disjoint-paths": {**receipt_data, "affected_paths": ["README.md", "docs/proof.md"]},
+        }
+        for label, forged_receipt in mutations.items():
+            with self.subTest(label=label):
+                subprocess.run(["git", "reset", "--hard", remediation], cwd=root, check=True, capture_output=True)
+                receipt.parent.mkdir(parents=True)
+                receipt.write_bytes(
+                    json.dumps(forged_receipt, sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n"
+                )
+                subprocess.run(["git", "add", ".codearbiter/checkpoints/P05-academy.json"], cwd=root, check=True)
+                subprocess.run(["git", "commit", "-m", f"forge {label}"], cwd=root, check=True, capture_output=True)
+                forged_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+                self.assertFalse(_semantic(_SemanticContext(root, _Attempt(attempt.branch, 1, prepared, base, forged_head), predicate)))
+
+    def test_p05_finding_parser_rejects_terminal_claims_and_private_data(self):
+        """A P05 finding is reviewed evidence, never a captured host session."""
+        valid = (
+            "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+            "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+            "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+        )
+        self.assertTrue(_p05_finding_is_exact(valid))
+        for label, forged in {
+            "host-command": valid + "$ca-checkpoint\n",
+            "terminal-output": valid + "PS C:\\repo> arbiter-academy check P05\n",
+            "email": valid + "owner@example.com\n",
+            "absolute-path": valid + "C:\\Users\\learner\\secret.txt\n",
+            "token": valid + ("gh" + "p_" + "abcdefghijklmnopqrstuvwxyz1234567890\n"),
+            "extra-section": valid + "## Raw output\nnot evidence\n",
+        }.items():
+            with self.subTest(label=label):
+                self.assertFalse(_p05_finding_is_exact(forged))
+
+    def test_p05_red_parser_rejects_comment_only_regression_bypass(self):
+        text = '''import json
+class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))
+        tickets[0]["id"] = "RQ-105"
+        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")
+        claim_result = self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        block_result = self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        report = self.run_cli("report", "--format", "json")
+        parsed = json.loads(report.stdout)
+        self.assertEqual(parsed["blocked"], 1)
+        self.assertEqual(parsed["unresolved"], 1)
+
+if __name__ == "__main__":
+    pass
+'''
+        source = text.encode("utf-8")
+        self.assertTrue(_p05_red_regression_is_exact(source))
+        start = text.index("    def test_report_json_counts_blocked_ticket_as_unresolved")
+        end = text.index("\n\nif __name__", start)
+        forged = '''    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        """self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")
+        self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")
+        self.run_cli(\"report\", \"--format\", \"json\")
+        [\"blocked\"], 1; [\"unresolved\"], 1
+        """
+        pass'''
+        self.assertFalse(_p05_red_regression_is_exact((text[:start] + forged + text[end:]).encode("utf-8")))
+
+    def test_p05_red_parser_rejects_missing_fixture_setup(self):
+        text = '''import json
+class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))
+        tickets[0]["id"] = "RQ-105"
+        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")
+        claim_result = self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        block_result = self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        report = self.run_cli("report", "--format", "json")
+        parsed = json.loads(report.stdout)
+        self.assertEqual(parsed["blocked"], 1)
+        self.assertEqual(parsed["unresolved"], 1)
+'''
+        self.assertTrue(_p05_red_regression_is_exact(text.encode("utf-8")))
+        missing_setup = text.replace(
+            '        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))\n'
+            '        tickets[0]["id"] = "RQ-105"\n'
+            '        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")\n',
+            "",
+        )
+        self.assertFalse(_p05_red_regression_is_exact(missing_setup.encode("utf-8")))
+
+    def test_p05_red_parser_rejects_noop_commands_and_constant_assertions(self):
+        """Calls alone are not evidence unless report data reaches both assertions."""
+        text = '''class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        self.run_cli("report", "--format", "json")
+        ("blocked", "unresolved")
+        self.assertEqual(1, 1)
+        self.assertEqual(1, 1)
+'''
+        self.assertFalse(_p05_red_regression_is_exact(text.encode("utf-8")))
 
     def test_p01_spec_and_plan_reject_ambiguous_approval_and_scope_creep_variants(self):
         """Catches a P01 verifier that merely token-matches native feature artifacts."""
@@ -135,7 +348,7 @@ class CheckpointTests(unittest.TestCase):
         """Catches a P01 proof that accepts a regression already green before the repair."""
         source = Path(__file__).resolve().parents[1]
         fixture = (source / "academy/scenarios/P01-feature-through-plan/files/p01-unresolved-tickets.json").read_bytes()
-        cli = (source / "workshop_queue/cli.py").read_bytes()
+        cli = (source / "academy/scenarios/P01-feature-through-plan/files/p01-cli-pre-repair.py").read_bytes()
         prepared, intended = _p01_fixture_models(fixture)
         expected = {"open": 1, "claimed": 1, "completed": 1, "unresolved": 2}
         self.assertEqual(prepared, {"open": 1, "claimed": 1, "completed": 1})
@@ -251,7 +464,12 @@ class CheckpointTests(unittest.TestCase):
     def test_p01_repair_must_follow_the_status_count_comprehension(self):
         """Catches a syntactically exact assignment placed after JSON output or return."""
         source = Path(__file__).resolve().parents[1]
-        prepared = (source / "workshop_queue/cli.py").read_bytes()
+        overlay = source / "academy/scenarios/P01-feature-through-plan/files/p01-cli-pre-repair.py"
+        prepared = overlay.read_bytes()
+        self.assertEqual(
+            subprocess.run(["git", "hash-object", str(overlay)], cwd=source, check=True, capture_output=True, text=True).stdout.strip(),
+            subprocess.run(["git", "rev-parse", "b0dc9e5:workshop_queue/cli.py"], cwd=source, check=True, capture_output=True, text=True).stdout.strip(),
+        )
         assignment = (
             b"    counts['unresolved'] = (\n"
             b"        counts[TicketStatus.OPEN.value]\n"

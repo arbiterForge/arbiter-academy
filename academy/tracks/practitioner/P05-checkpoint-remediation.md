@@ -33,7 +33,8 @@ arbiter-academy --repository $learnerRepository prepare P05-checkpoint-remediati
 ```
 
 Confirm the fixture can create and persist a blocked ticket independently of summary rendering.
-The defect is the unresolved count, not a renamed status string.
+The defect is the unresolved count, not a renamed status string. The prepared fixture proves a
+persisted blocked ticket before it stages that summary defect.
 
 ## Use your host
 
@@ -71,14 +72,28 @@ Exercise the real model/store/service path to show that a blocked ticket exists 
 the unresolved summary count. Run the checkpoint or review surface and inspect the resulting finding.
 Commit the finding state so it identifies the real affected product/test boundary.
 
-In a later commit, add an executable regression that constructs the real blocked ticket and expects
-it in the unresolved count. Observe the meaningful RED result before repairing production code.
-Make the smallest summary repair, run focused and full verification, and commit the GREEN result.
+In a later **test-only RED** commit, add an executable regression that constructs the real blocked
+ticket and expects it in the unresolved count. Observe the meaningful RED result before repairing
+production code. In the next **code-only GREEN** commit, make the smallest summary repair and retain
+the RED test unchanged.
 
-Write `.codearbiter/checkpoints/P05-academy.json` last. Record the exact earlier finding commit,
-later remediation commit, affected repository-relative paths, and `remediated` status. Derive paths
-from both Git diffs; the sets must have a nonempty intersection and every referenced path must have
-changed in this attempt. Do not substitute copied terminal output or a JSON-only invented finding.
+Write `.codearbiter/checkpoints/P05-academy.json` as the receipt last. It has
+`schema_version`, `finding_id`, `finding_commit`, `red_commit`, `remediation_commit`,
+`affected_paths`, and `status`. Its affected paths are the test-only RED and code-only GREEN
+roles, not an artificial shared-file edit. Do not substitute copied terminal output or a JSON-only
+invented finding; host commands are guidance, not evidence that either command was invoked.
+
+Use this exact compact finding grammar in `.codearbiter/reports/academy/P05-finding.md`:
+
+```markdown
+# P05 Finding: blocked tickets omitted from unresolved summary
+
+Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.
+Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.
+```
+
+It deliberately records only the reviewed defect and product/test boundary. Do not add host commands,
+raw terminal output, email addresses, absolute paths, tokens, or additional sections.
 
 ## Hints
 

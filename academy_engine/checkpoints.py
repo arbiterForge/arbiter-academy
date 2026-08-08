@@ -30,6 +30,7 @@ from academy_engine.exercise_state import (
     validate_p08_checkpoint,
 )
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
+from academy_engine.p05_fixture import validate_p05_fixture
 
 LAB_INVENTORY = (
     "F01-fork-clone-doctor",
@@ -639,7 +640,271 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
             branch=attempt.branch,
             attempt_number=attempt.number,
         )
+    if contract.id == "P05-checkpoint-remediation":
+        return validate_p05_fixture(root, attempt.prepared)
     return True
+
+
+def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
+    if run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout:
+        return False
+    if not validate_p05_fixture(root, attempt.prepared):
+        return False
+    raw = _git_blob(root, attempt.head, report_path)
+    if raw is None or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n"):
+        return False
+    try:
+        report = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    required = {"affected_paths", "finding_commit", "finding_id", "red_commit", "remediation_commit", "schema_version", "status"}
+    if (
+        canonical_json(report) + b"\n" != raw
+        or not isinstance(report, dict)
+        or set(report) != required
+        or not _version(report["schema_version"], 2)
+        or report["finding_id"] != "ACADEMY-P05-BLOCKED-UNRESOLVED"
+        or report["status"] != "remediated"
+        or report["affected_paths"] != ["tests/test_cli.py", "workshop_queue/cli.py"]
+    ):
+        return False
+    finding, red, remediation = report["finding_commit"], report["red_commit"], report["remediation_commit"]
+    if not all(isinstance(value, str) and _SHA40.fullmatch(value) for value in (finding, red, remediation)):
+        return False
+    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
+    if commits != (finding, red, remediation, attempt.head):
+        return False
+    parent = attempt.prepared
+    for commit in commits:
+        if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
+            return False
+        parent = commit
+    if tuple(_commit_paths(root, commit) for commit in commits) != (
+        (".codearbiter/reports/academy/P05-finding.md",),
+        ("tests/test_cli.py",),
+        ("workshop_queue/cli.py",),
+        (report_path,),
+    ):
+        return False
+    finding_blob = _text(root, finding, ".codearbiter/reports/academy/P05-finding.md")
+    if not _p05_finding_is_exact(finding_blob):
+        return False
+    prepared_test, red_test, head_test = (
+        _git_blob(root, attempt.prepared, "tests/test_cli.py"),
+        _git_blob(root, red, "tests/test_cli.py"),
+        _git_blob(root, attempt.head, "tests/test_cli.py"),
+    )
+    if prepared_test is None or red_test is None or head_test != red_test:
+        return False
+    try:
+        ast.parse(red_test.decode("utf-8"), filename="tests/test_cli.py")
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    if b"test_report_json_counts_blocked_ticket_as_unresolved" in prepared_test or not _p05_red_regression_is_exact(red_test):
+        return False
+    prepared_cli = _git_blob(root, attempt.prepared, "workshop_queue/cli.py")
+    remediation_cli = _git_blob(root, remediation, "workshop_queue/cli.py")
+    defect = b"sum(ticket.status in {TicketStatus.OPEN, TicketStatus.CLAIMED} for ticket in tickets)"
+    correct = b"sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets)"
+    return bool(prepared_cli and remediation_cli and defect in prepared_cli and correct in remediation_cli and remediation_cli.replace(correct, defect) == prepared_cli)
+
+
+_P05_FINDING = (
+    "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+    "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+    "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+)
+
+
+def _p05_finding_is_exact(text: str | None) -> bool:
+    """Accept only the short, reviewable P05 finding grammar.
+
+    The canonical sentence form intentionally has no command/output/identity field in
+    which a learner could smuggle host transcripts, absolute paths, or credentials.
+    """
+    return text == _P05_FINDING
+
+
+def _p05_red_regression_is_exact(raw: bytes) -> bool:
+    """Inspect the named committed regression without running learner code."""
+    try:
+        text = raw.decode("utf-8")
+        tree = ast.parse(text, filename="tests/test_cli.py")
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    owner = next((node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"), None)
+    if owner is None:
+        return False
+    method = next((node for node in owner.body if isinstance(node, ast.FunctionDef) and node.name == "test_report_json_counts_blocked_ticket_as_unresolved"), None)
+    if method is None:
+        return False
+
+    body = tuple(method.body)
+
+    def self_run_cli(node: ast.AST, command: tuple[str, ...]) -> bool:
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "self"
+            and node.func.attr == "run_cli"
+            and not node.keywords
+            and len(node.args) == len(command)
+            and tuple(argument.value for argument in node.args if isinstance(argument, ast.Constant) and isinstance(argument.value, str)) == command
+        )
+
+    assignments = {
+        statement.targets[0].id: statement.value
+        for statement in body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+    }
+
+    def setup_precedes(command_indexes: tuple[int, ...]) -> bool:
+        if not command_indexes:
+            return False
+
+        def fixture_read(statement: ast.stmt) -> bool:
+            if not isinstance(statement, ast.Assign) or not isinstance(statement.value, ast.Call):
+                return False
+            load = statement.value
+            if not (
+                len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and statement.targets[0].id == "tickets"
+                and isinstance(load.func, ast.Attribute)
+                and isinstance(load.func.value, ast.Name)
+                and load.func.value.id == "json"
+                and load.func.attr == "loads"
+                and len(load.args) == 1
+            ):
+                return False
+            read = load.args[0]
+            return (
+                isinstance(read, ast.Call)
+                and isinstance(read.func, ast.Attribute)
+                and isinstance(read.func.value, ast.Attribute)
+                and isinstance(read.func.value.value, ast.Name)
+                and read.func.value.value.id == "self"
+                and read.func.value.attr == "fixture"
+                and read.func.attr == "read_text"
+                and not read.args
+                and len(read.keywords) == 1
+                and read.keywords[0].arg == "encoding"
+                and isinstance(read.keywords[0].value, ast.Constant)
+                and read.keywords[0].value.value == "utf-8"
+            )
+
+        def ticket_id(statement: ast.stmt) -> bool:
+            target = statement.targets[0] if isinstance(statement, ast.Assign) and len(statement.targets) == 1 else None
+            return (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value == "id"
+                and isinstance(target.value, ast.Subscript)
+                and isinstance(target.value.value, ast.Name)
+                and target.value.value.id == "tickets"
+                and isinstance(target.value.slice, ast.Constant)
+                and target.value.slice.value == 0
+                and isinstance(statement.value, ast.Constant)
+                and statement.value.value == "RQ-105"
+            )
+
+        def fixture_write(statement: ast.stmt) -> bool:
+            if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+                return False
+            write = statement.value
+            if not (
+                isinstance(write.func, ast.Attribute)
+                and isinstance(write.func.value, ast.Attribute)
+                and isinstance(write.func.value.value, ast.Name)
+                and write.func.value.value.id == "self"
+                and write.func.value.attr == "fixture"
+                and write.func.attr == "write_text"
+                and len(write.args) == 1
+                and len(write.keywords) == 1
+                and write.keywords[0].arg == "encoding"
+                and isinstance(write.keywords[0].value, ast.Constant)
+                and write.keywords[0].value.value == "utf-8"
+            ):
+                return False
+            dump = write.args[0]
+            return (
+                isinstance(dump, ast.Call)
+                and isinstance(dump.func, ast.Attribute)
+                and isinstance(dump.func.value, ast.Name)
+                and dump.func.value.id == "json"
+                and dump.func.attr == "dumps"
+                and len(dump.args) == 1
+                and isinstance(dump.args[0], ast.Name)
+                and dump.args[0].id == "tickets"
+                and not dump.keywords
+            )
+
+        setup = (
+            tuple(index for index, statement in enumerate(body) if fixture_read(statement)),
+            tuple(index for index, statement in enumerate(body) if ticket_id(statement)),
+            tuple(index for index, statement in enumerate(body) if fixture_write(statement)),
+        )
+        return all(indexes for indexes in setup) and max(indexes[0] for indexes in setup) < min(command_indexes)
+
+    expected = {
+        "claim_result": ("claim", "RQ-105", "--volunteer", "Sam"),
+        "block_result": ("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance"),
+        "report": ("report", "--format", "json"),
+    }
+    if not all(self_run_cli(assignments.get(name), command) for name, command in expected.items()):
+        return False
+    command_indexes = tuple(
+        index
+        for index, statement in enumerate(body)
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id in expected
+    )
+    if not setup_precedes(command_indexes):
+        return False
+
+    def is_report_parse(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "json"
+            and node.func.attr == "loads"
+            and len(node.args) == 1
+            and not node.keywords
+            and isinstance(node.args[0], ast.Attribute)
+            and isinstance(node.args[0].value, ast.Name)
+            and node.args[0].value.id == "report"
+            and node.args[0].attr == "stdout"
+        )
+
+    parsed = {name for name, value in assignments.items() if is_report_parse(value)}
+    if not parsed:
+        return False
+
+    def asserted_count(statement: ast.stmt, key: str) -> bool:
+        return (
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Attribute)
+            and isinstance(statement.value.func.value, ast.Name)
+            and statement.value.func.value.id == "self"
+            and statement.value.func.attr == "assertEqual"
+            and len(statement.value.args) >= 2
+            and isinstance(statement.value.args[0], ast.Subscript)
+            and isinstance(statement.value.args[0].value, ast.Name)
+            and statement.value.args[0].value.id in parsed
+            and isinstance(statement.value.args[0].slice, ast.Constant)
+            and statement.value.args[0].slice.value == key
+            and isinstance(statement.value.args[1], ast.Constant)
+            and statement.value.args[1].value == 1
+        )
+
+    return all(any(asserted_count(statement, key) for statement in body) for key in ("blocked", "unresolved"))
 
 
 def _headings(text: str | None, required: tuple[str, ...]) -> bool:
@@ -1970,62 +2235,7 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "dependency_review":
         return _p04_dependency_review(root, attempt, str(data["review"]), str(data["project"]))
     if profile == "checkpoint_remediation":
-        report = _json(root, attempt.head, str(data["report"]))
-        if not report or not _changed(root, attempt.prepared, attempt.head, str(data["report"])):
-            return False
-        required = {"schema_version", "finding_id", "finding_commit", "remediation_commit", "paths", "status"}
-        if (
-            set(report) != required
-            or not _version(report["schema_version"], 1)
-            or report["status"] != "remediated"
-        ):
-            return False
-        finding, remediation = report["finding_commit"], report["remediation_commit"]
-        paths = report["paths"]
-        if (
-            not isinstance(finding, str)
-            or not _SHA40.fullmatch(finding)
-            or not isinstance(remediation, str)
-            or not _SHA40.fullmatch(remediation)
-            or not isinstance(report["finding_id"], str)
-            or not isinstance(paths, list)
-            or len(paths) < 2
-        ):
-            return False
-        try:
-            safe_paths = [_safe_path(path, "path") for path in paths]
-        except CheckpointError:
-            return False
-        if len(set(safe_paths)) != len(safe_paths):
-            return False
-        finding_paths = set(
-            run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", finding],
-                check=False,
-            ).stdout.splitlines()
-        )
-        remediation_paths = set(
-            run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", remediation],
-                check=False,
-            ).stdout.splitlines()
-        )
-        return bool(
-            all(
-                _changed(root, attempt.prepared, attempt.head, path)
-                for path in safe_paths
-            )
-            and set(safe_paths).issubset(finding_paths | remediation_paths)
-            and finding_paths
-            and remediation_paths
-            and bool(finding_paths & remediation_paths)
-            and finding != remediation
-            and finding != attempt.prepared
-            and remediation != attempt.head
-            and run_git(root, ["merge-base", "--is-ancestor", attempt.prepared, str(finding)], check=False).returncode == 0
-            and run_git(root, ["merge-base", "--is-ancestor", str(finding), str(remediation)], check=False).returncode == 0
-            and run_git(root, ["merge-base", "--is-ancestor", str(remediation), attempt.head], check=False).returncode == 0
-        )
+        return _p05_remediation(root, attempt, str(data["report"]))
     if profile == "provenance_recovery":
         context_path, handoff_path = str(data["context"]), str(data["handoff"])
         handoff = _json(root, attempt.head, handoff_path)
