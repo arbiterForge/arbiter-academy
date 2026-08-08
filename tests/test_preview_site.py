@@ -63,7 +63,7 @@ class PreviewSiteTests(unittest.TestCase):
         actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
         self.assertEqual(actual_links, expected_links)
         self.assertEqual(
-            re.findall(r"<li>(P0[5-7]) \u2014 in verification</li>", index),
+            re.findall(r"<li>([^<]+) \u2014 in verification</li>", index),
             ["P05", "P06", "P07"],
         )
         for future_lab in (
