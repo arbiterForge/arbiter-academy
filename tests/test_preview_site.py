@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -10,6 +11,11 @@ from unittest.mock import patch
 
 import scripts.build_preview_site as preview_site
 from scripts.build_preview_site import build_preview_site
+
+
+def build_and_list_html(root: Path, out: Path) -> list[Path]:
+    build_preview_site(root, out, release_sha="1" * 40)
+    return sorted(out.rglob("*.html"))
 
 
 class PreviewSiteTests(unittest.TestCase):
@@ -131,6 +137,49 @@ class PreviewSiteTests(unittest.TestCase):
         (self.out / "unreviewed.html").write_text("stale", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "unexpected generated path"):
             build_preview_site(self.root, self.out, release_sha="e" * 40)
+
+    def test_every_generated_page_has_landmarks_skip_link_and_single_h1(self) -> None:
+        """Catches a generated page that keyboard or screen-reader users cannot orient within."""
+        pages = build_and_list_html(self.root, self.out)
+
+        for page in pages:
+            with self.subTest(page=page.relative_to(self.out)):
+                html = page.read_text(encoding="utf-8")
+                self.assertEqual(html.count("<h1"), 1)
+                self.assertIn('href="#main-content"', html)
+                self.assertIn('<header class="site-header">', html)
+                self.assertIn('<nav aria-label="Primary">', html)
+                self.assertIn('<main id="main-content"', html)
+                self.assertIn('<footer class="site-footer">', html)
+
+    def test_generated_site_uses_only_local_assets(self) -> None:
+        """Catches a runtime third-party request or drift from the reviewed local font bytes."""
+        pages = build_and_list_html(self.root, self.out)
+        for page in pages:
+            html = page.read_text(encoding="utf-8")
+            self.assertNotRegex(
+                html,
+                r'(?:src|href)=["\']https?://[^"\']+\.(?:css|js|woff2?)["\']',
+            )
+
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertIn('href="/assets/academy.css"', index)
+
+        asset_root = self.root / "site" / "assets"
+        stylesheet = asset_root / "academy.css"
+        self.assertTrue(stylesheet.is_file())
+        css = stylesheet.read_text(encoding="utf-8")
+        self.assertNotRegex(css, r"url\(\s*[\"']?https?://")
+
+        expected_font_hashes = {
+            "manrope-latin-wght-normal.woff2": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
+            "jetbrains-mono-latin-wght-normal.woff2": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e",
+        }
+        for filename, expected_hash in expected_font_hashes.items():
+            with self.subTest(font=filename):
+                font = asset_root / "fonts" / filename
+                self.assertTrue(font.is_file())
+                self.assertEqual(hashlib.sha256(font.read_bytes()).hexdigest(), expected_hash)
 
     def _copy_public_source(self) -> Path:
         source = Path(self.temporary_directory.name) / "source"

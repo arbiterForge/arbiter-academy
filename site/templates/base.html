@@ -4,10 +4,39 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>$title</title>
+  <link rel="stylesheet" href="/assets/academy.css">
 </head>
 <body>
-  <main>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-mark" href="/" aria-label="Arbiter Academy home">
+        <span class="site-mark__sigil" aria-hidden="true">A</span>
+        <span>Arbiter Academy</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="/">Labs</a>
+        <a href="/recovery/">Recovery</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main-content" tabindex="-1">
+    <div class="page-shell">
+      <div class="status-badge status-badge--preview" role="status">
+        <span aria-hidden="true"></span>
+        Preview 0.1
+      </div>
 $body
+    </div>
   </main>
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <p>Arbiter Academy</p>
+      <p class="status-badge status-badge--positive">
+        <span aria-hidden="true"></span>
+        Reviewed public inventory
+      </p>
+    </div>
+  </footer>
 </body>
 </html>
