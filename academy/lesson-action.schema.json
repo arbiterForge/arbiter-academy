@@ -88,7 +88,7 @@
         "surface": {
           "oneOf": [
             {"type": "null"},
-            {"enum": ["browser", "native-terminal", "harness", "academy-console"]}
+            {"enum": ["browser", "native-terminal", "harness", "academy-console", "active-harness"]}
           ]
         },
         "instruction": {"$ref": "#/$defs/prose"},
@@ -110,7 +110,7 @@
       "oneOf": [
         {
           "properties": {
-            "surface": {"enum": ["browser", "native-terminal", "academy-console"]},
+            "surface": {"enum": ["browser", "native-terminal", "academy-console", "active-harness"]},
             "variants": {"maxItems": 0}
           }
         },

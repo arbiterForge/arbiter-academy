@@ -968,7 +968,7 @@
       "sequence": 11,
       "title": "Review and approve the proposed boundary",
       "actor": "learner",
-      "surface": "native-terminal",
+      "surface": "active-harness",
       "instruction": "Ask your agent to show the staged path and proposed CodeArbiter commit boundary. Confirm that only the F01 Doctor report is included, then supply any genuine approval the commit gate requests.",
       "rationale": "The learner approves what will become durable evidence; the agent owns the governed commit operation.",
       "resources": [],

@@ -12,7 +12,12 @@ from academy_engine.paths import ensure_within
 
 
 ACTORS = frozenset({"learner", "academy", "agent"})
-SURFACES = frozenset({"browser", "native-terminal", "harness", "academy-console"})
+VARIANT_SURFACES = frozenset(
+    {"browser", "native-terminal", "harness", "academy-console"}
+)
+ACTION_SURFACES = frozenset(
+    {"browser", "native-terminal", "academy-console", "active-harness"}
+)
 OPERATING_SYSTEMS = frozenset({"all", "windows", "macos", "linux"})
 HOSTS = frozenset({"none", "claude-code", "codex", "pi"})
 LANGUAGES = frozenset({"none", "powershell", "sh", "text", "codearbiter"})
@@ -234,7 +239,9 @@ def _validate_execution_identity(
 def _validate_variant(value: object) -> CommandVariant:
     variant = _require_exact_keys(value, _VARIANT_KEYS, "command variant")
     variant_id = _require_safe_id(variant["id"], "command variant id")
-    surface = _require_enum(variant["surface"], SURFACES, "command variant surface")
+    surface = _require_enum(
+        variant["surface"], VARIANT_SURFACES, "command variant surface"
+    )
     operating_system = _require_enum(
         variant["operating_system"], OPERATING_SYSTEMS, "command variant operating_system"
     )
@@ -295,11 +302,14 @@ def _validate_action(value: object) -> LessonAction:
     else:
         if surface_value is None:
             raise ValueError("non-command actions require one action-level surface")
-        surface = _require_enum(surface_value, SURFACES, "lesson action surface")
-        if surface == "harness":
+        if surface_value == "harness":
             raise ValueError(
-                "non-command actions cannot use harness; use a command variant with a named host"
+                "non-command actions cannot use harness; use active-harness for a "
+                "learner action in the already selected CodeArbiter host"
             )
+        surface = _require_enum(
+            surface_value, ACTION_SURFACES, "lesson action surface"
+        )
 
     return LessonAction(
         action_id,

@@ -1218,6 +1218,7 @@ class PreviewSiteTests(unittest.TestCase):
             "browser": "You \u00b7 Browser \u00b7 All operating systems",
             "native-terminal": "You \u00b7 Native terminal \u00b7 All operating systems",
             "academy-console": "You \u00b7 Academy console \u00b7 All operating systems",
+            "active-harness": "You \u00b7 Active CodeArbiter harness \u00b7 All operating systems",
         }
         for surface, label in expected_labels.items():
             with self.subTest(surface=surface):
@@ -1299,6 +1300,24 @@ class PreviewSiteTests(unittest.TestCase):
                 },
                 expected_document_id="home",
             )
+
+    def test_f01_review_boundary_renders_the_active_harness_without_a_command(self) -> None:
+        manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
+        action = next(
+            action
+            for action in manifest.actions
+            if action.id == "F01-review-commit-boundary"
+        )
+
+        rendered = preview_site._render_action(action)
+
+        self.assertIn(
+            "You \u00b7 Active CodeArbiter harness \u00b7 All operating systems",
+            rendered,
+        )
+        self.assertNotIn("Native terminal", rendered)
+        self.assertNotIn("command-variant", rendered)
+        self.assertNotIn("<pre>", rendered)
 
     def test_home_and_recovery_activate_only_with_complete_guide_action_pairs(self) -> None:
         """Catches partial or malformed guide publication and verifies real pair rendering."""

@@ -73,6 +73,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertFalse(any(variant.command.startswith("!") for variant in commit.variants))
         self.assertEqual(by_id["F01-stage-report"].actor, "learner")
         self.assertEqual(by_id["F01-review-commit-boundary"].actor, "learner")
+        self.assertEqual(by_id["F01-review-commit-boundary"].surface, "active-harness")
         self.assertFalse(by_id["F01-review-commit-boundary"].variants)
 
     def test_checked_in_f01_shell_variants_name_surface_and_passthrough_exactly(self) -> None:
@@ -308,7 +309,30 @@ class LessonActionTests(unittest.TestCase):
         non_command_surfaces = schema["$defs"]["action"]["oneOf"][0]["properties"][  # type: ignore[index]
             "surface"
         ]["enum"]
-        self.assertEqual(non_command_surfaces, ["browser", "native-terminal", "academy-console"])
+        self.assertEqual(
+            non_command_surfaces,
+            ["browser", "native-terminal", "academy-console", "active-harness"],
+        )
+
+    def test_active_harness_is_closed_to_non_command_review_actions(self) -> None:
+        action = self.non_command_action()
+        action["surface"] = "active-harness"
+        schema = self.schema()
+
+        result = validate_action_manifest(
+            self.manifest(action), expected_document_id=DOCUMENT_ID
+        )
+
+        self.assertEqual(result.actions[0].surface, "active-harness")
+        self.assertNotIn(
+            "active-harness", schema["$defs"]["variant"]["properties"]["surface"]["enum"]
+        )
+        action["variants"] = [self.command_action()["variants"][0]]
+        action["surface"] = None
+        action["id"] = "active-harness-command"
+        action["variants"][0]["surface"] = "active-harness"  # type: ignore[index]
+        with self.assertRaisesRegex(ValueError, "allowed"):
+            validate_action_manifest(self.manifest(action), expected_document_id=DOCUMENT_ID)
 
     def test_rejects_unknown_or_missing_keys_at_every_level(self) -> None:
         cases: list[tuple[str, dict[str, object]]] = []

@@ -440,6 +440,7 @@ def _execution_label(action: LessonAction, *, surface: str, host: str, operating
             "browser": "Browser",
             "native-terminal": "Native terminal",
             "academy-console": "Academy console",
+            "active-harness": "Active CodeArbiter harness",
         }[surface]
     os_label = {
         "all": "All operating systems",
