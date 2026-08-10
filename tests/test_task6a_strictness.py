@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import shutil
@@ -18,6 +19,7 @@ from academy_engine.checkpoints import (
     _semantic,
 )
 from academy_engine.exercise_state import open_p08_store, preflight_p08, prepare_p08
+from tests._temporary import RetryingTemporaryDirectory
 
 
 def git(root: Path, *arguments: str, check: bool = True) -> str:
@@ -31,9 +33,29 @@ def git(root: Path, *arguments: str, check: bool = True) -> str:
     return result.stdout.strip()
 
 
+class SemanticStrictnessFixtureCleanupTests(unittest.TestCase):
+    def test_real_repository_fixture_retries_transient_git_cleanup_races(self) -> None:
+        case = SemanticStrictnessTests(
+            "test_p05_rejects_disjoint_finding_and_remediation_paths"
+        )
+        case.setUp()
+        base_cleanup = tempfile.TemporaryDirectory.cleanup
+        transient = OSError(errno.ENOTEMPTY, "directory not empty")
+        try:
+            with patch.object(
+                tempfile.TemporaryDirectory,
+                "cleanup",
+                side_effect=(transient, None),
+            ) as cleanup:
+                case.doCleanups()
+            self.assertEqual(cleanup.call_count, 2)
+        finally:
+            base_cleanup(case.temporary)
+
+
 class SemanticStrictnessTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = RetryingTemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         git(self.root, "init", "-b", "main")
