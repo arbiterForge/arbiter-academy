@@ -70,6 +70,30 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_f01_renders_the_complete_evidence_and_recovery_contract(self) -> None:
+        manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
+        actions = {action.id: action for action in manifest.actions}
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/foundations/F01-fork-clone-doctor.md"),
+            "F01-fork-clone-doctor",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(document["referenced_actions"], tuple(actions))
+        self.assertIn(".codearbiter/reports/academy/F01-doctor.json", html)
+        self.assertIn("safe_for_push_labs", html)
+        self.assertIn("effective_push_remote", html)
+        self.assertIn("Git prints nothing", html)
+        self.assertIn("externally installed Academy verifier", html)
+        self.assertIn(
+            "checkpoint F01-fork-clone-doctor: passed; progress: .academy/progress.json",
+            html,
+        )
+        self.assertIn("only after the external verifier", html)
+        self.assertIn("preserves the clean committed attempt", html)
+
     def setUp(self) -> None:
         self.root = Path(__file__).parents[1]
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -670,7 +694,7 @@ class PreviewSiteTests(unittest.TestCase):
             (
                 "duplicate",
                 Path("labs/F01-fork-clone-doctor/index.html"),
-                'id="why-this-mechanism-matters"',
+                'id="know-before-you-begin"',
                 'id="main-content"',
                 "duplicate HTML id",
             ),
@@ -969,9 +993,10 @@ class PreviewSiteTests(unittest.TestCase):
         p05 = (self.out / "labs" / "P05-checkpoint-remediation" / "index.html").read_text(encoding="utf-8")
         p06 = (self.out / "labs" / "P06-context-drift-recovery" / "index.html").read_text(encoding="utf-8")
         self.assertIn('<article class="academy-content">', f01)
-        self.assertIn("Why this mechanism matters", f01)
-        self.assertIn('<pre><code class="language-powershell">', f01)
-        self.assertIn("<strong>your fork</strong>", f01)
+        self.assertIn("Know before you begin", f01)
+        self.assertIn('class="language-powershell"', f01)
+        self.assertIn("<strong>fork</strong>", f01)
+        self.assertIn('data-action-id="F01-check"', f01)
         self.assertIn('<nav class="lab-toc" aria-label="On this page">', f01)
         self.assertIn('<div class="table-shell"><table>', p02)
         self.assertIn("Typical time", p02)
@@ -985,7 +1010,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("docs/preserved-note.md", p06)
         p07 = (self.out / "labs" / "P07-threat-model" / "index.html").read_text(encoding="utf-8")
         self.assertIn("P08 is not available in Academy Preview 0.3", p07)
-        self.assertIn("Guided lesson \u00b7 structured rewrite pending", f01)
+        self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', f01)
         for reference_lesson in (p02, p04, p05):
             self.assertIn("Reference lesson \u00b7 guided rewrite pending", reference_lesson)
 

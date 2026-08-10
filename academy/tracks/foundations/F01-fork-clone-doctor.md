@@ -5,130 +5,125 @@ order: 1
 title: Fork, clone, and doctor safety
 outcome: Prove origin is your fork, upstream is the official Academy, and push routing cannot target upstream.
 prerequisites: none
-estimated_minutes: 20
+estimated_minutes: 30
 scenario_command: python scripts/academy.py prepare F01-fork-clone-doctor
 checkpoint_command: arbiter-academy --repository <learner-repository> check F01-fork-clone-doctor
 next_lab: F02-orient-to-state
 ---
 
-# F01 — Fork, clone, and doctor safety
+# F01 — Fork, clone, and Doctor safety
 
-## Why this mechanism matters
+## Know before you begin
 
-Training should be safe to abandon, repeat, and publish in your own fork. Git remote names are not
-cosmetic: `origin` is where an ordinary push goes, while `upstream` is the source you update from.
-This lab makes that routing visible and disables pushes to the official Academy repository. Offline
-checks can prove URL shape and routing; they cannot prove GitHub fork lineage.
+Work only in the `arbiter-academy` fork and clone you prepared from Home. A **fork** is the GitHub
+copy you own. A **clone** is its local working copy. In that clone, `origin` must mean your fork and
+`upstream` must mean the official `arbiterForge/arbiter-academy` repository. You fetch updates from
+upstream, but this lesson makes pushing there fail locally.
 
-## Start the scenario
+Begin on a clean `main`: `clean` means the repository has no staged or unstaged changes. Keep the
+Academy console open for preparation, Doctor, Check, and Reset. Use a **Native terminal** for a
+command you run directly. When a command appears for your Claude Code, Codex, or Pi **harness**, its
+single leading `!` passes that shell command to the terminal. CodeArbiter commands never use `!`.
 
-Fork `arbiterForge/arbiter-academy` on GitHub, clone **your fork**, and enter the clone. Before
-preparation, `origin` must already be a non-official GitHub repository named `arbiter-academy` whose
-push URL resolves to the same owner/repository. `upstream` may still be absent or wrong; fixing and
-verifying it is the exercise.
+## What you will prove
 
-```powershell
-python scripts/academy.py prepare F01-fork-clone-doctor
-```
+You will create one numbered attempt, make push routing safe, pass both Doctors, and commit only the
+bounded Doctor report through CodeArbiter. Then the externally installed Academy verifier will read
+the committed report and current Git configuration before recording progress. It does not trust
+code imported from this learner checkout.
 
-Preparation creates `academy/F01-fork-clone-doctor/1` (or the next unused number) and commits the
-scenario marker. Inspect the real state rather than editing the marker:
+The evidence report must decode to exactly these three values (formatting whitespace may differ):
 
-```powershell
-git remote -v
-git config --get remote.pushDefault
-git branch --show-current
-```
+`{"schema_version":1,"safe_for_push_labs":true,"effective_push_remote":"origin"}`
 
-## Use your host
+## Prepare safely
 
-All host commands require enabled repository state. They inspect the same checkout; they do not
-replace the independent Academy checkpoint.
+{{action:F01-prepare}}
 
-### Claude Code
+The branch printed by Academy has the form `academy/F01-fork-clone-doctor/ATTEMPT_NUMBER`. Here,
+`ATTEMPT_NUMBER` means the number Academy prints, such as `1`; it is not text you type literally.
 
-```text
-/ca:doctor
-```
+{{action:F01-inspect-remotes}}
 
-### Codex
+## Practice
 
-```text
-$ca-doctor
-```
+Repair only the fact each action names, then inspect the result. Do not copy a guessed owner, remove
+a remote to silence a diagnostic, or make the official repository a push destination.
 
-### Pi (Feature Forge preview)
+{{action:F01-repair-origin}}
 
-Pi is the supported Feature Forge preview and requires project trust before project skills load.
-If direct dispatch is unavailable, use the documented `/skill:ca-doctor` fallback.
+{{action:F01-set-upstream}}
 
-```text
-/ca-doctor
-```
+{{action:F01-disable-upstream-push}}
 
-## Do the work
+{{action:F01-select-push-default}}
 
-Reconcile the two remotes from what `git remote -v` actually reports:
+{{action:F01-host-doctor}}
 
-```powershell
-git remote set-url origin https://github.com/<your-owner>/arbiter-academy.git
-git remote add upstream https://github.com/arbiterForge/arbiter-academy.git
-git remote set-url --push upstream DISABLED
-git config remote.pushDefault origin
-```
+{{action:F01-academy-doctor}}
 
-If `upstream` already exists, use `git remote set-url upstream ...` instead of `add`. Re-run the host
-doctor, then ask the Academy doctor to recompute and record its bounded three-field observation:
+Doctor failure forbids the evidence commit. Continue only after Host Doctor passes and Academy
+Doctor creates `.codearbiter/reports/academy/F01-doctor.json` from the live repository state.
 
-```powershell
-python scripts/academy.py doctor F01-fork-clone-doctor
-git add .codearbiter/reports/academy/F01-doctor.json
-git commit -m "academy: record fork-safe doctor result"
-```
+{{action:F01-inspect-report}}
 
-The report contains no remote URL, username, email, credential, local path, or raw terminal output.
-It is learner-controlled input; the external verifier independently reads live Git configuration.
+{{action:F01-stage-report}}
 
-## Hints
+{{action:F01-review-commit-boundary}}
+
+{{action:F01-commit-report}}
+
+{{action:F01-confirm-clean}}
+
+## Recognize success
+
+The Doctor report contains only `schema_version`, `safe_for_push_labs`, and
+`effective_push_remote`. The evidence commit changes only
+`.codearbiter/reports/academy/F01-doctor.json`. Immediately before Check, `git status --short`
+prints nothing. No output is the expected successful result: the attempt is clean.
+
+## Check
+
+{{action:F01-check}}
+
+A pass contains `checkpoint F01-fork-clone-doctor: passed; progress: .academy/progress.json`.
+The progress record is written only after the external verifier independently reads the clean,
+committed report and live Git configuration. A report by itself, a Host Doctor pass, or an Academy
+Doctor pass does not complete the lesson.
+
+## Recover or continue
+
+If Check fails, preserve the clean committed attempt. Read the failed predicate, compare it with the
+matching action's expected result and recovery, and change only that boundary. Check failure never
+requires deleting the evidence commit.
 
 ### Hint 1
 
-Start with the doctor issues and `git remote -v`. Do not change a URL until you can name the mismatch.
+Start with `origin`, `upstream`, and `remote.pushDefault`. Name where each push would go before
+changing it.
 
 ### Hint 2
 
-Compare both fetch and push URLs. `origin` must identify your owner and `arbiter-academy`; every
-`upstream` fetch URL must identify `arbiterForge/arbiter-academy`, and upstream push must be `DISABLED`.
+Both the committed report and the current Git configuration must be safe. Regenerate the report
+after changing a remote.
 
 ### Hint 3
 
-Restore `origin` to your fork, set the official `upstream`, disable upstream push, and make the
-current branch resolve pushes through `origin`; then regenerate the doctor report.
+If an attempt mixes unrelated files into the evidence commit, preserve it and use Reset. A new
+numbered attempt is safer than rewriting evidence history.
 
-## Success evidence
+{{action:F01-return-base}}
 
-On the numbered F01 attempt branch, a learner commit changes
-`.codearbiter/reports/academy/F01-doctor.json` to schema version 1 with
-`safe_for_push_labs: true` and `effective_push_remote: "origin"`. The worktree is clean, and the
-external verifier accepts the report only while the live remote configuration remains safe.
+{{action:F01-reset-retry}}
 
-Run the authoritative check from the externally installed package:
+Continue to F02 only after Check passes. Return to `main` when you want to leave the completed
+attempt untouched. Use Reset only to preserve a failed attempt and prepare the next number.
 
-```powershell
-arbiter-academy --repository <learner-repository> check F01-fork-clone-doctor
-```
+## Understand the mechanism
 
-## Recovery
-
-Return to a clean F01 attempt branch, then preserve it and create a retry:
-
-```powershell
-python scripts/academy.py reset F01-fork-clone-doctor
-```
-
-Reset archives the old ref and prepares a new numbered attempt. Do not delete remotes, erase the old
-branch, force-reset, or force-push to make diagnostics disappear.
-
-## Next lab
-
-Continue to **F02 — Orient to live governance state** after the external checkpoint passes.
+The report is deliberately small and learner-controlled; it records no username, URL, credential,
+email, local path, or terminal transcript. The verifier therefore checks two independent sources:
+the exact report committed on the numbered branch and the live Git configuration at Check time.
+Changing either after Doctor breaks the proof. Keeping preparation, the governed evidence commit,
+clean state, and external verification separate makes the result reconstructable instead of merely
+plausible.

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from academy_engine.catalog import Catalog, load_manifest_file
 from academy_engine.checkpoints import load_contracts
+from academy_engine.lesson_actions import load_action_manifest
 
 
 class CurriculumError(ValueError):
@@ -82,6 +83,16 @@ _REQUIRED_SECTIONS = (
     "Success evidence",
     "Recovery",
     "Next lab",
+)
+_GUIDED_F01_SECTIONS = (
+    "Know before you begin",
+    "What you will prove",
+    "Prepare safely",
+    "Practice",
+    "Recognize success",
+    "Check",
+    "Recover or continue",
+    "Understand the mechanism",
 )
 _HOST_HEADINGS = {
     "Claude Code": "claude-code",
@@ -291,7 +302,9 @@ def _front_matter(text: str, path: Path) -> tuple[dict[str, str], str]:
     return data, "\n".join(lines[end + 1 :]).strip() + "\n"
 
 
-def _sections(body: str, path: Path) -> dict[str, str]:
+def _sections(
+    body: str, path: Path, required_sections: tuple[str, ...] = _REQUIRED_SECTIONS
+) -> dict[str, str]:
     matches = list(re.finditer(r"(?m)^## ([^\n]+)\n", body))
     sections: dict[str, str] = {}
     for index, match in enumerate(matches):
@@ -300,12 +313,12 @@ def _sections(body: str, path: Path) -> dict[str, str]:
             raise CurriculumError(f"{path.name} repeats section {name}.")
         end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
         sections[name] = body[match.end() : end].strip()
-    missing = [name for name in _REQUIRED_SECTIONS if not sections.get(name)]
+    missing = [name for name in required_sections if not sections.get(name)]
     if missing:
         raise CurriculumError(f"{path.name} is missing required section(s): {', '.join(missing)}.")
     empty_visible = [
         name
-        for name in _REQUIRED_SECTIONS
+        for name in required_sections
         if not _has_learner_visible_content(sections[name])
     ]
     if empty_visible:
@@ -343,23 +356,45 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
-    sections = _sections(body, path)
-    hosts = _subsections(sections["Use your host"], path, "host")
-    if set(hosts) != set(_HOST_HEADINGS):
-        raise CurriculumError(f"{path.name} must provide all three canonical host forms.")
-    host_commands = {
-        key: _one_command_block(hosts[heading], heading, path)
-        for heading, key in _HOST_HEADINGS.items()
-    }
-    if any(not line.startswith("/ca:") for line in host_commands["claude-code"].splitlines()):
-        raise CurriculumError(f"{path.name} Claude Code form is invalid.")
-    if any(not line.startswith("$ca-") for line in host_commands["codex"].splitlines()):
-        raise CurriculumError(f"{path.name} Codex form is invalid.")
-    if any(not line.startswith("/ca-") for line in host_commands["pi"].splitlines()) or "/skill:ca-" not in hosts["Pi (Feature Forge preview)"]:
-        raise CurriculumError(f"{path.name} Pi preview form or fallback is invalid.")
-    if "project trust" not in hosts["Pi (Feature Forge preview)"].casefold():
-        raise CurriculumError(f"{path.name} must state Pi's project-trust prerequisite.")
-    hints = _subsections(sections["Hints"], path, "hint")
+    guided_f01 = data["id"] == "F01-fork-clone-doctor"
+    sections = _sections(
+        body, path, _GUIDED_F01_SECTIONS if guided_f01 else _REQUIRED_SECTIONS
+    )
+    if guided_f01:
+        manifest = load_action_manifest(path.parents[3], data["id"])
+        host_action = next(
+            (action for action in manifest.actions if action.id == "F01-host-doctor"),
+            None,
+        )
+        if host_action is None:
+            raise CurriculumError(f"{path.name} is missing the guided Host Doctor action.")
+        host_commands = {
+            host: "\n".join(
+                variant.command for variant in host_action.variants if variant.host == host
+            )
+            for host in ("claude-code", "codex", "pi")
+        }
+        if any(not command for command in host_commands.values()):
+            raise CurriculumError(f"{path.name} must provide all three guided host forms.")
+        hint_source = sections["Recover or continue"]
+    else:
+        hosts = _subsections(sections["Use your host"], path, "host")
+        if set(hosts) != set(_HOST_HEADINGS):
+            raise CurriculumError(f"{path.name} must provide all three canonical host forms.")
+        host_commands = {
+            key: _one_command_block(hosts[heading], heading, path)
+            for heading, key in _HOST_HEADINGS.items()
+        }
+        if any(not line.startswith("/ca:") for line in host_commands["claude-code"].splitlines()):
+            raise CurriculumError(f"{path.name} Claude Code form is invalid.")
+        if any(not line.startswith("$ca-") for line in host_commands["codex"].splitlines()):
+            raise CurriculumError(f"{path.name} Codex form is invalid.")
+        if any(not line.startswith("/ca-") for line in host_commands["pi"].splitlines()) or "/skill:ca-" not in hosts["Pi (Feature Forge preview)"]:
+            raise CurriculumError(f"{path.name} Pi preview form or fallback is invalid.")
+        if "project trust" not in hosts["Pi (Feature Forge preview)"].casefold():
+            raise CurriculumError(f"{path.name} must state Pi's project-trust prerequisite.")
+        hint_source = sections["Hints"]
+    hints = _subsections(hint_source, path, "hint")
     expected_hints = {"Hint 1", "Hint 2", "Hint 3"}
     if set(hints) != expected_hints:
         raise CurriculumError(f"{path.name} must provide exactly three progressive hints.")
@@ -392,8 +427,8 @@ def _parse_lab(path: Path) -> CurriculumLab:
         data["checkpoint_command"],
         host_commands,
         tuple(hints[f"Hint {index}"] for index in range(1, 4)),
-        sections["Success evidence"],
-        sections["Recovery"],
+        sections["Recognize success"] if guided_f01 else sections["Success evidence"],
+        sections["Recover or continue"] if guided_f01 else sections["Recovery"],
         data["next_lab"],
     )
 

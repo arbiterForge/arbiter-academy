@@ -2836,14 +2836,29 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile in _REMOTE_PROFILES and not _remote_safe(root):
         return False
     if profile == "remote_doctor":
-        artifact = _json(root, attempt.head, str(data["artifact"]))
+        artifact_path = str(data["artifact"])
+        artifact = _json(root, attempt.head, artifact_path)
         clean = not run_git(
             root, ["status", "--porcelain", "--untracked-files=all"], check=False
         ).stdout
+        learner_commits = tuple(
+            line
+            for line in run_git(
+                root,
+                ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
+                check=False,
+            ).stdout.splitlines()
+            if _SHA40.fullmatch(line)
+        )
+        exact_commit_boundary = bool(
+            learner_commits == (attempt.head,)
+            and _commit_paths(root, attempt.head) == (artifact_path,)
+        )
         return bool(
             artifact
             and clean
-            and _changed(root, attempt.prepared, attempt.head, str(data["artifact"]))
+            and exact_commit_boundary
+            and _changed(root, attempt.prepared, attempt.head, artifact_path)
             and set(artifact) == {"schema_version", "safe_for_push_labs", "effective_push_remote"}
             and _version(artifact["schema_version"], 1)
             and artifact == {

@@ -1,0 +1,1326 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "F01-fork-clone-doctor",
+  "actions": [
+    {
+      "id": "F01-prepare",
+      "sequence": 1,
+      "title": "Prepare a numbered attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In the Academy console, select F01 and choose Prepare. Begin only from a clean main branch. The <attempt> shown in later branch names means the number Academy prints; do not type the angle-bracket placeholder.",
+      "rationale": "Preparation creates and switches to an isolated numbered branch while preserving main.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Select F01-fork-clone-doctor, then choose Prepare.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Academy prints a prepared branch named academy/F01-fork-clone-doctor/<attempt> and switches the repository to it.",
+      "recovery": "If Prepare stops, preserve its message. Return to Recovery for the matching dirty-worktree, wrong-branch, remote, or existing-attempt path before retrying.",
+      "evidence": "The prepared branch is the only place where this lesson evidence may be committed."
+    },
+    {
+      "id": "F01-inspect-remotes",
+      "sequence": 2,
+      "title": "Inspect fetch and push routing",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface. Read every fetch and push line before changing a remote.",
+      "rationale": "Inspection distinguishes the fork you own from the official repository you only fetch from.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "inspect-remotes-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        },
+        {
+          "id": "inspect-remotes-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote -v",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git prints the current fetch and push URLs for origin and any upstream remote.",
+      "recovery": "If Git reports that this is not a repository, stop and return to the cloned arbiter-academy root. If a remote is absent, continue with the repair actions; do not invent a URL.",
+      "evidence": "You can name which repository each remote reaches and whether it is used for fetch or push."
+    },
+    {
+      "id": "F01-repair-origin",
+      "sequence": 3,
+      "title": "Point origin at your fork",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Replace <your-account> with the GitHub owner shown on your fork, then run the command for your operating system and execution surface.",
+      "rationale": "origin must be a repository you control before any lesson can safely push.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "repair-origin-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "repair-origin-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote set-url origin https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git updates origin without printing output; a later git remote -v shows your account for both origin URLs.",
+      "recovery": "If Git says origin does not exist, stop: this is not the expected fork clone. Return to Home and clone your fork rather than adding a guessed origin.",
+      "evidence": "Live Git configuration identifies origin as a non-official arbiter-academy repository."
+    },
+    {
+      "id": "F01-set-upstream",
+      "sequence": 4,
+      "title": "Set the official fetch remote",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the idempotent command for your operating system and execution surface. It adds upstream when absent and corrects its fetch URL when present.",
+      "rationale": "upstream gives the clone a stable read path to the official Academy without changing origin.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "set-upstream-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$null = git remote get-url upstream 2>$null; if ($LASTEXITCODE -eq 0) { git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git } else { git remote add upstream https://github.com/arbiterForge/arbiter-academy.git }",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!$null = git remote get-url upstream 2>$null; if ($LASTEXITCODE -eq 0) { git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git } else { git remote add upstream https://github.com/arbiterForge/arbiter-academy.git }",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!$null = git remote get-url upstream 2>$null; if ($LASTEXITCODE -eq 0) { git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git } else { git remote add upstream https://github.com/arbiterForge/arbiter-academy.git }",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!$null = git remote get-url upstream 2>$null; if ($LASTEXITCODE -eq 0) { git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git } else { git remote add upstream https://github.com/arbiterForge/arbiter-academy.git }",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "set-upstream-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote get-url upstream >/dev/null 2>&1 && git remote set-url upstream https://github.com/arbiterForge/arbiter-academy.git || git remote add upstream https://github.com/arbiterForge/arbiter-academy.git",
+          "copy": true
+        }
+      ],
+      "expected_result": "upstream exists and its fetch URL is https://github.com/arbiterForge/arbiter-academy.git.",
+      "recovery": "If Git rejects the command, run the inspection action again and preserve its exact output. Do not remove a remote until you understand what it points to.",
+      "evidence": "The official repository is reachable through upstream for fetch operations."
+    },
+    {
+      "id": "F01-disable-upstream-push",
+      "sequence": 5,
+      "title": "Disable pushes to upstream",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface. DISABLED is an intentional non-network push target.",
+      "rationale": "A disabled upstream push URL turns an accidental upstream push into a local failure.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "disable-upstream-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        },
+        {
+          "id": "disable-upstream-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git remote set-url --push upstream DISABLED",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git updates the push URL without printing output; git remote -v later shows upstream (push) as DISABLED.",
+      "recovery": "If Git says upstream does not exist, complete the preceding upstream action first. Never substitute the official GitHub URL as the push URL.",
+      "evidence": "Live Git configuration makes upstream unusable as a push destination."
+    },
+    {
+      "id": "F01-select-push-default",
+      "sequence": 6,
+      "title": "Make origin the default push remote",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface.",
+      "rationale": "Explicit push routing avoids relying on a changing branch or Git default.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "select-push-default-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        },
+        {
+          "id": "select-push-default-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git config remote.pushDefault origin",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git writes the setting without printing output; git config --get remote.pushDefault prints origin.",
+      "recovery": "If the later inspection prints another name or nothing, run this action once more from the attempt repository and inspect for repository-local configuration overrides.",
+      "evidence": "remote.pushDefault resolves ordinary pushes through origin."
+    },
+    {
+      "id": "F01-host-doctor",
+      "sequence": 7,
+      "title": "Ask CodeArbiter to inspect the host boundary",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Ask the agent in your active harness to run the host-native Doctor command. Pi users may use the fallback when direct dispatch is unavailable.",
+      "rationale": "Host Doctor confirms CodeArbiter activation and enforcement separately from Academy lesson evidence.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:doctor",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-doctor",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-doctor",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-doctor",
+          "copy": true
+        }
+      ],
+      "expected_result": "Host Doctor reports that the active host owns its CodeArbiter commands and that repository enforcement is enabled.",
+      "recovery": "If Host Doctor reports an installation, ownership, or enforcement failure, stop. Repair that host boundary before generating or committing Academy evidence.",
+      "evidence": "A passing Host Doctor is a prerequisite; it is not the Academy report or checkpoint."
+    },
+    {
+      "id": "F01-academy-doctor",
+      "sequence": 8,
+      "title": "Generate the bounded Academy Doctor report",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In the Academy console, keep F01 selected and choose Doctor. Do not continue to the evidence commit if Doctor fails.",
+      "rationale": "Academy Doctor recomputes the lesson-safe remote facts and writes only the bounded report.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "With F01-fork-clone-doctor selected, choose Doctor.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Academy Doctor passes and creates .codearbiter/reports/academy/F01-doctor.json.",
+      "recovery": "If Doctor fails, do not stage or commit the report. Return to the named remote or host action, correct only that boundary, and run both Doctors again.",
+      "evidence": "The report is newly generated from live Git configuration."
+    },
+    {
+      "id": "F01-inspect-report",
+      "sequence": 9,
+      "title": "Inspect the exact report bytes",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface, then compare all three fields with the expected result before staging.",
+      "rationale": "Reading the report prevents stale or malformed learner-controlled evidence from crossing the commit gate.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "inspect-report-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-Content -Raw -LiteralPath .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!Get-Content -Raw -LiteralPath .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!Get-Content -Raw -LiteralPath .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!Get-Content -Raw -LiteralPath .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "inspect-report-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!cat -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        }
+      ],
+      "expected_result": "The report decodes to {\"schema_version\":1,\"safe_for_push_labs\":true,\"effective_push_remote\":\"origin\"}; whitespace may differ but no other field is present.",
+      "recovery": "If any field or value differs, leave the report uncommitted and run Academy Doctor again after correcting live Git configuration.",
+      "evidence": "You have personally checked the exact file that the external verifier will later read."
+    },
+    {
+      "id": "F01-stage-report",
+      "sequence": 10,
+      "title": "Stage only the Doctor report",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface. Do not use git add . or add another path.",
+      "rationale": "The lesson commit must contain only its bounded evidence report.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "stage-report-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        },
+        {
+          "id": "stage-report-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git add -- .codearbiter/reports/academy/F01-doctor.json",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git stages only .codearbiter/reports/academy/F01-doctor.json and prints no output.",
+      "recovery": "If staging fails, confirm the exact report path and that Academy Doctor succeeded. If another path is already staged, unstage it without discarding its work before continuing.",
+      "evidence": "The proposed evidence boundary contains one path."
+    },
+    {
+      "id": "F01-review-commit-boundary",
+      "sequence": 11,
+      "title": "Review and approve the proposed boundary",
+      "actor": "learner",
+      "surface": "native-terminal",
+      "instruction": "Ask your agent to show the staged path and proposed CodeArbiter commit boundary. Confirm that only the F01 Doctor report is included, then supply any genuine approval the commit gate requests.",
+      "rationale": "The learner approves what will become durable evidence; the agent owns the governed commit operation.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The proposed boundary names only .codearbiter/reports/academy/F01-doctor.json, and any requested approval is an informed learner decision.",
+      "recovery": "If another path appears, do not approve. Ask the agent to preserve and unstage the unrelated work, then review the boundary again.",
+      "evidence": "Your approval applies only to the one-report commit."
+    },
+    {
+      "id": "F01-commit-report",
+      "sequence": 12,
+      "title": "Let the agent commit through CodeArbiter",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Ask the agent in your active harness to invoke the host-native CodeArbiter commit gate. The learner does not run git commit for this evidence.",
+      "rationale": "The commit gate verifies and records the exact approved boundary.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:commit",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-commit",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-commit",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-commit",
+          "copy": true
+        }
+      ],
+      "expected_result": "CodeArbiter creates one commit whose changed path is only .codearbiter/reports/academy/F01-doctor.json.",
+      "recovery": "If the gate blocks, preserve its finding and correct that boundary. Do not bypass the gate, run git commit directly, or commit when either Doctor failed.",
+      "evidence": "The attempt branch now contains durable, governed learner evidence."
+    },
+    {
+      "id": "F01-confirm-clean",
+      "sequence": 13,
+      "title": "Confirm the attempt is clean",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the command for your operating system and execution surface after the evidence commit.",
+      "rationale": "External Check rejects uncommitted or staged state because it cannot reconstruct that state later.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "confirm-clean-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        },
+        {
+          "id": "confirm-clean-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git status --short",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git prints nothing.",
+      "recovery": "If Git prints a path, preserve the evidence commit. Resolve or safely preserve that uncommitted path before Check; do not reset the attempt commit.",
+      "evidence": "The worktree and index match the committed attempt."
+    },
+    {
+      "id": "F01-check",
+      "sequence": 14,
+      "title": "Run the external Academy Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In the Academy console, keep F01 selected and choose Check. This invokes the externally installed verifier, not code imported from the learner checkout.",
+      "rationale": "An external verifier independently reads the committed report and the current live Git configuration.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "With F01-fork-clone-doctor selected, choose Check.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Check prints checkpoint F01-fork-clone-doctor: passed; progress: .academy/progress.json.",
+      "recovery": "Check failure preserves the clean committed attempt and its failure. Correct the named live boundary or choose Reset for a numbered retry; do not delete the attempt commit.",
+      "evidence": "Only after the external verifier reads the committed report and live Git configuration does it write .academy/progress.json."
+    },
+    {
+      "id": "F01-return-base",
+      "sequence": 15,
+      "title": "Return to main after success",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After Check passes, run the command for your operating system and execution surface.",
+      "rationale": "Returning to the base branch leaves the completed attempt preserved for audit and later review.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "return-base-native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-claude-code-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "claude-code",
+          "language": "powershell",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-claude-code-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-claude-code-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-codex-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-codex-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-codex-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "codex",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-pi-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "pi",
+          "language": "powershell",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-pi-macos",
+          "surface": "harness",
+          "operating_system": "macos",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        },
+        {
+          "id": "return-base-pi-linux",
+          "surface": "harness",
+          "operating_system": "linux",
+          "host": "pi",
+          "language": "sh",
+          "command": "!git switch main",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git switches to main and the numbered F01 attempt branch remains available.",
+      "recovery": "If Git refuses because of uncommitted work, stop and preserve it. Do not force the switch or delete the completed attempt branch.",
+      "evidence": "The completed attempt remains separate from main."
+    },
+    {
+      "id": "F01-reset-retry",
+      "sequence": 16,
+      "title": "Create a preserved numbered retry",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use this only when you need another attempt: in the Academy console, select F01 and choose Reset.",
+      "rationale": "Reset archives the current attempt ref and prepares the next unused numbered branch without erasing evidence.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Select F01-fork-clone-doctor, then choose Reset.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Academy preserves the prior attempt under an archive ref and prints the next academy/F01-fork-clone-doctor/<attempt> branch.",
+      "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named dirty-state or repository boundary before retrying; never force-reset or delete the prior attempt.",
+      "evidence": "The failed attempt commit remains reachable while the new attempt starts from the clean lesson base."
+    }
+  ]
+}

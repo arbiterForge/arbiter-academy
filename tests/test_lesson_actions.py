@@ -18,9 +18,84 @@ from academy_engine.lesson_actions import (
 
 
 DOCUMENT_ID = "F01-fork-clone-doctor"
+F01_ACTION_IDS = (
+    "F01-prepare",
+    "F01-inspect-remotes",
+    "F01-repair-origin",
+    "F01-set-upstream",
+    "F01-disable-upstream-push",
+    "F01-select-push-default",
+    "F01-host-doctor",
+    "F01-academy-doctor",
+    "F01-inspect-report",
+    "F01-stage-report",
+    "F01-review-commit-boundary",
+    "F01-commit-report",
+    "F01-confirm-clean",
+    "F01-check",
+    "F01-return-base",
+    "F01-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_checked_in_f01_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
+        manifest = load_action_manifest(Path(__file__).parents[1], DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), F01_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+
+        by_id = {action.id: action for action in manifest.actions}
+        host_doctor = by_id["F01-host-doctor"]
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in host_doctor.variants),
+            (
+                ("claude-code", "/ca:doctor"),
+                ("codex", "$ca-doctor"),
+                ("pi", "/ca-doctor"),
+                ("pi", "/skill:ca-doctor"),
+            ),
+        )
+        commit = by_id["F01-commit-report"]
+        self.assertEqual(commit.actor, "agent")
+        self.assertIsNone(commit.surface)
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in commit.variants),
+            (
+                ("claude-code", "/ca:commit"),
+                ("codex", "$ca-commit"),
+                ("pi", "/ca-commit"),
+                ("pi", "/skill:ca-commit"),
+            ),
+        )
+        self.assertTrue(all(variant.language == "codearbiter" for variant in commit.variants))
+        self.assertFalse(any(variant.command.startswith("!") for variant in commit.variants))
+        self.assertEqual(by_id["F01-stage-report"].actor, "learner")
+        self.assertEqual(by_id["F01-review-commit-boundary"].actor, "learner")
+        self.assertFalse(by_id["F01-review-commit-boundary"].variants)
+
+    def test_checked_in_f01_shell_variants_name_surface_and_passthrough_exactly(self) -> None:
+        manifest = load_action_manifest(Path(__file__).parents[1], DOCUMENT_ID)
+        shell_variants = tuple(
+            variant
+            for action in manifest.actions
+            for variant in action.variants
+            if variant.language in {"powershell", "sh"}
+        )
+
+        self.assertTrue(shell_variants)
+        for variant in shell_variants:
+            with self.subTest(variant=variant.id):
+                if variant.surface == "harness":
+                    self.assertNotEqual(variant.host, "none")
+                    self.assertTrue(variant.command.startswith("!"))
+                    self.assertFalse(variant.command.startswith("!!"))
+                else:
+                    self.assertEqual(variant.surface, "native-terminal")
+                    self.assertEqual(variant.host, "none")
+                    self.assertFalse(variant.command.startswith("!"))
+
     def schema(self) -> dict[str, object]:
         root = Path(__file__).parents[1]
         return json.loads(
