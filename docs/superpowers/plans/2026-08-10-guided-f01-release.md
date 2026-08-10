@@ -206,7 +206,9 @@ HOSTS = frozenset({"none", "claude-code", "codex", "pi"})
 LANGUAGES = frozenset({"none", "powershell", "sh", "text", "codearbiter"})
 ```
 
-Non-command actions require one action-level `surface` and zero variants. Command actions require `surface: null` and at least one variant. Enforce a maximum of 64 actions, 12 variants per action, 8192 Unicode code points per command, 1024 Unicode code points for each prose field, no ASCII controls except LF inside commands, and no CR bytes. Load only `academy/actions/{document_id}.json` after rejecting separators, `.`/`..`, and IDs outside `[A-Za-z0-9][A-Za-z0-9-]{0,95}`. Contain the exact candidate with `ensure_within` before reading so symlink or reparse ancestors cannot escape `academy/actions`.
+Non-command actions require one action-level `surface` and zero variants. They reject `harness`
+because the action-level shape cannot name the required host; harness interactions use command
+variants. Command actions require `surface: null` and at least one variant. Enforce a maximum of 64 actions, 12 variants per action, 8192 Unicode code points per command, 1024 Unicode code points for each prose field, no ASCII controls except LF inside commands, and no CR bytes. Load only `academy/actions/{document_id}.json` after rejecting separators, `.`/`..`, and IDs outside `[A-Za-z0-9][A-Za-z0-9-]{0,95}`. Contain the exact candidate with `ensure_within` before reading so symlink or reparse ancestors cannot escape `academy/actions`.
 
 - [x] **Step 4: Add the JSON Schema and package-data contract**
 
@@ -247,11 +249,13 @@ semantics, then routed manifest reads through the existing symlink/reparse conta
 ### Task 3: Action-Aware Static Renderer
 
 **Files:**
+- Modify: `academy/lesson-action.schema.json`
+- Modify: `academy_engine/lesson_actions.py`
 - Modify: `scripts/build_preview_site.py`
-- Modify: `site/templates/base.html`
 - Modify: `site/templates/index.html`
 - Modify: `site/templates/lab.html`
 - Modify: `site/templates/recovery.html`
+- Modify: `tests/test_lesson_actions.py`
 - Modify: `tests/test_preview_site.py`
 
 **Interfaces:**
@@ -259,17 +263,17 @@ semantics, then routed manifest reads through the existing symlink/reparse conta
 - Produces: `_read_markdown_document(root: Path, relative_path: Path, document_id: str, *, require_h1: bool) -> dict[str, object]`.
 - Produces: `_render_action(action: LessonAction) -> str` and `_render_markdown(document_id: str, lines: list[str], actions: Mapping[str, LessonAction]) -> tuple[str, tuple[tuple[int, str, str], ...], tuple[str, ...]]`.
 
-- [ ] **Step 1: Write renderer RED tests with a complete temporary manifest**
+- [x] **Step 1: Write renderer RED tests with a complete temporary manifest**
 
 Assert a standalone `{{action:F01-prepare}}` becomes one numbered `<section class="lesson-action" data-action-id="F01-prepare">`, includes a visible `You · Native terminal` label, associates heading/status IDs, renders the literal command once per variant, and returns the referenced ID. Assert rejection for inline references, duplicate references, unreferenced actions, unknown IDs, raw command fences in guided documents, and action markup injected through prose.
 
-- [ ] **Step 2: Run the focused renderer tests and verify RED**
+- [x] **Step 2: Run the focused renderer tests and verify RED**
 
 Run: `python -m unittest tests.test_preview_site.PreviewSiteTests.test_guided_action_reference_renders_semantic_numbered_step tests.test_preview_site.PreviewSiteTests.test_guided_documents_require_one_to_one_action_references -v`
 
 Expected: FAIL because `_render_markdown` does not accept or resolve action manifests.
 
-- [ ] **Step 3: Implement action-reference parsing before paragraph parsing**
+- [x] **Step 3: Implement action-reference parsing before paragraph parsing**
 
 Recognize only `re.fullmatch(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}", line)`. Escape every prose value, generate IDs from validated action IDs, and render each variant as:
 
@@ -286,24 +290,29 @@ Recognize only `re.fullmatch(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}", 
 
 Do not emit a copy button when `copy` is false. Render expected result and recovery in separate labeled blocks; render evidence only when declared.
 
-- [ ] **Step 4: Load actions only for guided documents**
+- [x] **Step 4: Load actions only for guided documents**
 
-Load Home and Recovery guides unconditionally. For labs, use the action-aware path only when `lab_id in manifest.guided_labs`; keep the existing renderer for runnable reference lessons and render a visible `Reference lesson · guided rewrite pending` status.
+Wire Home and Recovery through independent fail-closed guide/action pairs. Before Task 5, neither
+member present preserves the honest legacy page. A complete pair activates the action-aware path;
+exactly one member or malformed content fails before output. For labs, use the action-aware path only when `lab_id in manifest.guided_labs`; keep the existing renderer for runnable reference lessons and render a visible `Reference lesson · guided rewrite pending` status.
 
-- [ ] **Step 5: Run focused and legacy renderer tests**
+- [x] **Step 5: Run focused and legacy renderer tests**
 
 Run: `python -m unittest tests.test_preview_site -v`
 
 Expected: all site renderer tests PASS and F02-P05 remain renderable.
 
-- [ ] **Step 6: Commit the renderer slice**
+- [x] **Step 6: Commit the renderer slice**
 
 ```powershell
-git add scripts/build_preview_site.py site/templates/base.html site/templates/index.html site/templates/lab.html site/templates/recovery.html tests/test_preview_site.py
+git add academy/lesson-action.schema.json academy_engine/lesson_actions.py scripts/build_preview_site.py site/templates/index.html site/templates/lab.html site/templates/recovery.html tests/test_lesson_actions.py tests/test_preview_site.py
 $ca-commit
 ```
 
 Use commit title `feat: render structured guided lesson actions`.
+
+Review remediation prohibited hostless non-command harness actions and added the latent paired
+Home/Recovery activation boundary consumed by Task 5 without publishing placeholder lessons.
 
 ### Task 4: Progressive Host, OS, and Copy Controls
 
