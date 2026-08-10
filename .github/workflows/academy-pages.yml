@@ -149,9 +149,118 @@ jobs:
         with:
           path: site/generated
 
-  deploy:
+  verify-release:
     if: github.ref == 'refs/heads/main'
-    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      verified: ${{ steps.release-assets.outputs.verified }}
+    env:
+      RELEASE_TAG: preview-0.3
+      CANDIDATE_SHA: ${{ github.sha }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify immutable Preview release assets
+        id: release-assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/academy-release"
+          mkdir -p "$release_dir"
+          cd "$release_dir"
+
+          release_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+            "$release_api" --output release.json
+
+          # Resolve the release tag to its target commit SHA before trusting assets.
+          tag_rows="$(git ls-remote --tags \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/${RELEASE_TAG}" "refs/tags/${RELEASE_TAG}^{}")"
+          resolved_sha="$(printf '%s\n' "$tag_rows" | awk -v tag="refs/tags/${RELEASE_TAG}^{}" '$2 == tag { print $1 }')"
+          if [[ -z "$resolved_sha" ]]; then
+            resolved_sha="$(printf '%s\n' "$tag_rows" | awk -v tag="refs/tags/${RELEASE_TAG}" '$2 == tag { print $1 }')"
+          fi
+          [[ "$resolved_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$resolved_sha" = "$CANDIDATE_SHA"
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          expected = (
+              "install.ps1",
+              "install.ps1.sha256",
+              "install.sh",
+              "install.sh.sha256",
+              "arbiter-academy-preview-0.3.zip",
+              "arbiter-academy-preview-0.3.zip.sha256",
+          )
+          release = json.loads(Path("release.json").read_text(encoding="utf-8"))
+          if release.get("tag_name") != os.environ["RELEASE_TAG"]:
+              raise SystemExit("release tag mismatch")
+          assets = release.get("assets")
+          if not isinstance(assets, list):
+              raise SystemExit("release assets are missing")
+          names = []
+          for asset in assets:
+              if not isinstance(asset, dict) or not isinstance(asset.get("name"), str):
+                  raise SystemExit("release asset metadata is malformed")
+              names.append(asset["name"])
+          if len(names) != len(expected) or sorted(names) != sorted(expected):
+              raise SystemExit("release asset inventory mismatch")
+          by_name = {}
+          for asset in assets:
+              name = asset["name"]
+              asset_id = asset.get("id")
+              if type(asset_id) is not int or asset_id <= 0:
+                  raise SystemExit("release asset ID is invalid")
+              by_name[name] = asset_id
+          Path("assets.tsv").write_text(
+              "".join(f"{name}\t{by_name[name]}\n" for name in expected),
+              encoding="utf-8",
+          )
+          PY
+
+          while IFS=$'\t' read -r asset_name asset_id; do
+            case "$asset_name" in
+              install.ps1|install.ps1.sha256|install.sh|install.sh.sha256|arbiter-academy-preview-0.3.zip|arbiter-academy-preview-0.3.zip.sha256) ;;
+              *) echo "ERROR: unexpected release asset name." >&2; exit 1 ;;
+            esac
+            asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+            curl --fail-with-body --silent --show-error --location \
+              --header "Accept: application/octet-stream" \
+              --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+              "$asset_api" --output "$asset_name"
+          done < assets.tsv
+
+          python - <<'CHECKSUMS'
+          import re
+          from pathlib import Path
+
+          checksum_targets = {
+              "install.ps1.sha256": "install.ps1",
+              "install.sh.sha256": "install.sh",
+              "arbiter-academy-preview-0.3.zip.sha256": "arbiter-academy-preview-0.3.zip",
+          }
+          checksum_pattern = re.compile(rb"[0-9a-f]{64}  ([A-Za-z0-9._-]+)\n")
+          for manifest, target in checksum_targets.items():
+              match = checksum_pattern.fullmatch(Path(manifest).read_bytes())
+              if match is None or match.group(1).decode("ascii") != target:
+                  raise SystemExit(f"non-canonical checksum manifest: {manifest}")
+          CHECKSUMS
+
+          sha256sum --check install.ps1.sha256
+          sha256sum --check install.sh.sha256
+          sha256sum --check arbiter-academy-preview-0.3.zip.sha256
+          echo "verified=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && needs.verify-release.outputs.verified == 'true'
+    needs: [build, verify-release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

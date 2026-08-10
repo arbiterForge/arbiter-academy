@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +16,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERIFY_WORKFLOW = ROOT / ".github" / "workflows" / "academy-verify.yml"
 PAGES_WORKFLOW = ROOT / ".github" / "workflows" / "academy-pages.yml"
+
+RELEASE_ASSETS = (
+    "install.ps1",
+    "install.ps1.sha256",
+    "install.sh",
+    "install.sh.sha256",
+    "arbiter-academy-preview-0.3.zip",
+    "arbiter-academy-preview-0.3.zip.sha256",
+)
 
 AGGREGATE_GATE_STEPS = (
     (
@@ -102,6 +113,29 @@ def _named_step(job: str, name: str) -> str:
     return match.group(0).rstrip() if match else ""
 
 
+def _workflow_jobs(workflow: str) -> dict[str, str]:
+    """Return top-level workflow job bodies keyed by job ID."""
+    jobs = _block(workflow, "jobs:", r"[a-zA-Z0-9_-]+:")
+    return {
+        match.group("name"): match.group(0)
+        for match in re.finditer(
+            r"(?ms)^  (?P<name>[a-zA-Z0-9_-]+):\n.*?(?=^  [a-zA-Z0-9_-]+:|\Z)",
+            jobs,
+        )
+    }
+
+
+def _job_needs(job: str) -> set[str]:
+    """Read scalar, flow-list, or block-list job dependencies."""
+    match = re.search(
+        r"(?m)^    needs:(?P<inline>[^\n]*)\n(?P<block>(?:      - [a-zA-Z0-9_-]+\n)*)",
+        job,
+    )
+    if match is None:
+        return set()
+    return set(re.findall(r"[a-zA-Z0-9_-]+", match.group("inline") + match.group("block")))
+
+
 def _literal_step_script(job: str, name: str) -> str:
     """Return the executable body of one literal ``run: |`` workflow step."""
     lines = job.splitlines()
@@ -122,6 +156,60 @@ def _literal_step_script(job: str, name: str) -> str:
     return "\n".join(
         line[10:] if line.startswith("          ") else "" for line in step[run:]
     )
+
+
+def _release_validation_script(workflow: str) -> str:
+    """Extract the standard-library release metadata validator from the gate."""
+    job = _workflow_jobs(workflow).get("verify-release", "")
+    shell = _literal_step_script(job, "Verify immutable Preview release assets")
+    scripts = re.findall(
+        r"(?ms)^python - <<'(?P<marker>[A-Z]+)'\n(?P<body>.*?)^(?P=marker)$",
+        shell,
+    )
+    return "\n".join(body for _marker, body in scripts)
+
+
+def _assert_release_gate_is_fail_closed(workflow: str) -> None:
+    """Reject security-significant workflow mutations without executing GitHub Actions."""
+    job = _workflow_jobs(workflow).get("verify-release", "")
+    shell = _literal_step_script(job, "Verify immutable Preview release assets")
+    required = (
+        'test "$resolved_sha" = "$CANDIDATE_SHA"',
+        'asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"',
+        'raise SystemExit("release asset inventory mismatch")',
+        'raise SystemExit("release asset ID is invalid")',
+        "checksum_pattern.fullmatch",
+        'raise SystemExit(f"non-canonical checksum manifest: {manifest}")',
+    )
+    for fragment in required:
+        if fragment not in shell:
+            raise AssertionError(f"release gate lost fail-closed fragment: {fragment}")
+    if "browser_download_url" in shell:
+        raise AssertionError("release downloads must bind to authenticated asset API IDs")
+    nonempty_lines = [line for line in shell.splitlines() if line.strip()]
+    if not nonempty_lines or nonempty_lines[0] != "set -euo pipefail":
+        raise AssertionError("release verification must start in exact strict shell mode")
+    if any(line.startswith("set ") for line in nonempty_lines[1:]):
+        raise AssertionError("release verification may not relax strict shell mode")
+    if "||" in shell:
+        raise AssertionError("release verification may not tolerate a failed command")
+    if not re.search(
+        r'(?m)^test "\$resolved_sha" = "\$CANDIDATE_SHA"$',
+        shell,
+    ):
+        raise AssertionError("release tag SHA comparison must be an exact blocking command")
+    if '"$asset_api" --output "$asset_name"' not in shell:
+        raise AssertionError("release download must consume the validated asset API URL")
+    for manifest in (
+        "install.ps1.sha256",
+        "install.sh.sha256",
+        "arbiter-academy-preview-0.3.zip.sha256",
+    ):
+        if not re.search(
+            rf"(?m)^sha256sum --check {re.escape(manifest)}$",
+            shell,
+        ):
+            raise AssertionError(f"release gate does not verify {manifest}")
 
 
 def _git(repository: Path, *arguments: str) -> subprocess.CompletedProcess[bytes]:
@@ -703,7 +791,218 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertIn("name: github-pages", self.deploy)
         self.assertIn("steps.deployment.outputs.page_url", self.deploy)
         self.assertRegex(self.build, r"(?m)^    needs: verify-main\s*$")
-        self.assertRegex(self.deploy, r"(?m)^    needs: build\s*$")
+        self.assertIn("build", _job_needs(self.deploy))
+
+    def test_pages_deploy_requires_a_successful_release_asset_gate(self) -> None:
+        """Catches Pages publishing before the immutable release is ready."""
+        jobs = _workflow_jobs(self.pages_workflow)
+        release_jobs = [
+            (job_id, job)
+            for job_id, job in jobs.items()
+            if all(asset in job for asset in RELEASE_ASSETS)
+        ]
+        self.assertEqual(
+            len(release_jobs),
+            1,
+            "Pages must have one pre-deploy job that verifies all six Preview 0.3 assets",
+        )
+        release_job_id, release_job = release_jobs[0]
+        self.assertRegex(release_job, r"(?m)^    outputs:\s*$")
+        self.assertRegex(
+            release_job,
+            r"(?m)^      verified: \$\{\{ steps\.[a-zA-Z0-9_-]+\.outputs\.verified \}\}\s*$",
+        )
+        self.assertTrue(
+            {"build", release_job_id}.issubset(_job_needs(self.deploy)),
+            "deploy must need both the site build and release-asset gate",
+        )
+        self.assertIn(
+            f"needs.{release_job_id}.outputs.verified == 'true'",
+            self.deploy,
+        )
+
+    def test_release_asset_gate_resolves_preview_tag_to_exact_merge_and_checks_all_digests(self) -> None:
+        """Catches a release gate accepting a stale tag, missing asset, or unchecked bytes."""
+        jobs = _workflow_jobs(self.pages_workflow)
+        release_jobs = [
+            job
+            for job in jobs.values()
+            if all(asset in job for asset in RELEASE_ASSETS)
+        ]
+        self.assertEqual(
+            len(release_jobs),
+            1,
+            "release verification job with the exact six-asset inventory is missing",
+        )
+        release_job = release_jobs[0]
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.3\s*$")
+        self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
+        self.assertIn(
+            "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",
+            release_job,
+        )
+        self.assertIn("$CANDIDATE_SHA", release_job)
+        self.assertRegex(
+            release_job,
+            r"(?i)(?:tag|commit).{0,80}(?:resolve|target|object|sha)",
+        )
+        for asset in RELEASE_ASSETS:
+            with self.subTest(asset=asset):
+                self.assertIn(asset, release_job)
+        for checksum in (
+            "install.ps1.sha256",
+            "install.sh.sha256",
+            "arbiter-academy-preview-0.3.zip.sha256",
+        ):
+            with self.subTest(checksum=checksum):
+                self.assertRegex(
+                    release_job,
+                    rf"sha256sum\s+(?:--check|-c)\s+[^\n]*{re.escape(checksum)}",
+                )
+        self.assertRegex(
+            release_job,
+            r"(?m)^\s*echo [\"']verified=true[\"']\s*>>\s*[\"']?\$GITHUB_OUTPUT[\"']?\s*$",
+        )
+
+    def test_release_metadata_validator_rejects_noncanonical_checksums_and_inventory_drift(self) -> None:
+        """Catches ambiguous digest files or a release asset multiset beyond the six approved names."""
+        validator = _release_validation_script(self.pages_workflow)
+        self.assertTrue(validator, "release metadata validator is missing")
+
+        def run_validator(
+            assets: list[dict[str, object]],
+            checksum_overrides: dict[str, bytes] | None = None,
+        ) -> subprocess.CompletedProcess[str]:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "release.json").write_text(
+                    json.dumps({"tag_name": "preview-0.3", "assets": assets}),
+                    encoding="utf-8",
+                )
+                checksums = {
+                    "install.ps1.sha256": f"{'a' * 64}  install.ps1\n".encode(),
+                    "install.sh.sha256": f"{'b' * 64}  install.sh\n".encode(),
+                    "arbiter-academy-preview-0.3.zip.sha256": (
+                        f"{'c' * 64}  arbiter-academy-preview-0.3.zip\n".encode()
+                    ),
+                }
+                checksums.update(checksum_overrides or {})
+                for name, content in checksums.items():
+                    (root / name).write_bytes(content)
+                environment = os.environ.copy()
+                environment["RELEASE_TAG"] = "preview-0.3"
+                return subprocess.run(
+                    [sys.executable, "-c", validator],
+                    cwd=root,
+                    env=environment,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                )
+
+        valid_assets = [
+            {
+                "id": index,
+                "name": name,
+                "browser_download_url": (
+                    f"https://github.com/arbiterForge/arbiter-academy/releases/download/"
+                    f"preview-0.3/{name}"
+                ),
+            }
+            for index, name in enumerate(RELEASE_ASSETS, start=1)
+        ]
+        accepted = run_validator(valid_assets)
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+        inventory_cases = {
+            "extra": valid_assets + [{"id": 99, "name": "unreviewed.bin"}],
+            "duplicate": valid_assets + [valid_assets[0]],
+            "missing": valid_assets[:-1],
+        }
+        for case, assets in inventory_cases.items():
+            with self.subTest(inventory=case):
+                self.assertNotEqual(run_validator(assets).returncode, 0)
+
+        checksum_cases = {
+            "duplicate-entry": {
+                "install.ps1.sha256": (
+                    f"{'a' * 64}  install.ps1\n{'a' * 64}  install.ps1\n"
+                ).encode()
+            },
+            "wrong-file": {
+                "install.sh.sha256": f"{'b' * 64}  other.sh\n".encode()
+            },
+            "uppercase": {
+                "arbiter-academy-preview-0.3.zip.sha256": (
+                    f"{'C' * 64}  arbiter-academy-preview-0.3.zip\n"
+                ).encode()
+            },
+            "single-space": {
+                "install.ps1.sha256": f"{'a' * 64} install.ps1\n".encode()
+            },
+            "missing-lf": {
+                "install.sh.sha256": f"{'b' * 64}  install.sh".encode()
+            },
+        }
+        for case, override in checksum_cases.items():
+            with self.subTest(checksum=case):
+                self.assertNotEqual(
+                    run_validator(valid_assets, override).returncode,
+                    0,
+                )
+
+    def test_release_gate_contract_rejects_fail_open_security_mutations(self) -> None:
+        """Catches exact-SHA, digest, inventory, or authenticated-download checks being bypassed."""
+        _assert_release_gate_is_fail_closed(self.pages_workflow)
+        release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
+        fail_open_job = release_job.replace("set -euo pipefail", "set +e", 1)
+        mutations = {
+            "sha-echo": self.pages_workflow.replace(
+                'test "$resolved_sha" = "$CANDIDATE_SHA"',
+                'echo "$resolved_sha $CANDIDATE_SHA"',
+                1,
+            ),
+            "checksum-or-true": self.pages_workflow.replace(
+                "sha256sum --check install.ps1.sha256",
+                "sha256sum --check install.ps1.sha256 || true",
+                1,
+            ),
+            "inventory-warning": self.pages_workflow.replace(
+                'raise SystemExit("release asset inventory mismatch")',
+                'print("release asset inventory mismatch")',
+                1,
+            ),
+            "unsafe-url": self.pages_workflow.replace(
+                'releases/assets/${asset_id}',
+                'downloads/${asset_name}?source=untrusted#asset',
+                1,
+            ),
+            "sha-or-colon": self.pages_workflow.replace(
+                'test "$resolved_sha" = "$CANDIDATE_SHA"',
+                'test "$resolved_sha" = "$CANDIDATE_SHA" || :',
+                1,
+            ),
+            "checksum-or-colon": self.pages_workflow.replace(
+                "sha256sum --check install.ps1.sha256",
+                "sha256sum --check install.ps1.sha256 || :",
+                1,
+            ),
+            "shell-fail-open": self.pages_workflow.replace(
+                release_job,
+                fail_open_job,
+                1,
+            ),
+            "download-release-json": self.pages_workflow.replace(
+                '"$asset_api" --output "$asset_name"',
+                '"$release_api" --output "$asset_name"',
+                1,
+            ),
+        }
+        for mutation, workflow in mutations.items():
+            with self.subTest(mutation=mutation):
+                with self.assertRaises(AssertionError):
+                    _assert_release_gate_is_fail_closed(workflow)
 
     def test_workflow_adds_no_install_or_third_party_action_step(self) -> None:
         actions = re.findall(r"(?m)^\s*-?\s*uses:\s*([^\s]+)", self.workflow)

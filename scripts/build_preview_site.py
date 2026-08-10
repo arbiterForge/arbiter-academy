@@ -763,7 +763,11 @@ def _render_pages(
             root_prefix="../",
         ),
         Path("release.json"): json.dumps(
-            {"release": manifest.release, "commit": commit},
+            {
+                "release": manifest.release,
+                "commit": commit,
+                "lesson_contract_version": manifest.lesson_contract_version,
+            },
             indent=2,
         ) + "\n",
     }

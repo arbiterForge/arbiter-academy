@@ -109,6 +109,58 @@ _LABS = (
     "P06-context-drift-recovery",
     "P07-threat-model",
 )
+_RUNNABLE_LINK_LABELS = (
+    "F01 \u2014 Fork, clone, and Doctor safety",
+    "F02 \u2014 Orient to live governance state",
+    "F03 \u2014 Work the governed board",
+    "F04 \u2014 Fix with evidence",
+    "P01 \u2014 Feature through a user-approved spec and derived plan",
+    "P02 \u2014 Review, commit, push, and record an offline local PR receipt",
+    "P03 \u2014 Record an accepted ADR",
+    "P04 \u2014 Review a real dependency before installation",
+    "P05 \u2014 Remediate a checkpoint finding",
+    "P06 - Recover context drift without losing unrelated work",
+    "P07 \u2014 Threat-model the path-handling boundary",
+)
+_COMING_NEXT_ENTRIES: tuple[tuple[str, bool], ...] = ()
+_EXPECTED_ACTION_IDS = {
+    Path("index.html"): (
+        "home-fork",
+        "home-clone",
+        "home-enter-clone",
+        "home-install",
+        "home-launch-console",
+        "home-doctor",
+    ),
+    Path("recovery/index.html"): (
+        "recovery-inspect",
+        "recovery-return-attempt",
+        "recovery-repair-remotes",
+        "recovery-check",
+        "recovery-reset",
+        "recovery-return-base",
+    ),
+    Path("labs/F01-fork-clone-doctor/index.html"): (
+        "F01-prepare",
+        "F01-inspect-remotes",
+        "F01-repair-origin",
+        "F01-set-upstream",
+        "F01-disable-upstream-push",
+        "F01-select-push-default",
+        "F01-host-doctor",
+        "F01-academy-doctor",
+        "F01-inspect-report",
+        "F01-stage-report",
+        "F01-review-commit-boundary",
+        "F01-commit-report",
+        "F01-confirm-clean",
+        "F01-check",
+        "F01-return-base",
+        "F01-reset-retry",
+    ),
+}
+_GUIDED_STATUS = "Guided lesson"
+_REFERENCE_STATUS = "Reference lesson \u00b7 guided rewrite pending"
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
     Path("assets/academy.js"),
@@ -135,6 +187,16 @@ class _LinkCollector(HTMLParser):
         self.copy_bindings: list[tuple[str, str]] = []
         self.id_contracts: dict[str, tuple[str, dict[str, str | None]]] = {}
         self.script_sources: list[str] = []
+        self.action_ids: list[str] = []
+        self.anchor_texts: list[tuple[str, str]] = []
+        self.coming_next_entries: list[tuple[str, bool]] = []
+        self.publication_statuses: list[str] = []
+        self._anchor_target: str | None = None
+        self._anchor_text_parts: list[str] | None = None
+        self._coming_next = False
+        self._coming_next_item_has_link = False
+        self._coming_next_item_parts: list[str] | None = None
+        self._publication_status_parts: list[str] | None = None
         self._script_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -167,12 +229,32 @@ class _LinkCollector(HTMLParser):
                 if not references:
                     raise ValueError(f"empty {name} reference on {tag}")
                 self.id_references.extend((tag, name, reference) for reference in references)
+        if "data-action-id" in attributes and not (
+            tag == "section" and attributes.get("class") == "lesson-action"
+        ):
+            raise ValueError("data-action-id is reserved for exact lesson-action sections")
         if tag == "html" and attributes != {"lang": "en"}:
             raise ValueError("disallowed HTML attributes on html")
         if tag == "link" and attributes.get("rel") not in {"stylesheet", "icon"}:
             raise ValueError("disallowed HTML link relationship")
         if tag == "meta" and attributes.get("name") == "academy-release":
             self.academy_releases.append(attributes.get("content", ""))
+        if tag == "section" and attributes.get("class") == "lesson-action":
+            action_id = attributes.get("data-action-id")
+            if action_id:
+                self.action_ids.append(action_id)
+        if tag == "a":
+            self._anchor_target = str(attributes["href"])
+            self._anchor_text_parts = []
+            if self._coming_next_item_parts is not None:
+                self._coming_next_item_has_link = True
+        if tag == "ul" and attributes.get("class") == "coming-next":
+            self._coming_next = True
+        if tag == "li" and self._coming_next:
+            self._coming_next_item_parts = []
+            self._coming_next_item_has_link = False
+        if tag == "p" and attributes.get("class") == "lesson-publication-status":
+            self._publication_status_parts = []
         if tag == "code" and str(attributes.get("id", "")).startswith("command-"):
             if attributes.get("tabindex") != "0":
                 raise ValueError("command code is not focusable")
@@ -235,10 +317,41 @@ class _LinkCollector(HTMLParser):
             raise ValueError(f"disallowed HTML element: {tag}")
         if tag == "script":
             self._script_depth -= 1
+        if tag == "a" and self._anchor_text_parts is not None:
+            self.anchor_texts.append(
+                (
+                    str(self._anchor_target),
+                    " ".join("".join(self._anchor_text_parts).split()),
+                )
+            )
+            self._anchor_target = None
+            self._anchor_text_parts = None
+        if tag == "li" and self._coming_next_item_parts is not None:
+            self.coming_next_entries.append(
+                (
+                    " ".join("".join(self._coming_next_item_parts).split()),
+                    self._coming_next_item_has_link,
+                )
+            )
+            self._coming_next_item_parts = None
+            self._coming_next_item_has_link = False
+        if tag == "ul" and self._coming_next:
+            self._coming_next = False
+        if tag == "p" and self._publication_status_parts is not None:
+            self.publication_statuses.append(
+                " ".join("".join(self._publication_status_parts).split())
+            )
+            self._publication_status_parts = None
 
     def handle_data(self, data: str) -> None:
         if self._script_depth and data.strip():
             raise ValueError("disallowed inline JavaScript")
+        if self._anchor_text_parts is not None:
+            self._anchor_text_parts.append(data)
+        if self._coming_next_item_parts is not None:
+            self._coming_next_item_parts.append(data)
+        if self._publication_status_parts is not None:
+            self._publication_status_parts.append(data)
 
     def handle_decl(self, decl: str) -> None:
         if decl.lower() != "doctype html":
@@ -328,8 +441,10 @@ def _check_release(root: Path) -> str:
         raise ValueError(f"release.json is unreadable: {error}") from error
     if (
         not isinstance(data, dict)
-        or set(data) != {"release", "commit"}
+        or set(data) != {"release", "commit", "lesson_contract_version"}
         or data.get("release") != "preview-0.3"
+        or type(data.get("lesson_contract_version")) is not int
+        or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
         or not _SHA.fullmatch(data["commit"])
     ):
@@ -352,6 +467,43 @@ def _check_stylesheet_dependencies(root: Path, stylesheet: Path, css: str) -> No
         _resolve_local(root, stylesheet, quoted or unquoted)
     for target in _CSS_URL.findall(css):
         _resolve_local(root, stylesheet, target)
+
+
+def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> None:
+    home = root / "index.html"
+    home_collector = pages[home]
+    expected_lab_pages = tuple(root / "labs" / lab_id / "index.html" for lab_id in _LABS)
+    runnable_links = tuple(
+        (resolved, label)
+        for target, label in home_collector.anchor_texts
+        if (resolved := _resolve_local(root, home, target, allow_external=True))
+        in expected_lab_pages
+    )
+    expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
+    if runnable_links != expected_runnable_links:
+        raise ValueError("home runnable lab links do not match the exact Preview 0.3 inventory")
+    if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
+        raise ValueError("home coming-next entries do not match exact unlinked P06-P07 status")
+
+    for page, collector in pages.items():
+        relative = page.relative_to(root)
+        expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
+        if tuple(collector.action_ids) != expected_actions:
+            raise ValueError(
+                f"generated action IDs do not match the exact Preview 0.3 contract: {relative.as_posix()}"
+            )
+
+        if relative.parts[:1] != ("labs",):
+            expected_statuses: tuple[str, ...] = ()
+        elif relative == Path("labs/F01-fork-clone-doctor/index.html"):
+            expected_statuses = (_GUIDED_STATUS,)
+        else:
+            expected_statuses = (_REFERENCE_STATUS,)
+        if tuple(collector.publication_statuses) != expected_statuses:
+            raise ValueError(
+                "generated publication status does not match the exact Preview 0.3 contract: "
+                f"{relative.as_posix()}"
+            )
 
 
 def check_preview_site(site_root: Path) -> None:
@@ -446,6 +598,8 @@ def check_preview_site(site_root: Path) -> None:
                     f"broken {attribute} reference in "
                     f"{page.relative_to(root).as_posix()} on {tag}: {reference}"
                 )
+
+    _check_publication_truth(root, pages)
 
     stylesheet = root / "assets/academy.css"
     try:

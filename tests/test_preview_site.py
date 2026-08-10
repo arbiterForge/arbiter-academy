@@ -567,7 +567,11 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(
             json.loads((self.out / "release.json").read_text(encoding="utf-8")),
-            {"release": "preview-0.3", "commit": release_sha},
+            {
+                "release": "preview-0.3",
+                "commit": release_sha,
+                "lesson_contract_version": 1,
+            },
         )
 
     def test_build_copies_only_the_reviewed_runtime_assets(self) -> None:
@@ -646,6 +650,182 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn("broken internal link", rejected.stderr)
+
+    def test_static_checker_rejects_preview_0_3_artifact_mutations(self) -> None:
+        """Catches publication drift that would make the reviewed Preview 0.3 artifact untrue."""
+        build_preview_site(self.root, self.out, release_sha="1" * 40)
+        f01 = Path("labs/F01-fork-clone-doctor/index.html")
+        f02 = Path("labs/F02-orient-to-state/index.html")
+        cases = (
+            ("removed JavaScript", "delete", Path("assets/academy.js"), None, None),
+            ("changed JavaScript hash", "flip", Path("assets/academy.js"), None, None),
+            ("changed CSS hash", "flip", Path("assets/academy.css"), None, None),
+            (
+                "P06 runnable link removed",
+                "replace",
+                Path("index.html"),
+                'href="labs/P06-context-drift-recovery/index.html"',
+                'href="labs/F01-fork-clone-doctor/index.html"',
+            ),
+            (
+                "P07 runnable link removed",
+                "replace",
+                Path("index.html"),
+                'href="labs/P07-threat-model/index.html"',
+                'href="labs/F01-fork-clone-doctor/index.html"',
+            ),
+            (
+                "P06 falsely guided",
+                "replace",
+                Path("labs/P06-context-drift-recovery/index.html"),
+                '<p class="lesson-publication-status">Reference lesson \u00b7 guided rewrite pending</p>',
+                '<p class="lesson-publication-status">Guided lesson</p>',
+            ),
+            (
+                "F02 runnable href relabeled as P06",
+                "replace",
+                Path("index.html"),
+                "F02 \u2014 Orient to live governance state",
+                "P06 \u2014 Context drift recovery",
+            ),
+            (
+                "F01 missing guided label",
+                "replace",
+                f01,
+                '<p class="lesson-publication-status">Guided lesson</p>',
+                '<p class="lesson-publication-status">Reference lesson \u00b7 guided rewrite pending</p>',
+            ),
+            (
+                "F02 falsely guided",
+                "replace",
+                f02,
+                '<p class="lesson-publication-status">Reference lesson \u00b7 guided rewrite pending</p>',
+                '<p class="lesson-publication-status">Guided lesson</p>',
+            ),
+            (
+                "available and runnable lab drift",
+                "replace",
+                Path("index.html"),
+                'href="labs/F02-orient-to-state/index.html"',
+                'href="#runnable-lessons-heading"',
+            ),
+            (
+                "missing action ID",
+                "replace",
+                f01,
+                ' data-action-id="F01-prepare"',
+                "",
+            ),
+            (
+                "action ID on non-lesson section",
+                "replace",
+                Path("index.html"),
+                '<section aria-labelledby="course-help-heading">',
+                '<section aria-labelledby="course-help-heading" data-action-id="F01-prepare">',
+            ),
+            (
+                "duplicate DOM ID",
+                "replace",
+                f01,
+                'id="know-before-you-begin"',
+                'id="main-content"',
+            ),
+            (
+                "dangling copy target",
+                "replace",
+                f01,
+                'data-copy-target="command-F01-inspect-remotes-inspect-remotes-native-windows"',
+                'data-copy-target="missing-command"',
+            ),
+            (
+                "dangling copy status",
+                "replace",
+                f01,
+                'aria-describedby="copy-status-F01-inspect-remotes-inspect-remotes-native-windows"',
+                'aria-describedby="missing-copy-status"',
+            ),
+            (
+                "copied command text in attribute",
+                "replace",
+                f01,
+                '<button type="button" class="command-copy"',
+                '<button type="button" class="command-copy" data-copy-text="git remote -v"',
+            ),
+            (
+                "inline event handler",
+                "replace",
+                f01,
+                '<button type="button" class="command-copy"',
+                '<button type="button" class="command-copy" onclick="copyCommand()"',
+            ),
+            (
+                "inline script",
+                "replace",
+                f01,
+                '<script type="module" src="../../assets/academy.js"></script>',
+                '<script type="module" src="../../assets/academy.js">copyCommand()</script>',
+            ),
+            (
+                "remote runtime asset",
+                "replace",
+                f01,
+                'src="../../assets/academy.js"',
+                'src="https://assets.example/academy.js"',
+            ),
+            (
+                "hidden command variant without no-JavaScript path",
+                "replace",
+                f01,
+                '<div class="command-variant" data-os="windows"',
+                '<div class="command-variant" hidden data-os="windows"',
+            ),
+            (
+                "release SHA mismatch",
+                "replace",
+                Path("release.json"),
+                '"commit": "1111111111111111111111111111111111111111"',
+                '"commit": "111111111111111111111111111111111111111"',
+            ),
+            (
+                "release version mismatch",
+                "replace",
+                Path("release.json"),
+                '"release": "preview-0.3"',
+                '"release": "preview-0.2"',
+            ),
+            (
+                "lesson contract version mismatch",
+                "json",
+                Path("release.json"),
+                "lesson_contract_version",
+                2,
+            ),
+        )
+
+        for index, (label, operation, relative, original, replacement) in enumerate(cases):
+            with self.subTest(mutation=label):
+                destination = self.out.parent / f"preview-mutation-{index}"
+                shutil.copytree(self.out, destination)
+                target = destination / relative
+                if operation == "delete":
+                    target.unlink()
+                elif operation == "flip":
+                    content = target.read_bytes()
+                    target.write_bytes(content[:-1] + bytes((content[-1] ^ 1,)))
+                elif operation == "json":
+                    document = json.loads(target.read_text(encoding="utf-8"))
+                    document[original] = replacement
+                    target.write_text(json.dumps(document), encoding="utf-8")
+                else:
+                    text = target.read_text(encoding="utf-8")
+                    self.assertIn(original, text)
+                    target.write_text(text.replace(original, replacement, 1), encoding="utf-8")
+
+                with self.assertRaises(
+                    ValueError,
+                    msg=f"static checker accepted mutation: {label}",
+                ):
+                    check_preview_site(destination)
 
     def test_static_checker_allows_only_repository_scoped_action_resources(self) -> None:
         """Catches a rendered action resource escaping the runtime URL contract."""
@@ -967,7 +1147,14 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches release provenance drift or publication of the private catalog."""
         build_preview_site(self.root, self.out, release_sha="b" * 40)
 
-        self.assertEqual(json.loads((self.out / "release.json").read_text(encoding="utf-8"))["commit"], "b" * 40)
+        self.assertEqual(
+            json.loads((self.out / "release.json").read_text(encoding="utf-8")),
+            {
+                "release": "preview-0.3",
+                "commit": "b" * 40,
+                "lesson_contract_version": 1,
+            },
+        )
         self.assertFalse((self.out / "academy" / "catalog.json").exists())
 
     def test_static_checker_rejects_html_release_identity_drift(self) -> None:
@@ -1738,11 +1925,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         valid_destination = self.out.parent / "valid-command-controls"
         build_preview_site(self.root, valid_destination, release_sha="1" * 40)
-        valid_page = valid_destination / "labs" / "F02-orient-to-state" / "index.html"
-        valid_page.write_text(
-            valid_page.read_text(encoding="utf-8").replace("</main>", f"{rendered}</main>", 1),
-            encoding="utf-8",
-        )
+        valid_page = valid_destination / "labs" / "F01-fork-clone-doctor" / "index.html"
         check_preview_site(valid_destination)
         valid_html = valid_page.read_text(encoding="utf-8")
         valid_page.write_text(
