@@ -12,7 +12,6 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import time
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -25,6 +24,7 @@ from academy_engine.checkpoints import LAB_INVENTORY
 from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
+from tests._temporary import cleanup_temporary_directory
 
 
 def build_and_list_html(root: Path, out: Path) -> list[Path]:
@@ -97,25 +97,35 @@ class PreviewSiteTests(unittest.TestCase):
         self.out = Path(self.temporary_directory.name) / "generated"
 
     def tearDown(self) -> None:
-        for attempt in range(5):
-            try:
-                self.temporary_directory.cleanup()
-                return
-            except OSError as error:
-                if error.errno != errno.ENOTEMPTY or attempt == 4:
-                    raise
-                time.sleep(0.05 * (2**attempt))
+        cleanup_temporary_directory(self.temporary_directory)
 
     def test_teardown_retries_a_transient_nonempty_directory(self) -> None:
         transient = OSError(errno.ENOTEMPTY, "directory not empty")
-        with patch.object(
-            self.temporary_directory,
-            "cleanup",
-            side_effect=(transient, None),
-        ) as cleanup:
-            self.tearDown()
+        temporary = unittest.mock.Mock()
+        temporary.cleanup.side_effect = (transient, None)
 
-        self.assertEqual(cleanup.call_count, 2)
+        cleanup_temporary_directory(temporary, sleep=lambda _: None)
+
+        self.assertEqual(temporary.cleanup.call_count, 2)
+
+    def test_teardown_propagates_a_non_transient_cleanup_error(self) -> None:
+        denied = OSError(errno.EACCES, "permission denied")
+        temporary = unittest.mock.Mock()
+        temporary.cleanup.side_effect = denied
+
+        with self.assertRaisesRegex(OSError, "permission denied"):
+            cleanup_temporary_directory(temporary, sleep=lambda _: None)
+
+        self.assertEqual(temporary.cleanup.call_count, 1)
+
+    def test_teardown_propagates_persistent_nonempty_after_retry_budget(self) -> None:
+        temporary = unittest.mock.Mock()
+        temporary.cleanup.side_effect = OSError(errno.ENOTEMPTY, "still not empty")
+
+        with self.assertRaisesRegex(OSError, "still not empty"):
+            cleanup_temporary_directory(temporary, sleep=lambda _: None)
+
+        self.assertEqual(temporary.cleanup.call_count, 5)
 
     def test_build_emits_only_eligible_labs_and_nonlinked_coming_next_status(self) -> None:
         """Catches a future lab being published or linked as available."""

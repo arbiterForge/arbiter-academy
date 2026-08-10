@@ -16,6 +16,7 @@ from academy_engine.curriculum import CurriculumError, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
 from academy_engine.scenario import PreparationError, prepare_lab
+from tests._temporary import cleanup_temporary_directory
 
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -64,7 +65,7 @@ class AcademyRepository:
         git(self.root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
 
     def close(self) -> None:
-        self.temporary.cleanup()
+        cleanup_temporary_directory(self.temporary)
 
     def add_safe_upstream(self, *, ssh: bool = False) -> None:
         url = (
@@ -204,7 +205,7 @@ class PinnedTaskWriterTests(unittest.TestCase):
         self.official_writer = Path(value).resolve()
         self.official_source = self.official_writer.parents[2]
         self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
+        self.addCleanup(cleanup_temporary_directory, self.temporary)
 
     def clone_official(self, name: str) -> Path:
         target = Path(self.temporary.name) / name
