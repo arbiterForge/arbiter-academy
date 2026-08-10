@@ -93,7 +93,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(
                     errors.getvalue(),
-                    f"error: {lab_id} is not available in Academy Preview 0.3\n",
+                    f"error: {lab_id} is not runnable in Academy Preview 0.3\n",
                 )
                 dispatch.assert_not_called()
                 git_config.assert_not_called()
@@ -108,7 +108,10 @@ class AcademyCliTrustTests(unittest.TestCase):
         full_catalog = Catalog.load(REPOSITORY / "academy" / "catalog.json")
         future_manifest = PreviewManifest(
             "academy-1.0",
+            1,
             tuple(lab.id for lab in full_catalog.labs),
+            tuple(lab.id for lab in full_catalog.labs),
+            ("F01-fork-clone-doctor",),
             (),
             "https://github.com/arbiterForge/arbiter-academy/discussions",
             "a" * 64,

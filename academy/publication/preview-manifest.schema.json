@@ -3,9 +3,10 @@
   "title": "Arbiter Academy Preview 0.3 publication manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["release", "available_labs", "coming_next", "discussion_url", "catalog_sha256"],
+  "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "discussion_url", "catalog_sha256"],
   "properties": {
     "release": {"const": "preview-0.3"},
+    "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
       "minItems": 11,
@@ -23,6 +24,34 @@
         {"const": "P05-checkpoint-remediation"},
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"}
+      ]
+    },
+    "runnable_labs": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": false,
+      "prefixItems": [
+        {"const": "F01-fork-clone-doctor"},
+        {"const": "F02-orient-to-state"},
+        {"const": "F03-work-the-board"},
+        {"const": "F04-fix-with-evidence"},
+        {"const": "P01-feature-through-plan"},
+        {"const": "P02-commit-review-pr"},
+        {"const": "P03-record-an-adr"},
+        {"const": "P04-review-a-dependency"},
+        {"const": "P05-checkpoint-remediation"},
+        {"const": "P06-context-drift-recovery"},
+        {"const": "P07-threat-model"}
+      ]
+    },
+    "guided_labs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": false,
+      "prefixItems": [
+        {"const": "F01-fork-clone-doctor"}
       ]
     },
     "coming_next": {

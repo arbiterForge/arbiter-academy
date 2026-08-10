@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from academy_engine import preview
 from academy_engine.preview import load_preview_manifest, validate_preview_manifest
 
 
@@ -36,7 +37,10 @@ class PreviewManifestTests(unittest.TestCase):
         root = root or self.root
         manifest: dict[str, object] = {
             "release": "preview-0.3",
+            "lesson_contract_version": 1,
             "available_labs": PREVIEW_0_3,
+            "runnable_labs": PREVIEW_0_3,
+            "guided_labs": ["F01-fork-clone-doctor"],
             "coming_next": COMING_NEXT,
             "discussion_url": DISCUSSION_URL,
             "catalog_sha256": hashlib.sha256(
@@ -46,9 +50,72 @@ class PreviewManifestTests(unittest.TestCase):
         manifest.update(changes)
         return manifest
 
+    def test_preview_manifest_separates_runnable_guided_and_coming_next(self) -> None:
+        """Catches a public manifest that conflates runnable and guided readiness."""
+        manifest = validate_preview_manifest(self.root, self.make_manifest())
+
+        self.assertEqual(manifest.release, "preview-0.3")
+        self.assertEqual(manifest.lesson_contract_version, 1)
+        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_3))
+        self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_3))
+        self.assertEqual(manifest.guided_labs, ("F01-fork-clone-doctor",))
+
+    def test_preview_manifest_rejects_mismatched_compatibility_lists(self) -> None:
+        """Catches the legacy available list disagreeing with runnable lab access."""
+        with self.assertRaisesRegex(ValueError, "available_labs must equal runnable_labs"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(available_labs=PREVIEW_0_3[:-1]),
+            )
+
+    def test_preview_manifest_rejects_a_boolean_lesson_contract_version(self) -> None:
+        """Catches JSON booleans being mistaken for contract version integer 1."""
+        with self.assertRaisesRegex(ValueError, "lesson_contract_version must be integer 1"):
+            validate_preview_manifest(self.root, self.make_manifest(lesson_contract_version=True))
+
+    def test_preview_manifest_rejects_unordered_guided_labs(self) -> None:
+        """Catches guided claims whose order no longer follows the catalog."""
+        with self.assertRaisesRegex(ValueError, "guided_labs must preserve catalog order"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(guided_labs=["F02-orient-to-state", "F01-fork-clone-doctor"]),
+            )
+
+    def test_preview_manifest_rejects_an_omitted_required_guided_lab(self) -> None:
+        """Catches Preview 0.3 claiming no guided lesson at all."""
+        with self.assertRaisesRegex(ValueError, "guided_labs must list only the reviewed F01 lesson"):
+            validate_preview_manifest(self.root, self.make_manifest(guided_labs=[]))
+
+    def test_preview_manifest_rejects_a_false_guided_claim(self) -> None:
+        """Catches a runnable-but-unguided lesson being publicly marked guided."""
+        with self.assertRaisesRegex(ValueError, "guided_labs must list only the reviewed F01 lesson"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(guided_labs=["P06-context-drift-recovery"]),
+            )
+
+    def test_preview_manifest_rejects_runnable_labs_also_marked_coming_next(self) -> None:
+        """Catches a lab simultaneously advertised as runnable and upcoming."""
+        with self.assertRaisesRegex(ValueError, "runnable_labs must not overlap coming_next"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(coming_next=["P05-checkpoint-remediation"]),
+            )
+
+    def test_preview_manifest_exposes_distinct_runnable_and_guided_guards(self) -> None:
+        """Catches verifier access and guided-lesson access silently sharing a claim."""
+        preview.require_runnable_lab(self.root, "P05-checkpoint-remediation")
+        preview.require_guided_lab(self.root, "F01-fork-clone-doctor")
+        preview.require_published_lab(self.root, "P05-checkpoint-remediation")
+        with self.assertRaisesRegex(ValueError, "not guided"):
+            preview.require_guided_lab(self.root, "P05-checkpoint-remediation")
+
     def test_preview_manifest_requires_the_full_prerequisite_closure(self) -> None:
         """Catches publication of a lab whose required learning path is absent."""
-        manifest = self.make_manifest(available_labs=["P04-review-a-dependency"])
+        manifest = self.make_manifest(
+            available_labs=["P04-review-a-dependency"],
+            runnable_labs=["P04-review-a-dependency"],
+        )
 
         with self.assertRaisesRegex(ValueError, "missing prerequisite"):
             validate_preview_manifest(self.root, manifest)
@@ -56,7 +123,8 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_an_unavailable_future_lab(self) -> None:
         """Catches a future lab being relabeled as available in this release."""
         manifest = self.make_manifest(
-            available_labs=PREVIEW_0_3 + ["P08-repository-hygiene"]
+            available_labs=PREVIEW_0_3 + ["P08-repository-hygiene"],
+            runnable_labs=PREVIEW_0_3 + ["P08-repository-hygiene"],
         )
 
         with self.assertRaisesRegex(ValueError, "not eligible"):
@@ -219,13 +287,25 @@ class PreviewManifestTests(unittest.TestCase):
             )
         )
         available = schema["properties"]["available_labs"]
+        runnable = schema["properties"]["runnable_labs"]
+        guided = schema["properties"]["guided_labs"]
         coming_next = schema["properties"]["coming_next"]
 
         self.assertEqual(schema["properties"]["release"]["const"], "preview-0.3")
+        self.assertEqual(schema["properties"]["lesson_contract_version"]["const"], 1)
         self.assertEqual((available["minItems"], available["maxItems"]), (11, 11))
         self.assertEqual(
             [entry["const"] for entry in available["prefixItems"]],
             PREVIEW_0_3,
+        )
+        self.assertEqual((runnable["minItems"], runnable["maxItems"]), (11, 11))
+        self.assertEqual(
+            [entry["const"] for entry in runnable["prefixItems"]],
+            PREVIEW_0_3,
+        )
+        self.assertEqual(
+            [entry["const"] for entry in guided["prefixItems"]],
+            ["F01-fork-clone-doctor"],
         )
         self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (0, 0))
         self.assertEqual(
@@ -260,7 +340,10 @@ class PreviewManifestTests(unittest.TestCase):
 
         self.assertEqual(release_files, ["preview-0.3.json"])
         self.assertEqual(manifest.release, "preview-0.3")
+        self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_3))
+        self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_3))
+        self.assertEqual(manifest.guided_labs, ("F01-fork-clone-doctor",))
         self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
         self.assertEqual(manifest.discussion_url, DISCUSSION_URL)
 

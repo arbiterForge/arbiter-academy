@@ -14,7 +14,7 @@ from academy_engine.catalog import Catalog, CatalogError
 
 
 _RELEASE = "preview-0.3"
-_AVAILABLE_LABS = (
+_RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
     "F03-work-the-board",
@@ -41,7 +41,10 @@ _SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
 @dataclass(frozen=True)
 class PreviewManifest:
     release: str
+    lesson_contract_version: int
     available_labs: tuple[str, ...]
+    runnable_labs: tuple[str, ...]
+    guided_labs: tuple[str, ...]
     coming_next: tuple[str, ...]
     discussion_url: str
     catalog_sha256: str
@@ -63,7 +66,16 @@ def _require_ids(value: object, label: str) -> tuple[str, ...]:
 
 
 def _require_exact_keys(data: Mapping[str, object]) -> None:
-    expected = {"release", "available_labs", "coming_next", "discussion_url", "catalog_sha256"}
+    expected = {
+        "release",
+        "lesson_contract_version",
+        "available_labs",
+        "runnable_labs",
+        "guided_labs",
+        "coming_next",
+        "discussion_url",
+        "catalog_sha256",
+    }
     unknown = set(data) - expected
     missing = expected - set(data)
     if unknown:
@@ -123,6 +135,17 @@ def _validate_known_ordered_closure(catalog: Catalog, available_labs: tuple[str,
             )
 
 
+def _validate_guided_labs(
+    catalog: Catalog, runnable_labs: tuple[str, ...], guided_labs: tuple[str, ...]
+) -> None:
+    catalog_ids = tuple(lab.id for lab in catalog.labs)
+    if any(lab_id not in catalog_ids or lab_id not in runnable_labs for lab_id in guided_labs):
+        raise ValueError("preview manifest guided_labs must be an ordered subset of runnable_labs")
+    indexes = [catalog_ids.index(lab_id) for lab_id in guided_labs]
+    if indexes != sorted(indexes):
+        raise ValueError("preview manifest guided_labs must preserve catalog order")
+
+
 def _same_json_value(left: object, right: object) -> bool:
     return type(left) is type(right) and left == right
 
@@ -169,6 +192,9 @@ def validate_preview_manifest(
     release = manifest["release"]
     if release != _RELEASE:
         raise ValueError(f"preview manifest release must be {_RELEASE}")
+    lesson_contract_version = manifest["lesson_contract_version"]
+    if type(lesson_contract_version) is not int or lesson_contract_version != 1:
+        raise ValueError("preview manifest lesson_contract_version must be integer 1")
 
     catalog_path = root / "academy" / "catalog.json"
     catalog_sha256 = _validate_catalog_hash(catalog_path, manifest["catalog_sha256"])
@@ -179,15 +205,33 @@ def validate_preview_manifest(
     _validate_catalog_schema_lock(root, catalog)
 
     available_labs = _require_ids(manifest["available_labs"], "available_labs")
+    runnable_labs = _require_ids(manifest["runnable_labs"], "runnable_labs")
+    guided_labs = _require_ids(manifest["guided_labs"], "guided_labs")
     coming_next = _require_ids(manifest["coming_next"], "coming_next")
     discussion_url = _validate_discussion_url(manifest["discussion_url"])
-    _validate_known_ordered_closure(catalog, available_labs)
-    if available_labs != _AVAILABLE_LABS:
-        raise ValueError("preview manifest available_labs contains lab(s) not eligible for Preview 0.3")
+    if available_labs != runnable_labs:
+        raise ValueError("preview manifest available_labs must equal runnable_labs")
+    if set(runnable_labs) & set(coming_next):
+        raise ValueError("preview manifest runnable_labs must not overlap coming_next")
+    _validate_known_ordered_closure(catalog, runnable_labs)
+    if runnable_labs != _RUNNABLE_LABS:
+        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.3")
+    _validate_guided_labs(catalog, runnable_labs, guided_labs)
+    if guided_labs != ("F01-fork-clone-doctor",):
+        raise ValueError("preview manifest guided_labs must list only the reviewed F01 lesson")
     if coming_next != _COMING_NEXT:
         raise ValueError("preview manifest coming_next must be empty for Preview 0.3")
 
-    return PreviewManifest(release, available_labs, coming_next, discussion_url, catalog_sha256)
+    return PreviewManifest(
+        release,
+        lesson_contract_version,
+        available_labs,
+        runnable_labs,
+        guided_labs,
+        coming_next,
+        discussion_url,
+        catalog_sha256,
+    )
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:
@@ -200,11 +244,23 @@ def load_preview_manifest(root: Path) -> PreviewManifest:
     return validate_preview_manifest(root, data)
 
 
-def require_published_lab(root: Path, lab_id: str) -> None:
+def require_runnable_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* is runnable in the reviewed public release."""
     manifest = load_preview_manifest(root)
-    if lab_id not in manifest.available_labs:
-        raise ValueError(f"{lab_id} is not available in Academy Preview 0.3")
+    if lab_id not in manifest.runnable_labs:
+        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.3")
+
+
+def require_guided_lab(root: Path, lab_id: str) -> None:
+    """Fail closed unless *lab_id* has a reviewed guided lesson in the public release."""
+    manifest = load_preview_manifest(root)
+    if lab_id not in manifest.guided_labs:
+        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.3")
+
+
+def require_published_lab(root: Path, lab_id: str) -> None:
+    """Compatibility alias for runnable public-release access."""
+    require_runnable_lab(root, lab_id)
 
 
 def require_graduation_available(root: Path) -> None:
