@@ -11,19 +11,21 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from academy_engine.catalog import CatalogError
+from academy_engine.catalog import Catalog, CatalogError
 from academy_engine.checkpoints import CheckpointResult
 from academy_engine.cli import main
 from academy_engine.command import GitCommandError
 from academy_engine.external_state import ExternalStateError
+from academy_engine.preview import PreviewManifest
 from academy_engine.scenario import PreparedLab
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
-P02_STATE_REACHABLE_LABS = (
-    "P02-commit-review-pr",
+LOCAL_P02_RESTORATION_LABS = (
     "P03-record-an-adr",
     "P04-review-a-dependency",
+)
+UNPUBLISHED_LABS = (
     "P05-checkpoint-remediation",
     "P06-context-drift-recovery",
     "P07-threat-model",
@@ -36,14 +38,137 @@ P02_STATE_REACHABLE_LABS = (
     "U06-preview-and-advanced-surfaces",
     "U07-capstone",
 )
-LOCAL_P02_RESTORATION_LABS = tuple(
-    lab_id
-    for lab_id in P02_STATE_REACHABLE_LABS
-    if lab_id not in {"P02-commit-review-pr", "P08-repository-hygiene"}
-)
 
 
 class AcademyCliTrustTests(unittest.TestCase):
+    def test_publication_gate_uses_verifier_data_not_the_learner_repository(self) -> None:
+        """Catches installed verification reading release policy from learner input."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            learner = Path(temporary_directory) / "learner"
+            learner.mkdir()
+            with patch(
+                "academy_engine.cli.repository_root", return_value=learner
+            ), patch(
+                "academy_engine.cli._verifier_publication_root",
+                create=True,
+                return_value=REPOSITORY,
+            ) as verifier_root, patch(
+                "academy_engine.cli.require_published_lab",
+                side_effect=ValueError("publication gate stopped dispatch"),
+            ) as publication_gate, redirect_stderr(StringIO()):
+                exit_code = main(
+                    [
+                        "--repository",
+                        str(learner),
+                        "check",
+                        "F01-fork-clone-doctor",
+                    ]
+                )
+
+        self.assertEqual(exit_code, 1)
+        verifier_root.assert_called_once_with()
+        publication_gate.assert_called_once_with(
+            REPOSITORY, "F01-fork-clone-doctor"
+        )
+
+    def test_unpublished_labs_never_reach_prepare_reset_or_check_dispatch(self) -> None:
+        """Catches catalog-only labs becoming runnable outside the release manifest."""
+        for lab_id in UNPUBLISHED_LABS:
+            for command, dispatch_name in (
+                ("prepare", "prepare_lab"),
+                ("reset", "reset_lab"),
+                ("check", "evaluate_checkpoint"),
+            ):
+                with self.subTest(lab_id=lab_id, command=command), patch(
+                    "academy_engine.cli.repository_root", return_value=REPOSITORY
+                ), patch(
+                    f"academy_engine.cli.{dispatch_name}"
+                ) as dispatch, patch(
+                    "academy_engine.cli.validate_repository_git_config"
+                ) as git_config, patch(
+                    "academy_engine.cli.ensure_authoritative_verifier"
+                ) as authority, redirect_stderr(StringIO()) as errors:
+                    exit_code = main(
+                        ["--repository", str(REPOSITORY), command, lab_id]
+                    )
+
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(
+                    errors.getvalue(),
+                    f"error: {lab_id} is not available in Academy Preview 0.1\n",
+                )
+                dispatch.assert_not_called()
+                git_config.assert_not_called()
+                authority.assert_not_called()
+
+    def test_graduation_dispatch_requires_the_complete_published_catalog(self) -> None:
+        """Catches Preview issuing a credential before every catalog lab is published."""
+        receipt = SimpleNamespace(
+            path=Path("academy-graduation.json"),
+            digest="f" * 64,
+        )
+        full_catalog = Catalog.load(REPOSITORY / "academy" / "catalog.json")
+        future_manifest = PreviewManifest(
+            "academy-1.0",
+            tuple(lab.id for lab in full_catalog.labs),
+            (),
+            "https://github.com/arbiterForge/arbiter-academy/discussions",
+            "a" * 64,
+        )
+
+        preview_output, errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch(
+            "academy_engine.cli._verifier_publication_root",
+            return_value=REPOSITORY,
+        ), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ) as git_config, patch(
+            "academy_engine.cli.ensure_authoritative_verifier"
+        ) as authority, patch(
+            "academy_engine.cli.graduate", return_value=receipt
+        ) as graduate_dispatch, redirect_stdout(preview_output), redirect_stderr(errors):
+            preview_exit = main(
+                ["--repository", str(REPOSITORY), "graduate"]
+            )
+
+        self.assertEqual(preview_exit, 1)
+        self.assertEqual(preview_output.getvalue(), "")
+        self.assertEqual(
+            errors.getvalue(),
+            "error: Graduation is not available until the complete Academy catalog is published.\n",
+        )
+        graduate_dispatch.assert_not_called()
+        git_config.assert_not_called()
+        authority.assert_not_called()
+
+        output = StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch(
+            "academy_engine.cli._verifier_publication_root",
+            return_value=REPOSITORY,
+        ), patch(
+            "academy_engine.preview.load_preview_manifest",
+            return_value=future_manifest,
+        ), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ) as git_config, patch(
+            "academy_engine.cli.ensure_authoritative_verifier"
+        ) as authority, patch(
+            "academy_engine.cli.graduate", return_value=receipt
+        ) as graduate_dispatch, redirect_stdout(output):
+            complete_exit = main(
+                ["--repository", str(REPOSITORY), "graduate"]
+            )
+
+        self.assertEqual(complete_exit, 0)
+        self.assertEqual(output.getvalue(), f"academy-graduation.json {'f' * 64}\n")
+        graduate_dispatch.assert_called_once_with(REPOSITORY)
+        git_config.assert_called_once_with(REPOSITORY)
+        authority.assert_called_once_with(REPOSITORY)
+
     def test_p02_prepare_prints_only_labeled_logical_repository_ids(self) -> None:
         result = PreparedLab(
             "P02-commit-review-pr",
@@ -203,63 +328,25 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertIn("--repository", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_authoritative_exercise_prepare_and_reset_require_explicit_repository(self) -> None:
-        for lab_id in ("P02-commit-review-pr", "P08-repository-hygiene"):
-            for command in ("prepare", "reset"):
-                with self.subTest(command=command, lab_id=lab_id):
-                    result = subprocess.run(
-                        [
-                            sys.executable,
-                            str(REPOSITORY / "scripts" / "academy.py"),
-                            command,
-                            lab_id,
-                        ],
-                        cwd=REPOSITORY,
-                        text=True,
-                        capture_output=True,
-                        check=False,
-                    )
+    def test_p02_prepare_and_reset_require_explicit_repository(self) -> None:
+        for command in ("prepare", "reset"):
+            with self.subTest(command=command):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(REPOSITORY / "scripts" / "academy.py"),
+                        command,
+                        "P02-commit-review-pr",
+                    ],
+                    cwd=REPOSITORY,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
 
-                    self.assertNotEqual(result.returncode, 0)
-                    self.assertIn("--repository", result.stderr)
-                    self.assertNotIn("Traceback", result.stderr)
-
-    def test_p08_prepare_dispatches_with_installed_authority(self) -> None:
-        result = PreparedLab(
-            "P08-repository-hygiene",
-            1,
-            "academy/P08-repository-hygiene/1",
-            "a" * 40,
-            "b" * 40,
-        )
-        output = StringIO()
-
-        with patch("academy_engine.cli.repository_root", return_value=REPOSITORY), patch(
-            "academy_engine.cli.validate_repository_git_config"
-        ) as validated, patch(
-            "academy_engine.cli.ensure_authoritative_verifier"
-        ) as authoritative, patch(
-            "academy_engine.cli.prepare_lab", return_value=result
-        ) as prepared, redirect_stdout(output):
-            self.assertEqual(
-                main(["--repository", str(REPOSITORY), "prepare", "P08-repository-hygiene"]),
-                0,
-            )
-
-        validated.assert_called_once_with(REPOSITORY)
-        authoritative.assert_called_once_with(REPOSITORY)
-        prepared.assert_called_once_with(
-            REPOSITORY, "P08-repository-hygiene", installed_authority=True
-        )
-        self.assertEqual(
-            output.getvalue(),
-            "Academy prepared: academy/P08-repository-hygiene/1 at " + "b" * 40 + "\n",
-        )
-
-    def test_p08_is_excluded_from_the_local_p02_restoration_matrix(self) -> None:
-        self.assertIn("P08-repository-hygiene", P02_STATE_REACHABLE_LABS)
-        self.assertNotIn("P08-repository-hygiene", LOCAL_P02_RESTORATION_LABS)
-        self.assertNotIn("P02-commit-review-pr", LOCAL_P02_RESTORATION_LABS)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("--repository", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_later_lab_local_prepare_and_reset_proceed_when_p02_records_are_absent(self) -> None:
         for command, target in (("prepare", "prepare_lab"), ("reset", "reset_lab")):
@@ -465,6 +552,8 @@ class AcademyCliTrustTests(unittest.TestCase):
             with self.subTest(label=label):
                 output, errors = StringIO(), StringIO()
                 with patch(
+                    "academy_engine.cli.require_published_lab"
+                ), patch(
                     "academy_engine.cli.validate_repository_git_config"
                 ), patch(
                     "academy_engine.cli.ensure_authoritative_verifier"
@@ -486,6 +575,8 @@ class AcademyCliTrustTests(unittest.TestCase):
 
         output, errors = StringIO(), StringIO()
         with patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
             "academy_engine.cli.validate_repository_git_config"
         ), patch(
             "academy_engine.cli.ensure_authoritative_verifier"
@@ -656,6 +747,8 @@ class AcademyCliTrustTests(unittest.TestCase):
                 return reset_result
 
             with patch("academy_engine.cli.repository_root", return_value=root), patch(
+                "academy_engine.cli.require_published_lab"
+            ), patch(
                 "academy_engine.cli.validate_repository_git_config"
             ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
                 "academy_engine.cli.evaluate_checkpoint", return_value=result

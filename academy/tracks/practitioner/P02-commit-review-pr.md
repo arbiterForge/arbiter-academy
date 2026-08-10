@@ -207,19 +207,19 @@ if (($stagedReceiptPaths -join "`n") -ne '.codearbiter/reports/academy/P02-pr-re
 Choose exactly one block. This commit must have the work head as its sole parent and change only the
 receipt path.
 
-#### Claude Code receipt commit
+### Claude Code receipt commit
 
 ```text
 /ca:commit
 ```
 
-#### Codex receipt commit
+### Codex receipt commit
 
 ```text
 $ca-commit
 ```
 
-#### Pi receipt commit
+### Pi receipt commit
 
 ```text
 /ca-commit

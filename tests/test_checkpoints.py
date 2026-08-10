@@ -483,6 +483,24 @@ class CheckpointTests(unittest.TestCase):
         with self.assertRaises(CheckpointError):
             load_checkpoint(self.path)
 
+    def test_definition_runtime_matches_the_single_predicate_schema(self):
+        """Catches runtime accepting multiple predicates forbidden by checkpoint.schema.json."""
+        predicate = {
+            "id": "remote_and_doctor",
+            "type": "lab_semantics",
+            "profile": "remote_doctor",
+            "artifact": ".codearbiter/reports/academy/F01-doctor.json",
+        }
+        self.write(
+            {
+                "schema_version": 2,
+                "id": "F01-fork-clone-doctor",
+                "predicates": [predicate, {**predicate, "id": "second"}],
+            }
+        )
+        with self.assertRaisesRegex(CheckpointError, "exactly one"):
+            load_checkpoint(self.path)
+
     def test_wrong_branch_fails_recomputed_git_evidence(self):
         subprocess.run(["git", "init"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "switch", "-c", "wrong-branch"], cwd=self.root, check=True, capture_output=True, text=True)

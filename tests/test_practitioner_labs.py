@@ -7,13 +7,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
 from academy_engine.cli import main
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
+from academy_engine.preview import load_preview_manifest
 from academy_engine.scenario import PreparedLab
 
 
@@ -113,6 +114,16 @@ class PractitionerCurriculumTests(unittest.TestCase):
         except CurriculumError as error:
             self.fail(f"post-P02 source commands are not loadable: {error}")
 
+        published = set(load_preview_manifest(SOURCE).available_labs)
+        self.assertEqual(
+            tuple(lab.id for lab in track.labs[2:] if lab.id in published),
+            PRACTITIONER[2:4],
+        )
+        self.assertEqual(
+            tuple(lab.id for lab in track.labs[2:] if lab.id not in published),
+            PRACTITIONER[4:],
+        )
+
         for lab in track.labs[2:]:
             result = PreparedLab(
                 lab.id,
@@ -131,7 +142,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     "academy_engine.cli.ensure_authoritative_verifier"
                 ) as authoritative, patch(
                     f"academy_engine.cli.{target}", return_value=result
-                ) as transitioned, redirect_stdout(output):
+                ) as transitioned, redirect_stdout(output), redirect_stderr(output):
                     exit_code = main(
                         [
                             "--repository",
@@ -141,14 +152,49 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         ]
                     )
 
-                self.assertEqual(exit_code, 0)
-                validated.assert_called_once_with(SOURCE)
-                authoritative.assert_called_once_with(SOURCE)
-                transitioned.assert_called_once_with(
-                    SOURCE,
-                    lab.id,
-                    installed_authority=True,
-                )
+                if lab.id in published:
+                    self.assertEqual(exit_code, 0)
+                    validated.assert_called_once_with(SOURCE)
+                    authoritative.assert_called_once_with(SOURCE)
+                    transitioned.assert_called_once_with(
+                        SOURCE,
+                        lab.id,
+                        installed_authority=True,
+                    )
+                else:
+                    self.assertEqual(exit_code, 1)
+                    self.assertEqual(
+                        output.getvalue(),
+                        f"error: {lab.id} is not available in Academy Preview 0.1\n",
+                    )
+                    validated.assert_not_called()
+                    authoritative.assert_not_called()
+                    transitioned.assert_not_called()
+
+    def test_published_lessons_do_not_direct_progression_to_unavailable_labs(self) -> None:
+        manifest = load_preview_manifest(SOURCE)
+        published = set(manifest.available_labs)
+        tracks = (
+            load_track(SOURCE, "foundations"),
+            load_track(SOURCE, "practitioner"),
+        )
+
+        for track in tracks:
+            for lab in track.labs:
+                if lab.id not in published or lab.next_lab in published:
+                    continue
+                guide_path = SOURCE / f"academy/tracks/{track.id}/{lab.id}.md"
+                next_section = guide_path.read_text(encoding="utf-8").partition(
+                    "## Next lab"
+                )[2]
+                current_code = lab.id.partition("-")[0]
+                next_code = lab.next_lab.partition("-")[0]
+                with self.subTest(lab=lab.id, next_lab=lab.next_lab):
+                    self.assertIn(
+                        f"{next_code} is not available in Academy Preview 0.1.",
+                        next_section,
+                    )
+                    self.assertNotIn(f"after {current_code} passes", next_section)
 
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         """Catches a missing/reordered lab or a guide wired to the wrong governed surface."""
@@ -238,9 +284,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "Upstream repository ID: <64hex>",
             'git ls-remote origin "refs/heads/$branch"',
             'git ls-remote upstream "refs/heads/$branch"',
-            "#### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
-            "#### Codex receipt commit\n\n```text\n$ca-commit\n```",
-            "#### Pi receipt commit\n\n```text\n/ca-commit\n```",
+            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
+            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
+            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
@@ -271,9 +317,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "[IO.File]::WriteAllText($receiptPath",
             "git add -- .codearbiter/reports/academy/P02-pr-receipt.json",
             "$stagedReceiptPaths = @(git diff --cached --name-only)",
-            "#### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
-            "#### Codex receipt commit\n\n```text\n$ca-commit\n```",
-            "#### Pi receipt commit\n\n```text\n/ca-commit\n```",
+            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
+            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
+            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
             "arbiter-academy --repository $learnerRepository check P02-commit-review-pr",
         )
         positions = [guide.index(marker) for marker in markers]
@@ -302,19 +348,16 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md",
             exercise_patch,
         )
-        verification = exercise_patch.index("-## Verification")
+        learner_gate = exercise_patch.index("+### P02 learner commit gate")
         for preimage_context in (
-            " ## Coverage",
-            " No coverage command or threshold is configured for this standard-library Academy",
-            " surface. Current TDD uses Phase 4 obligation verification under the no-tooling",
-            " exemption.",
-            " ## Lint",
-            " python -m tabnanny academy_engine workshop_queue scripts tests",
+            " evidence. Independent review remains required. `compileall` is syntax",
+            " verification, not lint.",
+            "-### Integration and release milestones",
         ):
             with self.subTest(preimage_context=preimage_context):
                 self.assertIn(preimage_context, exercise_patch)
-                self.assertLess(exercise_patch.index(preimage_context), verification)
-        self.assertIn("## P02 learner commit gate", exercise_patch)
+                self.assertLess(exercise_patch.index(preimage_context), learner_gate)
+        self.assertIn("+### P02 learner commit gate", exercise_patch)
         self.assertIn("python -m unittest tests.test_cli -v", exercise_patch)
         self.assertIn(
             "python -m compileall -q workshop_queue tests/test_cli.py",

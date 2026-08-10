@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -75,6 +76,80 @@ class PreviewManifestTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "catalog_sha256"):
             validate_preview_manifest(self.root, manifest)
+
+    def test_repository_checkout_keeps_identity_bound_inputs_lf(self) -> None:
+        """Catches platform checkout conversion changing catalog or P02 byte identities."""
+        identity_paths = (
+            "academy/catalog.json",
+            ".codearbiter/tech-stack.md",
+            "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch",
+        )
+        checked = subprocess.run(
+            ["git", "check-attr", "-z", "eol", "--", *identity_paths],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+        ).stdout.rstrip(b"\0").split(b"\0")
+        attributes = {
+            path.decode("utf-8"): value.decode("ascii")
+            for path, attribute, value in zip(
+                checked[0::3], checked[1::3], checked[2::3], strict=True
+            )
+            if attribute == b"eol"
+        }
+        self.assertEqual(attributes, {path: "lf" for path in identity_paths})
+
+        catalog = (self.root / "academy" / "catalog.json").read_bytes()
+        self.assertNotIn(b"\r\n", catalog)
+        manifest = json.loads(
+            (self.root / "academy" / "publication" / "preview-0.1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            manifest["catalog_sha256"],
+            hashlib.sha256(catalog).hexdigest(),
+        )
+
+    def test_git_filters_keep_the_catalog_digest_stable_across_eol_modes(self) -> None:
+        """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
+        catalog_path = "academy/catalog.json"
+        manifest = json.loads(
+            (self.root / "academy" / "publication" / "preview-0.1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        filtered_catalogs = {
+            (autocrlf, eol): subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    f"core.autocrlf={autocrlf}",
+                    "-c",
+                    f"core.eol={eol}",
+                    "cat-file",
+                    "--filters",
+                    f"--path={catalog_path}",
+                    f"HEAD:{catalog_path}",
+                ],
+                cwd=self.root,
+                check=True,
+                capture_output=True,
+            ).stdout
+            for autocrlf, eol in (("false", "lf"), ("true", "crlf"))
+        }
+
+        self.assertEqual(
+            filtered_catalogs[("false", "lf")],
+            filtered_catalogs[("true", "crlf")],
+        )
+        for mode, catalog in filtered_catalogs.items():
+            with self.subTest(autocrlf=mode[0], eol=mode[1]):
+                self.assertNotIn(b"\r\n", catalog)
+                self.assertEqual(
+                    hashlib.sha256(catalog).hexdigest(),
+                    manifest["catalog_sha256"],
+                )
 
     def test_preview_manifest_accepts_only_the_reviewed_discussions_url_boundary(self) -> None:
         """Catches feedback routing to insecure, lookalike, or unrelated GitHub destinations."""

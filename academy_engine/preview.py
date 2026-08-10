@@ -199,3 +199,21 @@ def load_preview_manifest(root: Path) -> PreviewManifest:
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError(f"could not read preview manifest: {error}") from error
     return validate_preview_manifest(root, data)
+
+
+def require_published_lab(root: Path, lab_id: str) -> None:
+    """Fail closed unless *lab_id* is runnable in the reviewed public release."""
+    manifest = load_preview_manifest(root)
+    if lab_id not in manifest.available_labs:
+        raise ValueError(f"{lab_id} is not available in Academy Preview 0.1")
+
+
+def require_graduation_available(root: Path) -> None:
+    """Fail closed until the verifier publishes the complete catalog."""
+    manifest = load_preview_manifest(root)
+    catalog = Catalog.load(root / "academy" / "catalog.json")
+    complete_catalog = tuple(lab.id for lab in catalog.labs)
+    if manifest.available_labs != complete_catalog:
+        raise ValueError(
+            "Graduation is not available until the complete Academy catalog is published."
+        )

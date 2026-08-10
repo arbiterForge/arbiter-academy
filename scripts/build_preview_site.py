@@ -20,11 +20,22 @@ from academy_engine.preview import PreviewManifest, load_preview_manifest
 
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
-_FRONTMATTER_FIELDS = ("title", "outcome", "next_lab")
+_FRONTMATTER_FIELDS = ("title", "outcome", "estimated_minutes", "next_lab")
+_FENCE_LANGUAGES = {"powershell", "text", "sh", "json"}
+_HEADING = re.compile(r"^(#{1,3}) ([^#].*)$")
+_TABLE_DIVIDER = re.compile(r"^\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|$")
+_UNSUPPORTED_BLOCK = re.compile(r"^(?:[-+*]\s|\d+[.)]\s|>|#{4,}\s|<)")
+_RAW_HTML = re.compile(r"(?:</?[A-Za-z][^>]*>|<!--.*?-->)")
+_LINK_OR_IMAGE = re.compile(r"!?\[[^\]]*\]\([^)]*\)")
+_UNSUPPORTED_INLINE_MARKERS = ("*", "_", "[", "]", "\\", "~")
 _PUBLIC_ASSET_FILES = (
     Path("assets/academy.css"),
+    Path("assets/favicon.svg"),
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"),
+    Path("assets/gate-mark.svg"),
+    Path("assets/hero-gates.webp"),
+    Path("assets/logo.svg"),
 )
 
 
@@ -191,7 +202,7 @@ def _validate_rendered_inventory(rendered_pages: dict[Path, str], approved_files
         raise ValueError(f"rendered inventory is incomplete: {', '.join(missing)}")
 
 
-def _read_public_lesson(root: Path, lab_id: str) -> dict[str, str]:
+def _read_public_lesson(root: Path, lab_id: str) -> dict[str, object]:
     track = "foundations" if lab_id.startswith("F") else "practitioner" if lab_id.startswith("P") else ""
     if not track:
         raise ValueError(f"eligible lesson has unsupported lab ID: {lab_id}")
@@ -213,29 +224,181 @@ def _read_public_lesson(root: Path, lab_id: str) -> dict[str, str]:
     for line in lines[1:end]:
         key, separator, value = line.partition(":")
         if not separator:
-            continue
-        metadata[key.strip()] = value.strip()
+            raise ValueError(f"eligible lesson {lab_id} has invalid frontmatter")
+        key = key.strip()
+        if not key or key in metadata:
+            raise ValueError(f"eligible lesson {lab_id} has invalid frontmatter")
+        metadata[key] = value.strip()
     missing = [field for field in _FRONTMATTER_FIELDS if not metadata.get(field)]
     if missing:
         raise ValueError(f"eligible lesson {lab_id} is missing public field(s): {', '.join(missing)}")
+    if not re.fullmatch(r"[1-9][0-9]{0,2}", metadata["estimated_minutes"]):
+        raise ValueError(f"eligible lesson {lab_id} has invalid estimated_minutes")
 
-    heading = next((line[2:].strip() for line in lines[end + 1 :] if line.startswith("# ")), "")
-    if not heading:
-        raise ValueError(f"eligible lesson {lab_id} is missing a public title heading")
-    return {"heading": heading, **{field: metadata[field] for field in _FRONTMATTER_FIELDS}}
+    content, headings = _render_markdown(lab_id, lines[end + 1 :])
+    h1 = [title for level, _slug, title in headings if level == 1]
+    if len(h1) != 1:
+        raise ValueError(f"eligible lesson {lab_id} must contain exactly one public title heading")
+    return {
+        "heading": h1[0],
+        "content": content,
+        "headings": headings,
+        **metadata,
+        "estimated_minutes": int(metadata["estimated_minutes"]),
+    }
+
+
+def _render_inline(lab_id: str, value: str) -> str:
+    if _RAW_HTML.search(value) or _LINK_OR_IMAGE.search(value):
+        raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+    parts: list[str] = []
+    position = 0
+    while position < len(value):
+        if value.startswith("**", position):
+            end = value.find("**", position + 2)
+            if end < 0 or end == position + 2:
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            strong = value[position + 2 : end]
+            if "`" in strong or any(marker in strong for marker in _UNSUPPORTED_INLINE_MARKERS):
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            parts.append(f"<strong>{escape(strong)}</strong>")
+            position = end + 2
+            continue
+        if value[position] == "`":
+            end = value.find("`", position + 1)
+            if end < 0 or end == position + 1:
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            parts.append(f"<code>{escape(value[position + 1:end])}</code>")
+            position = end + 1
+            continue
+        next_markers = [index for index in (value.find("**", position), value.find("`", position)) if index >= 0]
+        end = min(next_markers) if next_markers else len(value)
+        plain = value[position:end]
+        if "`" in plain or any(marker in plain for marker in _UNSUPPORTED_INLINE_MARKERS):
+            raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+        parts.append(escape(plain))
+        position = end
+    return "".join(parts)
+
+
+def _heading_slug(value: str, used: set[str]) -> str:
+    plain = re.sub(r"(?:\*\*|`)", "", value).casefold()
+    slug = re.sub(r"[^a-z0-9]+", "-", plain).strip("-") or "section"
+    candidate = slug
+    counter = 2
+    while candidate in used:
+        candidate = f"{slug}-{counter}"
+        counter += 1
+    used.add(candidate)
+    return candidate
+
+
+def _table_cells(lab_id: str, line: str) -> tuple[str, str]:
+    if not line.startswith("|") or not line.endswith("|"):
+        raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+    cells = tuple(cell.strip() for cell in line[1:-1].split("|"))
+    if len(cells) != 2 or not all(cells):
+        raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+    return cells[0], cells[1]
+
+
+def _render_markdown(
+    lab_id: str, lines: list[str]
+) -> tuple[str, tuple[tuple[int, str, str], ...]]:
+    rendered: list[str] = []
+    headings: list[tuple[int, str, str]] = []
+    used_slugs: set[str] = set()
+    paragraph: list[str] = []
+    index = 0
+
+    def flush_paragraph() -> None:
+        if paragraph:
+            rendered.append(f"<p>{_render_inline(lab_id, ' '.join(paragraph))}</p>")
+            paragraph.clear()
+
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            flush_paragraph()
+            index += 1
+            continue
+        if line != line.lstrip() or line.endswith("  "):
+            raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+        if line.startswith("```"):
+            flush_paragraph()
+            language = line[3:]
+            if language not in _FENCE_LANGUAGES:
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            index += 1
+            code_lines: list[str] = []
+            while index < len(lines) and lines[index] != "```":
+                code_lines.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            rendered.append(
+                f'<pre><code class="language-{language}">{escape(chr(10).join(code_lines))}</code></pre>'
+            )
+            index += 1
+            continue
+        heading = _HEADING.fullmatch(line)
+        if heading:
+            flush_paragraph()
+            level = len(heading.group(1))
+            title = heading.group(2).strip()
+            if re.search(r"\s#+$", title):
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            slug = _heading_slug(title, used_slugs)
+            rendered.append(f'<h{level} id="{slug}">{_render_inline(lab_id, title)}</h{level}>')
+            headings.append((level, slug, re.sub(r"(?:\*\*|`)", "", title)))
+            index += 1
+            continue
+        if line.startswith("|"):
+            flush_paragraph()
+            if index + 2 >= len(lines) or not _TABLE_DIVIDER.fullmatch(lines[index + 1]):
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            headers = _table_cells(lab_id, line)
+            index += 2
+            rows: list[tuple[str, str]] = []
+            while index < len(lines) and lines[index].startswith("|"):
+                rows.append(_table_cells(lab_id, lines[index]))
+                index += 1
+            if not rows:
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            body = "".join(
+                f"<tr><td>{_render_inline(lab_id, left)}</td><td>{_render_inline(lab_id, right)}</td></tr>"
+                for left, right in rows
+            )
+            rendered.append(
+                '<div class="table-shell"><table><thead><tr>'
+                f"<th>{_render_inline(lab_id, headers[0])}</th><th>{_render_inline(lab_id, headers[1])}</th>"
+                f"</tr></thead><tbody>{body}</tbody></table></div>"
+            )
+            continue
+        if (
+            _UNSUPPORTED_BLOCK.match(line)
+            or line.startswith(("---", "~~~", "#"))
+            or re.fullmatch(r"(?:=+|-+|\*+|_+)", line)
+        ):
+            raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+        paragraph.append(line.strip())
+        index += 1
+    flush_paragraph()
+    return "\n".join(rendered), tuple(headings)
 
 
 def _render_pages(
     manifest: PreviewManifest,
-    lessons: dict[str, dict[str, str]],
+    lessons: dict[str, dict[str, object]],
     templates: dict[str, Template],
     commit: str,
 ) -> dict[Path, str]:
+    durations = [int(lessons[lab_id]["estimated_minutes"]) for lab_id in manifest.available_labs]
     available_labs = "\n".join(
         '<li><a href="labs/{id}/index.html">{heading}</a><p>{outcome}</p></li>'.format(
             id=escape(lab_id, quote=True),
-            heading=escape(lessons[lab_id]["heading"]),
-            outcome=escape(lessons[lab_id]["outcome"]),
+            heading=escape(str(lessons[lab_id]["heading"])),
+            outcome=escape(str(lessons[lab_id]["outcome"])),
         )
         for lab_id in manifest.available_labs
     )
@@ -250,6 +413,8 @@ def _render_pages(
                 available_labs=available_labs,
                 coming_next=coming_next,
                 discussion_url=escape(manifest.discussion_url, quote=True),
+                minimum_minutes=min(durations),
+                maximum_minutes=max(durations),
             ),
             root_prefix="",
         ),
@@ -265,21 +430,44 @@ def _render_pages(
         ) + "\n",
     }
     available = set(manifest.available_labs)
-    for lab_id, lesson in lessons.items():
-        next_lab = lesson["next_lab"]
+    lab_order = tuple(manifest.available_labs)
+    for position, (lab_id, lesson) in enumerate(lessons.items()):
+        next_lab = str(lesson["next_lab"])
         if next_lab in available:
             next_step = 'Continue with <a href="../{id}/index.html">{id}</a>.'.format(
                 id=escape(next_lab, quote=True)
             )
         else:
             next_step = f"Continue with {escape(_lab_code(next_lab))} when it enters verification."
+        previous_link = ""
+        if position:
+            previous = lab_order[position - 1]
+            previous_link = f'<a rel="prev" href="../{escape(previous, quote=True)}/index.html">\u2190 {escape(_lab_code(previous))}</a>'
+        next_link = ""
+        if position + 1 < len(lab_order):
+            following = lab_order[position + 1]
+            next_link = f'<a rel="next" href="../{escape(following, quote=True)}/index.html">{escape(_lab_code(following))} \u2192</a>'
+        headings = lesson["headings"]
+        assert isinstance(headings, tuple)
+        toc = "\n".join(
+            f'<li class="lab-toc__level-{level}"><a href="#{escape(slug, quote=True)}">{escape(title)}</a></li>'
+            for level, slug, title in headings
+            if level in {2, 3}
+        )
+        track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
             f"{lesson['title']} | Arbiter Academy Preview 0.1",
             templates["lab"].substitute(
-                heading=escape(lesson["heading"]),
-                outcome=escape(lesson["outcome"]),
+                lab_id=escape(lab_id),
+                track=track_label,
+                minutes=escape(str(lesson.get("estimated_minutes", ""))),
+                outcome=escape(str(lesson["outcome"])),
+                lesson_content=str(lesson["content"]),
+                toc=toc,
                 next_step=next_step,
+                previous_link=previous_link,
+                next_link=next_link,
             ),
             root_prefix="../../",
         )
@@ -299,6 +487,8 @@ def _page(
         home_url=f"{root_prefix}index.html",
         recovery_url=f"{root_prefix}recovery/index.html",
         stylesheet_url=f"{root_prefix}assets/academy.css",
+        favicon_url=f"{root_prefix}assets/favicon.svg",
+        logo_url=f"{root_prefix}assets/logo.svg",
     )
 
 

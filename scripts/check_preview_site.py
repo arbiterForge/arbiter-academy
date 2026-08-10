@@ -20,15 +20,24 @@ _CSS_IMPORT = re.compile(
     r"@import\s+(?:url\(\s*)?(?:[\"']([^\"']+)[\"']|([^\"'()\s;]+))\s*\)?",
     re.IGNORECASE,
 )
-_DISCUSSION_URL = "https://github.com/arbiterForge/arbiter-academy/discussions"
+_EXTERNAL_URLS = {
+    "https://github.com/arbiterForge/arbiter-academy",
+    "https://github.com/arbiterForge/arbiter-academy/fork",
+    "https://github.com/arbiterForge/arbiter-academy/discussions",
+    "https://codearbiter.dev/",
+}
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "495c3496ca30e6cb7913fc87fc1beca550b38bb9993f487f66eae8a246c713b1",
+    Path("assets/academy.css"): "598d570d7fcb1eba7d752a011d9bc6d1ed472d4b3874f94bc21083eeab2aee09",
+    Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (
         "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
     ),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"): (
         "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
     ),
+    Path("assets/gate-mark.svg"): "ff6446d218cc0367141765bafd2840ed0ea703773f5d05c7ed36a9cb14ba6330",
+    Path("assets/hero-gates.webp"): "95893d3b7dac3a84cb9641145509b10b0290587d5b9da456b27f85dd649b43be",
+    Path("assets/logo.svg"): "4553873806ba21a9de652105d3330626b1301eefe50eb7d61a1f3f7efacb768a",
 }
 _ALLOWED_HTML_ATTRIBUTES = {
     "html": {"lang"},
@@ -37,21 +46,37 @@ _ALLOWED_HTML_ATTRIBUTES = {
     "title": set(),
     "link": {"rel", "href"},
     "body": set(),
-    "a": {"class", "href", "aria-label"},
+    "a": {"class", "href", "aria-label", "rel"},
+    "img": {"class", "src", "alt", "width", "height"},
     "header": {"class"},
     "div": {"class", "role"},
     "span": {"class", "aria-hidden"},
-    "nav": {"aria-label"},
+    "nav": {"class", "aria-label"},
     "main": {"id", "tabindex"},
     "footer": {"class"},
     "p": {"class"},
-    "h1": set(),
-    "h2": set(),
-    "code": set(),
-    "ol": set(),
-    "li": set(),
+    "section": {"class", "aria-labelledby"},
+    "article": {"class"},
+    "aside": {"class", "aria-label"},
+    "h1": {"id"},
+    "h2": {"id"},
+    "h3": {"id"},
+    "code": {"class"},
+    "pre": set(),
+    "ol": {"class"},
+    "li": {"class"},
     "strong": set(),
-    "ul": set(),
+    "small": set(),
+    "ul": {"class"},
+    "table": set(),
+    "thead": set(),
+    "tbody": set(),
+    "tr": set(),
+    "th": set(),
+    "td": set(),
+    "svg": {"width", "height", "viewbox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "aria-hidden"},
+    "path": {"d"},
+    "circle": {"cx", "cy", "r"},
 }
 _LABS = (
     "F01-fork-clone-doctor",
@@ -65,8 +90,12 @@ _LABS = (
 )
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
+    Path("assets/favicon.svg"),
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"),
+    Path("assets/gate-mark.svg"),
+    Path("assets/hero-gates.webp"),
+    Path("assets/logo.svg"),
     Path("index.html"),
     Path("recovery/index.html"),
     Path("release.json"),
@@ -77,7 +106,9 @@ _EXPECTED_FILES = {
 class _LinkCollector(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.targets: list[tuple[str, str]] = []
+        self.targets: list[tuple[str, str, str | None]] = []
+        self.ids: list[str] = []
+        self.id_references: list[tuple[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         allowed = _ALLOWED_HTML_ATTRIBUTES.get(tag)
@@ -86,14 +117,24 @@ class _LinkCollector(HTMLParser):
         names = [name for name, _ in attrs]
         if len(names) != len(set(names)):
             raise ValueError(f"disallowed HTML duplicate attribute on {tag}")
+        attributes = dict(attrs)
         for name, value in attrs:
             if name not in allowed or value is None:
                 raise ValueError(f"disallowed HTML attribute on {tag}: {name}")
             if name == "href":
-                self.targets.append((tag, value))
-        if tag == "html" and dict(attrs) != {"lang": "en"}:
+                self.targets.append((tag, value, attributes.get("rel")))
+            if name == "src":
+                self.targets.append((tag, value, None))
+            if name == "id":
+                self.ids.append(value)
+            if name == "aria-labelledby":
+                references = value.split()
+                if not references:
+                    raise ValueError(f"empty aria-labelledby reference on {tag}")
+                self.id_references.extend((tag, reference) for reference in references)
+        if tag == "html" and attributes != {"lang": "en"}:
             raise ValueError("disallowed HTML attributes on html")
-        if tag == "link" and dict(attrs).get("rel") != "stylesheet":
+        if tag == "link" and attributes.get("rel") not in {"stylesheet", "icon"}:
             raise ValueError("disallowed HTML link relationship")
 
     def handle_endtag(self, tag: str) -> None:
@@ -157,16 +198,16 @@ def _resolve_local(
     source: Path,
     target: str,
     *,
-    allow_discussion: bool = False,
+    allow_external: bool = False,
 ) -> Path | None:
     parsed = urlsplit(target)
     if parsed.scheme or parsed.netloc:
-        if not allow_discussion or target != _DISCUSSION_URL:
+        if not allow_external or target not in _EXTERNAL_URLS:
             raise ValueError(f"unapproved external URL in {source.relative_to(root).as_posix()}: {target}")
         return None
     path = unquote(parsed.path)
-    if not path or path.startswith("#"):
-        return None
+    if not path:
+        return source if parsed.fragment else None
     if path.startswith("/") or "\\" in path:
         raise ValueError(f"project-unsafe root-relative URL in {source.relative_to(root).as_posix()}: {target}")
     candidate = (source.parent / path).resolve()
@@ -229,6 +270,7 @@ def check_preview_site(site_root: Path) -> None:
 
     _check_release(root)
     _check_asset_digests(root)
+    pages: dict[Path, _LinkCollector] = {}
     for relative in sorted(path for path in actual if path.suffix == ".html"):
         page = root / relative
         try:
@@ -237,15 +279,43 @@ def check_preview_site(site_root: Path) -> None:
             raise ValueError(f"generated HTML is unreadable: {relative.as_posix()}: {error}") from error
         collector = _LinkCollector()
         collector.feed(text)
-        for tag, target in collector.targets:
+        duplicate_ids = sorted(
+            identifier for identifier in set(collector.ids) if collector.ids.count(identifier) > 1
+        )
+        if duplicate_ids:
+            raise ValueError(
+                f"duplicate HTML id in {relative.as_posix()}: {', '.join(duplicate_ids)}"
+            )
+        pages[page] = collector
+
+    for page, collector in pages.items():
+        for tag, target, relationship in collector.targets:
             resolved = _resolve_local(
                 root,
                 page,
                 target,
-                allow_discussion=tag == "a",
+                allow_external=tag == "a",
             )
-            if tag == "link" and resolved != root / "assets" / "academy.css":
-                raise ValueError(f"unapproved stylesheet URL: {target}")
+            if tag == "link":
+                expected = root / "assets" / (
+                    "academy.css" if relationship == "stylesheet" else "favicon.svg"
+                )
+                if resolved != expected:
+                    raise ValueError(f"unapproved linked asset URL: {target}")
+            fragment = unquote(urlsplit(target).fragment)
+            if fragment:
+                target_collector = pages.get(resolved) if resolved is not None else None
+                if target_collector is None or fragment not in target_collector.ids:
+                    raise ValueError(
+                        f"broken HTML fragment in {page.relative_to(root).as_posix()}: {target}"
+                    )
+        page_ids = set(collector.ids)
+        for tag, reference in collector.id_references:
+            if reference not in page_ids:
+                raise ValueError(
+                    "broken aria-labelledby reference in "
+                    f"{page.relative_to(root).as_posix()} on {tag}: {reference}"
+                )
 
     stylesheet = root / "assets/academy.css"
     try:

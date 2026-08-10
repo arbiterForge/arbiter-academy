@@ -22,7 +22,10 @@ class ReceiptTests(unittest.TestCase):
         # can distinguish these synthetic test values from committed credentials.
         github_token = "gh" + "p_abcdefghijklmnopqrstuvwxyz012345"
         aws_access_key = "AK" + "IA0123456789ABCDEF"
-        for value in ("C:\\Users\\learner\\academy", "C:/Users/learner/academy", "\\\\server\\share\\academy", "/opt/private/academy", "learner@example.com", f"https://token:{github_token}@github.com/x/y", aws_access_key, "sk-proj-abcdefghijklmnopqrstuvwxyz012345", "github_pat_abcdefghijklmnopqrstuvwxyz012345", "xoxb-1234567890-secret"):
+        openai_project = "sk-" + "proj-abcdefghijklmnopqrstuvwxyz012345"
+        github_fine_grained = "github_" + "pat_abcdefghijklmnopqrstuvwxyz012345"
+        slack_token = "xox" + "b-1234567890-secret"
+        for value in ("C:\\Users\\learner\\academy", "C:/Users/learner/academy", "\\\\server\\share\\academy", "/opt/private/academy", "learner@example.com", f"https://token:{github_token}@github.com/x/y", aws_access_key, openai_project, github_fine_grained, slack_token):
             with self.subTest(value=value):
                 with self.assertRaises(ReceiptPrivacyError): validate_receipt_value(value)
 

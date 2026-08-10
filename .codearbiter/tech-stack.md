@@ -67,5 +67,8 @@ when the reviewed build backend is unavailable; required release and milestone r
 supply that backend. All other selected or exhaustive test results must pass. The
 baseline is [the 2026-07-20 checkpoint](checkpoints/2026-07-20-baseline.md).
 
-No database server, external API, paid service, or hosted CI requirement belongs to
-this Academy fixture.
+Learner runtime and offline lab use require no database server, external API, paid
+service, hosted CI, or network connection. Maintainer publication is a separate
+repository gate: pull requests and main-branch publication must pass the hosted
+Academy verification workflows described above. Those gates verify and publish
+the fixture; they do not add a hosted-service dependency to learner execution.

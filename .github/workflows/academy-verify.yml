@@ -1,20 +1,17 @@
-name: Academy Pages
+name: Academy Verify
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 permissions:
   contents: read
 
 concurrency:
-  group: academy-pages-main
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  verify-main:
-    if: github.ref == 'refs/heads/main'
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -23,15 +20,15 @@ jobs:
         python-version: ["3.10", "3.12"]
         shard-index: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
-      CANDIDATE_SHA: ${{ github.sha }}
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       CODEARBITER_SOURCE_SHA: 469c2fb82555346a739ab72a0f7284f22874aa3e
       CODEARBITER_TASKWRITE: ${{ github.workspace }}/.ci/codearbiter-source/core/pysrc/taskwrite.py
       WORKSHOP_QUEUE_TEST_WHEELHOUSE: ${{ github.workspace }}/.github/wheelhouse
     steps:
-      - name: Check out the exact reviewed main commit
+      - name: Check out the exact Academy candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Check out the pinned local CodeArbiter source
@@ -64,18 +61,17 @@ jobs:
         timeout-minutes: 75
         run: python scripts/run_test_shards.py --shard-index "${{ matrix.shard-index }}"
 
-  build:
-    if: github.ref == 'refs/heads/main'
-    needs: verify-main
+  verify-candidate:
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      CANDIDATE_SHA: ${{ github.sha }}
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Check out the exact reviewed main commit
+      - name: Check out the exact Academy candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Select Python
@@ -135,27 +131,3 @@ jobs:
             cd "$scan_root"
             python "$GITHUB_WORKSPACE/scripts/scan_secrets.py" --staged
           )
-
-      - name: Upload the Pages artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site/generated
-
-  deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

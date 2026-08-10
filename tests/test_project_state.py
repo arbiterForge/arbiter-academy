@@ -24,6 +24,7 @@ REQUIRED_FILES = {
     "open-tasks.md",
     "open-questions.md",
     "sprint-log.md",
+    "last-checkpoint",
     "overrides.log",
     "gate-events.log",
     "decisions/0001-json-storage-boundary.md",
@@ -192,6 +193,20 @@ class ProjectStateTests(unittest.TestCase):
             logs["gate-events.log"],
             r"(?m)^\[2026-07-20T09:20:00Z\] REMIND \[H-12\] host=academy hook=fixture.py \|",
         )
+
+    def test_checkpoint_baseline_leaves_exactly_one_real_override(self):
+        marker = (STATE_ROOT / "last-checkpoint").read_bytes()
+        self.assertEqual(marker, b"1\n")
+
+        override_records = [
+            line
+            for line in (STATE_ROOT / "overrides.log").read_text(encoding="utf-8").splitlines()
+            if line.startswith("[")
+        ]
+        post_checkpoint = override_records[int(marker.decode("utf-8").strip()):]
+        self.assertEqual(len(post_checkpoint), 1)
+        self.assertIn("BY: SUaDtL@users.noreply.github.com", post_checkpoint[0])
+        self.assertIn("GATE: H-01", post_checkpoint[0])
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (

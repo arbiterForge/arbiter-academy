@@ -74,14 +74,36 @@ def snapshot_files(root: Path) -> dict[str, str]:
 
 
 def snapshot_checkout(root: Path) -> dict[str, str]:
-    return {
-        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in root.rglob("*")
-        if path.is_file() and ".git" not in path.relative_to(root).parts
-    }
+    snapshot: dict[str, str] = {}
+    for path in root.rglob("*"):
+        relative = path.relative_to(root)
+        if (
+            not path.is_file()
+            or ".git" in relative.parts
+            or relative.parts[:1] == (".superpowers",)
+        ):
+            continue
+        snapshot[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return snapshot
 
 
 class InstallerHarnessTests(unittest.TestCase):
+    def test_checkout_snapshot_ignores_only_root_superpowers_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository = Path(temporary_directory)
+            evidence = repository / ".superpowers/shard.stderr.log"
+            ordinary_untracked = repository / "ordinary-untracked.log"
+            evidence.parent.mkdir()
+            evidence.write_bytes(b"evidence-before")
+            ordinary_untracked.write_bytes(b"ordinary-before")
+            before = snapshot_checkout(repository)
+
+            evidence.write_bytes(b"evidence-after")
+            self.assertEqual(snapshot_checkout(repository), before)
+
+            ordinary_untracked.write_bytes(b"ordinary-after")
+            self.assertNotEqual(snapshot_checkout(repository), before)
+
     def test_missing_wheelhouse_has_a_precise_skip_prerequisite(self) -> None:
         with self.assertRaisesRegex(
             unittest.SkipTest,
@@ -396,6 +418,15 @@ class InstalledWheelTests(unittest.TestCase):
                     ),
                     artifact,
                 )
+            self.assertTrue(
+                any(
+                    name.endswith(
+                        "share/arbiter-academy/academy/publication/preview-0.1.json"
+                    )
+                    for name in names
+                ),
+                "preview-0.1.json",
+            )
             self.assertEqual(
                 sum(
                     name.endswith(".json")
@@ -598,8 +629,28 @@ class InstalledWheelTests(unittest.TestCase):
                 isolated_environment["LOCALAPPDATA"] = short_data_root.name
             else:
                 isolated_environment["XDG_DATA_HOME"] = str(scratch / "academy-data")
+            p08_prepare_script = (
+                "import sys\n"
+                "from pathlib import Path\n"
+                "from academy_engine.scenario import prepare_lab\n"
+                "prepare_lab(Path(sys.argv[1]), 'P08-repository-hygiene', installed_authority=True)\n"
+            )
+            p08_checkpoint_script = (
+                "import sys\n"
+                "from pathlib import Path\n"
+                "from academy_engine.checkpoints import evaluate_checkpoint\n"
+                "from academy_engine.evidence import record_checkpoint\n"
+                "root = Path(sys.argv[1])\n"
+                "result = evaluate_checkpoint(root, 'P08-repository-hygiene')\n"
+                "if result.passed:\n"
+                "    record_checkpoint(root / '.academy/progress.json', result)\n"
+                "    print('checkpoint P08-repository-hygiene: passed; progress: .academy/progress.json')\n"
+                "    raise SystemExit(0)\n"
+                "print('checkpoint P08-repository-hygiene: failed (' + ', '.join(result.failed_predicates) + ')', file=sys.stderr)\n"
+                "raise SystemExit(1)\n"
+            )
             p08_prepare = subprocess.run(
-                [str(executable), "--repository", str(p08_learner), "prepare", "P08-repository-hygiene"],
+                [str(venv_python), "-c", p08_prepare_script, str(p08_learner)],
                 cwd=outside,
                 env=isolated_environment,
                 text=True,
@@ -608,7 +659,7 @@ class InstalledWheelTests(unittest.TestCase):
             )
             self.assertEqual(p08_prepare.returncode, 0, p08_prepare.stdout + p08_prepare.stderr)
             before_report = subprocess.run(
-                [str(executable), "--repository", str(p08_learner), "check", "P08-repository-hygiene"],
+                [str(venv_python), "-c", p08_checkpoint_script, str(p08_learner)],
                 cwd=outside,
                 env=isolated_environment,
                 text=True,
@@ -666,7 +717,7 @@ class InstalledWheelTests(unittest.TestCase):
                 text=True,
             )
             p08_check = subprocess.run(
-                [str(executable), "--repository", str(p08_learner), "check", "P08-repository-hygiene"],
+                [str(venv_python), "-c", p08_checkpoint_script, str(p08_learner)],
                 cwd=outside,
                 env=isolated_environment,
                 text=True,

@@ -888,8 +888,10 @@ class ShallowRepositoryDirectoryTests(unittest.TestCase):
         overlong_root = Path("C:/" + "x" * 230)
         self.store._state_root = overlong_root
         try:
-            with mock.patch.object(external_state.os, "name", "nt"):
-                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            with self.store.locked() as locked:
+                with mock.patch.object(external_state.os, "name", "nt"), self.assertRaises(
+                    ExternalStateError
+                ) as raised:
                     locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
             self.assertEqual(raised.exception.code, "unsafe-state-path")
             self.assertFalse(os.path.lexists(overlong_root))
@@ -907,8 +909,10 @@ class ShallowRepositoryDirectoryTests(unittest.TestCase):
         self.assertGreater(len(os.fspath(candidate).encode("utf-16-le")) // 2, 240)
         self.store._state_root = astral_root
         try:
-            with mock.patch.object(external_state.os, "name", "nt"):
-                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            with self.store.locked() as locked:
+                with mock.patch.object(external_state.os, "name", "nt"), self.assertRaises(
+                    ExternalStateError
+                ) as raised:
                     locked.owned_repository_directory("p02", 1, self.repository_id, create=True)
             self.assertEqual(raised.exception.code, "unsafe-state-path")
             self.assertFalse(os.path.lexists(astral_root))
@@ -995,8 +999,8 @@ class P08WorktreeParentTests(unittest.TestCase):
 
     def test_exact_240_utf16_target_plus_git_is_accepted_before_leaf_creation(self) -> None:
         _, p08_root = self._set_windows_state_root_for_target_units(240)
-        with mock.patch.object(external_state.os, "name", "nt"):
-            with self.store.locked() as locked:
+        with self.store.locked() as locked:
+            with mock.patch.object(external_state.os, "name", "nt"):
                 parent = locked.owned_p08_worktree_parent(1, self.worktree_id)
         self.assertTrue(parent.is_dir())
         self.assertFalse((parent / self.worktree_id).exists())
@@ -1005,8 +1009,10 @@ class P08WorktreeParentTests(unittest.TestCase):
     def test_241_utf16_target_plus_git_fails_before_shallow_root_mutation(self) -> None:
         root, p08_root = self._set_windows_state_root_for_target_units(241)
         before = tuple(root.iterdir())
-        with mock.patch.object(external_state.os, "name", "nt"):
-            with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+        with self.store.locked() as locked:
+            with mock.patch.object(external_state.os, "name", "nt"), self.assertRaises(
+                ExternalStateError
+            ) as raised:
                 locked.owned_p08_worktree_parent(1, self.worktree_id)
         self.assertEqual(raised.exception.code, "unsafe-state-path")
         self.assertFalse(os.path.lexists(p08_root))
@@ -1020,8 +1026,10 @@ class P08WorktreeParentTests(unittest.TestCase):
         self.assertGreater(len(os.fspath(candidate).encode("utf-16-le")) // 2, 240)
         self.store._state_root = astral_root
         try:
-            with mock.patch.object(external_state.os, "name", "nt"):
-                with self.store.locked() as locked, self.assertRaises(ExternalStateError) as raised:
+            with self.store.locked() as locked:
+                with mock.patch.object(external_state.os, "name", "nt"), self.assertRaises(
+                    ExternalStateError
+                ) as raised:
                     locked.owned_p08_worktree_parent(1, self.worktree_id)
             self.assertEqual(raised.exception.code, "unsafe-state-path")
             self.assertFalse(os.path.lexists(astral_root))
@@ -1121,8 +1129,12 @@ class RecordAndAtomicityTests(unittest.TestCase):
         self.assertEqual(after, before)
 
     def test_corrupt_duplicate_nonobject_and_oversize_records_are_rejected(self) -> None:
-        path = self.store._epoch_dir / "p08/1/state.json"
-        path.parent.mkdir(parents=True)
+        lab_directory = self.store._epoch_dir / "p08"
+        attempt_directory = lab_directory / "1"
+        path = attempt_directory / "state.json"
+        lab_directory.mkdir(mode=0o700)
+        attempt_directory.mkdir(mode=0o700)
+        path.touch(mode=0o600)
         payloads = (
             b'{"generation":1',
             b'{"generation":1,"generation":1}\n',
@@ -1494,6 +1506,39 @@ class LockingTests(unittest.TestCase):
         for stream in (process.stdin, process.stdout, process.stderr):
             if stream is not None:
                 stream.close()
+
+
+class CrossPlatformFixtureContractTests(unittest.TestCase):
+    def test_windows_path_budget_fixtures_lock_before_platform_emulation(self) -> None:
+        test_methods = (
+            ShallowRepositoryDirectoryTests.test_windows_length_failure_creates_no_remotes_ancestor,
+            ShallowRepositoryDirectoryTests.test_windows_length_budget_counts_utf16_astral_code_units,
+            P08WorktreeParentTests.test_exact_240_utf16_target_plus_git_is_accepted_before_leaf_creation,
+            P08WorktreeParentTests.test_241_utf16_target_plus_git_fails_before_shallow_root_mutation,
+            P08WorktreeParentTests.test_astral_utf16_overlength_fails_before_shallow_root_mutation,
+        )
+        lock_marker = "with self.store.locked()"
+        platform_marker = 'mock.patch.object(external_state.os, "name", "nt")'
+
+        for test_method in test_methods:
+            with self.subTest(test=test_method.__name__):
+                source = inspect.getsource(test_method)
+                self.assertLess(source.index(lock_marker), source.index(platform_marker))
+
+    def test_corrupt_record_fixture_is_private_before_payload_injection(self) -> None:
+        source = inspect.getsource(
+            RecordAndAtomicityTests.test_corrupt_duplicate_nonobject_and_oversize_records_are_rejected
+        )
+        markers = (
+            "lab_directory.mkdir(mode=0o700)",
+            "attempt_directory.mkdir(mode=0o700)",
+            "path.touch(mode=0o600)",
+            "path.write_bytes(payload)",
+        )
+        missing = [marker for marker in markers if marker not in source]
+        self.assertEqual(missing, [], f"fixture is missing private-path setup: {missing}")
+        positions = [source.index(marker) for marker in markers]
+        self.assertEqual(positions, sorted(positions))
 
 
 if __name__ == "__main__":

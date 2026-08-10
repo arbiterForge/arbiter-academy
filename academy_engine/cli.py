@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import sysconfig
 from pathlib import Path
 
 from academy_engine.catalog import CatalogError
@@ -19,6 +20,7 @@ from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.evidence import record_checkpoint
 from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.progress import inspect_progress
+from academy_engine.preview import require_graduation_available, require_published_lab
 from academy_engine.receipt import ReceiptPrivacyError, export_catalog, graduate
 from academy_engine.remotes import RemoteSafetyError
 from academy_engine.scenario import (
@@ -49,6 +51,14 @@ def ensure_authoritative_verifier(repository: Path) -> None:
         raise VerifierTrustError(
             "authoritative Academy commands require a verifier installed outside the target repository."
         )
+
+
+def _verifier_publication_root() -> Path:
+    """Return verifier-owned release data, never learner-controlled data."""
+    source_root = Path(__file__).resolve().parents[1]
+    if (source_root / "pyproject.toml").is_file():
+        return source_root
+    return Path(sysconfig.get_path("data")) / "share" / "arbiter-academy"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -102,6 +112,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         repository = repository_root(requested_repository)
+        if arguments.command in {"prepare", "reset", "check"} and arguments.lab_id:
+            require_published_lab(_verifier_publication_root(), arguments.lab_id)
+        if arguments.command == "graduate":
+            require_graduation_available(_verifier_publication_root())
         installed_authority = False
         if (
             arguments.command in {"check", "graduate"}

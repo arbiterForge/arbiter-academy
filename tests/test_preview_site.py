@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 import hashlib
+import html as html_module
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
+from academy_engine.checkpoints import LAB_INVENTORY
+from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
 
@@ -27,6 +33,59 @@ def build_and_list_html(root: Path, out: Path) -> list[Path]:
 def read_home(root: Path, out: Path) -> str:
     build_preview_site(root, out, release_sha="1" * 40)
     return (out / "index.html").read_text(encoding="utf-8")
+
+
+def read_webp_dimensions(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    if data[:4] != b"RIFF" or data[8:12] != b"WEBP":
+        raise ValueError("not a WebP image")
+    offset = 12
+    while offset + 8 <= len(data):
+        chunk_type = data[offset : offset + 4]
+        chunk_size = int.from_bytes(data[offset + 4 : offset + 8], "little")
+        payload = data[offset + 8 : offset + 8 + chunk_size]
+        if len(payload) != chunk_size:
+            raise ValueError("truncated WebP chunk")
+        if chunk_type == b"VP8X" and len(payload) >= 10:
+            return (
+                int.from_bytes(payload[4:7], "little") + 1,
+                int.from_bytes(payload[7:10], "little") + 1,
+            )
+        if chunk_type == b"VP8 " and len(payload) >= 10 and payload[3:6] == b"\x9d\x01\x2a":
+            return (
+                int.from_bytes(payload[6:8], "little") & 0x3FFF,
+                int.from_bytes(payload[8:10], "little") & 0x3FFF,
+            )
+        if chunk_type == b"VP8L" and len(payload) >= 5 and payload[0] == 0x2F:
+            dimensions = int.from_bytes(payload[1:5], "little")
+            return (dimensions & 0x3FFF) + 1, ((dimensions >> 14) & 0x3FFF) + 1
+        offset += 8 + chunk_size + (chunk_size % 2)
+    raise ValueError("WebP image has no supported dimension chunk")
+
+
+def extract_bootstrap_blocks(readme: str, rendered_home: str) -> dict[str, str]:
+    patterns = {
+        "powershell": (
+            r"Windows PowerShell:[ \t]*\n(?:[ \t]*\n)*[ \t]*```powershell[ \t]*\n(?P<body>.*?)[ \t]*\n[ \t]*```",
+            r'<p><strong>Windows PowerShell</strong></p><pre><code class="language-powershell">(?P<body>.*?)</code></pre>',
+        ),
+        "posix": (
+            r"macOS or Linux shell:[ \t]*\n(?:[ \t]*\n)*[ \t]*```sh[ \t]*\n(?P<body>.*?)[ \t]*\n[ \t]*```",
+            r'<p><strong>macOS or Linux shell</strong></p><pre><code class="language-sh">(?P<body>.*?)</code></pre>',
+        ),
+    }
+    blocks: dict[str, str] = {}
+    for platform, (readme_pattern, home_pattern) in patterns.items():
+        readme_match = re.search(readme_pattern, readme, re.DOTALL)
+        home_match = re.search(home_pattern, rendered_home, re.DOTALL)
+        if readme_match is None or home_match is None:
+            raise AssertionError(f"missing {platform} bootstrap block")
+        readme_block = textwrap.dedent(readme_match.group("body")).strip()
+        home_block = html_module.unescape(home_match.group("body")).strip()
+        if readme_block != home_block:
+            raise AssertionError(f"README and rendered {platform} bootstrap blocks differ")
+        blocks[platform] = readme_block
+    return blocks
 
 
 class PreviewSiteTests(unittest.TestCase):
@@ -66,7 +125,7 @@ class PreviewSiteTests(unittest.TestCase):
         html = read_home(self.root, self.out)
 
         self.assertIn("eight available labs", html)
-        self.assertIn("20–35 minutes", html)
+        self.assertIn("15–60 minutes", html)
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
         self.assertIn("P05–P07 are status-only", html)
@@ -78,18 +137,308 @@ class PreviewSiteTests(unittest.TestCase):
             )
         self.assertIn('href="recovery/index.html"', html)
 
-    def test_home_workflow_is_one_semantic_five_step_ordered_list(self) -> None:
+    def test_documented_bootstraps_install_a_clean_canonical_snapshot_outside_checkout(self) -> None:
+        """Catches a bootstrap whose installed bytes can come from a between-step learner mutation."""
+        blocks = self._documented_bootstrap_blocks()
+
+        for platform, executable, arguments in self._bootstrap_shells(require_venv=True):
+            with self.subTest(platform=platform):
+                learner, environment = self._bootstrap_fixture(f"success-{platform}", platform)
+                fixture = learner.parents[1]
+                mutation_event = fixture / "mutation-event"
+                hostile_sentinel = fixture / "hostile-shadow-imported"
+                environment.update(
+                    {
+                        "ACADEMY_TEST_GIT_HOOK": "mutate-after-snapshot-identity",
+                        "ACADEMY_TEST_MUTATION_EVENT": str(mutation_event),
+                        "ACADEMY_TEST_HOSTILE_SENTINEL": str(hostile_sentinel),
+                    }
+                )
+                result = self._run_bootstrap(
+                    platform,
+                    executable,
+                    arguments,
+                    blocks[platform],
+                    learner,
+                    environment,
+                )
+
+                self.assertTrue(
+                    mutation_event.is_file(),
+                    "the learner mutation hook did not run after snapshot identity verification",
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                source = learner.parent / "arbiter-academy-source-preview-0.1"
+                tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                self.assertTrue(source.is_dir())
+                self.assertFalse(source.resolve().is_relative_to(learner.resolve()))
+                reviewed_commit = self._git(learner, "rev-parse", "--verify", "HEAD").stdout.strip()
+                self.assertEqual(
+                    self._git(source, "rev-parse", "--verify", "HEAD").stdout.strip(),
+                    reviewed_commit,
+                )
+                launcher = (
+                    tools / "Scripts" / "arbiter-academy.exe"
+                    if platform == "powershell"
+                    else tools / "bin" / "arbiter-academy"
+                )
+                self.assertTrue(launcher.is_file())
+                installed_cli = next(tools.glob("**/site-packages/academy_engine/cli.py"))
+                self.assertFalse(installed_cli.resolve().is_relative_to(learner.resolve()))
+                source_bytes = (source / "academy_engine" / "cli.py").read_bytes()
+                learner_bytes = (learner / "academy_engine" / "cli.py").read_bytes()
+                self.assertNotEqual(learner_bytes, source_bytes)
+                self.assertEqual(
+                    installed_cli.read_bytes(),
+                    source_bytes,
+                    "installed verifier bytes differ from the reviewed sibling snapshot",
+                )
+                launcher_environment = dict(environment)
+                launcher_environment["ACADEMY_TEST_HOSTILE_SENTINEL"] = str(hostile_sentinel)
+                launched = subprocess.run(
+                    [str(launcher), "--repository", str(learner), "progress"],
+                    cwd=learner,
+                    env=launcher_environment,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    timeout=60,
+                )
+                self.assertEqual(launched.returncode, 0, launched.stdout + launched.stderr)
+                self.assertFalse(hostile_sentinel.exists())
+
+    def test_documented_bootstraps_reject_a_clean_fork_after_canonical_advances(self) -> None:
+        """Catches a stale but clean fork being mistaken for current canonical Preview source."""
+        blocks = self._documented_bootstrap_blocks()
+
+        for platform, executable, arguments in self._bootstrap_shells():
+            with self.subTest(platform=platform):
+                learner, environment = self._bootstrap_fixture(f"stale-fork-{platform}", platform)
+                self._advance_canonical(learner)
+                self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
+
+                result = self._run_bootstrap(
+                    platform,
+                    executable,
+                    arguments,
+                    blocks[platform],
+                    learner,
+                    environment,
+                )
+
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("Fork HEAD is not the reviewed canonical Preview source.", result.stderr)
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+
+    def test_documented_bootstraps_reject_a_dirty_checkout_before_sibling_creation(self) -> None:
+        """Catches dirty learner files reaching snapshot creation despite canonical commit identity."""
+        blocks = self._documented_bootstrap_blocks()
+
+        for platform, executable, arguments in self._bootstrap_shells():
+            with self.subTest(platform=platform):
+                learner, environment = self._bootstrap_fixture(f"dirty-{platform}", platform)
+                with (learner / "academy_engine" / "cli.py").open("ab") as stream:
+                    stream.write(b"\n# dirty learner verifier\n")
+                self.assertNotEqual(self._git(learner, "status", "--porcelain").stdout, "")
+
+                result = self._run_bootstrap(
+                    platform,
+                    executable,
+                    arguments,
+                    blocks[platform],
+                    learner,
+                    environment,
+                )
+
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("Bootstrap requires a clean learner checkout.", result.stderr)
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+
+    def test_documented_bootstraps_refuse_each_preexisting_sibling_boundary(self) -> None:
+        """Catches either an old source snapshot or stale wheel directory being silently reused."""
+        blocks = self._documented_bootstrap_blocks()
+
+        for platform, executable, arguments in self._bootstrap_shells():
+            for boundary in ("source", "tools-with-stale-wheel"):
+                with self.subTest(platform=platform, boundary=boundary):
+                    learner, environment = self._bootstrap_fixture(
+                        f"preexisting-{boundary}-{platform}", platform
+                    )
+                    source = learner.parent / "arbiter-academy-source-preview-0.1"
+                    tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                    if boundary == "source":
+                        source.mkdir()
+                    else:
+                        wheels = tools / "wheels"
+                        wheels.mkdir(parents=True)
+                        (wheels / "workshop_queue-0.1.0-py3-none-any.whl").write_bytes(
+                            b"stale same-version wheel"
+                        )
+                    self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
+
+                    result = self._run_bootstrap(
+                        platform,
+                        executable,
+                        arguments,
+                        blocks[platform],
+                        learner,
+                        environment,
+                    )
+
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("Preview source/tools path already exists", result.stderr)
+                    launcher = (
+                        tools / "Scripts" / "arbiter-academy.exe"
+                        if platform == "powershell"
+                        else tools / "bin" / "arbiter-academy"
+                    )
+                    self.assertFalse(launcher.exists())
+
+    def test_documented_bootstraps_stop_after_late_wheel_construction_failure(self) -> None:
+        """Catches a real wheel-command failure falling through to a newly seeded stale wheel."""
+        blocks = self._documented_bootstrap_blocks()
+
+        for platform, executable, arguments in self._bootstrap_shells(require_venv=True):
+            with self.subTest(platform=platform):
+                learner, environment = self._bootstrap_fixture(f"late-wheel-{platform}", platform)
+                fixture = learner.parents[1]
+                tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                stale_cache = fixture / "stale-cache"
+                stale_cache.mkdir()
+                stale_build = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "wheel",
+                        "--no-index",
+                        "--find-links",
+                        str(learner / ".github" / "wheelhouse"),
+                        "--no-deps",
+                        "--wheel-dir",
+                        str(stale_cache),
+                        str(learner),
+                    ],
+                    cwd=learner,
+                    env=environment,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    timeout=180,
+                )
+                self.assertEqual(stale_build.returncode, 0, stale_build.stdout + stale_build.stderr)
+                stale_wheel = stale_cache / "workshop_queue-0.1.0-py3-none-any.whl"
+                self.assertTrue(stale_wheel.is_file())
+                wheel_event = fixture / "wheel-command-attempted"
+                install_event = fixture / "install-command-attempted"
+                environment.update(
+                    {
+                        "ACADEMY_TEST_PYTHON_HOOK": "seed-stale-and-fail-wheel",
+                        "ACADEMY_TEST_STALE_WHEEL": str(stale_wheel),
+                        "ACADEMY_TEST_WHEEL_EVENT": str(wheel_event),
+                        "ACADEMY_TEST_INSTALL_EVENT": str(install_event),
+                    }
+                )
+                self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
+                self.assertFalse(tools.exists())
+
+                result = self._run_bootstrap(
+                    platform,
+                    executable,
+                    arguments,
+                    blocks[platform],
+                    learner,
+                    environment,
+                )
+
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue(wheel_event.is_file(), "the documented wheel command did not run")
+                self.assertFalse(install_event.exists(), "install ran after wheel construction failed")
+                seeded_wheel = tools / "wheels" / stale_wheel.name
+                self.assertEqual(seeded_wheel.read_bytes(), stale_wheel.read_bytes())
+                if platform == "powershell":
+                    self.assertIn("Could not build the reviewed Academy wheel.", result.stderr)
+                else:
+                    self.assertIn("simulated wheel construction failure", result.stderr)
+                launcher = (
+                    tools / "Scripts" / "arbiter-academy.exe"
+                    if platform == "powershell"
+                    else tools / "bin" / "arbiter-academy"
+                )
+                self.assertFalse(launcher.exists())
+
+    def test_posix_bootstrap_fails_closed_when_clean_status_inspection_fails(self) -> None:
+        """Catches an empty failed status substitution being mistaken for a clean checkout."""
+        block = self._documented_bootstrap_blocks()["posix"]
+        posix_shells = [shell for shell in self._bootstrap_shells() if shell[0] == "posix"]
+        self.assertTrue(posix_shells, "POSIX bootstrap shell is unavailable")
+
+        for platform, executable, arguments in posix_shells:
+            learner, environment = self._bootstrap_fixture("status-failure-posix", platform)
+            environment["ACADEMY_TEST_GIT_HOOK"] = "fail-status"
+
+            result = self._run_bootstrap(
+                platform,
+                executable,
+                arguments,
+                block,
+                learner,
+                environment,
+            )
+
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("Could not inspect learner checkout status.", result.stderr)
+            self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
+            self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+
+    def test_documented_bootstrap_contract_retains_reviewed_offline_boundary_and_limits(self) -> None:
+        """Catches executable bootstrap or prose drift from the reviewed local trust boundary."""
+        blocks = self._documented_bootstrap_blocks()
+        for platform, block in blocks.items():
+            with self.subTest(platform=platform):
+                self.assertIn("https://github.com/arbiterForge/arbiter-academy.git", block)
+                self.assertIn("--no-index", block)
+                self.assertIn("--no-deps", block)
+                snapshot = "$academySource" if platform == "powershell" else "$academy_source"
+                self.assertIn(f'{snapshot}\\.github\\wheelhouse' if platform == "powershell" else f'{snapshot}/.github/wheelhouse', block)
+
+        readme = (self.root / "README.md").read_text(encoding="utf-8")
+        rendered = read_home(self.root, self.out)
+        self.assertIn(
+            "does not provide cryptographic or malicious-operator resistance",
+            " ".join(readme.split()),
+        )
+        self.assertIn("provides no cryptographic or malicious-operator resistance", rendered)
+
+    def test_home_pacing_range_is_derived_from_published_lesson_metadata(self) -> None:
+        """Catches the landing-page range drifting from published lesson durations."""
+        source = self._copy_public_source()
+        lesson = source / "academy" / "tracks" / "foundations" / "F02-orient-to-state.md"
+        text = lesson.read_text(encoding="utf-8")
+        self.assertIn("estimated_minutes: 15", text)
+        lesson.write_text(
+            text.replace("estimated_minutes: 15", "estimated_minutes: 12", 1),
+            encoding="utf-8",
+        )
+
+        html = read_home(source, self.out)
+
+        self.assertIn("12–60 minutes", html)
+        self.assertNotIn("15–60 minutes", html)
+
+    def test_home_workflow_is_one_semantic_six_step_ordered_list(self) -> None:
         """Catches visual numbering that exposes no ordered-list structure to assistive tech."""
         html = read_home(self.root, self.out)
-        workflow = html.split("<h2>Start safely</h2>", 1)[1].split(
-            '<p>The installed verifier is the trust anchor.', 1
-        )[0]
+        workflow = html.split("<h2>Start safely</h2>", 1)[1].split("</ol>", 1)[0] + "</ol>"
 
-        self.assertEqual(workflow.count("<ol>"), 1)
+        self.assertEqual(workflow.count('<ol class="start-steps">'), 1)
         self.assertEqual(workflow.count("</ol>"), 1)
-        self.assertEqual(workflow.count("<li>"), 5)
-        self.assertEqual(workflow.count("</li>"), 5)
-        self.assertNotRegex(workflow, r"<strong>[1-5]\. ")
+        self.assertEqual(workflow.count("<li>"), 6)
+        self.assertEqual(workflow.count("</li>"), 6)
+        self.assertNotRegex(workflow, r"<strong>[1-6]\. ")
 
     def test_feedback_url_is_https_github_discussions_and_is_rendered(self) -> None:
         """Catches feedback being hidden or routed away from the reviewed Discussions boundary."""
@@ -169,8 +518,12 @@ class PreviewSiteTests(unittest.TestCase):
         )
         expected_files = {
             "assets/academy.css",
+            "assets/favicon.svg",
             "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
             "assets/fonts/manrope-latin-wght-normal.woff2",
+            "assets/gate-mark.svg",
+            "assets/hero-gates.webp",
+            "assets/logo.svg",
             "index.html",
             "recovery/index.html",
             "release.json",
@@ -236,8 +589,12 @@ class PreviewSiteTests(unittest.TestCase):
             actual_assets,
             {
                 "assets/academy.css",
+                "assets/favicon.svg",
                 "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
                 "assets/fonts/manrope-latin-wght-normal.woff2",
+                "assets/gate-mark.svg",
+                "assets/hero-gates.webp",
+                "assets/logo.svg",
             },
         )
         for relative in actual_assets:
@@ -294,6 +651,59 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn("broken internal link", rejected.stderr)
+
+    def test_static_checker_rejects_broken_fragments_aria_references_and_duplicate_ids(self) -> None:
+        """Catches generated navigation or accessible names pointing at absent or ambiguous IDs."""
+        cases = (
+            (
+                "fragment",
+                Path("index.html"),
+                'href="#main-content"',
+                'href="#missing-section"',
+                "broken HTML fragment",
+            ),
+            (
+                "aria",
+                Path("labs/F01-fork-clone-doctor/index.html"),
+                'aria-labelledby="next-step-heading"',
+                'aria-labelledby="missing-next-step-heading"',
+                "broken aria-labelledby reference",
+            ),
+            (
+                "duplicate",
+                Path("labs/F01-fork-clone-doctor/index.html"),
+                'id="why-this-mechanism-matters"',
+                'id="main-content"',
+                "duplicate HTML id",
+            ),
+        )
+        for label, relative, original, mutation, message in cases:
+            with self.subTest(case=label):
+                destination = self.out.parent / f"id-integrity-{label}"
+                build_preview_site(self.root, destination, release_sha="6" * 40)
+                page = destination / relative
+                source = page.read_text(encoding="utf-8")
+                self.assertIn(original, source)
+                page.write_text(source.replace(original, mutation, 1), encoding="utf-8")
+
+                with self.assertRaisesRegex(ValueError, message):
+                    check_preview_site(destination)
+
+    def test_preview_guidance_does_not_offer_graduation_before_the_course_is_published(self) -> None:
+        """Catches public instructions inviting a receipt the published lab set cannot satisfy."""
+        manifest = load_preview_manifest(self.root)
+        self.assertLess(len(manifest.available_labs), len(LAB_INVENTORY))
+
+        readme = (self.root / "README.md").read_text(encoding="utf-8")
+        rendered_home = read_home(self.root, self.out)
+        for surface, text in (("README", readme), ("home", rendered_home)):
+            with self.subTest(surface=surface):
+                normalized = " ".join(text.split())
+                self.assertIn("Graduation is not available in Preview 0.1", normalized)
+                self.assertNotRegex(
+                    text,
+                    r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
+                )
 
     def test_build_rejects_redirected_output_paths_before_external_write(self) -> None:
         """Catches output roots, expected leaves, or directories redirected outside the artifact."""
@@ -442,11 +852,15 @@ class PreviewSiteTests(unittest.TestCase):
             build_preview_site(self.root, nonregular_output, release_sha="d" * 40)
 
     def test_static_checker_pins_each_reviewed_runtime_asset_digest(self) -> None:
-        """Catches any byte mutation in the exact CSS and font artifacts reviewed for Preview 0.1."""
+        """Catches any byte mutation in every runtime asset reviewed for Preview 0.1."""
         assets = (
             "assets/academy.css",
+            "assets/favicon.svg",
             "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
             "assets/fonts/manrope-latin-wght-normal.woff2",
+            "assets/gate-mark.svg",
+            "assets/hero-gates.webp",
+            "assets/logo.svg",
         )
         for index, relative in enumerate(assets):
             with self.subTest(asset=relative):
@@ -533,15 +947,162 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(json.loads((self.out / "release.json").read_text(encoding="utf-8"))["commit"], "b" * 40)
         self.assertFalse((self.out / "academy" / "catalog.json").exists())
 
-    def test_build_renders_only_public_lesson_metadata(self) -> None:
-        """Catches a lab page leaking private lesson body or omitting its public next step."""
+    def test_build_renders_complete_reviewed_lesson_bodies(self) -> None:
+        """Catches a published lab being reduced to a metadata shell."""
         build_preview_site(self.root, self.out, release_sha="c" * 40)
 
-        page = (self.out / "labs" / "P04-review-a-dependency" / "index.html").read_text(encoding="utf-8")
-        self.assertIn("Review a real dependency before installation", page)
-        self.assertIn("Make a complete SMARTS-backed accept or reject decision", page)
-        self.assertIn("Continue with P05 when it enters verification.", page)
-        self.assertNotIn("Candidate-Artifact", page)
+        f01 = (self.out / "labs" / "F01-fork-clone-doctor" / "index.html").read_text(encoding="utf-8")
+        p02 = (self.out / "labs" / "P02-commit-review-pr" / "index.html").read_text(encoding="utf-8")
+        p04 = (self.out / "labs" / "P04-review-a-dependency" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('<article class="academy-content">', f01)
+        self.assertIn("Why this mechanism matters", f01)
+        self.assertIn('<pre><code class="language-powershell">', f01)
+        self.assertIn("<strong>your fork</strong>", f01)
+        self.assertIn('<nav class="lab-toc" aria-label="On this page">', f01)
+        self.assertIn('<div class="table-shell"><table>', p02)
+        self.assertIn("Typical time", p02)
+        self.assertIn('<code class="language-sh">', p02)
+        self.assertIn("Candidate-Artifact", p04)
+        self.assertIn("Continue with P05 when it enters verification.", p04)
+
+    def test_markdown_renderer_rejects_unreviewed_syntax_before_writing(self) -> None:
+        """Catches unknown Markdown or active HTML being silently dropped or published."""
+        injections = (
+            '<script>alert("no")</script>',
+            "[outside](https://example.invalid)",
+            "![pixel](pixel.png)",
+            "*unsupported emphasis*",
+            "_unsupported emphasis_",
+            "[outside][reference]\n\n[reference]: https://example.invalid",
+            "[reference]: https://example.invalid",
+            "[^note]\n\n[^note]: unsupported footnote",
+            "~~~text\nunsupported fence\n~~~",
+            "~~unsupported strikethrough~~",
+            "    unsupported indented code",
+            "\tunsupported tab-indented code",
+            "  - unsupported nested list",
+            "**unsupported *nested* emphasis**",
+            r"\*unsupported escaped emphasis\*",
+            r"\`unsupported escaped code\`",
+            "inline <!-- unsupported comment -->",
+            "- unsupported list item",
+            "> unsupported quote",
+            "#malformed heading",
+            "## heading with closing hashes ##",
+            "#### unsupported heading",
+            "unsupported setext heading\n===",
+            "unsupported hard break  \ncontinued",
+        )
+        source = self._copy_public_source()
+        lesson = source / "academy" / "tracks" / "foundations" / "F01-fork-clone-doctor.md"
+        original = lesson.read_text(encoding="utf-8")
+        for index, injection in enumerate(injections):
+            with self.subTest(injection=injection):
+                lesson.write_text(
+                    original + f"\n{injection}\n",
+                    encoding="utf-8",
+                )
+                destination = self.out.parent / f"unknown-markdown-{index}"
+                with self.assertRaisesRegex(ValueError, "unsupported Markdown"):
+                    build_preview_site(source, destination, release_sha="c" * 40)
+                self.assertFalse(destination.exists())
+
+    def test_design_surface_is_academy_specific_and_project_relative(self) -> None:
+        """Catches loss of the approved Academy identity, orientation, or lesson navigation."""
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        lab = (self.out / "labs" / "F02-orient-to-state" / "index.html").read_text(encoding="utf-8")
+        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
+
+        self.assertIn('rel="icon" href="assets/favicon.svg"', index)
+        self.assertIn('class="academy-hero__art"', index)
+        self.assertIn('src="assets/hero-gates.webp"', index)
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy/fork"',
+            index,
+        )
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy"',
+            index,
+        )
+        self.assertIn('href="https://codearbiter.dev/"', index)
+        self.assertIn('class="orientation-band"', lab)
+        self.assertIn('aria-label="Course navigation"', lab)
+        self.assertIn('aria-label="Breadcrumb"', lab)
+        self.assertIn('aria-label="Lab sequence"', lab)
+        self.assertIn('href="../F01-fork-clone-doctor/index.html"', lab)
+        self.assertIn('href="../F03-work-the-board/index.html"', lab)
+        self.assertIn(".academy-content", css)
+        self.assertIn("overflow-x: auto", css)
+        self.assertIn("min-height: 2.75rem", css)
+        self.assertNotRegex(css, r"(?m)^ul\s*\{")
+        self.assertNotRegex(css, r"(?m)^li\s*\{")
+
+    def test_home_bootstrap_code_blocks_use_the_bounded_scroll_container(self) -> None:
+        """Catches long setup commands widening the whole home page instead of their code block."""
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
+
+        block_rule = re.search(
+            r"\.academy-content pre,\s*\.start-steps pre\s*\{(?P<body>.*?)\}",
+            css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(
+            block_rule,
+            "home-page and lesson code blocks must share one containment rule",
+        )
+        assert block_rule is not None
+        self.assertRegex(block_rule.group("body"), r"\boverflow-x:\s*auto\s*;")
+        code_rule = re.search(
+            r"\.academy-content pre code,\s*\.start-steps pre code\s*\{(?P<body>.*?)\}",
+            css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(
+            code_rule,
+            "home-page and lesson code text must share one rendering rule",
+        )
+
+    def test_rendered_image_dimensions_match_the_intrinsic_reviewed_assets(self) -> None:
+        """Catches image markup that distorts the reviewed hero or codeArbiter logo."""
+        hero_path = self.root / "site" / "assets" / "hero-gates.webp"
+        self.assertEqual(read_webp_dimensions(hero_path), (1881, 836))
+
+        logo = ET.fromstring((self.root / "site" / "assets" / "logo.svg").read_text(encoding="utf-8"))
+        self.assertEqual((logo.attrib.get("width"), logo.attrib.get("height")), ("160", "28"))
+        self.assertEqual(logo.attrib.get("viewBox"), "0 0 160 28")
+
+        html = read_home(self.root, self.out)
+        self.assertIn(
+            '<img class="academy-hero__art" src="assets/hero-gates.webp" alt="" width="1881" height="836">',
+            html,
+        )
+        self.assertIn('<img src="assets/logo.svg" alt="" width="160" height="28">', html)
+
+    def test_mobile_lesson_order_keeps_the_article_before_the_full_toc(self) -> None:
+        """Catches the mobile grid pulling the long TOC ahead of the lesson H1."""
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        lab = (self.out / "labs" / "F02-orient-to-state" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
+
+        article = lab.index('<article class="academy-content">')
+        sidebar = lab.index('<aside class="lesson-sidebar">')
+        self.assertLess(article, sidebar, "the semantic article must precede the TOC")
+
+        mobile = css.split("@media (max-width: 42rem) {", 1)[1].split(
+            "@media (prefers-reduced-motion: reduce)", 1
+        )[0]
+        sidebar_rule = re.search(r"\.lesson-sidebar\s*\{(?P<body>.*?)\}", mobile, re.DOTALL)
+        self.assertIsNotNone(sidebar_rule, "the mobile sidebar rule is missing")
+        assert sidebar_rule is not None
+        self.assertNotRegex(
+            sidebar_rule.group("body"),
+            r"\border\s*:\s*-\d+",
+            "mobile CSS must not reorder the TOC ahead of the article",
+        )
 
     def test_build_rejects_a_missing_eligible_lesson(self) -> None:
         """Catches a partial publication when a manifest-selected lesson is absent."""
@@ -571,7 +1132,7 @@ class PreviewSiteTests(unittest.TestCase):
                 self.assertEqual(html.count("<h1"), 1)
                 self.assertIn('href="#main-content"', html)
                 self.assertIn('<header class="site-header">', html)
-                self.assertIn('<nav aria-label="Primary">', html)
+                self.assertIn('<nav aria-label="Course navigation">', html)
                 self.assertIn('<main id="main-content"', html)
                 self.assertIn('<footer class="site-footer">', html)
 
@@ -622,6 +1183,383 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copytree(self.root / "site" / "templates", source / "site" / "templates")
         shutil.copytree(self.root / "site" / "assets", source / "site" / "assets")
         return source
+
+    def _documented_bootstrap_blocks(self) -> dict[str, str]:
+        readme = (self.root / "README.md").read_text(encoding="utf-8")
+        rendered_home = read_home(self.root, self.out)
+        return extract_bootstrap_blocks(readme, rendered_home)
+
+    def _bootstrap_shells(
+        self, *, require_venv: bool = False
+    ) -> tuple[tuple[str, str, tuple[str, ...]], ...]:
+        shells: list[tuple[str, str, tuple[str, ...]]] = []
+        if os.name == "nt":
+            powershell = shutil.which("powershell.exe") or shutil.which("pwsh.exe")
+            if powershell:
+                shells.append(
+                    (
+                        "powershell",
+                        powershell,
+                        ("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"),
+                    )
+                )
+            wsl_bash = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "bash.exe"
+            bash = str(wsl_bash) if wsl_bash.is_file() else shutil.which("bash")
+        else:
+            bash = shutil.which("bash")
+        if bash and (
+            not require_venv
+            or os.name != "nt"
+            or subprocess.run(
+                [bash, "-lc", "python3 -c 'import ensurepip'"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=15,
+            ).returncode
+            == 0
+        ):
+            shells.append(("posix", bash, ("--noprofile", "--norc", "-c")))
+        self.assertTrue(shells, "no documented bootstrap shell is available")
+        return tuple(shells)
+
+    def _bootstrap_fixture(self, label: str, platform: str) -> tuple[Path, dict[str, str]]:
+        fixture = Path(self.temporary_directory.name) / label
+        seed = fixture / "reviewed-source"
+        shutil.copytree(
+            self.root,
+            seed,
+            ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc", ".superpowers"),
+        )
+        self._git(seed, "init", "--initial-branch=main")
+        self._git(seed, "config", "user.name", "Academy Test")
+        self._git(seed, "config", "user.email", "academy-test@example.invalid")
+        self._git(seed, "add", "--all")
+        self._git(seed, "commit", "-m", "reviewed Preview source")
+        canonical = fixture / "canonical.git"
+        fork = fixture / "fork.git"
+        self._git(fixture, "clone", "--bare", str(seed), str(canonical))
+        self._git(fixture, "clone", "--bare", str(seed), str(fork))
+        learner_parent = fixture / "learner-work"
+        learner_parent.mkdir()
+        learner = learner_parent / "arbiter-academy"
+        self._git(fixture, "clone", str(fork), str(learner))
+        self._git(learner, "config", "user.name", "Academy Learner")
+        self._git(learner, "config", "user.email", "learner@example.invalid")
+
+        git_config = fixture / "gitconfig"
+        canonical_url = canonical.resolve().as_uri()
+        if platform == "posix" and os.name == "nt":
+            drive, tail = os.path.splitdrive(str(canonical.resolve()))
+            canonical_url = f"file:///mnt/{drive[0].lower()}{tail.replace(os.sep, '/')}"
+        self._git(
+            fixture,
+            "config",
+            "--file",
+            str(git_config),
+            f"url.{canonical_url}.insteadOf",
+            "https://github.com/arbiterForge/arbiter-academy.git",
+        )
+        self._git(
+            fixture,
+            "config",
+            "--file",
+            str(git_config),
+            "protocol.file.allow",
+            "always",
+        )
+        environment = dict(os.environ)
+        environment.update(
+            {
+                "GIT_CONFIG_GLOBAL": str(git_config),
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "PIP_CONFIG_FILE": os.devnull,
+                "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+                "PYTHONUTF8": "1",
+            }
+        )
+        return learner, environment
+
+    def _advance_canonical(self, learner: Path) -> None:
+        fixture = learner.parents[1]
+        canonical = fixture / "canonical.git"
+        advance = fixture / "canonical-advance"
+        self._git(fixture, "clone", str(canonical), str(advance))
+        self._git(advance, "config", "user.name", "Academy Reviewer")
+        self._git(advance, "config", "user.email", "reviewer@example.invalid")
+        with (advance / "README.md").open("a", encoding="utf-8") as stream:
+            stream.write("\nCanonical Preview review advanced.\n")
+        self._git(advance, "add", "README.md")
+        self._git(advance, "commit", "-m", "advance reviewed Preview source")
+        self._git(advance, "push", "origin", "HEAD:main")
+
+    def _prepare_bootstrap_shims(
+        self,
+        platform: str,
+        learner: Path,
+        environment: dict[str, str],
+    ) -> None:
+        git_hook = environment.get("ACADEMY_TEST_GIT_HOOK")
+        python_hook = environment.get("ACADEMY_TEST_PYTHON_HOOK")
+        if not git_hook and not python_hook:
+            return
+
+        fixture = learner.parents[1]
+        shim_root = fixture / "command-shims"
+        shim_root.mkdir(exist_ok=True)
+        source = learner.parent / "arbiter-academy-source-preview-0.1"
+        tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+        environment.update(
+            {
+                "ACADEMY_TEST_LEARNER_CLI": str(learner / "academy_engine" / "cli.py"),
+                "ACADEMY_TEST_SOURCE": str(source),
+                "ACADEMY_TEST_TOOLS": str(tools),
+                "ACADEMY_TEST_SHIM_ROOT": str(shim_root),
+            }
+        )
+        if platform == "posix" and os.name == "nt":
+            environment["ACADEMY_REAL_GIT"] = "/usr/bin/git"
+            environment["ACADEMY_REAL_PYTHON"] = "/usr/bin/python3"
+        else:
+            real_git = shutil.which("git")
+            real_python = shutil.which("python3") if platform == "posix" else sys.executable
+            self.assertIsNotNone(real_git, "real Git executable is unavailable")
+            self.assertIsNotNone(real_python, "real Python executable is unavailable")
+            environment["ACADEMY_REAL_GIT"] = str(real_git)
+            environment["ACADEMY_REAL_PYTHON"] = str(real_python)
+
+        if git_hook:
+            git_shim = shim_root / "git_shim.py"
+            git_shim.write_text(
+                """from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+hook = os.environ.get("ACADEMY_TEST_GIT_HOOK", "")
+if hook == "fail-status" and args == ["status", "--porcelain=v1", "--untracked-files=all"]:
+    print("simulated git status inspection failure", file=sys.stderr)
+    raise SystemExit(23)
+
+result = subprocess.run(
+    [os.environ["ACADEMY_REAL_GIT"], *args],
+    stdin=subprocess.DEVNULL,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    check=False,
+)
+sys.stdout.buffer.write(result.stdout)
+sys.stderr.buffer.write(result.stderr)
+if result.returncode == 0 and hook == "mutate-after-snapshot-identity":
+    source = Path(os.environ["ACADEMY_TEST_SOURCE"]).resolve()
+    if len(args) == 5 and args[0] == "-C" and Path(args[1]).resolve() == source and args[2:] == ["rev-parse", "--verify", "HEAD"]:
+        hostile = (
+            'import os\\n'
+            'from pathlib import Path\\n'
+            'Path(os.environ["ACADEMY_TEST_HOSTILE_SENTINEL"]).write_text('
+            '"learner shadow imported", encoding="utf-8")\\n'
+            'raise RuntimeError("learner verifier shadow imported")\\n'
+        )
+        Path(os.environ["ACADEMY_TEST_LEARNER_CLI"]).write_text(hostile, encoding="utf-8")
+        Path(os.environ["ACADEMY_TEST_MUTATION_EVENT"]).write_text(
+            "mutated after snapshot identity", encoding="utf-8"
+        )
+raise SystemExit(result.returncode)
+""",
+                encoding="utf-8",
+            )
+            environment["ACADEMY_TEST_GIT_SHIM"] = str(git_shim)
+            if platform == "powershell":
+                (shim_root / "git.cmd").write_text(
+                    f'@"{sys.executable}" "{git_shim}" %*\n@exit /b %ERRORLEVEL%\n',
+                    encoding="utf-8",
+                )
+            else:
+                wrapper = shim_root / "git"
+                wrapper.write_text(
+                    '#!/bin/sh\nexec "$ACADEMY_REAL_PYTHON" "$ACADEMY_TEST_GIT_SHIM" "$@"\n',
+                    encoding="utf-8",
+                    newline="\n",
+                )
+                wrapper.chmod(0o755)
+
+        if python_hook:
+            pip_shadow = shim_root / "pip-shadow"
+            (pip_shadow / "pip").mkdir(parents=True)
+            (pip_shadow / "pip" / "__init__.py").write_text("", encoding="utf-8")
+            (pip_shadow / "pip" / "__main__.py").write_text(
+                """from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+operation = sys.argv[1] if len(sys.argv) > 1 else ""
+if operation == "wheel":
+    Path(os.environ["ACADEMY_TEST_WHEEL_EVENT"]).write_text(
+        "wheel command attempted", encoding="utf-8"
+    )
+    print("simulated wheel construction failure", file=sys.stderr)
+    raise SystemExit(23)
+if operation == "install":
+    Path(os.environ["ACADEMY_TEST_INSTALL_EVENT"]).write_text(
+        "install command attempted", encoding="utf-8"
+    )
+    raise SystemExit(0)
+print("unexpected pip operation", file=sys.stderr)
+raise SystemExit(97)
+""",
+                encoding="utf-8",
+            )
+            launcher_shim = shim_root / "python_launcher_shim.py"
+            launcher_shim.write_text(
+                """from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+if args and args[0] == "-3":
+    args = args[1:]
+result = subprocess.run(
+    [os.environ["ACADEMY_REAL_PYTHON"], *args],
+    stdin=subprocess.DEVNULL,
+    check=False,
+)
+if result.returncode == 0 and args[:2] == ["-m", "venv"]:
+    tools = Path(os.environ["ACADEMY_TEST_TOOLS"])
+    wheels = tools / "wheels"
+    wheels.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(os.environ["ACADEMY_TEST_STALE_WHEEL"], wheels)
+    candidates = [tools / "Lib" / "site-packages", *tools.glob("lib/python*/site-packages")]
+    site_packages = next(path for path in candidates if path.is_dir())
+    shadow = Path(os.environ["ACADEMY_TEST_PIP_SHADOW"])
+    (site_packages / "academy_test_pip_shadow.pth").write_text(
+        f"import sys; sys.path.insert(0, {str(shadow)!r})\\n", encoding="utf-8"
+    )
+raise SystemExit(result.returncode)
+""",
+                encoding="utf-8",
+            )
+            environment.update(
+                {
+                    "ACADEMY_TEST_PIP_SHADOW": str(pip_shadow),
+                    "ACADEMY_TEST_PYTHON_LAUNCHER": str(launcher_shim),
+                }
+            )
+            if platform == "powershell":
+                (shim_root / "py.cmd").write_text(
+                    f'@"{sys.executable}" "{launcher_shim}" %*\n@exit /b %ERRORLEVEL%\n',
+                    encoding="utf-8",
+                )
+            else:
+                wrapper = shim_root / "python3"
+                wrapper.write_text(
+                    '#!/bin/sh\nexec "$ACADEMY_REAL_PYTHON" "$ACADEMY_TEST_PYTHON_LAUNCHER" "$@"\n',
+                    encoding="utf-8",
+                    newline="\n",
+                )
+                wrapper.chmod(0o755)
+
+        if platform == "powershell":
+            environment["PATH"] = str(shim_root) + os.pathsep + environment.get("PATH", "")
+
+    def _run_bootstrap(
+        self,
+        platform: str,
+        executable: str,
+        arguments: tuple[str, ...],
+        block: str,
+        learner: Path,
+        environment: dict[str, str],
+    ) -> subprocess.CompletedProcess[str]:
+        self._prepare_bootstrap_shims(platform, learner, environment)
+        child_environment = dict(environment)
+        child_block = block
+        command = [executable, *arguments, child_block]
+        if platform == "posix" and os.name == "nt":
+            path_keys = (
+                "GIT_CONFIG_GLOBAL",
+                "ACADEMY_TEST_GIT_SHIM",
+                "ACADEMY_TEST_HOSTILE_SENTINEL",
+                "ACADEMY_TEST_INSTALL_EVENT",
+                "ACADEMY_TEST_LEARNER_CLI",
+                "ACADEMY_TEST_MUTATION_EVENT",
+                "ACADEMY_TEST_PIP_SHADOW",
+                "ACADEMY_TEST_PYTHON_LAUNCHER",
+                "ACADEMY_TEST_SHIM_ROOT",
+                "ACADEMY_TEST_SOURCE",
+                "ACADEMY_TEST_STALE_WHEEL",
+                "ACADEMY_TEST_TOOLS",
+                "ACADEMY_TEST_WHEEL_EVENT",
+            )
+            for key in path_keys:
+                if key in child_environment:
+                    drive, tail = os.path.splitdrive(child_environment[key])
+                    child_environment[key] = f"/mnt/{drive[0].lower()}{tail.replace(os.sep, '/')}"
+            child_environment["PIP_CONFIG_FILE"] = "/dev/null"
+            drive, tail = os.path.splitdrive(str(learner.resolve()))
+            learner_path = f"/mnt/{drive[0].lower()}{tail.replace(os.sep, '/')}"
+            export_keys = (
+                "GIT_CONFIG_GLOBAL",
+                "GIT_CONFIG_NOSYSTEM",
+                "PIP_CONFIG_FILE",
+                "PIP_DISABLE_PIP_VERSION_CHECK",
+                "PYTHONUTF8",
+                *sorted(
+                    key
+                    for key in child_environment
+                    if key.startswith("ACADEMY_TEST_")
+                    or key in {"ACADEMY_REAL_GIT", "ACADEMY_REAL_PYTHON"}
+                ),
+            )
+            exports = "".join(
+                f"export {key}={shlex.quote(child_environment[key])}\n"
+                for key in export_keys
+                if key in child_environment
+            )
+            child_block = f"{exports}cd {shlex.quote(learner_path)}\n{child_block}"
+            command = [executable, *arguments[:-1]]
+        if platform == "posix" and "ACADEMY_TEST_SHIM_ROOT" in child_environment:
+            child_block = (
+                f"PATH={shlex.quote(child_environment['ACADEMY_TEST_SHIM_ROOT'])}:\"$PATH\"\n"
+                "export PATH\n"
+                f"{child_block}"
+            )
+        if platform == "posix" and os.name == "nt":
+            script = learner.parents[1] / "documented-bootstrap.sh"
+            script.write_text(child_block, encoding="utf-8", newline="\n")
+            drive, tail = os.path.splitdrive(str(script.resolve()))
+            script_path = f"/mnt/{drive[0].lower()}{tail.replace(os.sep, '/')}"
+            command = [executable, *arguments[:-1], script_path]
+        return subprocess.run(
+            command,
+            cwd=learner,
+            env=child_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=240,
+        )
+
+    def _git(self, cwd: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
 
     def _make_directory_redirect(self, link: Path, target: Path) -> None:
         if os.name != "nt":

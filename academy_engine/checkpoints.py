@@ -235,8 +235,8 @@ def load_checkpoint(path: Path) -> Checkpoint:
         raise CheckpointError("checkpoint schema_version must be integer 2.")
     lab_id = _string(data["id"], "checkpoint id")
     entries = data["predicates"]
-    if not isinstance(entries, list) or not entries:
-        raise CheckpointError("checkpoint predicates must be a non-empty list.")
+    if not isinstance(entries, list) or len(entries) != 1:
+        raise CheckpointError("checkpoint predicates must contain exactly one item.")
     predicates: list[Predicate] = []
     identifiers: set[str] = set()
     for index, value in enumerate(entries):
