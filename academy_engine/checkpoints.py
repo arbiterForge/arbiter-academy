@@ -59,6 +59,86 @@ LAB_CONTRACT = dict.fromkeys(LAB_INVENTORY)
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _ATTEMPT = re.compile(r"^academy/(?P<lab>[FPU][0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*)/(?P<number>[1-9][0-9]*)$")
+_P06_CONTEXT = b"""---
+arbiter: enabled
+stage: 2
+---
+<!--INITIALIZED-->
+
+# Project: Workshop Queue
+
+Workshop Queue is a local-first Python application used in Arbiter Academy labs.
+It records, assigns, and moves teaching tickets through a small explicit lifecycle.
+This directory is a pre-staged Academy fixture: learners inspect, reset, mutate,
+review, and audit it during later labs.
+
+## Fixture identity
+
+- Product steward: Academy Facilitator (fictional Academy role).
+- Historical records: all dates, events, findings, and names in this state are
+  fictional Academy fixtures, not evidence about a live service or person.
+- Runtime: Python 3 with the standard library only; the root license is AGPL-3.0-only.
+
+## Scope and boundaries
+
+- Durable ticket data is local JSON under an operator-selected application-data root.
+- Assignment behavior is defined by the [ticket-assignment specification](specs/ticket-assignment.md)
+  and [implementation plan](plans/ticket-assignment.md).
+- The JSON boundary is recorded by [ADR-0001](decisions/0001-json-storage-boundary.md);
+  lifecycle rules are recorded by [ADR-0002](decisions/0002-explicit-ticket-state-machine.md).
+- Workshop Queue report output is JSON-only.
+
+## Not this project
+
+Workshop Queue is not a hosted ticketing service, identity system, payment system,
+or team chat. Academy exercises use only fabricated ticket content and need no
+network connection or credential.
+
+## Governing artifacts
+
+- [Coding standards](coding-standards.md)
+- [Technology and verification commands](tech-stack.md)
+- [Security controls](security-controls.md)
+- [Open task board](open-tasks.md)
+- [Academy training questions](open-questions.md)
+"""
+_P06_CONTEXT_AFTER = _P06_CONTEXT.replace(
+    b"[ADR-0002](decisions/0002-explicit-ticket-state-machine.md)",
+    b"[ADR-0005](decisions/0005-terminal-blocked-ticket-lifecycle.md)",
+).replace(
+    b"- Workshop Queue report output is JSON-only.",
+    b"- Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
+)
+_P06_PROVENANCE = b'''{
+  "created": "2026-07-30",
+  "doc": "CONTEXT",
+  "entries": [
+    {
+      "claims": [
+        {
+          "claim": "Workshop Queue report output is JSON-only.",
+          "confidence": "strong",
+          "lines": "60-67"
+        }
+      ],
+      "drift_trigger": true,
+      "hash": "042746e43698e5d2a6de4c536f1024f893aef805",
+      "path": "workshop_queue/cli.py"
+    }
+  ],
+  "interview_derived": false,
+  "schema": 1
+}
+'''
+_P06_SOURCE_OBJECT = "5b41fb168a8b258cfae7eebc46e8b9ea7696ba56"
+_P06_PROVENANCE_AFTER = _P06_PROVENANCE.replace(
+    b"042746e43698e5d2a6de4c536f1024f893aef805",
+    _P06_SOURCE_OBJECT.encode("ascii"),
+)
+_P06_NOTE = (
+    b"# Unrelated learner note\n\n"
+    b"Keep this note unchanged while recovering the interrupted summary-format context.\n"
+)
 _PROFILES = {
     "remote_doctor": ("artifact",),
     "orientation": ("artifact", "context"),
@@ -78,7 +158,9 @@ _PROFILES = {
     "accepted_adr": ("adr", "decision_log"),
     "dependency_review": ("review", "project"),
     "checkpoint_remediation": ("report",),
-    "provenance_recovery": ("context", "handoff"),
+    "provenance_recovery": (
+        "context", "handoff", "source", "preserved_path", "provenance",
+    ),
     "stride_model": ("model", "target", "target_blob", "target_sha256"),
     "hygiene_snapshot": ("snapshot",),
     "p08_authenticated": (),
@@ -101,7 +183,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P03-record-an-adr": ("accepted_adr_and_log", "accepted_adr", {"adr": ".codearbiter/decisions/0004-academy-lab.md", "decision_log": ".codearbiter/decisions/decision-log.md"}),
     "P04-review-a-dependency": ("strict_dependency_review", "dependency_review", {"review": ".codearbiter/reports/academy/P04-dependency-review.md", "project": "pyproject.toml"}),
     "P05-checkpoint-remediation": ("finding_remediation_link", "checkpoint_remediation", {"report": ".codearbiter/checkpoints/P05-academy.json"}),
-    "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json"}),
+    "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json", "source": "workshop_queue/cli.py", "preserved_path": "docs/preserved-note.md", "provenance": ".codearbiter/.provenance/CONTEXT.json"}),
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md"}),
@@ -2533,6 +2615,220 @@ def _live_hygiene_inventory(
     return refs, worktrees
 
 
+def _p06_summary_format_contract(source: bytes | None) -> bool:
+    if source is None:
+        return False
+    try:
+        tree = ast.parse(source.decode("utf-8"))
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    calls: list[ast.Call] = []
+    writer: ast.FunctionDef | None = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "_write_report":
+            writer = node
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        owner = node.func.value
+        if (
+            node.func.attr == "add_argument"
+            and isinstance(owner, ast.Name)
+            and owner.id == "report_parser"
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == "--format"
+        ):
+            calls.append(node)
+    if len(calls) != 1 or writer is None:
+        return False
+    keywords = {item.arg: item.value for item in calls[0].keywords}
+    try:
+        choices = ast.literal_eval(keywords["choices"])
+        default = ast.literal_eval(keywords["default"])
+    except (KeyError, ValueError, TypeError):
+        return False
+    json_branch = any(
+        isinstance(node, ast.If)
+        and isinstance(node.test, ast.Compare)
+        and isinstance(node.test.left, ast.Name)
+        and node.test.left.id == "output_format"
+        and len(node.test.ops) == 1
+        and isinstance(node.test.ops[0], ast.Eq)
+        and len(node.test.comparators) == 1
+        and isinstance(node.test.comparators[0], ast.Constant)
+        and node.test.comparators[0].value == "json"
+        for node in ast.walk(writer)
+    )
+    return bool(
+        tuple(choices) == ("text", "json")
+        and default == "text"
+        and json_branch
+        and any(isinstance(node, ast.For) for node in writer.body)
+    )
+
+
+def _p06_context_transition(before: bytes | None, after: bytes | None) -> bool:
+    return bool(
+        before == _P06_CONTEXT
+        and after == _P06_CONTEXT_AFTER
+        and len(before) == 1664
+        and len(after) == 1727
+        and _raw_digest(before) == "3c496fe68bfc6042663c9b1d697c6b7f314e1f814533acbb30fd5169c39752f4"
+        and _raw_digest(after) == "f6840aedb9f55ae370f1b3b3e4d69235e82a3733e52148f93e2a6af32fe9e9b1"
+    )
+
+
+def _p06_provenance_transition(before: bytes | None, after: bytes | None) -> bool:
+    if before != _P06_PROVENANCE or after != _P06_PROVENANCE_AFTER:
+        return False
+    before_record, after_record = _p01_json(before), _p01_json(after)
+    try:
+        return bool(
+            isinstance(before_record, dict)
+            and isinstance(after_record, dict)
+            and before_record.get("schema") == 1
+            and before_record.get("doc") == "CONTEXT"
+            and before_record["entries"][0]["path"] == "workshop_queue/cli.py"
+            and before_record["entries"][0]["hash"] == "042746e43698e5d2a6de4c536f1024f893aef805"
+            and after_record["entries"][0]["hash"] == _P06_SOURCE_OBJECT
+            and _raw_digest(before) == "4831a0db68f47f7f63fd6d0925942184488ce65231fb3acb747b753aae38a915"
+            and _raw_digest(after) == "c48d6b8d06de435e52f74d17a33ae17636276c43c361b6ab4acbf0ac0e4b2e7b"
+        )
+    except (KeyError, IndexError, TypeError):
+        return False
+
+
+def _p06_recovery_history(
+    root: Path,
+    attempt: _Attempt,
+    context_path: str,
+    provenance_path: str,
+    handoff_path: str,
+) -> tuple[str, str] | None:
+    commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
+    if commits is None:
+        return None
+    recovery, handoff = commits
+    if set(_commit_paths(root, recovery)) != {context_path, provenance_path}:
+        return None
+    if set(_commit_paths(root, handoff)) != {handoff_path}:
+        return None
+    return recovery, handoff
+
+
+def _p06_handoff(
+    raw: bytes | None,
+    *,
+    prepared: str,
+    recovery: str,
+    context_path: str,
+    provenance_path: str,
+    source_path: str,
+    preserved_path: str,
+) -> bool:
+    value = _p01_json(raw) if raw is not None else None
+    if not isinstance(value, dict):
+        return False
+    keys = {
+        "context_after_sha256", "context_before_sha256", "context_path",
+        "prepared_commit", "preserved_after_sha256", "preserved_before_sha256",
+        "preserved_path", "recovery_commit", "recovery_route", "schema_version",
+        "source_path", "stale_claim", "provenance_path",
+        "provenance_before_sha256", "provenance_after_sha256",
+    }
+    if set(value) != keys or not _version(value.get("schema_version"), 2):
+        return False
+    expected_paths = {
+        "context_path": context_path,
+        "provenance_path": provenance_path,
+        "source_path": source_path,
+        "preserved_path": preserved_path,
+    }
+    try:
+        if any(_safe_path(value.get(field), field) != expected for field, expected in expected_paths.items()):
+            return False
+    except CheckpointError:
+        return False
+    digest_values = {
+        "context_before_sha256": _raw_digest(_P06_CONTEXT),
+        "context_after_sha256": _raw_digest(_P06_CONTEXT_AFTER),
+        "provenance_before_sha256": _raw_digest(_P06_PROVENANCE),
+        "provenance_after_sha256": _raw_digest(_P06_PROVENANCE_AFTER),
+        "preserved_before_sha256": _raw_digest(_P06_NOTE),
+        "preserved_after_sha256": _raw_digest(_P06_NOTE),
+    }
+    if any(
+        not isinstance(value.get(field), str)
+        or not _SHA256.fullmatch(str(value[field]))
+        for field in digest_values
+    ):
+        return False
+    expected: dict[str, object] = {
+        **digest_values,
+        **expected_paths,
+        "prepared_commit": prepared,
+        "recovery_commit": recovery,
+        "recovery_route": "re-scout",
+        "schema_version": 2,
+        "stale_claim": "Workshop Queue report output is JSON-only.",
+    }
+    return bool(
+        value == expected
+        and _SHA40.fullmatch(prepared)
+        and _SHA40.fullmatch(recovery)
+        and raw == canonical_json(expected) + b"\n"
+    )
+
+
+def _p06_provenance_recovery(context: _SemanticContext) -> bool:
+    root, attempt, data = context.root, context.attempt, context.predicate.data
+    if run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout:
+        return False
+    required = {"context", "handoff", "source", "preserved_path", "provenance"}
+    if not required.issubset(data):
+        return False
+    context_path = str(data["context"])
+    handoff_path = str(data["handoff"])
+    source_path = str(data["source"])
+    preserved_path = str(data["preserved_path"])
+    provenance_path = str(data["provenance"])
+    history = _p06_recovery_history(root, attempt, context_path, provenance_path, handoff_path)
+    if history is None:
+        return False
+    recovery, _handoff_commit = history
+    context_before = _git_blob(root, attempt.prepared, context_path)
+    context_after = _git_blob(root, recovery, context_path)
+    provenance_before = _git_blob(root, attempt.prepared, provenance_path)
+    provenance_after = _git_blob(root, recovery, provenance_path)
+    source = _git_blob(root, attempt.prepared, source_path)
+    note_before = _git_blob(root, attempt.prepared, preserved_path)
+    note_after = _git_blob(root, attempt.head, preserved_path)
+    source_object = (
+        hashlib.sha1(b"blob " + str(len(source)).encode("ascii") + b"\0" + source).hexdigest()
+        if source is not None
+        else ""
+    )
+    return bool(
+        _p06_context_transition(context_before, context_after)
+        and _p06_provenance_transition(provenance_before, provenance_after)
+        and source_object == _P06_SOURCE_OBJECT
+        and _p06_summary_format_contract(source)
+        and note_before == _P06_NOTE
+        and note_after == _P06_NOTE
+        and _git_blob(root, attempt.head, context_path) == _P06_CONTEXT_AFTER
+        and _git_blob(root, attempt.head, provenance_path) == _P06_PROVENANCE_AFTER
+        and _p06_handoff(
+            _git_blob(root, attempt.head, handoff_path),
+            prepared=attempt.prepared,
+            recovery=recovery,
+            context_path=context_path,
+            provenance_path=provenance_path,
+            source_path=source_path,
+            preserved_path=preserved_path,
+        )
+    )
+
+
 def _semantic(context: _SemanticContext) -> bool:
     data = context.predicate.data
     profile = str(data["profile"])
@@ -2646,28 +2942,7 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "checkpoint_remediation":
         return _p05_remediation(root, attempt, str(data["report"]))
     if profile == "provenance_recovery":
-        context_path, handoff_path = str(data["context"]), str(data["handoff"])
-        handoff = _json(root, attempt.head, handoff_path)
-        before, after = _git_blob(root, attempt.prepared, context_path), _git_blob(root, attempt.head, context_path)
-        if not handoff or before is None or after is None or before == after:
-            return False
-        required = {"schema_version", "context_before_sha256", "context_after_sha256", "preserved_path"}
-        preserved = handoff.get("preserved_path")
-        preserved_before = (
-            _git_blob(root, attempt.prepared, preserved)
-            if isinstance(preserved, str) and _safe_path(preserved, "preserved_path")
-            else None
-        )
-        return bool(
-            set(handoff) == required
-            and _version(handoff["schema_version"], 1)
-            and _changed(root, attempt.prepared, attempt.head, handoff_path)
-            and handoff["context_before_sha256"] == _raw_digest(before)
-            and handoff["context_after_sha256"] == _raw_digest(after)
-            and isinstance(preserved, str)
-            and preserved_before is not None
-            and preserved_before == _git_blob(root, attempt.head, preserved)
-        )
+        return _p06_provenance_recovery(context)
     if profile == "stride_model":
         return _p07_model(context)
     if profile == "hygiene_snapshot":

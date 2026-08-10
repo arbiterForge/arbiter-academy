@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"P06-context-drift-recovery","operation":"provenance_recovery","target":".codearbiter/CONTEXT.md","starting_condition":"context-stale"}
+{"interrupted_lane":"P05-checkpoint-remediation","lab_id":"P06-context-drift-recovery","operation":"provenance_recovery","preserved_path":"docs/preserved-note.md","provenance_path":".codearbiter/.provenance/CONTEXT.json","stale_claim":"Workshop Queue report output is JSON-only.","starting_condition":"interrupted-lane-context-stale","target":".codearbiter/CONTEXT.md"}

@@ -138,6 +138,18 @@ _P07_SCENARIO = {
     "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034",
     "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d",
 }
+_PRACTITIONER_SCENARIO_EXPECTATIONS = {
+    "P06-context-drift-recovery": {
+        "interrupted_lane": "P05-checkpoint-remediation",
+        "lab_id": "P06-context-drift-recovery",
+        "operation": "provenance_recovery",
+        "preserved_path": "docs/preserved-note.md",
+        "provenance_path": ".codearbiter/.provenance/CONTEXT.json",
+        "stale_claim": "Workshop Queue report output is JSON-only.",
+        "starting_condition": "interrupted-lane-context-stale",
+        "target": ".codearbiter/CONTEXT.md",
+    },
+}
 _INSTALLED_PREPARE_LABS = (
     "P01-feature-through-plan",
     "P02-commit-review-pr",
@@ -231,6 +243,15 @@ _MATRIX_CASES = {
         "malformed-receipt", "unsafe-path", "generic-event-decoy",
         "host-invocation-claim",
     ),
+    "P06-context-drift-recovery": (
+        "untouched", "partial", "wrong", "intended", "equivalent-rescout",
+        "stale-claim", "source-not-contradictory", "unchanged-context",
+        "wrong-correction", "missing-note", "recreated-note", "missing-provenance",
+        "wrong-provenance-schema", "wrong-prior-source-hash", "provenance-not-rebased",
+        "wrong-digest", "noncanonical-handoff", "unsafe-path", "wrong-route",
+        "one-commit", "reversed-order", "extra-path", "extra-commit",
+        "merge-history", "uncommitted",
+    ),
     "P07-threat-model": (
         "untouched", "partial", "wrong", "intended", "equivalent",
         "missing-native-field", "wrong-stride-order", "generic-stride",
@@ -247,6 +268,7 @@ _MATRIX_CASES = {
             "P03-record-an-adr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
             "P07-threat-model",
         }
     },
@@ -456,8 +478,12 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
             if not isinstance(scenario, dict):
                 issues.append(f"{lab.id}: scenario input must be an object")
                 continue
+            exact_scenario = _PRACTITIONER_SCENARIO_EXPECTATIONS.get(lab.id)
             if lab.id == "P07-threat-model":
                 if scenario_bytes != _P07_SCENARIO_BYTES or scenario != _P07_SCENARIO:
+                    issues.append(f"{lab.id}: scenario input shape is not canonical")
+            elif exact_scenario is not None:
+                if scenario != exact_scenario:
                     issues.append(f"{lab.id}: scenario input shape is not canonical")
             else:
                 if set(scenario) != {"schema_version", "lab_id", "operation", "target", "starting_condition"}:
@@ -471,7 +497,7 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
             if lab.id == "P07-threat-model":
                 if scenario != _P07_SCENARIO:
                     issues.append(f"{lab.id}: scenario semantics are noncanonical")
-            else:
+            elif exact_scenario is None:
                 observed_scenario = (
                     scenario.get("operation"),
                     scenario.get("target"),

@@ -1270,76 +1270,17 @@ class WorkshopQueueCliTests:
         self.write({"schema_version":2,"id":"F01-fork-clone-doctor","predicates":[{"id":"remote_and_doctor","type":"lab_semantics","profile":"remote_doctor","artifact":".codearbiter/reports/academy/F01-doctor.json"}]})
         self.assertFalse(evaluate_checkpoint(self.root, "F01-fork-clone-doctor").passed)
 
-    def test_p06_rejects_a_nonexistent_preserved_path(self):
-        subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "config", "user.name", "Fixture"], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=self.root, check=True, capture_output=True, text=True)
-        context_path = self.root / ".codearbiter" / "CONTEXT.md"
-        context_path.parent.mkdir(parents=True)
-        context_path.write_text("stage: 1\n", encoding="utf-8")
-        preserved_path = self.root / "docs" / "preserved.txt"
-        preserved_path.parent.mkdir(parents=True)
-        preserved_path.write_text("preserve this\n", encoding="utf-8")
-        subprocess.run(["git", "add", "."], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "base"], cwd=self.root, check=True, capture_output=True, text=True)
-        base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
-        subprocess.run(["git", "commit", "--allow-empty", "-m", "prepare"], cwd=self.root, check=True, capture_output=True, text=True)
-        prepared = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
-        before_blob_at_prepare = _git_blob(self.root, prepared, ".codearbiter/CONTEXT.md")
-        self.assertIsNotNone(before_blob_at_prepare)
-        context_path.write_text("stage: 2\n", encoding="utf-8")
-        subprocess.run(["git", "add", str(context_path.relative_to(self.root))], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "recover context"], cwd=self.root, check=True, capture_output=True, text=True)
-        recovery_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
-        after_blob_at_recovery = _git_blob(self.root, recovery_commit, ".codearbiter/CONTEXT.md")
-        self.assertIsNotNone(after_blob_at_recovery)
-        handoff = self.root / ".codearbiter" / "reports" / "academy" / "P06-recovery.json"
-        handoff.parent.mkdir(parents=True)
-        handoff.write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "context_before_sha256": _raw_digest(before_blob_at_prepare),
-                    "context_after_sha256": _raw_digest(after_blob_at_recovery),
-                    "preserved_path": "docs/preserved.txt",
-                }
-            ),
-            encoding="utf-8",
-        )
-        subprocess.run(["git", "add", "."], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "record recovery handoff"], cwd=self.root, check=True, capture_output=True, text=True)
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
-        predicate = Predicate(
-            "provenance_drift_recovery",
-            "lab_semantics",
-            {
-                "profile": "provenance_recovery",
-                "context": ".codearbiter/CONTEXT.md",
-                "handoff": ".codearbiter/reports/academy/P06-recovery.json",
-            },
-        )
-        attempt = _Attempt("academy/P06-context-drift-recovery/1", 1, prepared, base, head)
-        handoff_data = _json(self.root, head, ".codearbiter/reports/academy/P06-recovery.json")
-        before_blob = _git_blob(self.root, prepared, ".codearbiter/CONTEXT.md")
-        after_blob = _git_blob(self.root, head, ".codearbiter/CONTEXT.md")
-        self.assertIsNotNone(handoff_data)
-        self.assertIsNotNone(before_blob)
-        self.assertIsNotNone(after_blob)
-        self.assertEqual(handoff_data["context_before_sha256"], _raw_digest(before_blob))
-        self.assertEqual(handoff_data["context_after_sha256"], _raw_digest(after_blob))
-        self.assertEqual(
-            _git_blob(self.root, prepared, "docs/preserved.txt"),
-            _git_blob(self.root, head, "docs/preserved.txt"),
-        )
-        self.assertTrue(_semantic(_SemanticContext(self.root, attempt, predicate)))
-        payload = json.loads(handoff.read_text(encoding="utf-8"))
-        payload["preserved_path"] = "missing/preserved.txt"
-        handoff.write_text(json.dumps(payload), encoding="utf-8")
-        subprocess.run(["git", "add", "."], cwd=self.root, check=True, capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "claim missing preservation"], cwd=self.root, check=True, capture_output=True, text=True)
-        forged_head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
-        forged = _Attempt("academy/P06-context-drift-recovery/1", 1, prepared, base, forged_head)
-        self.assertFalse(_semantic(_SemanticContext(self.root, forged, predicate)))
+    def test_p06_provenance_recovery_requires_exact_context_provenance_history_and_preserved_blob(self):
+        from tests.test_p06_context_recovery import _p06_semantic_fixture
+
+        _root, intended = _p06_semantic_fixture(self)
+        self.assertTrue(_semantic(intended))
+        _root, wrong_route = _p06_semantic_fixture(self, route="re-baseline")
+        self.assertFalse(_semantic(wrong_route))
+        _root, changed_note = _p06_semantic_fixture(self, alter_note=True)
+        self.assertFalse(_semantic(changed_note))
+        _root, extra_path = _p06_semantic_fixture(self, extra_correction_path=True)
+        self.assertFalse(_semantic(extra_path))
 
     def test_p05_rejects_finding_and_remediation_commits_before_prepare(self):
         subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)

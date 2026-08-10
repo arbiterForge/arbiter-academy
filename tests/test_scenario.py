@@ -12,14 +12,26 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from academy_engine import command as command_module
+from academy_engine import scenario as scenario_module
 from academy_engine.catalog import CatalogError
 from academy_engine.attribution import AttributionError
-from academy_engine.command import GitCommandError
+from academy_engine.command import GitCommandError, run_git as bounded_run_git
 from academy_engine.exercise_state import ExerciseStateError
 from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
 from academy_engine.external_state import ExternalStateStore
 from academy_engine.progress import inspect_progress
 from tests._temporary import RetryingTemporaryDirectory
+from tests.test_p06_context_recovery import (
+    P06_CLI_OBJECT,
+    P06_CONTEXT_BYTES,
+    P06_CONTEXT_SHA256,
+    P06_NOTE_BYTES,
+    P06_PRIOR_CLI_OBJECT,
+    P06_PROVENANCE_BYTES,
+    P06_SCENARIO_BYTES,
+    assert_p06_report_source_contract,
+)
 
 
 def git(root: Path, *args: str) -> str:
@@ -146,6 +158,33 @@ def p07_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     git(root, "commit", "-m", "add frozen P07 target")
     return temporary, root
 
+def p06_academy_git_fixture() -> tuple[RetryingTemporaryDirectory, Path]:
+    """Create the real shared-source base used by generic P06 preparation."""
+    temporary = RetryingTemporaryDirectory()
+    root = Path(temporary.name) / "repository"
+    root.mkdir()
+    source = Path(__file__).parents[1]
+    for relative in ("academy", ".codearbiter", "workshop_queue"):
+        shutil.copytree(source / relative, root / relative, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copyfile(source / ".gitignore", root / ".gitignore")
+    shutil.copyfile(source / "pyproject.toml", root / "pyproject.toml")
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "Academy Learner")
+    git(root, "config", "user.email", "learner@example.test")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+    git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+    git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
+    return temporary, root
+
+
+def git_bytes(root: Path, *args: str) -> bytes:
+    return subprocess.run(
+        ["git", *args], cwd=root, capture_output=True, check=True
+    ).stdout
+
+
 class ScenarioTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary, self.root = academy_git_fixture()
@@ -212,7 +251,6 @@ class ScenarioTests(unittest.TestCase):
             git(root, "show", f"{archive}:.codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"),
             git(root, "show", f"{prepared.commit_sha}:.codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"),
         )
-
 
     def test_prepare_p07_preserves_the_frozen_target_blob_before_learner_work(self) -> None:
         """Catches preparation that rebinds or mutates the frozen containment target."""
@@ -289,6 +327,214 @@ class ScenarioTests(unittest.TestCase):
             git(root, "status", "--porcelain", "--untracked-files=all"),
             "",
         )
+
+    def test_prepare_p06_commits_frozen_stale_context_provenance_and_preserved_note_before_learner_work(self) -> None:
+        """Catches P06 omitting safe provenance/note fixtures or reading a substituted CLI source."""
+        temporary, root = p06_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+
+        prepared = prepare_lab(
+            root,
+            "P06-context-drift-recovery",
+            installed_authority=True,
+        )
+        paths = tuple(
+            git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", prepared.commit_sha).splitlines()
+        )
+        self.assertEqual(
+            paths,
+            (
+                ".codearbiter/.provenance/CONTEXT.json",
+                ".codearbiter/CONTEXT.md",
+                "docs/preserved-note.md",
+                "training_scenarios/P06-context-drift-recovery.json",
+            ),
+        )
+        self.assertEqual(
+            git_bytes(root, "show", f"{prepared.commit_sha}:.codearbiter/.provenance/CONTEXT.json"),
+            P06_PROVENANCE_BYTES,
+        )
+        self.assertEqual(
+            git_bytes(root, "show", f"{prepared.commit_sha}:docs/preserved-note.md"),
+            P06_NOTE_BYTES,
+        )
+        self.assertEqual(
+            git_bytes(root, "show", f"{prepared.commit_sha}:training_scenarios/P06-context-drift-recovery.json"),
+            P06_SCENARIO_BYTES,
+        )
+        git(root, "cat-file", "-e", f"{prepared.commit_sha}:.codearbiter/CONTEXT.md")
+        context = git_bytes(root, "show", f"{prepared.commit_sha}:.codearbiter/CONTEXT.md")
+        self.assertEqual(context, P06_CONTEXT_BYTES)
+        self.assertEqual(hashlib.sha256(context).hexdigest(), P06_CONTEXT_SHA256)
+        cli_object = git(root, "rev-parse", f"{prepared.commit_sha}:workshop_queue/cli.py")
+        self.assertEqual(cli_object, P06_CLI_OBJECT)
+        self.assertNotEqual(cli_object, P06_PRIOR_CLI_OBJECT)
+        assert_p06_report_source_contract(
+            self,
+            git_bytes(root, "show", f"{prepared.commit_sha}:workshop_queue/cli.py"),
+        )
+        provenance = json.loads(P06_PROVENANCE_BYTES)
+        self.assertEqual(provenance["entries"][0]["hash"], P06_PRIOR_CLI_OBJECT)
+        self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
+
+    def test_prepare_p06_rejects_altered_protected_overlay_bytes_before_branch_creation(self) -> None:
+        """Catches a learner checkout replacing trusted P06 control-state fixture content."""
+        temporary, root = p06_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        context_path = root / ".codearbiter/CONTEXT.md"
+        context_before = context_path.read_bytes()
+        source = root / "academy/scenarios/P06-context-drift-recovery/files/CONTEXT.md"
+        source.write_bytes(source.read_bytes() + b"\nattacker-controlled context\n")
+        git(root, "add", source.relative_to(root).as_posix())
+        git(root, "commit", "-m", "replace P06 protected overlay")
+        before = git(root, "rev-parse", "HEAD")
+
+        with self.assertRaisesRegex(PreparationError, "trusted protected overlay"):
+            prepare_lab(
+                root,
+                "P06-context-drift-recovery",
+                installed_authority=True,
+            )
+
+        self.assertEqual(git(root, "rev-parse", "HEAD"), before)
+        self.assertFalse(git(root, "branch", "--list", "academy/P06-context-drift-recovery/1"))
+        self.assertEqual(context_path.read_bytes(), context_before)
+
+    def test_prepare_p06_rejects_protected_source_swap_after_validation(self) -> None:
+        """Catches a hash-to-use race replacing trusted P06 bytes after preflight."""
+        temporary, root = p06_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = root / "academy/scenarios/P06-context-drift-recovery/files/CONTEXT.md"
+        destination = root / ".codearbiter/CONTEXT.md"
+        destination_before = destination.read_bytes()
+        attacker_bytes = b"attacker-controlled context\n"
+        original_head = git(root, "rev-parse", "HEAD")
+        real_run_git = scenario_module.run_git
+        swapped = False
+
+        def swap_after_branch(repository: Path, args, *, check: bool = True):
+            nonlocal swapped
+            result = real_run_git(repository, args, check=check)
+            if tuple(args[:2]) == ("switch", "-c") and not swapped:
+                source.write_bytes(attacker_bytes)
+                swapped = True
+            return result
+
+        with patch.object(scenario_module, "run_git", side_effect=swap_after_branch):
+            with self.assertRaisesRegex(PreparationError, "changed after validation"):
+                prepare_lab(
+                    root,
+                    "P06-context-drift-recovery",
+                    installed_authority=True,
+                )
+
+        self.assertTrue(swapped)
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertEqual(git(root, "rev-parse", "HEAD"), original_head)
+        self.assertFalse(git(root, "branch", "--list", "academy/P06-context-drift-recovery/1"))
+        self.assertEqual(destination.read_bytes(), destination_before)
+        self.assertEqual(source.read_bytes(), attacker_bytes)
+
+    def test_reset_p06_archives_failed_attempt_and_preserves_its_head(self) -> None:
+        """Catches reset deleting learner history or escaping the bounded Git-only command route."""
+        temporary, root = p06_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        prepared = prepare_lab(
+            root,
+            "P06-context-drift-recovery",
+            installed_authority=True,
+        )
+        failed = root / "failed-attempt.txt"
+        failed.write_text("retain this failed P06 attempt\n", encoding="utf-8")
+        git(root, "add", "failed-attempt.txt")
+        git(root, "commit", "-m", "learner: incomplete P06 recovery")
+        old_head = git(root, "rev-parse", "HEAD")
+        old_branch = prepared.branch
+        calls: list[tuple[str, ...]] = []
+        launches: list[tuple[str, ...]] = []
+        real_popen = subprocess.Popen
+
+        def observed_popen(*args, **kwargs):
+            invocation = tuple(args[0])
+            self.assertTrue(invocation)
+            self.assertIs(kwargs.get("shell"), False)
+            git_invocation = invocation
+            if Path(invocation[0]).resolve() == Path(sys.executable).resolve():
+                self.assertGreaterEqual(len(invocation), 4)
+                self.assertEqual(invocation[1], "-c")
+                git_invocation = invocation[3:]
+            self.assertEqual(git_invocation[0], "git")
+            self.assertFalse(
+                any(
+                    argument in {"clone", "fetch", "pull", "push", "ls-remote", "submodule"}
+                    for argument in git_invocation
+                ),
+                git_invocation,
+            )
+            for argument in git_invocation[1:]:
+                path_text = argument
+                for prefix in ("--git-dir=", "--work-tree="):
+                    if path_text.startswith(prefix):
+                        path_text = path_text.removeprefix(prefix)
+                candidate = Path(path_text)
+                if candidate.is_absolute():
+                    try:
+                        candidate.resolve().relative_to(root.resolve())
+                    except ValueError:
+                        self.fail(f"Git argument escaped the P06 repository: {argument}")
+            launches.append(git_invocation)
+            return real_popen(*args, **kwargs)
+
+        def guarded_git(
+            actual_root: Path,
+            args,
+            *,
+            check: bool = True,
+            trust_local_config: bool = False,
+            **kwargs,
+        ):
+            self.assertNotIsInstance(args, str)
+            vector = tuple(args)
+            self.assertTrue(vector)
+            self.assertNotIn(vector[0], {"cmd", "powershell", "pwsh", "python", "curl", "wget"})
+            self.assertNotIn(vector[0], {"clone", "fetch", "pull", "push", "ls-remote", "submodule"})
+            for argument in vector:
+                self.assertFalse(Path(argument).is_absolute(), vector)
+                self.assertNotIn("://", argument)
+            calls.append(vector)
+            return bounded_run_git(
+                actual_root,
+                vector,
+                check=check,
+                trust_local_config=trust_local_config,
+                **kwargs,
+            )
+
+        with patch("academy_engine.scenario._run_git", side_effect=guarded_git), patch.object(
+            command_module.subprocess,
+            "Popen",
+            side_effect=observed_popen,
+        ):
+            retry = reset_lab(
+                root,
+                "P06-context-drift-recovery",
+                now=lambda: datetime(2026, 8, 8, 12, 34, 56, tzinfo=timezone.utc),
+                installed_authority=True,
+            )
+
+        archive = "academy/archive/P06-context-drift-recovery/20260808T123456Z"
+        self.assertTrue(calls)
+        self.assertTrue(launches)
+        self.assertEqual(retry.attempt, 2)
+        self.assertEqual(retry.branch, "academy/P06-context-drift-recovery/2")
+        self.assertEqual(git(root, "branch", "--show-current"), retry.branch)
+        self.assertEqual(git(root, "rev-parse", old_branch), old_head)
+        self.assertEqual(git(root, "rev-parse", archive), old_head)
+        self.assertEqual(git(root, "show", f"{old_branch}:failed-attempt.txt"), "retain this failed P06 attempt")
+        self.assertFalse(any(vector[:2] == ("reset", "--hard") for vector in calls))
+        self.assertFalse(any(vector and vector[0] == "rebase" for vector in calls))
+        self.assertFalse(any(vector[:2] == ("commit", "--amend") for vector in calls))
+        self.assertFalse(any(vector[:2] == ("update-ref", "-d") for vector in calls))
 
     def test_p02_patch_remains_applicable_before_p05_stages_its_fixture(self) -> None:
         """P05 may generate blocked behavior, but must not alter the shared P02 source."""

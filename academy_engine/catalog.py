@@ -27,6 +27,17 @@ _PROTECTED_SCENARIO_PARTS = frozenset({".git", ".academy", ".codearbiter", "acad
 _CONTROL_STATE_SEED_TARGETS = {
     "P01-feature-through-plan": frozenset({".codearbiter/open-tasks.md"}),
 }
+_PROTECTED_OVERLAY_BINDINGS = {
+    "P06-context-drift-recovery": frozenset(
+        {
+            ("CONTEXT.md", ".codearbiter/CONTEXT.md"),
+            (
+                "CONTEXT.provenance.json",
+                ".codearbiter/.provenance/CONTEXT.json",
+            ),
+        }
+    ),
+}
 
 
 class CatalogError(ValueError):
@@ -107,6 +118,17 @@ def _scenario_path(value: object, label: str) -> str:
     return path
 
 
+def _scenario_destination(lab_id: str, source: str, value: object, label: str) -> str:
+    path = _path(value, label)
+    if (
+        any(part in _PROTECTED_SCENARIO_PARTS for part in path.split("/"))
+        and (source, path)
+        not in _PROTECTED_OVERLAY_BINDINGS.get(lab_id, frozenset())
+    ):
+        raise CatalogError(f"{label} path targets a protected Academy/control surface.")
+    return path
+
+
 def _control_state_destination(lab_id: str, value: object) -> str:
     path = _path(value, "scenario manifest control_state_seed.destination")
     if path not in _CONTROL_STATE_SEED_TARGETS.get(lab_id, frozenset()):
@@ -164,7 +186,12 @@ def load_manifest(payload: object) -> ScenarioManifest:
         entry = _require_object(item, f"scenario manifest files[{index}]")
         _only_keys(entry, {"source", "destination"}, f"scenario manifest files[{index}]")
         source = _scenario_path(entry["source"], f"scenario manifest files[{index}].source")
-        destination = _scenario_path(entry["destination"], f"scenario manifest files[{index}].destination")
+        destination = _scenario_destination(
+            lab_id,
+            source,
+            entry["destination"],
+            f"scenario manifest files[{index}].destination",
+        )
         sources.append(source)
         destinations.append(destination)
         files.append(OverlayFile(source, destination))

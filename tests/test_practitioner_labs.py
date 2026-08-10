@@ -452,7 +452,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 95)
+        self.assertEqual(report.matrix_cells, 115)
         self.assertNotIn(str(SOURCE), report.render())
 
     def test_p07_freezes_exact_semantic_matrix(self) -> None:
@@ -548,6 +548,178 @@ class PractitionerCurriculumTests(unittest.TestCase):
         ):
             with self.subTest(obsolete=obsolete):
                 self.assertNotIn(obsolete, guide)
+
+    def test_p06_freezes_interrupted_lane_scenario_identity(self) -> None:
+        """Catches P06 losing its interrupted-lane, provenance, or preservation boundary."""
+        scenario_root = SOURCE / "academy/scenarios/P06-context-drift-recovery"
+        manifest = json.loads((scenario_root / "manifest.json").read_text(encoding="utf-8"))
+        scenario_bytes = (scenario_root / "files/scenario.json").read_bytes()
+
+        self.assertEqual(
+            manifest["files"],
+            [
+                {"source": "CONTEXT.md", "destination": ".codearbiter/CONTEXT.md"},
+                {
+                    "source": "CONTEXT.provenance.json",
+                    "destination": ".codearbiter/.provenance/CONTEXT.json",
+                },
+                {"source": "preserved-note.md", "destination": "docs/preserved-note.md"},
+                {
+                    "source": "scenario.json",
+                    "destination": "training_scenarios/P06-context-drift-recovery.json",
+                },
+            ],
+        )
+        self.assertEqual(manifest["removals"], [])
+        self.assertEqual(manifest["starting_task"], "P06")
+        self.assertEqual(
+            manifest["checkpoint"],
+            "academy/checkpoints/P06-context-drift-recovery.json",
+        )
+        self.assertIs(manifest["requires_push_safe_setup"], False)
+        self.assertEqual(
+            scenario_bytes,
+            (
+                b'{"interrupted_lane":"P05-checkpoint-remediation",'
+                b'"lab_id":"P06-context-drift-recovery",'
+                b'"operation":"provenance_recovery",'
+                b'"preserved_path":"docs/preserved-note.md",'
+                b'"provenance_path":".codearbiter/.provenance/CONTEXT.json",'
+                b'"stale_claim":"Workshop Queue report output is JSON-only.",'
+                b'"starting_condition":"interrupted-lane-context-stale",'
+                b'"target":".codearbiter/CONTEXT.md"}\n'
+            ),
+        )
+
+    def test_p06_guide_distinguishes_host_route_from_invocation_proof(self) -> None:
+        """Catches route evidence being described as proof that a host command ran."""
+        p06 = load_track(SOURCE, "practitioner").labs[5]
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(
+            p06.host_commands,
+            {
+                "claude-code": "/ca:context-check",
+                "codex": "$ca-context-check",
+                "pi": "/ca-context-check",
+            },
+        )
+        self.assertIn("`/skill:ca-context-check`", guide)
+        for required in (
+            "Workshop Queue report output is JSON-only.",
+            "042746e43698e5d2a6de4c536f1024f893aef805",
+            "5b41fb168a8b258cfae7eebc46e8b9ea7696ba56",
+            "text is the default and JSON is optional",
+            "Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
+            "update only the provenance record's sole source hash to the prepared CLI object ID",
+            "Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.",
+            "write the canonical v2 handoff",
+            "commit only the handoff",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        self.assertIn("`re-scout` is the sole permitted recovery route", guide)
+        self.assertIn("does not prove that any host command was invoked", guide)
+        self.assertNotIn("re-baseline", guide.casefold())
+        self.assertNotIn("defer", guide.casefold())
+
+        ordered_work = (
+            "Read `.codearbiter/CONTEXT.md`",
+            "select scoped `re-scout`",
+            "Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.",
+            "write the canonical v2 handoff",
+            "commit only the handoff",
+            "arbiter-academy --repository $learnerRepository check P06-context-drift-recovery",
+        )
+        positions = [guide.index(marker) for marker in ordered_work]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_p06_recovery_uses_archive_then_retry_without_destructive_commands(self) -> None:
+        """Catches retry guidance that discards or rewrites the failed attempt."""
+        recovery = load_track(SOURCE, "practitioner").labs[5].recovery
+
+        self.assertIn(
+            "arbiter-academy --repository $learnerRepository reset P06-context-drift-recovery",
+            recovery,
+        )
+        self.assertIn("archives rather than discards the attempt", recovery)
+        self.assertIn("failed branch remains available for diagnosis", recovery)
+        for destructive in (
+            "git reset --hard",
+            "git rebase",
+            "git commit --amend",
+            "git update-ref -d",
+        ):
+            with self.subTest(destructive=destructive):
+                self.assertNotIn(destructive, recovery)
+
+    def test_p06_freezes_all_eight_structural_scenario_expectations(self) -> None:
+        """Catches structural verification checking only P06's old three-field prefix."""
+        from academy_engine import curriculum
+
+        expected_scenario = {
+            "interrupted_lane": "P05-checkpoint-remediation",
+            "lab_id": "P06-context-drift-recovery",
+            "operation": "provenance_recovery",
+            "preserved_path": "docs/preserved-note.md",
+            "provenance_path": ".codearbiter/.provenance/CONTEXT.json",
+            "stale_claim": "Workshop Queue report output is JSON-only.",
+            "starting_condition": "interrupted-lane-context-stale",
+            "target": ".codearbiter/CONTEXT.md",
+        }
+        expectations = getattr(curriculum, "_PRACTITIONER_SCENARIO_EXPECTATIONS", {})
+        self.assertEqual(expectations.get("P06-context-drift-recovery"), expected_scenario)
+
+    def test_p06_checkpoint_declares_exact_six_field_trusted_contract(self) -> None:
+        """Catches a checkpoint definition that leaves a P06 evidence path learner-controlled."""
+        checkpoint = json.loads(
+            (
+                SOURCE / "academy/checkpoints/P06-context-drift-recovery.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(checkpoint["schema_version"], 2)
+        self.assertEqual(checkpoint["id"], "P06-context-drift-recovery")
+        self.assertEqual(len(checkpoint["predicates"]), 1)
+        predicate = checkpoint["predicates"][0]
+        self.assertEqual(
+            set(predicate),
+            {
+                "id", "type", "profile", "context", "handoff", "source",
+                "preserved_path", "provenance",
+            },
+        )
+        self.assertEqual(predicate["id"], "provenance_drift_recovery")
+        self.assertEqual(predicate["type"], "lab_semantics")
+        self.assertEqual(
+            {key: value for key, value in predicate.items() if key not in {"id", "type"}},
+            {
+                "profile": "provenance_recovery",
+                "context": ".codearbiter/CONTEXT.md",
+                "handoff": ".codearbiter/reports/academy/P06-recovery.json",
+                "source": "workshop_queue/cli.py",
+                "preserved_path": "docs/preserved-note.md",
+                "provenance": ".codearbiter/.provenance/CONTEXT.json",
+            },
+        )
+
+    def test_p06_declares_exact_twenty_five_case_matrix(self) -> None:
+        """Catches P06 falling back to the generic five-case structural declaration."""
+        from academy_engine import curriculum
+
+        self.assertEqual(
+            curriculum._MATRIX_CASES["P06-context-drift-recovery"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent-rescout",
+                "stale-claim", "source-not-contradictory", "unchanged-context",
+                "wrong-correction", "missing-note", "recreated-note", "missing-provenance",
+                "wrong-provenance-schema", "wrong-prior-source-hash", "provenance-not-rebased",
+                "wrong-digest", "noncanonical-handoff", "unsafe-path", "wrong-route",
+                "one-commit", "reversed-order", "extra-path", "extra-commit",
+                "merge-history", "uncommitted",
+            ),
+        )
 
     def test_p07_freezes_native_and_academy_sections_without_invocation_claim(self) -> None:
         """Catches P07 mixing native fields, Academy binding, or host-invocation claims."""
@@ -781,7 +953,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("95 matrix cells", result.stdout)
+        self.assertIn("115 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())

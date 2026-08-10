@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 import tempfile
 import re
@@ -44,6 +45,18 @@ from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
 BASE_BRANCH = "main"
+_TRUSTED_PROTECTED_OVERLAY_SHA256 = {
+    (
+        "P06-context-drift-recovery",
+        "CONTEXT.md",
+        ".codearbiter/CONTEXT.md",
+    ): "3c496fe68bfc6042663c9b1d697c6b7f314e1f814533acbb30fd5169c39752f4",
+    (
+        "P06-context-drift-recovery",
+        "CONTEXT.provenance.json",
+        ".codearbiter/.provenance/CONTEXT.json",
+    ): "4831a0db68f47f7f63fd6d0925942184488ce65231fb3acb747b753aae38a915",
+}
 _P02_STATE_REACHABLE_LABS = frozenset(
     {
         "P02-commit-review-pr",
@@ -114,6 +127,13 @@ class _Snapshot:
     target: Path
     backup: Path | None
     is_directory: bool
+
+
+@dataclass(frozen=True)
+class _OverlayOperation:
+    source: Path
+    destination: Path
+    payload: bytes
 
 
 def _fail(error: Exception) -> PreparationError:
@@ -223,12 +243,16 @@ def _p02_git(repository: Path, args: Sequence[str]):
     return result
 
 
-def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Path) -> tuple[tuple[Path, Path], ...]:
+def _validate_overlay(
+    root: Path,
+    manifest: ScenarioManifest,
+    manifest_path: Path,
+) -> tuple[_OverlayOperation, ...]:
     try:
         files_root = ensure_within(root, manifest_path.parent.relative_to(root) / "files")
     except (PathBoundaryError, ValueError) as error:
         raise _fail(error) from error
-    operations: list[tuple[Path, Path]] = []
+    operations: list[_OverlayOperation] = []
     for overlay in manifest.files:
         try:
             source = ensure_within(root, files_root.relative_to(root) / overlay.source)
@@ -237,7 +261,21 @@ def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Pat
             raise _fail(error) from error
         if not source.is_file():
             raise PreparationError(f"scenario overlay source is missing or unsafe: {overlay.source}.")
-        operations.append((source, destination))
+        try:
+            payload = source.read_bytes()
+        except OSError as error:
+            raise PreparationError(
+                f"scenario overlay source could not be read: {overlay.source}."
+            ) from error
+        binding = (manifest.id, overlay.source, overlay.destination)
+        trusted_digest = _TRUSTED_PROTECTED_OVERLAY_SHA256.get(binding)
+        if trusted_digest is not None:
+            observed_digest = hashlib.sha256(payload).hexdigest()
+            if observed_digest != trusted_digest:
+                raise PreparationError(
+                    f"scenario trusted protected overlay bytes do not match the reviewed fixture: {overlay.source}."
+                )
+        operations.append(_OverlayOperation(source, destination, payload))
     if manifest.control_state_seed is not None:
         seed = manifest.control_state_seed
         try:
@@ -249,7 +287,13 @@ def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Pat
             raise PreparationError(
                 f"scenario control-state seed source is missing or unsafe: {seed.source}."
             )
-        operations.append((source, destination))
+        try:
+            payload = source.read_bytes()
+        except OSError as error:
+            raise PreparationError(
+                f"scenario control-state seed source could not be read: {seed.source}."
+            ) from error
+        operations.append(_OverlayOperation(source, destination, payload))
     for removal in manifest.removals:
         try:
             target = ensure_within(root, Path(removal))
@@ -263,13 +307,16 @@ def _validate_overlay(root: Path, manifest: ScenarioManifest, manifest_path: Pat
 def _snapshots(
     root: Path,
     manifest: ScenarioManifest,
-    operations: tuple[tuple[Path, Path], ...],
+    operations: tuple[_OverlayOperation, ...],
     backup_root: Path,
     *,
     extra_targets: tuple[str, ...] = (),
 ) -> tuple[_Snapshot, ...]:
     targets: list[Path] = [ensure_within(root, Path(removal)) for removal in manifest.removals]
-    targets.extend(ensure_within(root, destination.relative_to(root)) for _, destination in operations)
+    targets.extend(
+        ensure_within(root, operation.destination.relative_to(root))
+        for operation in operations
+    )
     targets.extend(ensure_within(root, Path(target)) for target in extra_targets)
     snapshots: list[_Snapshot] = []
     for index, target in enumerate(targets):
@@ -308,7 +355,10 @@ def _restore_snapshots(root: Path, snapshots: tuple[_Snapshot, ...]) -> None:
             shutil.copy2(snapshot.backup, snapshot.target)
 
 
-def _prepare_inputs(root: Path, lab_id: str) -> tuple[Path, Lab, ScenarioManifest, tuple[tuple[Path, Path], ...], int, str]:
+def _prepare_inputs(
+    root: Path,
+    lab_id: str,
+) -> tuple[Path, Lab, ScenarioManifest, tuple[_OverlayOperation, ...], int, str]:
     try:
         repository = repository_root(root)
         _clean(repository)
@@ -422,11 +472,23 @@ def prepare_lab(
                 target = ensure_within(repository, Path(removal))
                 _remove_target(target)
                 targets.append(removal)
-            for source, destination in operations:
-                ensure_within(repository, destination.relative_to(repository))
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, destination)
-                targets.append(destination.relative_to(repository).as_posix())
+            for operation in operations:
+                ensure_within(repository, operation.destination.relative_to(repository))
+                try:
+                    current_payload = operation.source.read_bytes()
+                except OSError as error:
+                    raise PreparationError(
+                        "scenario overlay source could not be reread after validation: "
+                        f"{operation.source.name}."
+                    ) from error
+                if current_payload != operation.payload:
+                    raise PreparationError(
+                        "scenario overlay source changed after validation: "
+                        f"{operation.source.name}."
+                    )
+                operation.destination.parent.mkdir(parents=True, exist_ok=True)
+                operation.destination.write_bytes(operation.payload)
+                targets.append(operation.destination.relative_to(repository).as_posix())
             if lab.id == "P05-checkpoint-remediation":
                 targets.extend(stage_p05_fixture(repository, base=base_sha))
             if targets:
@@ -435,7 +497,14 @@ def prepare_lab(
             commit_sha = run_git(repository, ["rev-parse", "HEAD"]).stdout.strip()
             if prospective_name is not None and commit_author_name(repository, commit_sha) != prospective_name:
                 raise AttributionError("P03 committed attribution is invalid.")
-        except (GitCommandError, OSError, PathBoundaryError, AttributionError, P05FixtureError) as error:
+        except (
+            GitCommandError,
+            OSError,
+            PathBoundaryError,
+            AttributionError,
+            P05FixtureError,
+            PreparationError,
+        ) as error:
             try:
                 run_git(repository, ["reset"])
                 _restore_snapshots(repository, snapshots)
