@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "home",
+  "actions": [
+    {
+      "id": "home-fork",
+      "sequence": 1,
+      "title": "Create the GitHub copy you own",
+      "actor": "learner",
+      "surface": "browser",
+      "instruction": "Open the Academy fork page, choose your GitHub account as the owner, keep the repository name arbiter-academy, and create the fork.",
+      "rationale": "Your fork gives every lesson a push destination that you control.",
+      "resources": [
+        {
+          "label": "Open the Academy fork page",
+          "href": "https://github.com/arbiterForge/arbiter-academy/fork"
+        },
+        {
+          "label": "View the official read-only Academy repository",
+          "href": "https://github.com/arbiterForge/arbiter-academy"
+        }
+      ],
+      "variants": [],
+      "expected_result": "GitHub opens a repository named arbiter-academy under your account and identifies it as a fork of arbiterForge/arbiter-academy.",
+      "recovery": "If GitHub shows the official repository or another owner, return to the fork page and choose your own account before continuing.",
+      "evidence": "The browser address contains your account name followed by arbiter-academy."
+    },
+    {
+      "id": "home-clone",
+      "sequence": 2,
+      "title": "Clone your fork",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the variant for your operating system in a Native terminal after replacing <your-account> with the owner of your fork.",
+      "rationale": "Cloning your fork makes origin point to a repository you own.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git clone https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git clone https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git clone https://github.com/<your-account>/arbiter-academy.git",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git creates an arbiter-academy folder and reports that the clone completed.",
+      "recovery": "If GitHub asks for access or Git says the repository was not found, confirm the account name and that the fork exists before retrying.",
+      "evidence": "The new clone records your fork as origin."
+    },
+    {
+      "id": "home-install",
+      "sequence": 3,
+      "title": "Install the reviewed Academy tools",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run only the fast installer for your operating system in a Native terminal whose current directory is the clone.",
+      "rationale": "The piped script validates the downloaded bundle against its reviewed digest. It does not verify its own already-executing bytes. Use the linked source and checksum when you need to verify the installer before execution.",
+      "resources": [
+        {
+          "label": "Review the immutable PowerShell installer source",
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1"
+        },
+        {
+          "label": "Download the PowerShell verify-first checksum",
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256"
+        },
+        {
+          "label": "Review the immutable POSIX installer source",
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.sh"
+        },
+        {
+          "label": "Download the POSIX verify-first checksum",
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh.sha256"
+        }
+      ],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1 | iex",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh | sh",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh | sh",
+          "copy": true
+        }
+      ],
+      "expected_result": "The installer reports Preview 0.3 and the path of the installed arbiter-academy executable.",
+      "recovery": "If verification or installation stops, preserve the complete message and use the linked source plus checksum before deciding whether to retry.",
+      "evidence": "The installed tool lives outside the learner repository at the versioned Preview 0.3 path."
+    },
+    {
+      "id": "home-launch-console",
+      "sequence": 4,
+      "title": "Launch the operations console",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the variant for your operating system from the root of the cloned arbiter-academy repository.",
+      "rationale": "The explicit repository path prevents the console from operating on a different folder.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path console",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" console",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" console",
+          "copy": true
+        }
+      ],
+      "expected_result": "The Academy console opens and names the cloned repository as its selected repository.",
+      "recovery": "If the executable is missing, return to the installation action. If the repository path is wrong, close the console, change to the clone, and launch it again.",
+      "evidence": "The console header shows the selected repository path."
+    },
+    {
+      "id": "home-doctor",
+      "sequence": 5,
+      "title": "Check readiness before the first lesson",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Choose Doctor in the Academy console before preparing F01.",
+      "rationale": "Doctor separates setup readiness from lesson evidence.",
+      "resources": [
+        {
+          "label": "Ask a course question in Academy Discussions",
+          "href": "https://github.com/arbiterForge/arbiter-academy/discussions"
+        }
+      ],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Choose Doctor.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Doctor reports the installation, selected repository, remotes, Git state, and supported codeArbiter host without changing the repository.",
+      "recovery": "Open the reported item, correct only that prerequisite, and run Doctor again. Use Recovery if repository state or remotes are unsafe.",
+      "evidence": "A passing Doctor report confirms readiness. It is not lesson completion evidence."
+    }
+  ]
+}

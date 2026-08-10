@@ -1,13 +1,4 @@
 <p><a href="../index.html">Back to the Preview</a></p>
+<article class="academy-content academy-guide">
 $guide_content
-<h1>Recovery guidance</h1>
-<p>If a lab becomes blocked, stop changing the attempt. Preserve the failed attempt and the evidence already produced in your fork rather than hiding or deleting state.</p>
-<p>If you have not started an attempt yet, begin with <code>arbiter-academy --repository &lt;learner-repository&gt; prepare &lt;lab-id&gt;</code>.</p>
-<h2>Diagnose before resetting</h2>
-<p>Run the authoritative check from the installed verifier and keep its result with your attempt:</p>
-<p><code>arbiter-academy --repository &lt;learner-repository&gt; check &lt;lab-id&gt;</code></p>
-<p>An in-checkout verifier is not authoritative. The installed verifier is the trust anchor; the selected checkout and its Git and artifact data remain untrusted inputs.</p>
-<h2>Begin a documented retry</h2>
-<p>Preserve or commit the evidence on the current attempt branch, make the learner checkout clean, and confirm that all push destinations still belong to your fork. Then run:</p>
-<p><code>arbiter-academy --repository &lt;learner-repository&gt; reset &lt;lab-id&gt;</code></p>
-<p>Reset archives the current attempt. Reset already prepares the next numbered attempt; do not run prepare again.</p>
+</article>

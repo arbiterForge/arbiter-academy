@@ -28,6 +28,40 @@ _EXTERNAL_URLS = {
     "https://github.com/arbiterForge/arbiter-academy/discussions",
     "https://codearbiter.dev/",
 }
+
+
+def _is_approved_external_url(target: str) -> bool:
+    if target in _EXTERNAL_URLS:
+        return True
+    parsed = urlsplit(target)
+    try:
+        port = parsed.port
+    except ValueError:
+        return False
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "github.com"
+        or parsed.netloc != "github.com"
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        return False
+    if not parsed.path.startswith("/arbiterForge/arbiter-academy/"):
+        return False
+    decoded = parsed.path
+    for _ in range(16):
+        candidate = unquote(decoded)
+        if candidate == decoded:
+            break
+        decoded = candidate
+    else:
+        return False
+    return "\\" not in decoded and all(
+        segment not in {".", ".."} for segment in decoded.split("/")
+    )
 _ASSET_SHA256 = {
     Path("assets/academy.css"): "326a9f5e670c9173dcd6ea607b3a7ae74b3115e2a810d718c77e9760b7db5adc",
     Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
@@ -288,7 +322,7 @@ def _resolve_local(
 ) -> Path | None:
     parsed = urlsplit(target)
     if parsed.scheme or parsed.netloc:
-        if not allow_external or target not in _EXTERNAL_URLS:
+        if not allow_external or not _is_approved_external_url(target):
             raise ValueError(f"unapproved external URL in {source.relative_to(root).as_posix()}: {target}")
         return None
     path = unquote(parsed.path)

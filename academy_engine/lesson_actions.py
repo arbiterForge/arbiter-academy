@@ -7,6 +7,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from academy_engine.paths import ensure_within
 
@@ -32,12 +33,14 @@ _ACTION_KEYS = frozenset(
         "surface",
         "instruction",
         "rationale",
+        "resources",
         "variants",
         "expected_result",
         "recovery",
         "evidence",
     }
 )
+_RESOURCE_KEYS = frozenset({"label", "href"})
 _VARIANT_KEYS = frozenset(
     {"id", "surface", "operating_system", "host", "language", "command", "copy"}
 )
@@ -45,6 +48,9 @@ _PROSE_LIMIT = 1024
 _COMMAND_LIMIT = 8192
 _ACTION_LIMIT = 64
 _VARIANT_LIMIT = 12
+_RESOURCE_LIMIT = 4
+_RESOURCE_LABEL_LIMIT = 160
+_RESOURCE_HREF_LIMIT = 2048
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +65,12 @@ class CommandVariant:
 
 
 @dataclass(frozen=True, slots=True)
+class ActionResource:
+    label: str
+    href: str
+
+
+@dataclass(frozen=True, slots=True)
 class LessonAction:
     id: str
     sequence: int
@@ -67,6 +79,7 @@ class LessonAction:
     surface: str | None
     instruction: str
     rationale: str | None
+    resources: tuple[ActionResource, ...]
     variants: tuple[CommandVariant, ...]
     expected_result: str
     recovery: str
@@ -151,6 +164,58 @@ def _require_command(value: object) -> str:
     return value
 
 
+def _safe_resource_path(path: str) -> bool:
+    decoded = path
+    for _ in range(16):
+        candidate = unquote(decoded)
+        if candidate == decoded:
+            break
+        decoded = candidate
+    else:
+        return False
+    if "\\" in decoded or _ASCII_CONTROL.search(decoded):
+        return False
+    return all(segment not in {".", ".."} for segment in decoded.split("/"))
+
+
+def _validate_resource(value: object) -> ActionResource:
+    resource = _require_exact_keys(value, _RESOURCE_KEYS, "action resource")
+    label = _require_prose(resource["label"], "action resource label")
+    assert label is not None
+    if len(label) > _RESOURCE_LABEL_LIMIT:
+        raise ValueError(
+            f"action resource label must be at most {_RESOURCE_LABEL_LIMIT} characters"
+        )
+    href = resource["href"]
+    if not isinstance(href, str) or not href.strip():
+        raise ValueError("action resource href must not be empty")
+    if len(href) > _RESOURCE_HREF_LIMIT:
+        raise ValueError(
+            f"action resource href must be at most {_RESOURCE_HREF_LIMIT} characters"
+        )
+    if _ASCII_CONTROL.search(href):
+        raise ValueError("action resource href must not contain ASCII controls")
+    parsed = urlsplit(href)
+    if parsed.query or parsed.fragment or parsed.username or parsed.password or parsed.port is not None:
+        raise ValueError("action resource href contains an unsafe URL component")
+    if parsed.scheme or parsed.netloc:
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "github.com"
+            or parsed.netloc != "github.com"
+            or not (
+                parsed.path == "/arbiterForge/arbiter-academy"
+                or parsed.path.startswith("/arbiterForge/arbiter-academy/")
+            )
+        ):
+            raise ValueError("action resource href must stay within the Academy GitHub repository")
+    elif not href.startswith("/") or href.startswith("//"):
+        raise ValueError("action resource href must be HTTPS or a safe root-relative site path")
+    if not _safe_resource_path(parsed.path):
+        raise ValueError("action resource href must not contain path traversal")
+    return ActionResource(label, href)
+
+
 def _validate_execution_identity(
     *, surface: str, host: str, language: str, command: str
 ) -> None:
@@ -219,6 +284,15 @@ def _validate_action(value: object) -> LessonAction:
     rationale = _require_prose(
         action["rationale"], "lesson action rationale", nullable=True
     )
+    raw_resources = action["resources"]
+    if not isinstance(raw_resources, list):
+        raise ValueError("lesson action resources must be a list")
+    if len(raw_resources) > _RESOURCE_LIMIT:
+        raise ValueError(f"lesson actions may define at most {_RESOURCE_LIMIT} resources")
+    resources = tuple(_validate_resource(item) for item in raw_resources)
+    resource_hrefs = tuple(item.href for item in resources)
+    if len(set(resource_hrefs)) != len(resource_hrefs):
+        raise ValueError("lesson actions require unique resource hrefs")
     expected_result = _require_prose(
         action["expected_result"], "lesson action expected_result"
     )
@@ -257,6 +331,7 @@ def _validate_action(value: object) -> LessonAction:
         surface,
         instruction,
         rationale,
+        resources,
         variants,
         expected_result,
         recovery,

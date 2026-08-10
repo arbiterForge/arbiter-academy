@@ -35,6 +35,25 @@
         {"$ref": "#/$defs/prose"}
       ]
     },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "href"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "href": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^(?:https://github\\.com/arbiterForge/arbiter-academy(?:/[^?#\\u0000-\\u001F\\u007F]*)?|/(?!/)[^?#\\u0000-\\u001F\\u007F]*)$"
+        }
+      }
+    },
     "variant": {
       "type": "object",
       "additionalProperties": false,
@@ -59,7 +78,7 @@
       "additionalProperties": false,
       "required": [
         "id", "sequence", "title", "actor", "surface", "instruction",
-        "rationale", "variants", "expected_result", "recovery", "evidence"
+        "rationale", "resources", "variants", "expected_result", "recovery", "evidence"
       ],
       "properties": {
         "id": {"$ref": "#/$defs/id"},
@@ -74,6 +93,11 @@
         },
         "instruction": {"$ref": "#/$defs/prose"},
         "rationale": {"$ref": "#/$defs/nullableProse"},
+        "resources": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {"$ref": "#/$defs/resource"}
+        },
         "variants": {
           "type": "array",
           "maxItems": 12,

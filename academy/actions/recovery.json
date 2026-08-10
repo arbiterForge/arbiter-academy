@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "recovery",
+  "actions": [
+    {
+      "id": "recovery-inspect",
+      "sequence": 1,
+      "title": "Inspect without changing state",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Choose Inspect in the Academy console. Read the repository path, Git state, current branch, attempt, origin, and upstream before taking another action.",
+      "rationale": "One read-only report keeps repository diagnosis separate from recovery changes.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Choose Inspect.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Inspect reports each repository boundary and makes no repository change.",
+      "recovery": "If Inspect cannot identify a Git repository, stop and return to the Repository not found decision above.",
+      "evidence": "The report records the state you observed before recovery."
+    },
+    {
+      "id": "recovery-check",
+      "sequence": 2,
+      "title": "Read the authoritative lesson result",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Choose Check in the Academy console only after Inspect identifies the intended numbered attempt.",
+      "rationale": "The installed Academy checker evaluates the selected repository as untrusted input.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Choose Check.",
+          "copy": false
+        }
+      ],
+      "expected_result": "Check either passes or names the exact unmet lesson requirement.",
+      "recovery": "If there is no prepared attempt, return to the lesson and Prepare once. If Check fails, preserve the report and follow that lesson's recovery text.",
+      "evidence": "The Check report belongs with the numbered attempt."
+    },
+    {
+      "id": "recovery-reset",
+      "sequence": 3,
+      "title": "Create the next documented attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Choose Reset only after the current attempt evidence is committed, the worktree is clean, and the remotes are safe.",
+      "rationale": "Reset keeps the failed attempt and creates the next numbered attempt through one bounded operation.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Choose Reset.",
+          "copy": false
+        }
+      ],
+      "expected_result": "The console reports the archived attempt and the next prepared attempt number.",
+      "recovery": "If Reset refuses, keep the current state, run Inspect, and resolve only the condition it reports.",
+      "evidence": "Both numbered attempt branches remain available."
+    },
+    {
+      "id": "recovery-return-base",
+      "sequence": 4,
+      "title": "Return to the course base",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Choose Return to base after Inspect reports committed evidence and a clean attempt worktree.",
+      "rationale": "The console can verify the preservation conditions before leaving the attempt.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "console",
+          "surface": "academy-console",
+          "operating_system": "all",
+          "host": "none",
+          "language": "text",
+          "command": "Choose Return to base.",
+          "copy": false
+        }
+      ],
+      "expected_result": "The console reports main as the current branch and no local changes while the attempt branch still exists.",
+      "recovery": "If Return to base refuses, keep the attempt open and resolve only the preservation condition named by the console.",
+      "evidence": "The attempt branch and evidence commits remain reachable after returning to main."
+    }
+  ]
+}

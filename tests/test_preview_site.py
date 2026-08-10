@@ -6,12 +6,10 @@ import html as html_module
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
-import textwrap
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -21,7 +19,12 @@ from urllib.parse import urlsplit
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
 from academy_engine.checkpoints import LAB_INVENTORY
-from academy_engine.lesson_actions import CommandVariant, load_action_manifest, validate_action_manifest
+from academy_engine.lesson_actions import (
+    ActionResource,
+    CommandVariant,
+    load_action_manifest,
+    validate_action_manifest,
+)
 from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
@@ -66,31 +69,6 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
     raise ValueError("WebP image has no supported dimension chunk")
 
 
-def extract_bootstrap_blocks(readme: str, rendered_home: str) -> dict[str, str]:
-    patterns = {
-        "powershell": (
-            r"Windows PowerShell:[ \t]*\n(?:[ \t]*\n)*[ \t]*```powershell[ \t]*\n(?P<body>.*?)[ \t]*\n[ \t]*```",
-            r'<p><strong>Windows PowerShell</strong></p><pre><code class="language-powershell">(?P<body>.*?)</code></pre>',
-        ),
-        "posix": (
-            r"macOS or Linux shell:[ \t]*\n(?:[ \t]*\n)*[ \t]*```sh[ \t]*\n(?P<body>.*?)[ \t]*\n[ \t]*```",
-            r'<p><strong>macOS or Linux shell</strong></p><pre><code class="language-sh">(?P<body>.*?)</code></pre>',
-        ),
-    }
-    blocks: dict[str, str] = {}
-    for platform, (readme_pattern, home_pattern) in patterns.items():
-        readme_match = re.search(readme_pattern, readme, re.DOTALL)
-        home_match = re.search(home_pattern, rendered_home, re.DOTALL)
-        if readme_match is None or home_match is None:
-            raise AssertionError(f"missing {platform} bootstrap block")
-        readme_block = textwrap.dedent(readme_match.group("body")).strip()
-        home_block = html_module.unescape(home_match.group("body")).strip()
-        if readme_block != home_block:
-            raise AssertionError(f"README and rendered {platform} bootstrap blocks differ")
-        blocks[platform] = readme_block
-    return blocks
-
-
 class PreviewSiteTests(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(__file__).parents[1]
@@ -111,6 +89,7 @@ class PreviewSiteTests(unittest.TestCase):
             "surface": surface,
             "instruction": "Read the prerequisite explanation before changing the repository.",
             "rationale": None,
+            "resources": [],
             "variants": [],
             "expected_result": "You can identify the repository boundary.",
             "recovery": "Return to the prerequisite section and compare each repository role.",
@@ -182,9 +161,9 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches onboarding that starts from or sends learner work to the canonical repository."""
         html = read_home(self.root, self.out)
 
-        self.assertIn("Fork the Academy", html)
+        self.assertIn("Create your practice fork", html)
         self.assertIn("your fork", html)
-        self.assertLess(html.index("Fork the Academy"), html.index("Clone your fork"))
+        self.assertLess(html.index("Create your practice fork"), html.index("Clone it to your computer"))
         self.assertIn(
             "git clone https://github.com/&lt;your-account&gt;/arbiter-academy.git",
             html,
@@ -226,294 +205,112 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches public guidance that overstates the preview or omits its runnable workflow."""
         html = read_home(self.root, self.out)
 
-        self.assertIn("eleven available labs", html)
-        self.assertIn("15–60 minutes", html)
+        self.assertIn("eleven runnable labs", html)
+        self.assertIn("15 to 60 minutes", html)
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
-        self.assertIn("P08 and the Power User labs are not included", html)
-        self.assertIn("Power User labs are not included", html)
-        for operation in ("prepare", "check", "reset"):
-            self.assertIn(
-                f"arbiter-academy --repository &lt;learner-repository&gt; {operation} &lt;lab-id&gt;",
-                html,
-            )
+        self.assertIn("Power User lessons are not included", html)
+        for operation in ("Doctor", "console"):
+            self.assertIn(operation, html)
         self.assertIn('href="recovery/index.html"', html)
 
-    def test_documented_bootstraps_install_a_clean_canonical_snapshot_outside_checkout(self) -> None:
-        """Catches a bootstrap whose installed bytes can come from a between-step learner mutation."""
-        blocks = self._documented_bootstrap_blocks()
+    def test_home_teaches_every_prerequisite_before_first_use(self) -> None:
+        """Catches a guided entry page that asks a novice to infer setup vocabulary or surfaces."""
+        html = read_home(self.root, self.out)
+        guide_path = self.root / "academy" / "guides" / "home.md"
+        self.assertTrue(guide_path.is_file(), "guided Home source must exist")
+        guide = guide_path.read_text(encoding="utf-8")
+        manifest = load_action_manifest(self.root, "home")
 
-        for platform, executable, arguments in self._bootstrap_shells(require_venv=True):
-            with self.subTest(platform=platform):
-                learner, environment = self._bootstrap_fixture(f"success-{platform}", platform)
-                fixture = learner.parents[1]
-                mutation_event = fixture / "mutation-event"
-                hostile_sentinel = fixture / "hostile-shadow-imported"
-                environment.update(
-                    {
-                        "ACADEMY_TEST_GIT_HOOK": "mutate-after-snapshot-identity",
-                        "ACADEMY_TEST_MUTATION_EVENT": str(mutation_event),
-                        "ACADEMY_TEST_HOSTILE_SENTINEL": str(hostile_sentinel),
-                    }
-                )
-                result = self._run_bootstrap(
-                    platform,
-                    executable,
-                    arguments,
-                    blocks[platform],
-                    learner,
-                    environment,
-                )
-
-                self.assertTrue(
-                    mutation_event.is_file(),
-                    "the learner mutation hook did not run after snapshot identity verification",
-                )
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                source = learner.parent / "arbiter-academy-source-preview-0.3"
-                tools = learner.parent / "arbiter-academy-tools-preview-0.3"
-                self.assertTrue(source.is_dir())
-                self.assertFalse(source.resolve().is_relative_to(learner.resolve()))
-                reviewed_commit = self._git(learner, "rev-parse", "--verify", "HEAD").stdout.strip()
-                self.assertEqual(
-                    self._git(source, "rev-parse", "--verify", "HEAD").stdout.strip(),
-                    reviewed_commit,
-                )
-                launcher = (
-                    tools / "Scripts" / "arbiter-academy.exe"
-                    if platform == "powershell"
-                    else tools / "bin" / "arbiter-academy"
-                )
-                self.assertTrue(launcher.is_file())
-                installed_cli = next(tools.glob("**/site-packages/academy_engine/cli.py"))
-                self.assertFalse(installed_cli.resolve().is_relative_to(learner.resolve()))
-                source_bytes = (source / "academy_engine" / "cli.py").read_bytes()
-                learner_bytes = (learner / "academy_engine" / "cli.py").read_bytes()
-                self.assertNotEqual(learner_bytes, source_bytes)
-                self.assertEqual(
-                    installed_cli.read_bytes(),
-                    source_bytes,
-                    "installed verifier bytes differ from the reviewed sibling snapshot",
-                )
-                launcher_environment = dict(environment)
-                launcher_environment["ACADEMY_TEST_HOSTILE_SENTINEL"] = str(hostile_sentinel)
-                launched = subprocess.run(
-                    [str(launcher), "--repository", str(learner), "progress"],
-                    cwd=learner,
-                    env=launcher_environment,
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                    timeout=60,
-                )
-                self.assertEqual(launched.returncode, 0, launched.stdout + launched.stderr)
-                self.assertFalse(hostile_sentinel.exists())
-
-    def test_documented_bootstraps_reject_a_clean_fork_after_canonical_advances(self) -> None:
-        """Catches a stale but clean fork being mistaken for current canonical Preview source."""
-        blocks = self._documented_bootstrap_blocks()
-
-        for platform, executable, arguments in self._bootstrap_shells():
-            with self.subTest(platform=platform):
-                learner, environment = self._bootstrap_fixture(f"stale-fork-{platform}", platform)
-                self._advance_canonical(learner)
-                self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
-
-                result = self._run_bootstrap(
-                    platform,
-                    executable,
-                    arguments,
-                    blocks[platform],
-                    learner,
-                    environment,
-                )
-
-                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn("Fork HEAD is not the reviewed canonical Preview source.", result.stderr)
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.3").exists())
-                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.3").exists())
-
-    def test_documented_bootstraps_reject_a_dirty_checkout_before_sibling_creation(self) -> None:
-        """Catches dirty learner files reaching snapshot creation despite canonical commit identity."""
-        blocks = self._documented_bootstrap_blocks()
-
-        for platform, executable, arguments in self._bootstrap_shells():
-            with self.subTest(platform=platform):
-                learner, environment = self._bootstrap_fixture(f"dirty-{platform}", platform)
-                with (learner / "academy_engine" / "cli.py").open("ab") as stream:
-                    stream.write(b"\n# dirty learner verifier\n")
-                self.assertNotEqual(self._git(learner, "status", "--porcelain").stdout, "")
-
-                result = self._run_bootstrap(
-                    platform,
-                    executable,
-                    arguments,
-                    blocks[platform],
-                    learner,
-                    environment,
-                )
-
-                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn("Bootstrap requires a clean learner checkout.", result.stderr)
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.3").exists())
-                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.3").exists())
-
-    def test_documented_bootstraps_refuse_each_preexisting_sibling_boundary(self) -> None:
-        """Catches either an old source snapshot or stale wheel directory being silently reused."""
-        blocks = self._documented_bootstrap_blocks()
-
-        for platform, executable, arguments in self._bootstrap_shells():
-            for boundary in ("source", "tools-with-stale-wheel"):
-                with self.subTest(platform=platform, boundary=boundary):
-                    learner, environment = self._bootstrap_fixture(
-                        f"preexisting-{boundary}-{platform}", platform
-                    )
-                    source = learner.parent / "arbiter-academy-source-preview-0.3"
-                    tools = learner.parent / "arbiter-academy-tools-preview-0.3"
-                    if boundary == "source":
-                        source.mkdir()
-                    else:
-                        wheels = tools / "wheels"
-                        wheels.mkdir(parents=True)
-                        (wheels / "workshop_queue-0.1.0-py3-none-any.whl").write_bytes(
-                            b"stale same-version wheel"
-                        )
-                    self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
-
-                    result = self._run_bootstrap(
-                        platform,
-                        executable,
-                        arguments,
-                        blocks[platform],
-                        learner,
-                        environment,
-                    )
-
-                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                    self.assertIn("Preview source/tools path already exists", result.stderr)
-                    launcher = (
-                        tools / "Scripts" / "arbiter-academy.exe"
-                        if platform == "powershell"
-                        else tools / "bin" / "arbiter-academy"
-                    )
-                    self.assertFalse(launcher.exists())
-
-    def test_documented_bootstraps_stop_after_late_wheel_construction_failure(self) -> None:
-        """Catches a real wheel-command failure falling through to a newly seeded stale wheel."""
-        blocks = self._documented_bootstrap_blocks()
-
-        for platform, executable, arguments in self._bootstrap_shells(require_venv=True):
-            with self.subTest(platform=platform):
-                learner, environment = self._bootstrap_fixture(f"late-wheel-{platform}", platform)
-                fixture = learner.parents[1]
-                tools = learner.parent / "arbiter-academy-tools-preview-0.3"
-                stale_cache = fixture / "stale-cache"
-                stale_cache.mkdir()
-                stale_build = subprocess.run(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "wheel",
-                        "--no-index",
-                        "--find-links",
-                        str(learner / ".github" / "wheelhouse"),
-                        "--no-deps",
-                        "--wheel-dir",
-                        str(stale_cache),
-                        str(learner),
-                    ],
-                    cwd=learner,
-                    env=environment,
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                    timeout=180,
-                )
-                self.assertEqual(stale_build.returncode, 0, stale_build.stdout + stale_build.stderr)
-                stale_wheel = stale_cache / "workshop_queue-0.1.0-py3-none-any.whl"
-                self.assertTrue(stale_wheel.is_file())
-                wheel_event = fixture / "wheel-command-attempted"
-                install_event = fixture / "install-command-attempted"
-                environment.update(
-                    {
-                        "ACADEMY_TEST_PYTHON_HOOK": "seed-stale-and-fail-wheel",
-                        "ACADEMY_TEST_STALE_WHEEL": str(stale_wheel),
-                        "ACADEMY_TEST_WHEEL_EVENT": str(wheel_event),
-                        "ACADEMY_TEST_INSTALL_EVENT": str(install_event),
-                    }
-                )
-                self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.3").exists())
-                self.assertFalse(tools.exists())
-
-                result = self._run_bootstrap(
-                    platform,
-                    executable,
-                    arguments,
-                    blocks[platform],
-                    learner,
-                    environment,
-                )
-
-                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertTrue(wheel_event.is_file(), "the documented wheel command did not run")
-                self.assertFalse(install_event.exists(), "install ran after wheel construction failed")
-                seeded_wheel = tools / "wheels" / stale_wheel.name
-                self.assertEqual(seeded_wheel.read_bytes(), stale_wheel.read_bytes())
-                if platform == "powershell":
-                    self.assertIn("Could not build the reviewed Academy wheel.", result.stderr)
-                else:
-                    self.assertIn("simulated wheel construction failure", result.stderr)
-                launcher = (
-                    tools / "Scripts" / "arbiter-academy.exe"
-                    if platform == "powershell"
-                    else tools / "bin" / "arbiter-academy"
-                )
-                self.assertFalse(launcher.exists())
-
-    def test_posix_bootstrap_fails_closed_when_clean_status_inspection_fails(self) -> None:
-        """Catches an empty failed status substitution being mistaken for a clean checkout."""
-        block = self._documented_bootstrap_blocks()["posix"]
-        posix_shells = [shell for shell in self._bootstrap_shells() if shell[0] == "posix"]
-        self.assertTrue(posix_shells, "POSIX bootstrap shell is unavailable")
-
-        for platform, executable, arguments in posix_shells:
-            learner, environment = self._bootstrap_fixture("status-failure-posix", platform)
-            environment["ACADEMY_TEST_GIT_HOOK"] = "fail-status"
-
-            result = self._run_bootstrap(
-                platform,
-                executable,
-                arguments,
-                block,
-                learner,
-                environment,
-            )
-
-            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn("Could not inspect learner checkout status.", result.stderr)
-            self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.3").exists())
-            self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.3").exists())
-
-    def test_documented_bootstrap_contract_retains_reviewed_offline_boundary_and_limits(self) -> None:
-        """Catches executable bootstrap or prose drift from the reviewed local trust boundary."""
-        blocks = self._documented_bootstrap_blocks()
-        for platform, block in blocks.items():
-            with self.subTest(platform=platform):
-                self.assertIn("https://github.com/arbiterForge/arbiter-academy.git", block)
-                self.assertIn("--no-index", block)
-                self.assertIn("--no-deps", block)
-                snapshot = "$academySource" if platform == "powershell" else "$academy_source"
-                self.assertIn(f'{snapshot}\\.github\\wheelhouse' if platform == "powershell" else f'{snapshot}/.github/wheelhouse', block)
-
-        readme = (self.root / "README.md").read_text(encoding="utf-8")
-        rendered = read_home(self.root, self.out)
-        self.assertIn(
-            "does not provide cryptographic or malicious-operator resistance",
-            " ".join(readme.split()),
+        headings = (
+            "Start here",
+            "What the Academy changes",
+            "Create your practice fork",
+            "Clone it to your computer",
+            "Install the reviewed Academy tools",
+            "Open the operations console",
+            "Run readiness checks",
+            "Choose your first lesson",
+            "Course status",
+            "Get help",
         )
-        self.assertIn("provides no cryptographic or malicious-operator resistance", rendered)
+        positions = [html.index(f">{heading}</h") for heading in headings]
+        self.assertEqual(positions, sorted(positions))
+
+        for prerequisite in (
+            "GitHub account",
+            "Git",
+            "codeArbiter",
+            "Browser",
+            "Native terminal",
+            "repository",
+            "fork",
+            "clone",
+            "origin",
+            "upstream",
+        ):
+            self.assertIn(prerequisite, html)
+        self.assertLess(html.index("A fork is"), html.index("home-fork"))
+        self.assertLess(html.index("A clone is"), html.index("git clone"))
+        self.assertLess(html.index("origin"), html.index("git clone"))
+        self.assertLess(html.index("upstream"), html.index("git clone"))
+
+        self.assertEqual(
+            tuple(action.id for action in manifest.actions),
+            ("home-fork", "home-clone", "home-install", "home-launch-console", "home-doctor"),
+        )
+        actions = {action.id: action for action in manifest.actions}
+        install = actions["home-install"]
+        self.assertEqual(
+            tuple(resource.href for resource in install.resources),
+            (
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh.sha256",
+            ),
+        )
+        launch_commands = tuple(variant.command for variant in actions["home-launch-console"].variants)
+        self.assertIn(
+            '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe"\n'
+            "& $academy --repository (Get-Location).Path console",
+            launch_commands,
+        )
+        self.assertIn(
+            'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy"\n'
+            '"$academy" --repository "$PWD" console',
+            launch_commands,
+        )
+        self.assertNotIn("```", guide)
+        self.assertNotIn('$ErrorActionPreference = "Stop"', html)
+        self.assertIn(
+            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1 | iex",
+            html,
+        )
+        self.assertIn(
+            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh | sh",
+            html,
+        )
+        for label in ("You \u00b7 Browser", "You \u00b7 Native terminal", "You \u00b7 Academy console"):
+            self.assertIn(label, html)
+
+        self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1"',
+            html,
+        )
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.sh"',
+            html,
+        )
+        self.assertIn("validates the downloaded bundle", html)
+        self.assertIn("does not verify its own already-executing bytes", html)
+        for state in (
+            "Guided: F01",
+            "Reference lessons: F02 through P07",
+            "Not yet published",
+        ):
+            self.assertIn(state, html)
 
     def test_home_pacing_range_is_derived_from_published_lesson_metadata(self) -> None:
         """Catches the landing-page range drifting from published lesson durations."""
@@ -528,19 +325,8 @@ class PreviewSiteTests(unittest.TestCase):
 
         html = read_home(source, self.out)
 
-        self.assertIn("12–60 minutes", html)
-        self.assertNotIn("15–60 minutes", html)
-
-    def test_home_workflow_is_one_semantic_six_step_ordered_list(self) -> None:
-        """Catches visual numbering that exposes no ordered-list structure to assistive tech."""
-        html = read_home(self.root, self.out)
-        workflow = html.split("<h2>Start safely</h2>", 1)[1].split("</ol>", 1)[0] + "</ol>"
-
-        self.assertEqual(workflow.count('<ol class="start-steps">'), 1)
-        self.assertEqual(workflow.count("</ol>"), 1)
-        self.assertEqual(workflow.count("<li>"), 6)
-        self.assertEqual(workflow.count("</li>"), 6)
-        self.assertNotRegex(workflow, r"<strong>[1-6]\. ")
+        self.assertIn("12 to 60 minutes", html)
+        self.assertNotIn("15 to 60 minutes", html)
 
     def test_feedback_url_is_https_github_discussions_and_is_rendered(self) -> None:
         """Catches feedback being hidden or routed away from the reviewed Discussions boundary."""
@@ -588,21 +374,54 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="3" * 40)
         html = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
 
-        self.assertIn("Preserve the failed attempt", html)
-        self.assertIn(
-            "arbiter-academy --repository &lt;learner-repository&gt; check &lt;lab-id&gt;",
-            html,
-        )
-        self.assertIn(
-            "arbiter-academy --repository &lt;learner-repository&gt; reset &lt;lab-id&gt;",
-            html,
-        )
-        self.assertIn("installed verifier", html)
+        self.assertIn("Preserve the branch", html)
+        self.assertIn("Choose Check.", html)
+        self.assertIn("Choose Reset.", html)
+        self.assertIn("installed Academy checker", html)
         self.assertIn("your fork", html)
         self.assertIn(
-            "Reset already prepares the next numbered attempt; do not run prepare again.",
+            "Reset archives the current attempt and prepares the next numbered attempt",
             html,
         )
+
+    def test_recovery_is_a_bounded_operational_decision_tree(self) -> None:
+        """Catches recovery advice that skips diagnosis, loses evidence, or uses destructive shortcuts."""
+        build_preview_site(self.root, self.out, release_sha="3" * 40)
+        html = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
+        guide_path = self.root / "academy" / "guides" / "recovery.md"
+        self.assertTrue(guide_path.is_file(), "guided Recovery source must exist")
+        guide = guide_path.read_text(encoding="utf-8")
+        manifest = load_action_manifest(self.root, "recovery")
+
+        decisions = (
+            "Repository not found or not Git",
+            "Dirty worktree",
+            "Wrong branch or detached HEAD",
+            "Unsafe or missing remotes",
+            "No prepared attempt",
+            "Failed Check with clean committed evidence",
+            "Retry",
+            "Return to main",
+        )
+        positions = [html.index(f">{decision}</h") for decision in decisions]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(guide.count("**Stop:**"), len(decisions))
+        self.assertEqual(guide.count("**Observe:**"), len(decisions))
+        self.assertEqual(guide.count("**Safe action:**"), len(decisions))
+        self.assertEqual(guide.count("**Preserved:**"), len(decisions))
+        self.assertEqual(
+            tuple(action.id for action in manifest.actions),
+            ("recovery-inspect", "recovery-check", "recovery-reset", "recovery-return-base"),
+        )
+        for action_id in ("recovery-inspect", "recovery-check", "recovery-reset", "recovery-return-base"):
+            self.assertIn(f'data-action-id="{action_id}"', html)
+        for shortcut in (
+            "make the repository clean",
+            "delete the branch",
+            "reset --hard",
+            "force-push",
+        ):
+            self.assertNotIn(shortcut, html.casefold())
 
     def test_build_emits_the_exact_reviewed_file_inventory_and_index_boundary(self) -> None:
         """Catches an unreviewed page, link, or status entry reaching the public artifact."""
@@ -751,6 +570,31 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn("broken internal link", rejected.stderr)
+
+    def test_static_checker_allows_only_repository_scoped_action_resources(self) -> None:
+        """Catches a rendered action resource escaping the runtime URL contract."""
+        root = Path(self.temporary_directory.name) / "resource-check"
+        root.mkdir()
+        page = root / "index.html"
+        page.write_text("source", encoding="utf-8")
+        approved = (
+            "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
+            "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256",
+        )
+        for target in approved:
+            with self.subTest(target=target):
+                self.assertIsNone(
+                    preview_checker._resolve_local(root, page, target, allow_external=True)
+                )
+        for target in (
+            "https://github.com/arbiterForge/other/blob/main/install.ps1",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/../secret",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/%252e%252e/secret",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/file?raw=1",
+        ):
+            with self.subTest(target=target):
+                with self.assertRaisesRegex(ValueError, "unapproved external URL"):
+                    preview_checker._resolve_local(root, page, target, allow_external=True)
 
     def test_static_checker_rejects_broken_fragments_aria_references_and_duplicate_ids(self) -> None:
         """Catches generated navigation or accessible names pointing at absent or ambiguous IDs."""
@@ -1109,6 +953,7 @@ class PreviewSiteTests(unittest.TestCase):
                     "surface": None,
                     "instruction": "Run <only> the command for your surface.",
                     "rationale": "Preparation creates a bounded attempt.",
+                    "resources": [],
                     "variants": [
                         {
                             "id": "native-windows",
@@ -1214,6 +1059,7 @@ class PreviewSiteTests(unittest.TestCase):
             "Open the Academy fork page.",
             None,
             (),
+            (),
             "The fork page opens.",
             "Return to the Academy home page and retry.",
             None,
@@ -1240,6 +1086,7 @@ class PreviewSiteTests(unittest.TestCase):
             "Open <b>nothing executable</b>.",
             None,
             (),
+            (),
             "No script runs.",
             "Return safely.",
             None,
@@ -1249,6 +1096,40 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("<b>", rendered)
         self.assertIn("&lt;script&gt;not markup&lt;/script&gt;", rendered)
         self.assertIn("Open &lt;b&gt;nothing executable&lt;/b&gt;.", rendered)
+
+    def test_action_resources_render_adjacent_escaped_semantic_links(self) -> None:
+        """Catches trusted source links rendered out of context or treated as active markup."""
+        action = preview_site.LessonAction(
+            "home-install",
+            1,
+            "Install the tools",
+            "learner",
+            "browser",
+            "Review the installer source.",
+            "The source is immutable.",
+            (
+                ActionResource(
+                    "Review <installer> source",
+                    "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
+                ),
+            ),
+            (),
+            "The source page opens.",
+            "Return to the Academy Home page.",
+            None,
+        )
+
+        rendered = preview_site._render_action(action)
+
+        self.assertIn('<nav class="action-resources" aria-label="Reviewed resources">', rendered)
+        self.assertIn("Review &lt;installer&gt; source", rendered)
+        self.assertNotIn("Review <installer> source", rendered)
+        self.assertIn(
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1"',
+            rendered,
+        )
+        self.assertLess(rendered.index("action-rationale"), rendered.index("action-resources"))
+        self.assertLess(rendered.index("action-resources"), rendered.index("action-expected"))
 
     def test_non_command_renderer_labels_every_unambiguous_surface(self) -> None:
         """Catches loss of actor/surface/OS clarity on non-command lesson actions."""
@@ -1268,6 +1149,7 @@ class PreviewSiteTests(unittest.TestCase):
                     "Inspect the named surface.",
                     None,
                     (),
+                    (),
                     "The surface is visible.",
                     "Return to the lesson and retry.",
                     None,
@@ -1282,6 +1164,7 @@ class PreviewSiteTests(unittest.TestCase):
             "browser",
             "Open the fork page.",
             None,
+            (),
             (),
             "The page opens.",
             "Return to the Academy home page.",
@@ -1311,6 +1194,7 @@ class PreviewSiteTests(unittest.TestCase):
             None,
             "Run Check.",
             None,
+            (),
             (console_variant,),
             "Check passes.",
             "Open Recovery.",
@@ -1340,8 +1224,6 @@ class PreviewSiteTests(unittest.TestCase):
         source = self._copy_public_source()
         guides = source / "academy" / "guides"
         actions = source / "academy" / "actions"
-        guides.mkdir()
-        actions.mkdir()
         for document_id, action_id, heading in (
             ("home", "home-open", "Guided Academy home"),
             ("recovery", "recovery-inspect", "Guided recovery"),
@@ -1379,11 +1261,11 @@ class PreviewSiteTests(unittest.TestCase):
                     source = self._copy_public_source(f"partial-{document_id}-{present}-source")
                     guide = source / "academy" / "guides" / f"{document_id}.md"
                     action = source / "academy" / "actions" / f"{document_id}.json"
+                    guide.unlink()
+                    action.unlink()
                     if present == "guide":
-                        guide.parent.mkdir()
                         guide.write_text("# Partial guide\n", encoding="utf-8")
                     else:
-                        action.parent.mkdir()
                         action.write_text("{}", encoding="utf-8")
                     destination = self.out.parent / f"partial-{document_id}-{present}"
                     with self.assertRaisesRegex(ValueError, "guide/action pair"):
@@ -1393,25 +1275,10 @@ class PreviewSiteTests(unittest.TestCase):
         source = self._copy_public_source("malformed-home-source")
         guide = source / "academy" / "guides" / "home.md"
         action = source / "academy" / "actions" / "home.json"
-        guide.parent.mkdir()
-        action.parent.mkdir()
         guide.write_text("# Malformed home\n\n{{action:home-open}}\n", encoding="utf-8")
         action.write_text("{", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "could not read lesson action manifest"):
             build_preview_site(source, self.out.parent / "malformed-home", release_sha="8" * 40)
-
-    def test_no_guide_assets_preserve_legacy_home_and_recovery(self) -> None:
-        """Catches pair activation accidentally becoming mandatory before Task 5 lands."""
-        source = self._copy_public_source()
-
-        build_preview_site(source, self.out, release_sha="9" * 40)
-
-        home = (self.out / "index.html").read_text(encoding="utf-8")
-        recovery = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
-        self.assertIn("Before you begin", home)
-        self.assertIn("Diagnose before resetting", recovery)
-        self.assertNotIn('class="lesson-action"', home)
-        self.assertNotIn('class="lesson-action"', recovery)
 
     def test_markdown_renderer_rejects_unreviewed_syntax_before_writing(self) -> None:
         """Catches unknown Markdown or active HTML being silently dropped or published."""
@@ -1509,8 +1376,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotRegex(css, r"(?m)^ul\s*\{")
         self.assertNotRegex(css, r"(?m)^li\s*\{")
 
-    def test_home_bootstrap_code_blocks_use_the_bounded_scroll_container(self) -> None:
-        """Catches long setup commands widening the whole home page instead of their code block."""
+    def test_home_action_code_blocks_use_the_bounded_scroll_container(self) -> None:
+        """Catches long guided commands widening the whole home page instead of their code block."""
         build_preview_site(self.root, self.out, release_sha="d" * 40)
         css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
 
@@ -1647,6 +1514,7 @@ class PreviewSiteTests(unittest.TestCase):
             None,
             "Copy the command for your surface.",
             None,
+            (),
             (
                 CommandVariant(
                     "codex-windows",
@@ -1674,7 +1542,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         valid_destination = self.out.parent / "valid-command-controls"
         build_preview_site(self.root, valid_destination, release_sha="1" * 40)
-        valid_page = valid_destination / "index.html"
+        valid_page = valid_destination / "labs" / "F02-orient-to-state" / "index.html"
         valid_page.write_text(
             valid_page.read_text(encoding="utf-8").replace("</main>", f"{rendered}</main>", 1),
             encoding="utf-8",
@@ -1789,6 +1657,8 @@ class PreviewSiteTests(unittest.TestCase):
                 self.root / "academy" / "tracks" / track,
                 academy / "tracks" / track,
             )
+        shutil.copytree(self.root / "academy" / "guides", academy / "guides")
+        shutil.copytree(self.root / "academy" / "actions", academy / "actions")
         shutil.copytree(self.root / "site" / "templates", source / "site" / "templates")
         shutil.copytree(self.root / "site" / "assets", source / "site" / "assets")
         return source
@@ -2169,7 +2039,6 @@ raise SystemExit(result.returncode)
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
-
     def _make_directory_redirect(self, link: Path, target: Path) -> None:
         if os.name != "nt":
             link.symlink_to(target, target_is_directory=True)

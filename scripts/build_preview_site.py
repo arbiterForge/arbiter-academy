@@ -471,6 +471,15 @@ def _render_action(action: LessonAction) -> str:
         blocks.append(
             f'<div class="action-rationale"><strong>Why</strong><p>{escape(action.rationale)}</p></div>'
         )
+    if action.resources:
+        links = "".join(
+            f'<li><a href="{escape(resource.href, quote=True)}">{escape(resource.label)}</a></li>'
+            for resource in action.resources
+        )
+        blocks.append(
+            '<nav class="action-resources" aria-label="Reviewed resources">'
+            f"<ul>{links}</ul></nav>"
+        )
     for variant in action.variants:
         variant_id = escape(variant.id, quote=True)
         command_id = f"command-{action_id}-{variant_id}"

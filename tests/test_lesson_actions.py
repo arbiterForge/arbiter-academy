@@ -51,6 +51,7 @@ class LessonActionTests(unittest.TestCase):
             "surface": None,
             "instruction": "Run the status command in the named surface.",
             "rationale": "A clean worktree makes the evidence boundary explicit.",
+            "resources": [],
             "variants": [variant],
             "expected_result": "Git prints no changed paths.",
             "recovery": "Restore only the lesson changes, then run the command again.",
@@ -66,6 +67,7 @@ class LessonActionTests(unittest.TestCase):
             "surface": "browser",
             "instruction": "Read the prerequisite explanation before changing the repository.",
             "rationale": None,
+            "resources": [],
             "variants": [],
             "expected_result": "You can identify the fork, origin, and upstream repositories.",
             "recovery": "Return to the prerequisite section and compare each repository role.",
@@ -98,6 +100,7 @@ class LessonActionTests(unittest.TestCase):
                         surface=None,
                         instruction="Run the status command in the named surface.",
                         rationale="A clean worktree makes the evidence boundary explicit.",
+                        resources=(),
                         variants=(
                             CommandVariant(
                                 id="status-codex-linux",
@@ -126,6 +129,67 @@ class LessonActionTests(unittest.TestCase):
 
         self.assertEqual(manifest.actions[0].surface, "browser")
         self.assertEqual(manifest.actions[0].variants, ())
+
+    def test_action_resources_are_typed_bounded_and_repository_scoped(self) -> None:
+        """Catches installer evidence links that escape the reviewed Academy repository."""
+        action = self.command_action()
+        action["resources"] = [
+            {
+                "label": "Review the immutable PowerShell installer",
+                "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
+            }
+        ]
+
+        result = validate_action_manifest(self.manifest(action), expected_document_id=DOCUMENT_ID)
+
+        self.assertEqual(result.actions[0].resources[0].label, "Review the immutable PowerShell installer")
+        self.assertEqual(
+            result.actions[0].resources[0].href,
+            "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
+        )
+
+        invalid = (
+            ("too-many", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy"}] * 5),
+            ("other-host", [{"label": "Source", "href": "https://example.com/arbiterForge/arbiter-academy"}]),
+            ("credentials", [{"label": "Source", "href": "https://user@github.com/arbiterForge/arbiter-academy"}]),
+            ("query", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy?raw=1"}]),
+            ("fragment", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy#source"}]),
+            ("traversal", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/%2e%2e/secret"}]),
+            ("double-traversal", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/%252e%252e/secret"}]),
+            ("scheme", [{"label": "Source", "href": "javascript:alert(1)"}]),
+            ("blank-label", [{"label": "   ", "href": "https://github.com/arbiterForge/arbiter-academy"}]),
+            ("long-label", [{"label": "x" * 161, "href": "https://github.com/arbiterForge/arbiter-academy"}]),
+            ("long-href", [{"label": "Source", "href": "/" + "x" * 2048}]),
+        )
+        for label, resources in invalid:
+            mutated = self.command_action()
+            mutated["resources"] = resources
+            with self.subTest(label=label):
+                with self.assertRaises(ValueError):
+                    validate_action_manifest(self.manifest(mutated), expected_document_id=DOCUMENT_ID)
+
+    def test_resource_runtime_and_schema_share_exact_keys_and_bounds(self) -> None:
+        schema = self.schema()
+        resource = schema["$defs"]["resource"]  # type: ignore[index]
+
+        self.assertFalse(resource["additionalProperties"])
+        self.assertEqual(resource["required"], ["label", "href"])
+        self.assertEqual(resource["properties"]["label"]["maxLength"], 160)
+        self.assertEqual(resource["properties"]["href"]["maxLength"], 2048)
+        self.assertEqual(schema["$defs"]["action"]["properties"]["resources"]["maxItems"], 4)
+        href_schema = resource["properties"]["href"]
+        self.assertTrue(
+            self.schema_string_accepts(
+                href_schema,
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.sh",
+            )
+        )
+        for href in (
+            "https://example.com/arbiterForge/arbiter-academy",
+            "https://github.com/arbiterForge/arbiter-academy?raw=1",
+            "//github.com/arbiterForge/arbiter-academy",
+        ):
+            self.assertFalse(self.schema_string_accepts(href_schema, href), href)
 
     def test_non_command_actions_reject_harness_without_a_named_host(self) -> None:
         """Catches a host-ambiguous harness step with no command variant identity."""
