@@ -451,6 +451,8 @@ validation, and desktop/mobile browser inspection.
 **Files:**
 - Create: `academy/actions/F01-fork-clone-doctor.json`
 - Modify: `academy/tracks/foundations/F01-fork-clone-doctor.md`
+- Modify: `academy_engine/checkpoints.py`
+- Modify: `academy_engine/curriculum.py`
 - Modify: `tests/test_lesson_actions.py`
 - Modify: `tests/test_foundations_labs.py`
 - Modify: `tests/test_preview_site.py`
@@ -459,23 +461,23 @@ validation, and desktop/mobile browser inspection.
 - Consumes existing verifier behavior: `prepare_lab`, `inspect_doctor`, `record_foundations_doctor`, `evaluate_checkpoint`, and `reset_lab`.
 - Produces ordered action IDs `F01-prepare`, `F01-inspect-remotes`, `F01-repair-origin`, `F01-set-upstream`, `F01-disable-upstream-push`, `F01-select-push-default`, `F01-host-doctor`, `F01-academy-doctor`, `F01-inspect-report`, `F01-stage-report`, `F01-review-commit-boundary`, `F01-commit-report`, `F01-confirm-clean`, `F01-check`, `F01-return-base`, and `F01-reset-retry`.
 
-- [ ] **Step 1: Write F01 lifecycle RED tests**
+- [x] **Step 1: Write F01 lifecycle RED tests**
 
 Assert the 16 IDs above occur once and in order; every action has an expected result and recovery; the host Doctor variants are exactly `host: claude-code, command: /ca:doctor`, `host: codex, command: $ca-doctor`, and the two Pi alternatives `host: pi, command: /ca-doctor` plus `/skill:ca-doctor`; native shell variants omit `!`; harness shell variants prepend exactly one `!`; host-native Doctor and commit-gate commands omit `!`.
 
 Assert rendered prose says Academy Doctor creates `.codearbiter/reports/academy/F01-doctor.json`; the learner inspects and stages only that path, reviews the proposed commit boundary, and supplies any genuine approval requested by the gate; an `agent` owns `F01-commit-report` through host-native CodeArbiter variants `host: claude-code, command: /ca:commit`, `host: codex, command: $ca-commit`, and `host: pi` commands `/ca-commit` plus `/skill:ca-commit`. Check uses the externally installed verifier, Doctor failure forbids the evidence commit, and Check failure preserves the clean committed attempt.
 
-- [ ] **Step 2: Run F01 tests and verify RED**
+- [x] **Step 2: Run F01 tests and verify RED**
 
 Run: `python -m unittest tests.test_lesson_actions tests.test_foundations_labs tests.test_preview_site -v`
 
 Expected: FAIL because F01 is prose-only and collapses the lifecycle.
 
-- [ ] **Step 3: Rewrite F01 to the approved anatomy**
+- [x] **Step 3: Rewrite F01 to the approved anatomy**
 
 Use headings exactly: `Know before you begin`, `What you will prove`, `Prepare safely`, `Practice`, `Recognize success`, `Check`, `Recover or continue`, `Understand the mechanism`. Before preparation, require clean `main`. After `F01-prepare`, require `academy/F01-fork-clone-doctor/<attempt>` and explain that `<attempt>` is the number printed by Academy, not literal input.
 
-- [ ] **Step 4: Encode exact observable outcomes**
+- [x] **Step 4: Encode exact observable outcomes**
 
 Require the report bytes to decode to:
 
@@ -491,17 +493,17 @@ Require `git status --short` to print nothing before external Check. Require Che
 
 `F01-stage-report` is explicitly `actor: learner` with native-terminal and harness shell variants for staging the one report path. `F01-review-commit-boundary` is a learner review/approval action with no command. `F01-commit-report` is explicitly `actor: agent`, `surface: null`, `language: codearbiter`, and the four host variants above; it contains no shell or learner-owned commit command.
 
-- [ ] **Step 5: Add end-to-end real-repository evidence coverage**
+- [x] **Step 5: Add end-to-end real-repository evidence coverage**
 
 Extend the existing F01 fixture test to execute prepare, configure remotes, run `main(["doctor", "F01-fork-clone-doctor"])`, commit only the report, assert clean state, run external Check, and assert progress. Add mutations for uncommitted report, report committed with extra path, changed live remote after commit, missing upstream push-disable, wrong `remote.pushDefault`, and Check from an in-checkout verifier; each must fail without deleting the attempt commit.
 
-- [ ] **Step 6: Run F01 and scenario tests and verify GREEN**
+- [x] **Step 6: Run F01 and scenario tests and verify GREEN**
 
 Run: `python -m unittest tests.test_lesson_actions tests.test_foundations_labs tests.test_doctor tests.test_checkpoints tests.test_scenario -v`
 
 Expected: all F01 lifecycle and existing verifier tests PASS.
 
-- [ ] **Step 7: Commit the F01 slice**
+- [x] **Step 7: Commit the F01 slice**
 
 ```powershell
 git add academy/actions/F01-fork-clone-doctor.json academy/tracks/foundations/F01-fork-clone-doctor.md tests/test_lesson_actions.py tests/test_foundations_labs.py tests/test_preview_site.py
@@ -509,6 +511,22 @@ $ca-commit
 ```
 
 Use commit title `docs: teach the complete F01 evidence lifecycle`.
+
+The complete lifecycle landed as `39e52c1` (`feat(academy): teach the complete F01 evidence
+lifecycle`). SMARTS approved the behavioral classification because the bounded lesson required a
+narrow guided-heading compatibility seam and exact report-only commit enforcement. Review then
+BLOCKed one approval step that labeled a harness interaction as Native terminal. Test-first
+correction `e819b98` added the closed, non-command `active-harness` surface; generic hostless
+`harness` remains rejected and command variants cannot use the new surface. Exact-diff re-review
+returned PASS with no findings.
+
+Fresh bounded evidence covered 93 action/site/contract tests, 11 curriculum tests, 10 project-state
+tests, five focused approval-surface tests, eight behavioral lifecycle proofs, and four real-repository
+lifecycle, mutation, reset, and authority cases. Lint, compile, package-resource, fresh build, artifact
+validation, staged-byte secret scans, and diff checks passed. The 35-test Foundations module also
+proved every F01 case, but six unrelated F03 source-pin cases remained red because
+`CODEARBITER_TASKWRITE` and `CODEARBITER_SOURCE_SHA` were absent; they are not recorded as green and
+the Task 6 diff does not touch their pin loader.
 
 ### Task 7: Editorial Visual System and Responsive Accessibility
 
