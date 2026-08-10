@@ -170,7 +170,7 @@ tag, release-asset, checksum, and deployment-gate semantics.
 - Produces: `LessonActionManifest(schema_version: int, lesson_contract_version: int, document_id: str, actions: tuple[LessonAction, ...])`.
 - Produces: `load_action_manifest(root: Path, document_id: str) -> LessonActionManifest` and `validate_action_manifest(data: Mapping[str, object], *, expected_document_id: str) -> LessonActionManifest`.
 
-- [ ] **Step 1: Write semantic-validator RED tests**
+- [x] **Step 1: Write semantic-validator RED tests**
 
 Cover exact keys, integer-not-boolean versions, bounded safe IDs, contiguous sequence starting at 1, unique action/variant IDs, allowed actors/surfaces/hosts/OS/languages, non-empty expected/recovery text, one-to-one command/copy policy, shell passthrough, host-native syntax, and visible/copy identity.
 
@@ -188,13 +188,13 @@ def test_codearbiter_invocations_reject_shell_passthrough(self) -> None:
         validate_action_manifest(data, expected_document_id="F01-fork-clone-doctor")
 ```
 
-- [ ] **Step 2: Run the contract tests and verify RED**
+- [x] **Step 2: Run the contract tests and verify RED**
 
 Run: `python -m unittest tests.test_lesson_actions tests.test_package_resource -v`
 
 Expected: FAIL because the module and packaged schema do not exist.
 
-- [ ] **Step 3: Implement the frozen models and fail-closed loader**
+- [x] **Step 3: Implement the frozen models and fail-closed loader**
 
 Use exact enumerations:
 
@@ -206,9 +206,9 @@ HOSTS = frozenset({"none", "claude-code", "codex", "pi"})
 LANGUAGES = frozenset({"none", "powershell", "sh", "text", "codearbiter"})
 ```
 
-Non-command actions require one action-level `surface` and zero variants. Command actions require `surface: null` and at least one variant. Enforce a maximum of 64 actions, 12 variants per action, 8 KiB per command, 1 KiB for each prose field, no ASCII controls except LF inside commands, and no CR bytes. Load only `academy/actions/{document_id}.json` after rejecting separators, `.`/`..`, and IDs outside `[A-Za-z0-9][A-Za-z0-9-]{0,95}`.
+Non-command actions require one action-level `surface` and zero variants. Command actions require `surface: null` and at least one variant. Enforce a maximum of 64 actions, 12 variants per action, 8192 Unicode code points per command, 1024 Unicode code points for each prose field, no ASCII controls except LF inside commands, and no CR bytes. Load only `academy/actions/{document_id}.json` after rejecting separators, `.`/`..`, and IDs outside `[A-Za-z0-9][A-Za-z0-9-]{0,95}`. Contain the exact candidate with `ensure_within` before reading so symlink or reparse ancestors cannot escape `academy/actions`.
 
-- [ ] **Step 4: Add the JSON Schema and package-data contract**
+- [x] **Step 4: Add the JSON Schema and package-data contract**
 
 Make the schema's `additionalProperties` false at every object, use `oneOf` for non-command versus command actions, and encode the exact enums and bounds above. Add these data-file entries:
 
@@ -226,13 +226,13 @@ Make the schema's `additionalProperties` false at every object, use `oneOf` for 
 "share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
 ```
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run: `python -m unittest tests.test_lesson_actions tests.test_package_resource -v`
 
 Expected: all action validation and packaging tests PASS.
 
-- [ ] **Step 6: Commit the action-contract slice**
+- [x] **Step 6: Commit the action-contract slice**
 
 ```powershell
 git add academy/lesson-action.schema.json academy_engine/lesson_actions.py tests/test_lesson_actions.py pyproject.toml tests/test_package_resource.py
@@ -240,6 +240,9 @@ $ca-commit
 ```
 
 Use commit title `feat: define guided lesson action contract`.
+
+Review remediation aligned JSON Schema and runtime on Unicode code-point limits and whitespace
+semantics, then routed manifest reads through the existing symlink/reparse containment boundary.
 
 ### Task 3: Action-Aware Static Renderer
 
