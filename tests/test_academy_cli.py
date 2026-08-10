@@ -328,6 +328,93 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertIn("--repository", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_p06_check_remains_unpublished_in_preview_0_2(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPOSITORY / "scripts" / "academy.py"),
+                "--repository",
+                str(REPOSITORY),
+                "check",
+                "P06-context-drift-recovery",
+            ],
+            cwd=REPOSITORY,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(
+            result.stderr,
+            "error: P06-context-drift-recovery is not available in Academy Preview 0.2\n",
+        )
+        self.assertNotIn(str(REPOSITORY), result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_p06_future_publication_requires_an_external_authoritative_verifier(self) -> None:
+        """Catches P06 evaluating inside the learner tree or losing the explicit target."""
+        inside_output, inside_errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), patch(
+            "academy_engine.cli.evaluate_checkpoint"
+        ) as evaluated_inside, redirect_stdout(inside_output), redirect_stderr(inside_errors):
+            inside_exit = main(
+                [
+                    "--repository",
+                    str(REPOSITORY),
+                    "check",
+                    "P06-context-drift-recovery",
+                ]
+            )
+
+        self.assertEqual(inside_exit, 1)
+        self.assertEqual(inside_output.getvalue(), "")
+        self.assertIn("installed outside the target repository", inside_errors.getvalue())
+        self.assertNotIn(str(REPOSITORY), inside_errors.getvalue())
+        evaluated_inside.assert_not_called()
+
+        result = CheckpointResult(
+            "P06-context-drift-recovery",
+            False,
+            "a" * 64,
+            "b" * 64,
+            (),
+            ("provenance_drift_recovery",),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            learner = Path(directory).resolve()
+            installed_output, installed_errors = StringIO(), StringIO()
+            with patch(
+                "academy_engine.cli.repository_root", return_value=learner
+            ), patch(
+                "academy_engine.cli.require_published_lab"
+            ), patch(
+                "academy_engine.cli.validate_repository_git_config"
+            ) as validated, patch(
+                "academy_engine.cli.evaluate_checkpoint", return_value=result
+            ) as evaluated, redirect_stdout(installed_output), redirect_stderr(installed_errors):
+                installed_exit = main(
+                    [
+                        "--repository",
+                        str(learner),
+                        "check",
+                        "P06-context-drift-recovery",
+                    ]
+                )
+
+            self.assertEqual(installed_exit, 1)
+            validated.assert_called_once_with(learner)
+            evaluated.assert_called_once_with(learner, "P06-context-drift-recovery")
+            self.assertEqual(installed_output.getvalue(), "")
+            self.assertIn("provenance_drift_recovery", installed_errors.getvalue())
+            self.assertNotIn(str(learner), installed_errors.getvalue())
+
     def test_p02_prepare_and_reset_require_explicit_repository(self) -> None:
         for command in ("prepare", "reset"):
             with self.subTest(command=command):

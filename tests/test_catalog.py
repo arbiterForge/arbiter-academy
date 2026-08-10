@@ -162,6 +162,68 @@ class CatalogTests(unittest.TestCase):
             with self.subTest(label=label), self.assertRaises(CatalogError):
                 load_manifest(payload)
 
+    def test_p06_can_overlay_only_its_reviewed_context_state(self) -> None:
+        """Catches the P06 exception broadening generic protected-surface writes."""
+        baseline = {
+            "schema_version": 1,
+            "id": "P06-context-drift-recovery",
+            "files": [
+                {"source": "CONTEXT.md", "destination": ".codearbiter/CONTEXT.md"},
+                {
+                    "source": "CONTEXT.provenance.json",
+                    "destination": ".codearbiter/.provenance/CONTEXT.json",
+                },
+                {"source": "scenario.json", "destination": "training_scenarios/P06.json"},
+            ],
+            "removals": [],
+            "starting_task": "P06",
+            "checkpoint": "academy/checkpoints/P06-context-drift-recovery.json",
+            "requires_push_safe_setup": False,
+        }
+
+        manifest = load_manifest(baseline)
+        self.assertEqual(
+            {item.destination for item in manifest.files},
+            {
+                ".codearbiter/CONTEXT.md",
+                ".codearbiter/.provenance/CONTEXT.json",
+                "training_scenarios/P06.json",
+            },
+        )
+        cases = (
+            ("wrong-lab", {**baseline, "id": "P07-threat-model"}),
+            (
+                "alternate-source",
+                {
+                    **baseline,
+                    "files": [
+                        {"source": "attacker.md", "destination": ".codearbiter/CONTEXT.md"},
+                    ],
+                },
+            ),
+            (
+                "wrong-target",
+                {
+                    **baseline,
+                    "files": [
+                        {"source": "CONTEXT.md", "destination": ".codearbiter/security-controls.md"},
+                    ],
+                },
+            ),
+            (
+                "protected-source",
+                {
+                    **baseline,
+                    "files": [
+                        {"source": ".codearbiter/CONTEXT.md", "destination": ".codearbiter/CONTEXT.md"},
+                    ],
+                },
+            ),
+        )
+        for label, payload in cases:
+            with self.subTest(label=label), self.assertRaisesRegex(CatalogError, "protected"):
+                load_manifest(payload)
+
     def test_repository_catalog_maps_every_exact_manifest_and_checkpoint(self) -> None:
         root = Path(__file__).parents[1]
         catalog = Catalog.load(root / "academy" / "catalog.json")

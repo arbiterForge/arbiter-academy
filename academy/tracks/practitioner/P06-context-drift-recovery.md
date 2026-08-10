@@ -11,32 +11,35 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P06-
 next_lab: P07-threat-model
 ---
 
-# P06 — Recover from provenance drift without losing unrelated work
+# P06 - Recover context drift without losing unrelated work
 
 ## Why this mechanism matters
 
-Context recovery must correct stale provenance without treating unrelated learner work as disposable.
-The prepared repository contains `docs/preserved-note.md` before the attempt. A machine-readable
-handoff binds the old and new context blobs, while Git proves that exact pre-existing note survives
-byte-for-byte. Recreating a similar-looking note after deletion is not preservation.
+Repository context is useful only while its claims still match the source and accepted decisions.
+P06 begins after P05 accepted ADR-0005, but the prepared context still cites ADR-0002 and says
+`Workshop Queue report output is JSON-only.` Its provenance still points to the older CLI object
+`042746e43698e5d2a6de4c536f1024f893aef805`, while the prepared CLI object is
+`5b41fb168a8b258cfae7eebc46e8b9ea7696ba56`. The prepared code proves that text is the default and JSON is optional.
+You will repair that bounded drift while proving an unrelated note survived.
 
 ## Start the scenario
 
-Run this from the learner checkout. Preserved P02 verifier records require the installed command for
-every later Practitioner transition, even though the original GitHub remotes are already restored.
-Prepare the stale context and unrelated note:
+Run the installed Academy command from your learner checkout:
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
 arbiter-academy --repository $learnerRepository prepare P06-context-drift-recovery
 ```
 
-Inspect `.codearbiter/CONTEXT.md`, current Workshop Queue summary behavior, accepted decisions, and
-`docs/preserved-note.md` before taking a recovery action.
+Read `.codearbiter/CONTEXT.md`, `workshop_queue/cli.py`,
+`.codearbiter/.provenance/CONTEXT.json`, and the prepared `docs/preserved-note.md` Git object before
+editing. Record the prepared context, provenance, and note raw-byte SHA-256 values.
 
 ## Use your host
 
-Run the context drift audit and follow its documented re-scout or re-baseline route.
+These are host routes to the context audit. The committed recovery record does not prove that any host command was invoked;
+it proves only the repository state and your declared route. For this
+contradicted claim, `re-scout` is the sole permitted recovery route.
 
 ### Claude Code
 
@@ -52,8 +55,7 @@ $ca-context-check
 
 ### Pi (Feature Forge preview)
 
-Pi is the supported Feature Forge preview and requires project trust. Its documented fallback is
-`/skill:ca-context-check`.
+Pi requires project trust. Its documented fallback is `/skill:ca-context-check`.
 
 ```text
 /ca-context-check
@@ -61,42 +63,49 @@ Pi is the supported Feature Forge preview and requires project trust. Its docume
 
 ## Do the work
 
-Use the audit to identify the exact context statement that conflicts with tracked implementation or
-accepted decision state. Before recovery, record the prepared Git blob identity of
-`docs/preserved-note.md` and the raw digest of the prepared `.codearbiter/CONTEXT.md` blob.
+1. Read `.codearbiter/CONTEXT.md`, `workshop_queue/cli.py`, and the prepared
+   `docs/preserved-note.md` object.
+2. Identify `Workshop Queue report output is JSON-only.` as stale from the code evidence and notice
+   that accepted ADR-0005 replaced the older lifecycle decision.
+3. Run the host audit and select scoped `re-scout`. Replace the stale report line with exactly
+   `Workshop Queue report output defaults to stable text and supports structured JSON with --format json.`
+   Update the lifecycle link to ADR-0005 and update only the provenance record's sole source hash to the prepared CLI object ID.
+   Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.
+4. Recompute raw Git-object digests without editing the note, write the canonical v2 handoff at
+   `.codearbiter/reports/academy/P06-recovery.json`, and commit only the handoff. Record the prepared
+   commit, the immediately preceding recovery commit, exact repository-relative paths, route
+   `re-scout`, and before/after digests for context, provenance, and preserved note.
+5. Run the installed check:
 
-Take the scoped re-scout or re-baseline route documented by the command. Update only the stale
-context boundary and retain unrelated work. Commit the changed context after prepare.
-
-Create `.codearbiter/reports/academy/P06-recovery.json` after the context change. It records the
-repository-relative context and preserved paths plus exact before/after context digests derived from
-the corresponding Git blobs. Commit the new handoff. Verify the preserved note existed at prepare
-and its head blob is byte-identical; copying current bytes into a newly created file cannot satisfy
-that ancestry check.
+```powershell
+$learnerRepository = (Resolve-Path -LiteralPath '.').Path
+arbiter-academy --repository $learnerRepository check P06-context-drift-recovery
+```
 
 ## Hints
 
 ### Hint 1
 
-Compare the context's cited summary boundary with both tracked code and accepted ADRs. Identify one
-specific stale provenance claim before choosing re-scout or re-baseline.
+Compare the context's report statement with `report_parser.add_argument("--format", ...)` and
+`_write_report`; the tracked source is the contrary evidence.
 
 ### Hint 2
 
-Use Git object reads for the before values. Filesystem reads after editing cannot reconstruct the
-prepared `.codearbiter/CONTEXT.md` or prove `docs/preserved-note.md` existed then.
+Use `git show <prepared-commit>:<path>` when calculating before values. A filesystem read after an
+edit cannot reconstruct the prepared object.
 
 ### Hint 3
 
-Recompute the after digest from the committed context blob and compare the preserved note's prepared
-and head blob IDs. The context digests must differ; the note bytes must not.
+The correction commit has exactly two paths. The next commit has exactly one. Both note digests are
+the same because the note existed at prepare and remains byte-identical at HEAD.
 
 ## Success evidence
 
-Git shows `.codearbiter/CONTEXT.md` changed after prepare and a machine-readable recovery handoff was
-introduced or changed later with exact ordered before/after digests. `docs/preserved-note.md` exists
-in the prepared tree and has identical bytes at head. A pre-existing handoff, reversed/stale digest,
-unchanged context, missing prepared note, or recreated/modified note fails.
+The verifier requires a clean worktree and exactly two ordered, single-parent commits after prepare:
+first the exact stale-to-corrected context/provenance transition, then the canonical handoff alone.
+It recomputes every digest and proves prepared/head equality for the unrelated note. Equivalent
+commit subjects are accepted because messages are not invented evidence. Route evidence does not
+prove host invocation.
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
@@ -105,16 +114,16 @@ arbiter-academy --repository $learnerRepository check P06-context-drift-recovery
 
 ## Recovery
 
-If the wrong context boundary changed or the preserved note differs, do not overwrite the note with
-a new copy. Preserve the failed attempt and reset:
+If the attempt is wrong, retain the failed branch and use only the installed reset route:
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
 arbiter-academy --repository $learnerRepository reset P06-context-drift-recovery
 ```
 
-The archived attempt remains available for diagnosis.
+Reset archives rather than discards the attempt; the failed branch remains available for diagnosis,
+and preparation continues on a numbered retry.
 
 ## Next lab
 
-Continue to **P07 — Threat-model the path-handling boundary** after P06 passes.
+Continue to **P07 - Threat-model the path-handling boundary** after P06 passes.

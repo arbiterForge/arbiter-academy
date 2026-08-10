@@ -1,0 +1,20 @@
+{
+  "created": "2026-07-30",
+  "doc": "CONTEXT",
+  "entries": [
+    {
+      "claims": [
+        {
+          "claim": "Workshop Queue report output is JSON-only.",
+          "confidence": "strong",
+          "lines": "60-67"
+        }
+      ],
+      "drift_trigger": true,
+      "hash": "042746e43698e5d2a6de4c536f1024f893aef805",
+      "path": "workshop_queue/cli.py"
+    }
+  ],
+  "interview_derived": false,
+  "schema": 1
+}
