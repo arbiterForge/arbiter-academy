@@ -165,7 +165,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(exit_code, 1)
                     self.assertEqual(
                         output.getvalue(),
-                        f"error: {lab.id} is not available in Academy Preview 0.3\n",
+                        f"error: {lab.id} is not runnable in Academy Preview 0.3\n",
                     )
                     validated.assert_not_called()
                     authoritative.assert_not_called()
