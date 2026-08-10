@@ -394,45 +394,57 @@ exact container and made clipboard fallback report selection success truthfully.
 - Create: `academy/actions/recovery.json`
 - Modify: `site/templates/index.html`
 - Modify: `site/templates/recovery.html`
+- Modify: `academy/lesson-action.schema.json`
+- Modify: `academy_engine/lesson_actions.py`
+- Modify: `scripts/build_preview_site.py`
+- Modify: `scripts/check_preview_site.py`
+- Modify: `tests/test_lesson_actions.py`
 - Modify: `tests/test_preview_site.py`
 
 **Interfaces:**
 - Consumes: the action contract and renderer from Tasks 2-3.
-- Produces stable Home action IDs `home-fork`, `home-clone`, `home-install`, `home-launch-console`, and `home-doctor`.
-- Produces stable Recovery action IDs `recovery-inspect`, `recovery-check`, `recovery-return-base`, and `recovery-reset`.
+- Produces stable Home action IDs `home-fork`, `home-clone`, `home-enter-clone`, `home-install`, `home-launch-console`, and `home-doctor`.
+- Produces stable Recovery action IDs `recovery-inspect`, `recovery-return-attempt`, `recovery-repair-remotes`, `recovery-check`, `recovery-reset`, and `recovery-return-base`.
+- Narrows action resources to one canonical Academy GitHub HTTPS boundary shared by schema, runtime, and artifact checker.
 
-- [ ] **Step 1: Write novice-path RED tests**
+- [x] **Step 1: Write novice-path RED tests**
 
 Assert Home defines fork before linking the GitHub fork page; defines clone, repository, `origin`, and `upstream` before first command use; identifies prerequisites; labels every command surface; and shows Guided, Reference lesson, and Coming next as three distinct states. Assert Recovery branches on dirty state, wrong branch, unsafe remotes, and existing attempts and never says only `make the repository clean`, `delete the branch`, `reset --hard`, or `force-push`.
 
-- [ ] **Step 2: Run Home/Recovery tests and verify RED**
+- [x] **Step 2: Run Home/Recovery tests and verify RED**
 
 Run: `python -m unittest tests.test_preview_site.PreviewSiteTests.test_home_teaches_every_prerequisite_before_first_use tests.test_preview_site.PreviewSiteTests.test_recovery_is_a_bounded_operational_decision_tree -v`
 
 Expected: FAIL against the current hand-written pages.
 
-- [ ] **Step 3: Author Home's exact learning sequence**
+- [x] **Step 3: Author Home's exact learning sequence**
 
 Use these headings in order: `Start here`, `What the Academy changes`, `Create your practice fork`, `Clone it to your computer`, `Install the reviewed Academy tools`, `Open the operations console`, `Run readiness checks`, `Choose your first lesson`, `Course status`, `Get help`. Explain that a fork is the learner-owned GitHub copy, a clone is the local working copy, `origin` points to the fork, and `upstream` points to `arbiterForge/arbiter-academy`. Render the exact fast-install and console-launch commands from **Cross-plan integration order**. Beside each fast installer, link its immutable release asset source plus the verify-first script/checksum path and state that the piped script validates the downloaded bundle, not its own already-executing bytes. Delete the old inline 46-line bootstrap from the public page.
 
-- [ ] **Step 4: Author Recovery's exact decision order**
+- [x] **Step 4: Author Recovery's exact decision order**
 
 Use these decisions in order: repository not found/not Git; dirty worktree; wrong branch/detached HEAD; unsafe/missing remotes; no prepared attempt; failed Check with clean committed evidence; retry; return to `main`. Each branch states `Stop`, the observation command or console action, the safe next action, and what is preserved.
 
-- [ ] **Step 5: Run site tests and verify GREEN**
+- [x] **Step 5: Run site tests and verify GREEN**
 
 Run: `python -m unittest tests.test_preview_site -v`
 
 Expected: all Home/Recovery and legacy site tests PASS. Installer-command and console-launch identity remain combined-head gates in Task 8.
 
-- [ ] **Step 6: Commit the guided entry/recovery slice**
+- [x] **Step 6: Commit the guided entry/recovery slice**
 
 ```powershell
 git add academy/guides/home.md academy/guides/recovery.md academy/actions/home.json academy/actions/recovery.json site/templates/index.html site/templates/recovery.html tests/test_preview_site.py
 $ca-commit
 ```
 
-Use commit title `docs: guide academy entry and recovery paths`.
+The initial slice landed as `afc1bfd` (`feat(academy): guide entry and recovery paths`). Exact-diff
+review then BLOCKed the fresh-clone bridge, Recovery executability, resource validation parity, and
+resource landmark semantics. Test-first remediation landed as `f864264`
+(`fix(academy): make entry and recovery executable`). Independent re-review returned PASS with no
+findings. Fresh evidence covered 86 lesson/site tests, 49 remotes/Doctor/project-state tests, 11
+browser-control tests, a staged-byte secret scan over all 10 committed files, fresh build and artifact
+validation, and desktop/mobile browser inspection.
 
 ### Task 6: F01 Exact Evidence Lifecycle
 
