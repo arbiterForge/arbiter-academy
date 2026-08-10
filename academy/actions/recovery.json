@@ -24,12 +24,96 @@
         }
       ],
       "expected_result": "Inspect reports each repository boundary and makes no repository change.",
-      "recovery": "If Inspect cannot identify a Git repository, stop and return to the Repository not found decision above.",
+      "recovery": "If Inspect cannot identify a Git repository, stop and follow the Repository not found decision below.",
       "evidence": "The report records the state you observed before recovery."
     },
     {
-      "id": "recovery-check",
+      "id": "recovery-return-attempt",
       "sequence": 2,
+      "title": "Return to the named attempt branch",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Replace <attempt-branch> with the exact numbered branch printed by Inspect, then run the command in a Native terminal. Do not guess a branch name.",
+      "rationale": "Switching to an existing named branch preserves commits and restores the lesson's intended working context.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git switch <attempt-branch>",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch <attempt-branch>",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch <attempt-branch>",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git reports that the exact numbered attempt branch is checked out and preserves its existing commits.",
+      "recovery": "If Git refuses because of local changes, do not force the switch; return to the Dirty worktree decision and preserve those paths.",
+      "evidence": "A new Inspect report names the intended numbered attempt branch."
+    },
+    {
+      "id": "recovery-repair-remotes",
+      "sequence": 3,
+      "title": "Restore the learner-safe remote contract",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Replace YOUR-GITHUB-ACCOUNT with the GitHub account that owns your fork, then run the complete variant in a Native terminal from the clone.",
+      "rationale": "The explicit fetch, push, upstream-disable, default, and current-branch settings prevent an inherited push target from bypassing the learner fork.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git config --unset-all remote.origin.url 2>$null\ngit config --add remote.origin.url https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.origin.pushurl 2>$null\ngit config --add remote.origin.pushurl https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.upstream.url 2>$null\ngit config --add remote.upstream.url https://github.com/arbiterForge/arbiter-academy.git\ngit config --unset-all remote.upstream.pushurl 2>$null\ngit config --add remote.upstream.pushurl DISABLED\ngit config remote.pushDefault origin\n$branch = git branch --show-current\nif ($branch) { git config \"branch.$branch.pushRemote\" origin }",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git config --unset-all remote.origin.url || true\ngit config --add remote.origin.url https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.origin.pushurl || true\ngit config --add remote.origin.pushurl https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.upstream.url || true\ngit config --add remote.upstream.url https://github.com/arbiterForge/arbiter-academy.git\ngit config --unset-all remote.upstream.pushurl || true\ngit config --add remote.upstream.pushurl DISABLED\ngit config remote.pushDefault origin\nbranch=$(git branch --show-current)\nif [ -n \"$branch\" ]; then git config \"branch.$branch.pushRemote\" origin; fi",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git config --unset-all remote.origin.url || true\ngit config --add remote.origin.url https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.origin.pushurl || true\ngit config --add remote.origin.pushurl https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git\ngit config --unset-all remote.upstream.url || true\ngit config --add remote.upstream.url https://github.com/arbiterForge/arbiter-academy.git\ngit config --unset-all remote.upstream.pushurl || true\ngit config --add remote.upstream.pushurl DISABLED\ngit config remote.pushDefault origin\nbranch=$(git branch --show-current)\nif [ -n \"$branch\" ]; then git config \"branch.$branch.pushRemote\" origin; fi",
+          "copy": true
+        }
+      ],
+      "expected_result": "Inspect reports origin fetch and push on your fork, upstream fetch on the official Academy repository, upstream push disabled, and effective push routing to origin.",
+      "recovery": "If any command reports an error, stop before pushing, preserve the complete output, and Inspect again to identify the remaining mismatch.",
+      "evidence": "The Inspect report records the complete learner-safe remote contract."
+    },
+    {
+      "id": "recovery-check",
+      "sequence": 4,
       "title": "Read the authoritative lesson result",
       "actor": "learner",
       "surface": null,
@@ -53,7 +137,7 @@
     },
     {
       "id": "recovery-reset",
-      "sequence": 3,
+      "sequence": 5,
       "title": "Create the next documented attempt",
       "actor": "learner",
       "surface": null,
@@ -77,7 +161,7 @@
     },
     {
       "id": "recovery-return-base",
-      "sequence": 4,
+      "sequence": 6,
       "title": "Return to the course base",
       "actor": "learner",
       "surface": null,

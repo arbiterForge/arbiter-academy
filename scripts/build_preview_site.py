@@ -477,8 +477,9 @@ def _render_action(action: LessonAction) -> str:
             for resource in action.resources
         )
         blocks.append(
-            '<nav class="action-resources" aria-label="Reviewed resources">'
-            f"<ul>{links}</ul></nav>"
+            '<div class="action-resources">'
+            f"<p><strong>Reviewed resources for {escape(action.title)}</strong></p>"
+            f"<ul>{links}</ul></div>"
         )
     for variant in action.variants:
         variant_id = escape(variant.id, quote=True)

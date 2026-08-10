@@ -50,7 +50,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 2048,
-          "pattern": "^(?:https://github\\.com/arbiterForge/arbiter-academy(?:/[^?#\\u0000-\\u001F\\u007F]*)?|/(?!/)[^?#\\u0000-\\u001F\\u007F]*)$"
+          "pattern": "^https://github\\.com/arbiterForge/arbiter-academy(?:/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._~!$&'()*+,;=:@-]+)*$"
         }
       }
     },

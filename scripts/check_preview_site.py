@@ -13,6 +13,12 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from academy_engine.lesson_actions import validate_action_resource_href
+
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 OPERATING_SYSTEMS = frozenset({"windows", "macos", "linux"})
@@ -23,9 +29,6 @@ _CSS_IMPORT = re.compile(
     re.IGNORECASE,
 )
 _EXTERNAL_URLS = {
-    "https://github.com/arbiterForge/arbiter-academy",
-    "https://github.com/arbiterForge/arbiter-academy/fork",
-    "https://github.com/arbiterForge/arbiter-academy/discussions",
     "https://codearbiter.dev/",
 }
 
@@ -33,35 +36,11 @@ _EXTERNAL_URLS = {
 def _is_approved_external_url(target: str) -> bool:
     if target in _EXTERNAL_URLS:
         return True
-    parsed = urlsplit(target)
     try:
-        port = parsed.port
+        validate_action_resource_href(target)
     except ValueError:
         return False
-    if (
-        parsed.scheme != "https"
-        or parsed.hostname != "github.com"
-        or parsed.netloc != "github.com"
-        or parsed.username is not None
-        or parsed.password is not None
-        or port is not None
-        or parsed.query
-        or parsed.fragment
-    ):
-        return False
-    if not parsed.path.startswith("/arbiterForge/arbiter-academy/"):
-        return False
-    decoded = parsed.path
-    for _ in range(16):
-        candidate = unquote(decoded)
-        if candidate == decoded:
-            break
-        decoded = candidate
-    else:
-        return False
-    return "\\" not in decoded and all(
-        segment not in {".", ".."} for segment in decoded.split("/")
-    )
+    return True
 _ASSET_SHA256 = {
     Path("assets/academy.css"): "326a9f5e670c9173dcd6ea607b3a7ae74b3115e2a810d718c77e9760b7db5adc",
     Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",

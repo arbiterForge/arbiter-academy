@@ -12,6 +12,7 @@ from academy_engine.lesson_actions import (
     LessonAction,
     LessonActionManifest,
     load_action_manifest,
+    validate_action_resource_href,
     validate_action_manifest,
 )
 
@@ -154,9 +155,12 @@ class LessonActionTests(unittest.TestCase):
             ("credentials", [{"label": "Source", "href": "https://user@github.com/arbiterForge/arbiter-academy"}]),
             ("query", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy?raw=1"}]),
             ("fragment", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy#source"}]),
+            ("root-relative", [{"label": "Source", "href": "/recovery/"}]),
+            ("encoded-control", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob/main/file%0a"}]),
             ("traversal", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/%2e%2e/secret"}]),
             ("double-traversal", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/%252e%252e/secret"}]),
             ("scheme", [{"label": "Source", "href": "javascript:alert(1)"}]),
+            ("backslash", [{"label": "Source", "href": "https://github.com/arbiterForge/arbiter-academy/blob\\main\\file"}]),
             ("blank-label", [{"label": "   ", "href": "https://github.com/arbiterForge/arbiter-academy"}]),
             ("long-label", [{"label": "x" * 161, "href": "https://github.com/arbiterForge/arbiter-academy"}]),
             ("long-href", [{"label": "Source", "href": "/" + "x" * 2048}]),
@@ -188,8 +192,34 @@ class LessonActionTests(unittest.TestCase):
             "https://example.com/arbiterForge/arbiter-academy",
             "https://github.com/arbiterForge/arbiter-academy?raw=1",
             "//github.com/arbiterForge/arbiter-academy",
+            "/recovery/",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/%0a",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/%252e%252e/secret",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/../secret",
+            "https://github.com/arbiterForge/arbiter-academy/blob\\main\\file",
         ):
             self.assertFalse(self.schema_string_accepts(href_schema, href), href)
+
+    def test_public_resource_validator_is_the_canonical_narrow_contract(self) -> None:
+        accepted = (
+            "https://github.com/arbiterForge/arbiter-academy",
+            "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh.sha256",
+        )
+        for href in accepted:
+            with self.subTest(href=href):
+                self.assertEqual(validate_action_resource_href(href), href)
+
+        for href in (
+            "/recovery/",
+            "https://user@github.com/arbiterForge/arbiter-academy",
+            "https://github.com/arbiterForge/arbiter-academy?raw=1",
+            "https://github.com/arbiterForge/arbiter-academy#source",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/%0a",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/../secret",
+        ):
+            with self.subTest(href=href):
+                with self.assertRaises(ValueError):
+                    validate_action_resource_href(href)
 
     def test_non_command_actions_reject_harness_without_a_named_host(self) -> None:
         """Catches a host-ambiguous harness step with no command variant identity."""

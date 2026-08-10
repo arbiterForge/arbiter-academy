@@ -257,9 +257,24 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertEqual(
             tuple(action.id for action in manifest.actions),
-            ("home-fork", "home-clone", "home-install", "home-launch-console", "home-doctor"),
+            (
+                "home-fork",
+                "home-clone",
+                "home-enter-clone",
+                "home-install",
+                "home-launch-console",
+                "home-doctor",
+            ),
         )
         actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(
+            tuple(variant.command for variant in actions["home-enter-clone"].variants),
+            (
+                "Set-Location -LiteralPath .\\arbiter-academy",
+                "cd -- ./arbiter-academy",
+                "cd -- ./arbiter-academy",
+            ),
+        )
         install = actions["home-install"]
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
@@ -305,6 +320,11 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertIn("validates the downloaded bundle", html)
         self.assertIn("does not verify its own already-executing bytes", html)
+        for host in ("Claude Code", "Codex", "Pi"):
+            self.assertIn(host, html)
+        self.assertIn("expected fresh-clone remote findings", html)
+        self.assertIn("does not need to pass before F01", html)
+        self.assertIn("F01 teaches the remote repair", html)
         for state in (
             "Guided: F01",
             "Reference lessons: F02 through P07",
@@ -411,10 +431,42 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(guide.count("**Preserved:**"), len(decisions))
         self.assertEqual(
             tuple(action.id for action in manifest.actions),
-            ("recovery-inspect", "recovery-check", "recovery-reset", "recovery-return-base"),
+            (
+                "recovery-inspect",
+                "recovery-return-attempt",
+                "recovery-repair-remotes",
+                "recovery-check",
+                "recovery-reset",
+                "recovery-return-base",
+            ),
         )
-        for action_id in ("recovery-inspect", "recovery-check", "recovery-reset", "recovery-return-base"):
+        for action_id in (
+            "recovery-inspect",
+            "recovery-return-attempt",
+            "recovery-repair-remotes",
+            "recovery-check",
+            "recovery-reset",
+            "recovery-return-base",
+        ):
             self.assertIn(f'data-action-id="{action_id}"', html)
+        self.assertLess(html.index('data-action-id="recovery-inspect"'), positions[0])
+        actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(
+            {variant.command for variant in actions["recovery-return-attempt"].variants},
+            {"git switch <attempt-branch>"},
+        )
+        repair_commands = "\n".join(
+            variant.command for variant in actions["recovery-repair-remotes"].variants
+        )
+        for invariant in (
+            "remote.origin.url https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git",
+            "remote.origin.pushurl https://github.com/YOUR-GITHUB-ACCOUNT/arbiter-academy.git",
+            "remote.upstream.url https://github.com/arbiterForge/arbiter-academy.git",
+            "remote.upstream.pushurl DISABLED",
+            "git config remote.pushDefault origin",
+            "pushRemote",
+        ):
+            self.assertIn(invariant, repair_commands)
         for shortcut in (
             "make the repository clean",
             "delete the branch",
@@ -591,9 +643,11 @@ class PreviewSiteTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/blob/main/../secret",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/%252e%252e/secret",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file?raw=1",
+            "https://github.com/arbiterForge/arbiter-academy/blob/main/file%0a",
+            "/recovery/",
         ):
             with self.subTest(target=target):
-                with self.assertRaisesRegex(ValueError, "unapproved external URL"):
+                with self.assertRaises(ValueError):
                     preview_checker._resolve_local(root, page, target, allow_external=True)
 
     def test_static_checker_rejects_broken_fragments_aria_references_and_duplicate_ids(self) -> None:
@@ -1121,7 +1175,9 @@ class PreviewSiteTests(unittest.TestCase):
 
         rendered = preview_site._render_action(action)
 
-        self.assertIn('<nav class="action-resources" aria-label="Reviewed resources">', rendered)
+        self.assertIn('<div class="action-resources">', rendered)
+        self.assertIn("<strong>Reviewed resources for Install the tools</strong>", rendered)
+        self.assertNotIn('<nav class="action-resources"', rendered)
         self.assertIn("Review &lt;installer&gt; source", rendered)
         self.assertNotIn("Review <installer> source", rendered)
         self.assertIn(
