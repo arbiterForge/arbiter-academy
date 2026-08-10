@@ -321,6 +321,8 @@ Home/Recovery activation boundary consumed by Task 5 without publishing placehol
 - Create: `tests/site/academy.test.mjs`
 - Modify: `scripts/build_preview_site.py`
 - Modify: `scripts/check_preview_site.py`
+- Modify: `site/assets/academy.css`
+- Modify: `site/templates/base.html`
 - Modify: `tests/test_preview_site.py`
 - Modify: `tests/test_pages_workflow.py`
 - Modify: `.github/workflows/academy-pages.yml`
@@ -329,7 +331,7 @@ Home/Recovery activation boundary consumed by Task 5 without publishing placehol
 - Produces JS functions `selectVariant(root, os, host)`, `copyCommand(button, clipboard, selection)`, `restorePreferences(storage)`, and `bindAcademyPage(document, navigator, storage)`.
 - Consumes only `data-os`, `data-host`, `data-surface`, and `data-copy-target`; command bytes always come from `document.getElementById(target).textContent`.
 
-- [ ] **Step 1: Write dependency-free JavaScript RED tests**
+- [x] **Step 1: Write dependency-free JavaScript RED tests**
 
 Use `node:test` and `node:assert/strict` with small fake elements implementing `querySelectorAll`, `getElementById`, `hidden`, `textContent`, `focus`, and `selectNodeContents`. Test exact copied bytes, Clipboard rejection fallback, missing target error status, invalid stored preferences, filtering without deleting variants, and independent OS/host selection.
 
@@ -344,25 +346,25 @@ test("copyCommand copies exactly the visible code bytes", async () => {
 });
 ```
 
-- [ ] **Step 2: Run JavaScript tests and verify RED**
+- [x] **Step 2: Run JavaScript tests and verify RED**
 
 Run: `node --test tests/site/academy.test.mjs`
 
 Expected: FAIL because `site/assets/academy.js` does not exist.
 
-- [ ] **Step 3: Implement the local module and no-JS-first markup**
+- [x] **Step 3: Implement the local module and no-JS-first markup**
 
 Export the four named functions, then call `bindAcademyPage(document, navigator, window.localStorage)` from a guarded `DOMContentLoaded` listener. Set `document.documentElement.dataset.enhanced = "true"` only after binding succeeds. A failed clipboard call must focus the code block, select its contents, and announce `Clipboard unavailable. The command is selected; press Ctrl+C or Command+C.`
 
-- [ ] **Step 4: Extend the artifact allowlist and HTML validator**
+- [x] **Step 4: Extend the artifact allowlist and HTML validator**
 
 Add `assets/academy.js` to `_PUBLIC_ASSET_FILES`, `_ASSET_SHA256`, `_EXPECTED_FILES`, and the base template as `<script type="module" src="$script_url"></script>`. Permit only the exact required attributes (`type`, `src`, `data-*`, `aria-describedby`, `aria-live`, `hidden`, `tabindex`) and require every copy target/status reference to resolve uniquely.
 
-- [ ] **Step 5: Add the exact CI behavior gate**
+- [x] **Step 5: Add the exact CI behavior gate**
 
 Add `node --test tests/site/academy.test.mjs` to the Pages build job before the site build. Add a workflow test asserting this command occurs before `Build the Academy site` and that no `npm install`, `npx`, CDN, or remote JavaScript URL exists.
 
-- [ ] **Step 6: Run behavior and site tests**
+- [x] **Step 6: Run behavior and site tests**
 
 Run: `node --test tests/site/academy.test.mjs`
 
@@ -370,14 +372,18 @@ Run: `python -m unittest tests.test_preview_site tests.test_pages_workflow -v`
 
 Expected: all tests PASS.
 
-- [ ] **Step 7: Commit the interaction slice**
+- [x] **Step 7: Commit the interaction slice**
 
 ```powershell
-git add site/assets/academy.js tests/site/academy.test.mjs scripts/build_preview_site.py scripts/check_preview_site.py tests/test_preview_site.py tests/test_pages_workflow.py .github/workflows/academy-pages.yml
+git add site/assets/academy.js tests/site/academy.test.mjs scripts/build_preview_site.py scripts/check_preview_site.py site/assets/academy.css site/templates/base.html tests/test_preview_site.py tests/test_pages_workflow.py .github/workflows/academy-pages.yml
 $ca-commit
 ```
 
 Use commit title `feat: add accessible academy command controls`.
+
+The approved SMARTS scope correction added one progressive, initially hidden host/OS control group
+per structured guide with selectable variants. Security review then restricted `hidden` to that
+exact container and made clipboard fallback report selection success truthfully.
 
 ### Task 5: Guided Home and Recovery Content
 
