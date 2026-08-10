@@ -1601,6 +1601,43 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('class="action-recovery"', f01)
         self.assertIn('<nav class="lab-toc" aria-label="On this page">', f01)
 
+    def test_sticky_header_cannot_obscure_lesson_anchor_targets(self) -> None:
+        """Catches TOC navigation aligning a target underneath the sticky site header."""
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
+
+        desktop = re.search(
+            r"\.academy-content\s+:is\(h1,\s*h2,\s*h3\)\[id\]\s*"
+            r"\{(?P<body>.*?)\}",
+            css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(desktop, "lesson anchor targets need a desktop scroll offset")
+        assert desktop is not None
+        self.assertRegex(
+            desktop.group("body"),
+            r"scroll-margin-block-start:\s*(?:[6-9]|\d{2,})rem\s*;",
+        )
+
+        mobile = css.split("@media (max-width: 42rem) {", 1)[1].split(
+            "@media (max-width: 24rem)", 1
+        )[0]
+        mobile_target = re.search(
+            r"\.academy-content\s+:is\(h1,\s*h2,\s*h3\)\[id\]\s*"
+            r"\{(?P<body>.*?)\}",
+            mobile,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(
+            mobile_target,
+            "the taller mobile header needs its own lesson-anchor offset",
+        )
+        assert mobile_target is not None
+        self.assertRegex(
+            mobile_target.group("body"),
+            r"scroll-margin-block-start:\s*(?:9|\d{2,})rem\s*;",
+        )
+
     def test_build_rejects_a_missing_eligible_lesson(self) -> None:
         """Catches a partial publication when a manifest-selected lesson is absent."""
         source = self._copy_public_source()

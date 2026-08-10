@@ -42,7 +42,7 @@ def _is_approved_external_url(target: str) -> bool:
         return False
     return True
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "483a11d73d8900d97007a14aca6cb6d75261c273e320abb27d84ff0731349fb1",
+    Path("assets/academy.css"): "004e2701d630c1954b94d29e2bb84f97e194f3e4a204c30720abc6763b68ccb7",
     Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
     Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (

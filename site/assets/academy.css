@@ -424,6 +424,10 @@ h1 + p {
   text-wrap: balance;
 }
 
+.academy-content :is(h1, h2, h3)[id] {
+  scroll-margin-block-start: 6rem;
+}
+
 .academy-content h1 {
   font-size: clamp(2.2rem, 5vw, 3.6rem);
 }
@@ -794,6 +798,10 @@ h1 + p {
 
   .lesson-action {
     padding-inline-start: 1rem;
+  }
+
+  .academy-content :is(h1, h2, h3)[id] {
+    scroll-margin-block-start: 9rem;
   }
 
   h1,
