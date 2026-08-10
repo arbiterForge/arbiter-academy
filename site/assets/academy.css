@@ -645,3 +645,44 @@ h1 + p {
     filter: none;
   }
 }
+/* Progressive command preferences remain absent when JavaScript is unavailable. */
+[hidden] {
+  display: none !important;
+}
+
+.academy-command-preferences {
+  margin-block: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--ca-line);
+  border-radius: var(--ca-radius-md);
+  background: var(--ca-brand-wash);
+}
+
+.academy-command-preference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-start: 0.75rem;
+}
+
+.academy-command-preference p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--ca-ink-muted);
+}
+
+.academy-command-preference button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--ca-line);
+  border-radius: 999px;
+  color: inherit;
+  background: var(--ca-bg-panel);
+  cursor: pointer;
+}
+
+.academy-command-preference button[aria-pressed="true"] {
+  border-color: var(--ca-brand);
+  color: var(--ca-brand-bright);
+}

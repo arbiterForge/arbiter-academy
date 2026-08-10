@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
 from academy_engine.checkpoints import LAB_INVENTORY
-from academy_engine.lesson_actions import load_action_manifest, validate_action_manifest
+from academy_engine.lesson_actions import CommandVariant, load_action_manifest, validate_action_manifest
 from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
@@ -623,6 +623,7 @@ class PreviewSiteTests(unittest.TestCase):
         )
         expected_files = {
             "assets/academy.css",
+            "assets/academy.js",
             "assets/favicon.svg",
             "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
             "assets/fonts/manrope-latin-wght-normal.woff2",
@@ -687,6 +688,7 @@ class PreviewSiteTests(unittest.TestCase):
             actual_assets,
             {
                 "assets/academy.css",
+                "assets/academy.js",
                 "assets/favicon.svg",
                 "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
                 "assets/fonts/manrope-latin-wght-normal.woff2",
@@ -953,6 +955,7 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches any byte mutation in every runtime asset reviewed for Preview 0.3."""
         assets = (
             "assets/academy.css",
+            "assets/academy.js",
             "assets/favicon.svg",
             "assets/fonts/jetbrains-mono-latin-wght-normal.woff2",
             "assets/fonts/manrope-latin-wght-normal.woff2",
@@ -1145,6 +1148,10 @@ class PreviewSiteTests(unittest.TestCase):
         )
 
         self.assertEqual(rendered.count('class="lesson-action"'), 1)
+        self.assertEqual(rendered.count('class="academy-command-preferences"'), 1)
+        self.assertIn('aria-labelledby="academy-os-heading"', rendered)
+        self.assertIn('aria-labelledby="academy-host-heading"', rendered)
+        self.assertIn('class="academy-command-preferences" hidden', rendered)
         self.assertIn(
             '<section class="lesson-action" data-action-id="F01-prepare" '
             'aria-labelledby="action-heading-F01-prepare">',
@@ -1161,6 +1168,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(rendered.count(f">{harness_command}</code>"), 1)
         self.assertNotIn('data-copy-target="command-F01-prepare-native-windows"', rendered)
         self.assertIn('data-copy-target="command-F01-prepare-codex-windows"', rendered)
+        self.assertIn(
+            '<code id="command-F01-prepare-codex-windows" tabindex="0"',
+            rendered,
+        )
         self.assertIn('aria-describedby="copy-status-F01-prepare-codex-windows"', rendered)
         self.assertIn('id="copy-status-F01-prepare-codex-windows"', rendered)
         self.assertIn('class="action-expected"', rendered)
@@ -1262,6 +1273,55 @@ class PreviewSiteTests(unittest.TestCase):
                     None,
                 )
                 self.assertIn(label, preview_site._render_action(action))
+
+        browser_action = preview_site.LessonAction(
+            "F01-browser-only",
+            1,
+            "Open the fork page",
+            "learner",
+            "browser",
+            "Open the fork page.",
+            None,
+            (),
+            "The page opens.",
+            "Return to the Academy home page.",
+            None,
+        )
+        rendered, _headings, _references = preview_site._render_markdown(
+            "F01-fork-clone-doctor",
+            ["# Guided", "", "{{action:F01-browser-only}}"],
+            {browser_action.id: browser_action},
+        )
+        self.assertNotIn("academy-command-preferences", rendered)
+
+        console_variant = CommandVariant(
+            "console-neutral",
+            "academy-console",
+            "all",
+            "none",
+            "text",
+            "Run Check in the Academy console.",
+            False,
+        )
+        console_action = preview_site.LessonAction(
+            "F01-console-only",
+            1,
+            "Check the attempt",
+            "academy",
+            None,
+            "Run Check.",
+            None,
+            (console_variant,),
+            "Check passes.",
+            "Open Recovery.",
+            None,
+        )
+        rendered, _headings, _references = preview_site._render_markdown(
+            "F01-fork-clone-doctor",
+            ["# Guided", "", "{{action:F01-console-only}}"],
+            {console_action.id: console_action},
+        )
+        self.assertNotIn("academy-command-preferences", rendered)
 
         ambiguous = self.non_command_manifest_action(surface="harness")
         with self.assertRaisesRegex(ValueError, "non-command actions cannot use harness"):
@@ -1559,6 +1619,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn('href="assets/academy.css"', index)
+        self.assertIn('<script type="module" src="assets/academy.js"></script>', index)
 
         asset_root = self.root / "site" / "assets"
         stylesheet = asset_root / "academy.css"
@@ -1575,6 +1636,143 @@ class PreviewSiteTests(unittest.TestCase):
                 font = asset_root / "fonts" / filename
                 self.assertTrue(font.is_file())
                 self.assertEqual(hashlib.sha256(font.read_bytes()).hexdigest(), expected_hash)
+
+    def test_generated_html_exposes_variants_without_javascript_and_checker_resolves_copy_references(self) -> None:
+        """Catches hidden-by-default commands or copy controls detached from their exact code/status IDs."""
+        action = preview_site.LessonAction(
+            "F01-copy",
+            1,
+            "Copy one command",
+            "learner",
+            None,
+            "Copy the command for your surface.",
+            None,
+            (
+                CommandVariant(
+                    "codex-windows",
+                    "harness",
+                    "windows",
+                    "codex",
+                    "powershell",
+                    "!git status\n",
+                    True,
+                ),
+            ),
+            "Git reports status.",
+            "Select the command manually.",
+            None,
+        )
+        rendered, _headings, _references = preview_site._render_markdown(
+            "F01-fork-clone-doctor",
+            ["## Guided controls", "", "{{action:F01-copy}}"],
+            {action.id: action},
+        )
+        self.assertIn('class="command-variant" data-os="windows" data-host="codex"', rendered)
+        self.assertIn('class="academy-command-preferences" hidden', rendered)
+        command_variant = rendered[rendered.index('class="command-variant"'):]
+        self.assertNotIn(" hidden", command_variant.split(">", 1)[0])
+
+        valid_destination = self.out.parent / "valid-command-controls"
+        build_preview_site(self.root, valid_destination, release_sha="1" * 40)
+        valid_page = valid_destination / "index.html"
+        valid_page.write_text(
+            valid_page.read_text(encoding="utf-8").replace("</main>", f"{rendered}</main>", 1),
+            encoding="utf-8",
+        )
+        check_preview_site(valid_destination)
+        valid_html = valid_page.read_text(encoding="utf-8")
+        valid_page.write_text(
+            valid_html.replace('class="command-variant"', 'class="command-variant" hidden', 1),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "visible without JavaScript"):
+            check_preview_site(valid_destination)
+        for class_name in ("command-shell", "page-shell", "site-header__inner"):
+            valid_page.write_text(
+                valid_html.replace(
+                    f'class="{class_name}"',
+                    f'class="{class_name}" hidden',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            with self.subTest(hidden=class_name):
+                with self.assertRaisesRegex(ValueError, "hidden is reserved"):
+                    check_preview_site(valid_destination)
+        valid_page.write_text(
+            valid_html.replace('<main id="main-content"', '<main hidden id="main-content"', 1),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "disallowed HTML attribute on main: hidden"):
+            check_preview_site(valid_destination)
+        valid_page.write_text(
+            valid_html.replace('class="academy-command-preferences" hidden', 'class="academy-command-preferences"', 1),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "preference controls must be hidden"):
+            check_preview_site(valid_destination)
+        valid_page.write_text(
+            valid_html.replace(
+                'class="academy-command-preferences" hidden',
+                'class="academy-command-preferences" hidden data-os="windows"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "exact preference-container contract"):
+            check_preview_site(valid_destination)
+        valid_page.write_text(
+            valid_html.replace(' tabindex="0" class="language-powershell"', ' class="language-powershell"', 1),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "command code is not focusable"):
+            check_preview_site(valid_destination)
+
+        build_preview_site(self.root, self.out, release_sha="1" * 40)
+        page = self.out / "index.html"
+        page.write_text(
+            page.read_text(encoding="utf-8").replace(
+                "</main>",
+                '<button type="button" class="command-copy" data-copy-target="missing-command" '
+                'aria-describedby="copy-status-probe">Copy</button>'
+                '<p id="copy-status-probe" role="status" aria-live="polite"></p></main>',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "broken copy target"):
+            check_preview_site(self.out)
+
+        status_destination = self.out.parent / "copy-status-reference"
+        build_preview_site(self.root, status_destination, release_sha="1" * 40)
+        status_page = status_destination / "index.html"
+        status_page.write_text(
+            status_page.read_text(encoding="utf-8").replace(
+                "</main>",
+                '<code id="command-probe" tabindex="0">git status</code>'
+                '<button type="button" class="command-copy" data-copy-target="command-probe" '
+                'aria-describedby="missing-copy-status">Copy</button></main>',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "broken copy status"):
+            check_preview_site(status_destination)
+
+    def test_static_checker_requires_the_exact_local_module_on_every_page(self) -> None:
+        """Catches a page substituting another local file for the reviewed Academy module."""
+        build_preview_site(self.root, self.out, release_sha="1" * 40)
+        page = self.out / "index.html"
+        page.write_text(
+            page.read_text(encoding="utf-8").replace(
+                'src="assets/academy.js"',
+                'src="assets/academy.css"',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "unapproved script asset"):
+            check_preview_site(self.out)
 
     def _copy_public_source(self, label: str = "source") -> Path:
         source = Path(self.temporary_directory.name) / label

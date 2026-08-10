@@ -714,6 +714,14 @@ class PagesWorkflowContractTests(unittest.TestCase):
             actions,
         )
         self.assertNotRegex(self.workflow, r"(?i)\b(?:pip|npm|pnpm|yarn)\s+install\b")
+        self.assertNotRegex(self.workflow, r"(?i)\bnpx\b|https?://[^\s]+\.js\b|\bcdn\b")
+
+    def test_pages_build_runs_dependency_free_javascript_tests_before_site_build(self) -> None:
+        """Catches deployment skipping the local behavior contract or running it after rendering."""
+        javascript = self.build.find("node --test tests/site/academy.test.mjs")
+        build = self.build.find("- name: Build the Academy site")
+        self.assertGreaterEqual(javascript, 0)
+        self.assertGreater(build, javascript)
 
     def test_pull_request_checkout_uses_exact_head_without_credentials(self) -> None:
         """Catches PR verification silently running GitHub's synthetic merge commit."""

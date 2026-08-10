@@ -35,6 +35,7 @@ _ACTION_REFERENCE = re.compile(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}"
 _UNSUPPORTED_INLINE_MARKERS = ("*", "_", "[", "]", "\\", "~")
 _PUBLIC_ASSET_FILES = (
     Path("assets/academy.css"),
+    Path("assets/academy.js"),
     Path("assets/favicon.svg"),
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"),
@@ -480,7 +481,7 @@ def _render_action(action: LessonAction) -> str:
                 f'data-host="{escape(variant.host, quote=True)}" data-surface="{escape(variant.surface, quote=True)}">',
                 f'<p class="action-role">{escape(_execution_label(action, surface=variant.surface, host=variant.host, operating_system=variant.operating_system))}</p>',
                 '<div class="command-shell">',
-                f'<pre tabindex="0"><code id="{command_id}" class="language-{escape(variant.language, quote=True)}">{escape(variant.command)}</code></pre>',
+                f'<pre><code id="{command_id}" tabindex="0" class="language-{escape(variant.language, quote=True)}">{escape(variant.command)}</code></pre>',
             )
         )
         if variant.copy:
@@ -506,6 +507,41 @@ def _render_action(action: LessonAction) -> str:
         )
     blocks.append("</section>")
     return "\n".join(blocks)
+
+
+def _render_command_preferences(actions: Mapping[str, LessonAction]) -> str:
+    variants = tuple(variant for action in actions.values() for variant in action.variants)
+    present_os = {variant.operating_system for variant in variants if variant.operating_system != "all"}
+    present_hosts = {variant.host for variant in variants if variant.host != "none"}
+    groups: list[str] = []
+    if present_os:
+        os_controls = "".join(
+            f'<button type="button" class="academy-os-choice" data-os="{value}" aria-pressed="false">{label}</button>'
+            for value, label in (("windows", "Windows"), ("macos", "macOS"), ("linux", "Linux"))
+            if value in present_os
+        )
+        groups.append(
+            '<div class="academy-command-preference" role="group" aria-labelledby="academy-os-heading">'
+            f'<p id="academy-os-heading">Operating system</p>{os_controls}</div>'
+        )
+    if present_hosts:
+        host_controls = "".join(
+            f'<button type="button" class="academy-host-choice" data-host="{value}" aria-pressed="false">{label}</button>'
+            for value, label in (("claude-code", "Claude Code"), ("codex", "Codex"), ("pi", "Pi"))
+            if value in present_hosts
+        )
+        groups.append(
+            '<div class="academy-command-preference" role="group" aria-labelledby="academy-host-heading">'
+            f'<p id="academy-host-heading">CodeArbiter host</p>{host_controls}</div>'
+        )
+    if not groups:
+        return ""
+    return (
+        '<div class="academy-command-preferences" hidden '
+        'aria-labelledby="academy-command-preferences-heading">'
+        '<p id="academy-command-preferences-heading"><strong>Choose the commands you use</strong></p>'
+        f'{"".join(groups)}</div>'
+    )
 
 
 def _render_markdown(
@@ -649,6 +685,13 @@ def _render_markdown(
                     f"guided document {lab_id} has unreferenced action(s): {', '.join(missing)}"
                 )
             raise ValueError(f"guided document {lab_id} action references are out of sequence")
+        preferences = _render_command_preferences(action_map)
+        if preferences:
+            h1_index = next(
+                (position for position, block in enumerate(rendered) if block.startswith("<h1")),
+                0,
+            )
+            rendered.insert(h1_index + 1, preferences)
         return "\n".join(rendered), tuple(headings), tuple(referenced_actions)
     return "\n".join(rendered), tuple(headings)
 
@@ -778,6 +821,7 @@ def _page(
         home_url=f"{root_prefix}index.html",
         recovery_url=f"{root_prefix}recovery/index.html",
         stylesheet_url=f"{root_prefix}assets/academy.css",
+        script_url=f"{root_prefix}assets/academy.js",
         favicon_url=f"{root_prefix}assets/favicon.svg",
         logo_url=f"{root_prefix}assets/logo.svg",
     )

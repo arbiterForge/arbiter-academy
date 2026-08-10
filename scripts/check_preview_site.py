@@ -15,6 +15,8 @@ from urllib.parse import unquote, urlsplit
 
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+OPERATING_SYSTEMS = frozenset({"windows", "macos", "linux"})
+HOSTS = frozenset({"claude-code", "codex", "pi"})
 _CSS_URL = re.compile(r"url\(\s*[\"']?([^\"')]+)")
 _CSS_IMPORT = re.compile(
     r"@import\s+(?:url\(\s*)?(?:[\"']([^\"']+)[\"']|([^\"'()\s;]+))\s*\)?",
@@ -27,7 +29,8 @@ _EXTERNAL_URLS = {
     "https://codearbiter.dev/",
 }
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "598d570d7fcb1eba7d752a011d9bc6d1ed472d4b3874f94bc21083eeab2aee09",
+    Path("assets/academy.css"): "326a9f5e670c9173dcd6ea607b3a7ae74b3115e2a810d718c77e9760b7db5adc",
+    Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
     Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (
         "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
@@ -49,19 +52,19 @@ _ALLOWED_HTML_ATTRIBUTES = {
     "a": {"class", "href", "aria-label", "rel"},
     "img": {"class", "src", "alt", "width", "height"},
     "header": {"class"},
-    "div": {"class", "role"},
+    "div": {"class", "role", "aria-labelledby", "data-os", "data-host", "data-surface", "hidden"},
     "span": {"class", "aria-hidden"},
     "nav": {"class", "aria-label"},
     "main": {"id", "tabindex"},
     "footer": {"class"},
-    "p": {"class"},
-    "section": {"class", "aria-labelledby"},
+    "p": {"id", "class", "role", "aria-live"},
+    "section": {"class", "aria-labelledby", "data-action-id"},
     "article": {"class"},
     "aside": {"class", "aria-label"},
     "h1": {"id"},
     "h2": {"id"},
     "h3": {"id"},
-    "code": {"class"},
+    "code": {"id", "class", "tabindex"},
     "pre": set(),
     "ol": {"class"},
     "li": {"class"},
@@ -74,6 +77,8 @@ _ALLOWED_HTML_ATTRIBUTES = {
     "tr": set(),
     "th": set(),
     "td": set(),
+    "button": {"type", "class", "data-os", "data-host", "data-copy-target", "aria-describedby", "aria-pressed"},
+    "script": {"type", "src"},
     "svg": {"width", "height", "viewbox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "aria-hidden"},
     "path": {"d"},
     "circle": {"cx", "cy", "r"},
@@ -93,6 +98,7 @@ _LABS = (
 )
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
+    Path("assets/academy.js"),
     Path("assets/favicon.svg"),
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"),
@@ -111,8 +117,12 @@ class _LinkCollector(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.targets: list[tuple[str, str, str | None]] = []
         self.ids: list[str] = []
-        self.id_references: list[tuple[str, str]] = []
+        self.id_references: list[tuple[str, str, str]] = []
         self.academy_releases: list[str] = []
+        self.copy_bindings: list[tuple[str, str]] = []
+        self.id_contracts: dict[str, tuple[str, dict[str, str | None]]] = {}
+        self.script_sources: list[str] = []
+        self._script_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         allowed = _ALLOWED_HTML_ATTRIBUTES.get(tag)
@@ -123,29 +133,99 @@ class _LinkCollector(HTMLParser):
             raise ValueError(f"disallowed HTML duplicate attribute on {tag}")
         attributes = dict(attrs)
         for name, value in attrs:
-            if name not in allowed or value is None:
+            if name not in allowed or (value is None and name != "hidden"):
                 raise ValueError(f"disallowed HTML attribute on {tag}: {name}")
+            if name == "hidden":
+                if tag == "div" and attributes.get("class") == "command-variant":
+                    raise ValueError("command variant must remain visible without JavaScript")
+                if not (
+                    tag == "div" and attributes.get("class") == "academy-command-preferences"
+                ):
+                    raise ValueError("hidden is reserved for Academy command preferences")
             if name == "href":
                 self.targets.append((tag, value, attributes.get("rel")))
             if name == "src":
                 self.targets.append((tag, value, None))
             if name == "id":
                 self.ids.append(value)
-            if name == "aria-labelledby":
+                self.id_contracts[value] = (tag, attributes)
+            if name in {"aria-labelledby", "aria-describedby"}:
                 references = value.split()
                 if not references:
-                    raise ValueError(f"empty aria-labelledby reference on {tag}")
-                self.id_references.extend((tag, reference) for reference in references)
+                    raise ValueError(f"empty {name} reference on {tag}")
+                self.id_references.extend((tag, name, reference) for reference in references)
         if tag == "html" and attributes != {"lang": "en"}:
             raise ValueError("disallowed HTML attributes on html")
         if tag == "link" and attributes.get("rel") not in {"stylesheet", "icon"}:
             raise ValueError("disallowed HTML link relationship")
         if tag == "meta" and attributes.get("name") == "academy-release":
             self.academy_releases.append(attributes.get("content", ""))
+        if tag == "code" and str(attributes.get("id", "")).startswith("command-"):
+            if attributes.get("tabindex") != "0":
+                raise ValueError("command code is not focusable")
+        if tag == "div" and attributes.get("class") == "command-variant":
+            if "hidden" in attributes:
+                raise ValueError("command variant must remain visible without JavaScript")
+            if (
+                attributes.get("data-os") not in {"all", "windows", "macos", "linux"}
+                or attributes.get("data-host") not in {"none", "claude-code", "codex", "pi"}
+                or attributes.get("data-surface") not in {
+                    "browser", "native-terminal", "harness", "academy-console"
+                }
+            ):
+                raise ValueError("disallowed HTML command-variant contract")
+        if tag == "div" and attributes.get("class") == "academy-command-preferences":
+            if (
+                "hidden" not in attributes
+                or attributes.get("aria-labelledby") != "academy-command-preferences-heading"
+            ):
+                raise ValueError("preference controls must be hidden until JavaScript binds")
+            if set(attributes) != {"class", "hidden", "aria-labelledby"}:
+                raise ValueError("disallowed exact preference-container contract")
+        if tag == "script" and set(attributes.items()) != {
+            ("type", "module"),
+            ("src", attributes.get("src")),
+        }:
+            raise ValueError("disallowed HTML script contract")
+        if tag == "script":
+            self.script_sources.append(attributes["src"])
+            self._script_depth += 1
+        if tag == "button" and attributes.get("class") == "command-copy":
+            if (
+                attributes.get("type") != "button"
+                or not attributes.get("data-copy-target")
+                or not attributes.get("aria-describedby")
+            ):
+                raise ValueError("disallowed HTML copy-button contract")
+            self.copy_bindings.append(
+                (attributes["data-copy-target"], attributes["aria-describedby"])
+            )
+        elif tag == "button":
+            preference_kind = (
+                "os" if attributes.get("class") == "academy-os-choice" else
+                "host" if attributes.get("class") == "academy-host-choice" else None
+            )
+            expected_data = f"data-{preference_kind}" if preference_kind else None
+            if (
+                preference_kind is None
+                or attributes.get("type") != "button"
+                or attributes.get("aria-pressed") != "false"
+                or not attributes.get(expected_data)
+            ):
+                raise ValueError("disallowed HTML preference-button contract")
+            allowed_values = OPERATING_SYSTEMS if preference_kind == "os" else HOSTS
+            if attributes[expected_data] not in allowed_values:
+                raise ValueError("disallowed HTML preference-button value")
 
     def handle_endtag(self, tag: str) -> None:
         if tag not in _ALLOWED_HTML_ATTRIBUTES:
             raise ValueError(f"disallowed HTML element: {tag}")
+        if tag == "script":
+            self._script_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._script_depth and data.strip():
+            raise ValueError("disallowed inline JavaScript")
 
     def handle_decl(self, decl: str) -> None:
         if decl.lower() != "doctype html":
@@ -313,6 +393,8 @@ def check_preview_site(site_root: Path) -> None:
                 )
                 if resolved != expected:
                     raise ValueError(f"unapproved linked asset URL: {target}")
+            if tag == "script" and resolved != root / "assets" / "academy.js":
+                raise ValueError(f"unapproved script asset URL: {target}")
             fragment = unquote(urlsplit(target).fragment)
             if fragment:
                 target_collector = pages.get(resolved) if resolved is not None else None
@@ -321,10 +403,34 @@ def check_preview_site(site_root: Path) -> None:
                         f"broken HTML fragment in {page.relative_to(root).as_posix()}: {target}"
                     )
         page_ids = set(collector.ids)
-        for tag, reference in collector.id_references:
+        if len(collector.script_sources) != 1:
+            raise ValueError(
+                f"generated page must load exactly one reviewed module: {page.relative_to(root).as_posix()}"
+            )
+        for target, status in collector.copy_bindings:
+            target_contract = collector.id_contracts.get(target)
+            status_contract = collector.id_contracts.get(status)
+            if (
+                target_contract is None
+                or target_contract[0] != "code"
+                or target_contract[1].get("tabindex") != "0"
+            ):
+                raise ValueError(
+                    "broken copy target in "
+                    f"{page.relative_to(root).as_posix()} on button: {target}"
+                )
+            if status_contract is None or status_contract[0] != "p" or (
+                status_contract[1].get("role") != "status"
+                or status_contract[1].get("aria-live") != "polite"
+            ):
+                raise ValueError(
+                    "broken copy status in "
+                    f"{page.relative_to(root).as_posix()} on button: {status}"
+                )
+        for tag, attribute, reference in collector.id_references:
             if reference not in page_ids:
                 raise ValueError(
-                    "broken aria-labelledby reference in "
+                    f"broken {attribute} reference in "
                     f"{page.relative_to(root).as_posix()} on {tag}: {reference}"
                 )
 

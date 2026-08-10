@@ -97,6 +97,9 @@ jobs:
       - name: Verify project state
         run: python -m unittest tests.test_project_state -v
 
+      - name: Verify Academy browser controls
+        run: node --test tests/site/academy.test.mjs
+
       - name: Build the Academy site
         run: >-
           python scripts/build_preview_site.py
