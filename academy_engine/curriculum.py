@@ -120,6 +120,24 @@ _PRACTITIONER_SCENARIOS = {
         "classification-absent",
     ),
 }
+_P07_SCENARIO_BYTES = (
+    b'{"lab_id":"P07-threat-model","operation":"stride_model",'
+    b'"request":"academy_engine/paths.py archive-import containment boundary",'
+    b'"schema_version":1,"starting_condition":"model-absent",'
+    b'"target":"academy_engine/paths.py",'
+    b'"target_blob":"b36801add4eb375f796d1107ee63dd604d08a034",'
+    b'"target_sha256":"e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}\n'
+)
+_P07_SCENARIO = {
+    "lab_id": "P07-threat-model",
+    "operation": "stride_model",
+    "request": "academy_engine/paths.py archive-import containment boundary",
+    "schema_version": 1,
+    "starting_condition": "model-absent",
+    "target": "academy_engine/paths.py",
+    "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034",
+    "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d",
+}
 _INSTALLED_PREPARE_LABS = (
     "P01-feature-through-plan",
     "P02-commit-review-pr",
@@ -213,9 +231,24 @@ _MATRIX_CASES = {
         "malformed-receipt", "unsafe-path", "generic-event-decoy",
         "host-invocation-claim",
     ),
+    "P07-threat-model": (
+        "untouched", "partial", "wrong", "intended", "equivalent",
+        "missing-native-field", "wrong-stride-order", "generic-stride",
+        "mixed-academy-field", "invocation-claim", "wrong-target-path",
+        "wrong-target-blob", "stale-target-sha256", "target-mutated",
+        "target-touch-revert", "noncanonical-bytes", "one-extra-path",
+        "extra-commit", "merge-history", "uncommitted",
+    ),
     **{
         lab_id: ("untouched", "partial", "wrong", "intended", "equivalent")
-        for lab_id in _PRACTITIONER_SCENARIOS if lab_id not in {"P03-record-an-adr", "P04-review-a-dependency", "P05-checkpoint-remediation"}
+        for lab_id in _PRACTITIONER_SCENARIOS
+        if lab_id
+        not in {
+            "P03-record-an-adr",
+            "P04-review-a-dependency",
+            "P05-checkpoint-remediation",
+            "P07-threat-model",
+        }
     },
 }
 
@@ -418,25 +451,34 @@ def verify_track(root: Path, track_id: str, *, matrix: bool = False) -> TrackVer
             ):
                 issues.append(f"{lab.id}: scenario manifest binding is noncanonical")
             scenario_path = repository / "academy/scenarios" / lab.id / "files/scenario.json"
-            scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+            scenario_bytes = scenario_path.read_bytes()
+            scenario = json.loads(scenario_bytes)
             if not isinstance(scenario, dict):
                 issues.append(f"{lab.id}: scenario input must be an object")
                 continue
-            if set(scenario) != {"schema_version", "lab_id", "operation", "target", "starting_condition"}:
-                issues.append(f"{lab.id}: scenario input shape is not canonical")
-            if scenario.get("schema_version") != 1 or scenario.get("lab_id") != lab.id:
-                issues.append(f"{lab.id}: scenario input identity is invalid")
+            if lab.id == "P07-threat-model":
+                if scenario_bytes != _P07_SCENARIO_BYTES or scenario != _P07_SCENARIO:
+                    issues.append(f"{lab.id}: scenario input shape is not canonical")
+            else:
+                if set(scenario) != {"schema_version", "lab_id", "operation", "target", "starting_condition"}:
+                    issues.append(f"{lab.id}: scenario input shape is not canonical")
+                if scenario.get("schema_version") != 1 or scenario.get("lab_id") != lab.id:
+                    issues.append(f"{lab.id}: scenario input identity is invalid")
             expected_scenario = {
                 **_FOUNDATIONS_SCENARIOS,
                 **_PRACTITIONER_SCENARIOS,
             }.get(lab.id)
-            observed_scenario = (
-                scenario.get("operation"),
-                scenario.get("target"),
-                scenario.get("starting_condition"),
-            )
-            if expected_scenario is not None and observed_scenario != expected_scenario:
-                issues.append(f"{lab.id}: scenario semantics are noncanonical")
+            if lab.id == "P07-threat-model":
+                if scenario != _P07_SCENARIO:
+                    issues.append(f"{lab.id}: scenario semantics are noncanonical")
+            else:
+                observed_scenario = (
+                    scenario.get("operation"),
+                    scenario.get("target"),
+                    scenario.get("starting_condition"),
+                )
+                if expected_scenario is not None and observed_scenario != expected_scenario:
+                    issues.append(f"{lab.id}: scenario semantics are noncanonical")
             destinations = {item.destination for item in manifest.files}
             if contract.scenario_path not in destinations:
                 issues.append(f"{lab.id}: scenario overlay does not materialize its contract path")

@@ -452,8 +452,24 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 80)
+        self.assertEqual(report.matrix_cells, 95)
         self.assertNotIn(str(SOURCE), report.render())
+
+    def test_p07_freezes_exact_semantic_matrix(self) -> None:
+        """Catches P07 falling back to generic structural evidence labels."""
+        from academy_engine.curriculum import _MATRIX_CASES
+
+        self.assertEqual(
+            _MATRIX_CASES["P07-threat-model"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent",
+                "missing-native-field", "wrong-stride-order", "generic-stride",
+                "mixed-academy-field", "invocation-claim", "wrong-target-path",
+                "wrong-target-blob", "stale-target-sha256", "target-mutated",
+                "target-touch-revert", "noncanonical-bytes", "one-extra-path",
+                "extra-commit", "merge-history", "uncommitted",
+            ),
+        )
 
     def test_p03_freezes_the_native_evidence_adversarial_matrix_and_privacy_guide(self) -> None:
         """Catches P03 falling back to the generic five-cell declaration or vague learner contract."""
@@ -533,6 +549,135 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.subTest(obsolete=obsolete):
                 self.assertNotIn(obsolete, guide)
 
+    def test_p07_freezes_native_and_academy_sections_without_invocation_claim(self) -> None:
+        """Catches P07 mixing native fields, Academy binding, or host-invocation claims."""
+        p07 = load_track(SOURCE, "practitioner").labs[6]
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P07-threat-model.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(p07.estimated_minutes, 30)
+        self.assertEqual(p07.prerequisites, ("P06-context-drift-recovery",))
+        self.assertEqual(p07.next_lab, "P08-repository-hygiene")
+        self.assertEqual(
+            p07.host_commands,
+            {
+                "claude-code": (
+                    '/ca:threat-model "academy_engine/paths.py archive-import containment boundary"'
+                ),
+                "codex": (
+                    '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
+                ),
+                "pi": (
+                    '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
+                ),
+            },
+        )
+        ordered_headings = (
+            "## Scope",
+            "## STRIDE findings",
+            "## Recommended controls before implementation",
+            "## Clearance",
+            "## Academy Target-SHA256/identity binding",
+        )
+        self.assertTrue(
+            all(heading in guide for heading in ordered_headings),
+            "P07 guide must expose the complete ordered learner report template.",
+        )
+        positions = [guide.index(heading) for heading in ordered_headings]
+        self.assertEqual(positions, sorted(positions))
+        for required in (
+            "opt-in and read-only",
+            "The check cannot prove that a host command was invoked",
+            "Academy-Target-Prepared-Blob:",
+            "Academy-Target-Head-Blob:",
+            "CLEAR TO IMPLEMENT",
+            "BLOCKED - resolve findings first",
+            "- Keep destination resolution under the selected repository root before creating or copying a file.",
+            "- Reject absolute, traversal, symlink, and Windows reparse-point ancestors in archive destinations.",
+            "- Fail closed on a different drive or an unrepresentable containment path before any write.",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        self.assertNotIn("proves that `$ca-threat-model`", guide)
+        self.assertNotIn("native Academy", guide)
+
+    def test_p07_freezes_target_identity_descriptor_and_checkpoint(self) -> None:
+        """Catches a P07 source contract that can silently rebind to changed target bytes."""
+        descriptor = (
+            b'{"lab_id":"P07-threat-model","operation":"stride_model",'
+            b'"request":"academy_engine/paths.py archive-import containment boundary",'
+            b'"schema_version":1,"starting_condition":"model-absent",'
+            b'"target":"academy_engine/paths.py",'
+            b'"target_blob":"b36801add4eb375f796d1107ee63dd604d08a034",'
+            b'"target_sha256":"e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}\n'
+        )
+        checkpoint = (
+            b'{"schema_version":2,"id":"P07-threat-model","predicates":['
+            b'{"id":"stride_model","type":"lab_semantics","profile":"stride_model",'
+            b'"model":".codearbiter/reports/academy/P07-threat-model.md",'
+            b'"target":"academy_engine/paths.py",'
+            b'"target_blob":"b36801add4eb375f796d1107ee63dd604d08a034",'
+            b'"target_sha256":"e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}]}\n'
+        )
+
+        self.assertEqual(
+            (SOURCE / "academy/scenarios/P07-threat-model/files/scenario.json").read_bytes(),
+            descriptor,
+        )
+        self.assertEqual(
+            (SOURCE / "academy/checkpoints/P07-threat-model.json").read_bytes(),
+            checkpoint,
+        )
+        report = verify_track(SOURCE, "practitioner", matrix=True)
+        self.assertTrue(report.passed, report.issues)
+
+    def test_p07_checkpoint_identity_fields_are_declared_by_the_public_schema(self) -> None:
+        """Catches a valid P07 checkpoint becoming invalid against its published schema."""
+        schema = json.loads(
+            (SOURCE / "academy/checkpoint.schema.json").read_text(encoding="utf-8")
+        )
+        checkpoint = json.loads(
+            (SOURCE / "academy/checkpoints/P07-threat-model.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        properties = schema["properties"]["predicates"]["items"]["properties"]
+
+        self.assertEqual(
+            properties.get("target_blob"),
+            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        )
+        self.assertEqual(
+            properties.get("target_sha256"),
+            {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        )
+        self.assertLessEqual(set(checkpoint["predicates"][0]), set(properties))
+
+    def test_p07_recovery_uses_archive_then_retry_without_destructive_commands(self) -> None:
+        """Catches learner recovery copy that rewrites or discards the failed attempt."""
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P07-threat-model.md"
+        ).read_text(encoding="utf-8")
+        recovery = guide[guide.index("## Recovery") : guide.index("## Next lab")]
+        normalized_recovery = " ".join(recovery.split())
+
+        self.assertIn(
+            "arbiter-academy --repository $learnerRepository reset P07-threat-model",
+            recovery,
+        )
+        self.assertIn("archives the failed attempt", normalized_recovery)
+        self.assertIn("prepare an independent retry", normalized_recovery)
+        for destructive in (
+            "git reset --hard",
+            "git checkout",
+            "git rebase",
+            "git commit --amend",
+            "git branch -D",
+            "force-push",
+        ):
+            with self.subTest(destructive=destructive):
+                self.assertNotIn(destructive, recovery)
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""
@@ -636,7 +781,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("80 matrix cells", result.stdout)
+        self.assertIn("95 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())

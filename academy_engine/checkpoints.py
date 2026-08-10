@@ -32,6 +32,7 @@ from academy_engine.exercise_state import (
 )
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 from academy_engine.p05_fixture import validate_p05_fixture
+from academy_engine.secret_rules import blob_is_secret_free
 
 LAB_INVENTORY = (
     "F01-fork-clone-doctor",
@@ -78,7 +79,7 @@ _PROFILES = {
     "dependency_review": ("review", "project"),
     "checkpoint_remediation": ("report",),
     "provenance_recovery": ("context", "handoff"),
-    "stride_model": ("model", "target"),
+    "stride_model": ("model", "target", "target_blob", "target_sha256"),
     "hygiene_snapshot": ("snapshot",),
     "p08_authenticated": (),
     "sprint_decisions": ("spec", "plan", "sprint_log"),
@@ -101,7 +102,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P04-review-a-dependency": ("strict_dependency_review", "dependency_review", {"review": ".codearbiter/reports/academy/P04-dependency-review.md", "project": "pyproject.toml"}),
     "P05-checkpoint-remediation": ("finding_remediation_link", "checkpoint_remediation", {"report": ".codearbiter/checkpoints/P05-academy.json"}),
     "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json"}),
-    "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py"}),
+    "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md"}),
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json"}),
@@ -530,13 +531,9 @@ def _predicted_reviewers(paths: list[str]) -> list[str]:
 
 
 def _changed_blobs_are_secret_free(root: Path, commit: str, paths: list[str]) -> bool:
-    secret = re.compile(
-        rb"(?i)(?:ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
-        rb"sk-[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16}|"
-        rb"https?://[^/\s:@]+:[^@\s/]+@)"
-    )
     return all(
-        (blob := _git_blob(root, commit, path)) is not None and secret.search(blob) is None
+        (blob := _git_blob(root, commit, path)) is not None
+        and blob_is_secret_free(blob)
         for path in paths
     )
 
@@ -1953,6 +1950,487 @@ def _p04_dependency_review(root: Path, attempt: _Attempt, review: str, project: 
     )
 
 
+_P07_MODEL = ".codearbiter/reports/academy/P07-threat-model.md"
+_P07_TARGET = "academy_engine/paths.py"
+_P07_TARGET_BLOB = "b36801add4eb375f796d1107ee63dd604d08a034"
+_P07_TARGET_SHA256 = "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"
+_P07_SECTION_PATTERN = re.compile(
+    r"\A# P07 Threat Model - Archive import containment boundary\n\n"
+    r"## Scope\n(?P<scope>[^\n]+(?:\n[^\n]+){0,5})\n\n"
+    r"## STRIDE findings\n(?P<stride>[^\n]+(?:\n[^\n]+){7})\n\n"
+    r"## Recommended controls before implementation\n(?P<controls>[^\n]+(?:\n[^\n]+){2})\n\n"
+    r"## Clearance\n(?P<clearance>[^\n]+)\n\n"
+    r"## Academy Target-SHA256/identity binding\n(?P<binding>[^\n]+(?:\n[^\n]+){3})\n\Z"
+)
+_P07_CONTROLS = (
+    "- Keep destination resolution under the selected repository root before creating or copying a file.",
+    "- Reject absolute, traversal, symlink, and Windows reparse-point ancestors in archive destinations.",
+    "- Fail closed on a different drive or an unrepresentable containment path before any write.",
+)
+_P07_BINDING = (
+    "Academy-Target-Path: academy_engine/paths.py",
+    "Academy-Target-Prepared-Blob: b36801add4eb375f796d1107ee63dd604d08a034",
+    "Academy-Target-Head-Blob: b36801add4eb375f796d1107ee63dd604d08a034",
+    "Academy-Target-SHA256: e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d",
+)
+
+
+def _p07_sections(raw: bytes | None) -> dict[str, str] | None:
+    if (
+        raw is None
+        or not raw
+        or len(raw) > 12 * 1024
+        or raw.startswith(b"\xef\xbb\xbf")
+        or b"\r" in raw
+        or b"<" in raw
+        or b">" in raw
+        or any((byte < 32 and byte != 10) or byte > 126 for byte in raw)
+        or not raw.endswith(b"\n")
+        or raw.endswith(b"\n\n")
+    ):
+        return None
+    try:
+        text = raw.decode("utf-8", "strict")
+    except UnicodeDecodeError:
+        return None
+    match = _P07_SECTION_PATTERN.fullmatch(text)
+    return match.groupdict() if match is not None else None
+
+
+def _p07_table_cells(line: str) -> tuple[str, ...] | None:
+    if not line.startswith("| ") or not line.endswith(" |"):
+        return None
+    cells = tuple(line[2:-2].split(" | "))
+    return cells if len(cells) == 5 and all(cells) else None
+
+
+_P07_FIRST_PERSON = frozenset({"i", "we"})
+_P07_STRONG_SUBJECTS = frozenset(
+    {
+        "checker",
+        "command",
+        "host",
+        "tool",
+        "skill",
+        "route",
+        "verifier",
+        "host-tool",
+    }
+)
+_P07_HYPOTHETICAL = frozenset({"could", "may", "might", "would", "can", "should", "will", "planned", "proposed", "potential", "risk", "threat", "if"})
+_P07_UNCERTAIN = frozenset({"no", "not", "never", "cannot", "without", "unproven", "unknown"})
+_P07_THREAT_MARKERS = frozenset({"malicious", "untrusted", "risk", "threat", "threats", "threatens", "threatened", "threatening"})
+_P07_THREAT_ANCHORS = frozenset({"archive", "path", "destination", "traversal", "reparse", "containment"})
+_P07_SCOPE_HYPOTHETICAL = frozenset(
+    {
+        "could", "may", "might", "would", "can", "should", "will",
+        "planned", "proposed", "potential", "if",
+    }
+) | _P07_UNCERTAIN
+_P07_CONTROL_DENIAL = frozenset(
+    {
+        "block", "blocked", "deny", "denied", "prevent", "prevented",
+        "reject", "rejected", "stop", "stopped",
+    }
+)
+_P07_THREAT_RELATION_MARKERS = frozenset(
+    {"can", "cannot", "could", "may", "might", "should", "will", "would"}
+)
+_P07_CATEGORY_WORDS = {
+    "S": frozenset(
+        {
+            "authenticate", "authenticated", "authentication", "identity",
+            "impersonate", "impersonation", "principal", "provenance",
+            "spoof", "spoofing", "trust", "trusted",
+        }
+    ),
+    "T": frozenset(
+        {
+            "alter", "change", "corrupt", "corruption", "integrity",
+            "modification", "modify", "overwrite", "tamper", "tampering",
+            "traversal",
+        }
+    ),
+    "R": frozenset(
+        {
+            "accountability", "attribute", "attribution", "audit", "dispute",
+            "log", "logging", "provenance", "repudiate", "repudiation",
+            "trace", "traceability",
+        }
+    ),
+    "I": frozenset(
+        {
+            "confidentiality", "disclose", "disclosure", "expose", "exposure",
+            "leak", "leakage", "location", "reveal", "sensitive",
+        }
+    ),
+    "D": frozenset(
+        {
+            "availability", "consume", "consumption", "denial", "excessive",
+            "exhaust", "exhaustion", "flood", "oversized", "quota", "resource",
+            "starvation", "starve",
+        }
+    ),
+    "E": frozenset(
+        {
+            "authority", "authorization", "elevate", "elevation", "escalate",
+            "escalation", "permission", "privilege", "privileged", "reparse",
+            "symlink",
+        }
+    ),
+}
+_P07_CATEGORY_RELATIONS = {
+    "S": frozenset(
+        {
+            "authenticate", "authenticated", "impersonate", "impersonates",
+            "mistake", "mistaken", "spoof", "spoofs", "suggest", "suggests",
+            "trust", "trusted",
+        }
+    ),
+    "T": frozenset(
+        {
+            "alter", "alters", "corrupt", "corrupts", "modify", "modifies",
+            "overwrite", "overwrites", "tamper", "tampers", "traverse",
+            "traverses",
+        }
+    ),
+    "R": frozenset(
+        {
+            "attribute", "attributes", "audit", "audits", "dispute", "disputes",
+            "log", "logs", "repudiate", "repudiates", "trace", "traces",
+        }
+    ),
+    "I": frozenset(
+        {
+            "disclose", "discloses", "expose", "exposes", "leak", "leaks",
+            "reveal", "reveals",
+        }
+    ),
+    "D": frozenset(
+        {
+            "consume", "consumes", "deny", "denies", "exhaust", "exhausts",
+            "flood", "floods", "starve", "starves",
+        }
+    ),
+    "E": frozenset(
+        {
+            "cross", "crosses", "elevate", "elevates", "escalate", "escalates",
+        }
+    ),
+}
+_P07_SCOPE_REVIEW_RELATIONS = frozenset(
+    {"analyzes", "assesses", "covers", "examines", "models", "reviews"}
+)
+_P07_SCOPE_INPUT_RELATIONS = frozenset(
+    {"bounds", "checks", "handling", "resolves", "validates"}
+)
+_P07_SCOPE_PREWRITE_RELATIONS = frozenset(
+    {
+        "enforce", "enforces", "ensure", "ensures", "establish", "establishes",
+        "prove", "proves", "reject", "rejects", "resolve", "resolves",
+        "validate", "validates",
+    }
+)
+_P07_CONTROL_PREFIX = re.compile(r"\A\s*(?:PRESENT|PLANNED|GAP|N/A):\s*", re.IGNORECASE)
+_P07_TOKEN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*", re.IGNORECASE)
+_P07_CLAUSE_BOUNDARY = re.compile(
+    r"(?:\n|[,.;:!?]+|\b(?:although|and|but|however|while|yet)\b)",
+    re.IGNORECASE,
+)
+_P07_EXACT_ROUTE = re.compile(r"(?<![a-z0-9-])ca-threat-model(?![a-z0-9-])|/ca:threat-model", re.IGNORECASE)
+_P07_CONTRACTED_NEGATION = re.compile(r"\b[a-z][a-z0-9-]*n['\u2019]t\b", re.IGNORECASE)
+_P07_FAIL_POLARITY = re.compile(r"\bfail(?:s|ed|ing)?\b", re.IGNORECASE)
+_P07_AUTHORITY_SUBJECT = re.compile(
+    r"\b(?:academy|codearbiter|host)(?:[ -]+)[a-z0-9][a-z0-9-]*\b",
+    re.IGNORECASE,
+)
+_P07_INLINE_MARKDOWN = re.compile(
+    r"(?:~~|`|\*\*|__|\[[^\]\n]*\]\([^\)\n]*\)"
+    r"|(?<!\*)\*(?=\S)[^*\n]+(?<=\S)\*(?!\*)"
+    r"|(?<![a-z0-9_])_(?=[a-z0-9])[^_\n]+(?<=[a-z0-9])_(?![a-z0-9_]))",
+    re.IGNORECASE,
+)
+_P07_OUTCOME_WORDS = frozenset({"successful", "successfully"})
+_P07_REPUDIATION_GAP_RELATIONS = frozenset(
+    {"attribute", "attributes", "audit", "audits", "log", "logs", "trace", "traces"}
+)
+
+
+def _p07_clauses(text: str) -> tuple[str, ...]:
+    return tuple(part.strip() for part in _P07_CLAUSE_BOUNDARY.split(text) if part.strip())
+
+
+def _p07_tokens(clause: str) -> tuple[str, ...]:
+    stripped = _P07_CONTROL_PREFIX.sub("", clause, count=1)
+    return tuple(match.group(0).casefold() for match in _P07_TOKEN.finditer(stripped))
+
+
+def _p07_semantic_words(text: str) -> frozenset[str]:
+    return frozenset(
+        part
+        for token in _p07_tokens(text)
+        for part in token.split("-")
+        if part
+    )
+
+
+def _p07_host_tools(tokens: tuple[str, ...]) -> tuple[tuple[int, int], ...]:
+    return tuple(
+        (index, index + 1)
+        for index, token in enumerate(tokens)
+        if token in _P07_STRONG_SUBJECTS
+    )
+
+
+def _p07_has_negative_polarity(text: str, words: frozenset[str]) -> bool:
+    return bool(
+        words & _P07_UNCERTAIN
+        or _P07_CONTRACTED_NEGATION.search(text)
+        or _P07_FAIL_POLARITY.search(text)
+    )
+
+
+def _p07_realized_outcome_claim(tokens: tuple[str, ...]) -> bool:
+    outcome_indexes = tuple(
+        index for index, token in enumerate(tokens) if token in _P07_OUTCOME_WORDS
+    )
+    return bool(
+        outcome_indexes
+        and (
+            outcome_indexes[-1] == len(tokens) - 1
+            or any(
+                token.endswith(("ed", "en"))
+                for token in tokens
+                if token not in _P07_OUTCOME_WORDS
+            )
+        )
+    )
+
+
+def _p07_generic_threat_is_allowed(tokens: tuple[str, ...]) -> bool:
+    words = {part for token in tokens for part in token.split("-") if part}
+    anchored = bool(words & _P07_THREAT_ANCHORS)
+    marked = any(token in _P07_HYPOTHETICAL or token in _P07_UNCERTAIN or token in _P07_THREAT_MARKERS for token in tokens)
+    return anchored and marked
+
+
+def _p07_invocation_claim(text: str, *, field: str) -> bool:
+    if _P07_EXACT_ROUTE.search(text):
+        return True
+    for clause in _p07_clauses(text):
+        tokens = _p07_tokens(clause)
+        words = {part for token in tokens for part in token.split("-") if part}
+        if words & _P07_FIRST_PERSON or _p07_realized_outcome_claim(tokens):
+            return True
+        if not _p07_host_tools(tokens) and not _P07_AUTHORITY_SUBJECT.search(clause):
+            continue
+        if field == "scope" and not words & _P07_SCOPE_HYPOTHETICAL:
+            return True
+        if field == "threat" and not _p07_generic_threat_is_allowed(tokens):
+            return True
+        if field == "control" and not (
+            _p07_generic_threat_is_allowed(tokens) or words & _P07_CONTROL_DENIAL
+        ):
+            return True
+    return False
+
+
+def _p07_scope_is_affirmative(scope_lines: tuple[str, ...]) -> bool:
+    semantic_lines = tuple(
+        (line.casefold(), _p07_semantic_words(line)) for line in scope_lines
+    )
+    if any(
+        _p07_has_negative_polarity(line, words)
+        or _P07_INLINE_MARKDOWN.search(line)
+        for line, words in semantic_lines
+    ):
+        return False
+    input_relation = any(
+        _P07_TARGET.casefold() in line
+        and (
+            "archive-member" in line
+            or "archive member" in line
+            or "overlay destination" in line
+        )
+        and "repository root" in line
+        and bool(words & _P07_SCOPE_REVIEW_RELATIONS)
+        and bool(words & _P07_SCOPE_INPUT_RELATIONS)
+        for line, words in semantic_lines
+    )
+    prewrite_relation = any(
+        "boundary" in words
+        and "before" in words
+        and "destination write" in line
+        and ("containment" in words or {"rejects", "escape"} <= words)
+        and bool(words & _P07_SCOPE_PREWRITE_RELATIONS)
+        for line, words in semantic_lines
+    )
+    return input_relation and prewrite_relation
+
+
+def _p07_threat_is_concrete(threat: str, category: str) -> bool:
+    if (
+        "[" in threat
+        or "]" in threat
+        or _P07_INLINE_MARKDOWN.search(threat)
+    ):
+        return False
+    for clause in _p07_clauses(threat):
+        words = _p07_semantic_words(clause)
+        category_relations = words & _P07_CATEGORY_RELATIONS[category]
+        negative_polarity = _p07_has_negative_polarity(clause.casefold(), words)
+        negative_accountability_gap = bool(
+            category == "R"
+            and category_relations
+            and category_relations <= _P07_REPUDIATION_GAP_RELATIONS
+        )
+        if (
+            not words & _P07_THREAT_RELATION_MARKERS
+            or not category_relations
+            or _P07_FAIL_POLARITY.search(clause)
+            or (negative_polarity and not negative_accountability_gap)
+        ):
+            continue
+        return True
+    return False
+
+
+def _p07_native_conversation(sections: dict[str, str]) -> bool:
+    scope_lines = tuple(sections["scope"].splitlines())
+    scope = " ".join(scope_lines).casefold()
+    native = "\n".join(sections[name] for name in ("scope", "stride")).casefold()
+    if (
+        not 1 <= len(scope_lines) <= 6
+        or any(not line.strip() or len(line) > 512 for line in scope_lines)
+        or any(re.match(r"^\s*#{1,6}(?:\s|$)", line) for line in scope_lines)
+        or "[" in sections["scope"]
+        or "]" in sections["scope"]
+        or not _p07_scope_is_affirmative(scope_lines)
+        or "academy-target-" in native
+        or _p07_invocation_claim(sections["scope"], field="scope")
+        or "invocation proof" in scope
+    ):
+        return False
+
+    lines = sections["stride"].splitlines()
+    if lines[0] != "| Threat | Category | Likelihood | Impact | Control |":
+        return False
+    separator = _p07_table_cells(lines[1])
+    if separator is None or any(not re.fullmatch(r":?-{3,}:?", cell) for cell in separator):
+        return False
+    categories = ("S", "T", "R", "I", "D", "E")
+    threats: set[str] = set()
+    for line, category in zip(lines[2:], categories, strict=True):
+        cells = _p07_table_cells(line)
+        if cells is None:
+            return False
+        threat, observed, likelihood, impact, control = cells
+        folded_threat = threat.casefold()
+        folded_control = control.casefold()
+        threat_words = _p07_semantic_words(threat)
+        if (
+            observed != category
+            or likelihood not in {"H", "M", "L"}
+            or impact not in {"H", "M", "L"}
+            or not 1 <= len(threat) <= 180
+            or folded_threat in threats
+            or "generic" in folded_threat
+            or not threat_words & _P07_THREAT_ANCHORS
+            or not threat_words & _P07_CATEGORY_WORDS[category]
+            or not _p07_threat_is_concrete(threat, category)
+            or _p07_invocation_claim(threat, field="threat")
+            or _p07_invocation_claim(control, field="control")
+            or not re.match(r"^(?:PRESENT|PLANNED|GAP|N/A): .{20,200}$", control)
+            or re.search(r"\bnone\b", folded_control) is not None
+        ):
+            return False
+        threats.add(folded_threat)
+    return bool(
+        tuple(sections["controls"].splitlines()) == _P07_CONTROLS
+        and sections["clearance"]
+        in {"CLEAR TO IMPLEMENT", "BLOCKED - resolve findings first"}
+    )
+
+
+def _p07_target_binding(sections: dict[str, str]) -> bool:
+    return tuple(sections["binding"].splitlines()) == _P07_BINDING
+
+
+def _p07_report_history(root: Path, attempt: _Attempt, model: str) -> bytes | None:
+    history = run_git(
+        root,
+        ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
+        check=False,
+    )
+    commits = tuple(line for line in history.stdout.splitlines() if _SHA40.fullmatch(line))
+    if history.returncode or commits != (attempt.head,):
+        return None
+    parents = run_git(
+        root,
+        ["rev-list", "--parents", "-n", "1", attempt.head],
+        check=False,
+    ).stdout.split()
+    if parents != [attempt.head, attempt.prepared] or _commit_paths(root, attempt.head) != (model,):
+        return None
+    if not _changed_blobs_are_secret_free(root, attempt.head, [model]):
+        return None
+    status = run_git(
+        root, ["status", "--porcelain", "--untracked-files=all"], check=False
+    )
+    if status.returncode or status.stdout:
+        return None
+    return _git_blob(root, attempt.head, model)
+
+
+def _p07_git_blob_identity(raw: bytes) -> str:
+    header = f"blob {len(raw)}\0".encode("ascii")
+    return hashlib.sha1(header + raw, usedforsecurity=False).hexdigest()
+
+
+def _p07_target_object(root: Path, ref: str, target: str) -> bytes | None:
+    raw = _git_blob(root, ref, target)
+    if raw is None:
+        return None
+    identity = _p07_git_blob_identity(raw)
+    tree = run_git(root, ["ls-tree", ref, "--", target], check=False)
+    expected = f"100644 blob {identity}\t{target}"
+    if (
+        tree.returncode
+        or tree.stdout.strip() != expected
+        or identity != _P07_TARGET_BLOB
+        or len(raw) != 1860
+        or _raw_digest(raw) != _P07_TARGET_SHA256
+    ):
+        return None
+    return raw
+
+
+def _p07_model(context: _SemanticContext) -> bool:
+    expected = {
+        "profile": "stride_model",
+        "model": _P07_MODEL,
+        "target": _P07_TARGET,
+        "target_blob": _P07_TARGET_BLOB,
+        "target_sha256": _P07_TARGET_SHA256,
+    }
+    if context.predicate.data != expected:
+        return False
+    report = _p07_report_history(context.root, context.attempt, _P07_MODEL)
+    prepared_target = _p07_target_object(
+        context.root, context.attempt.prepared, _P07_TARGET
+    )
+    head_target = _p07_target_object(context.root, context.attempt.head, _P07_TARGET)
+    sections = _p07_sections(report)
+    return bool(
+        prepared_target is not None
+        and head_target is not None
+        and prepared_target == head_target
+        and sections is not None
+        and _p07_native_conversation(sections)
+        and _p07_target_binding(sections)
+    )
+
+
 def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     data, root, attempt = context.predicate.data, context.root, context.attempt
     paths = {name: str(data[name]) for name in ("spec", "plan", "board", "test", "code", "fixture", "source_identity")}
@@ -2191,13 +2669,7 @@ def _semantic(context: _SemanticContext) -> bool:
             and preserved_before == _git_blob(root, attempt.head, preserved)
         )
     if profile == "stride_model":
-        model = _changed_document(context, str(data["model"]))
-        target_blob = _git_blob(root, attempt.head, str(data["target"]))
-        return bool(
-            _headings(model, ("Scope", "Spoofing", "Tampering", "Repudiation", "Information disclosure", "Denial of service", "Elevation of privilege", "Mitigations"))
-            and target_blob is not None
-            and f"Target-SHA256: {_raw_digest(target_blob)}" in (model or "")
-        )
+        return _p07_model(context)
     if profile == "hygiene_snapshot":
         return False
     if profile == "p08_authenticated":
@@ -2436,14 +2908,12 @@ def evaluate_checkpoint(
         base_namespace = _control_namespace_paths(repository, attempt.base)
         head_namespace = _control_namespace_paths(repository, attempt.head)
         control_paths = tuple(dict.fromkeys((*base_namespace, contract.source_path)))
-        control_worktree_clean = (
-            run_git(
-                repository,
-                ["diff", "--quiet", attempt.base, "--", *control_paths],
-                check=False,
-            ).returncode
-            == 0
-            and not run_git(
+        control_diff = run_git(
+            repository,
+            ["diff", "--quiet", attempt.base, "--", *control_paths],
+            check=False,
+        )
+        control_status = run_git(
             repository,
             [
                 "status",
@@ -2463,7 +2933,11 @@ def evaluate_checkpoint(
                 contract.source_path,
             ],
             check=False,
-            ).stdout
+        )
+        control_worktree_clean = bool(
+            control_diff.returncode == 0
+            and control_status.returncode == 0
+            and not control_status.stdout
         )
         source_blobs = [
             _git_blob(repository, attempt.base, path) for path in digest_paths

@@ -27,6 +27,11 @@ from academy_engine.checkpoints import (
     _p01_source_identity,
     _p05_finding_is_exact,
     _p05_red_regression_is_exact,
+    _p07_native_conversation,
+    _p07_report_history,
+    _p07_sections,
+    _p07_target_binding,
+    _p07_target_object,
     _semantic,
     _validate_prepare,
     evaluate_checkpoint,
@@ -35,6 +40,7 @@ from academy_engine.checkpoints import (
 )
 from academy_engine.exercise_state import P08AttemptIdentity
 from academy_engine.p05_fixture import stage_p05_fixture
+from tests.test_p07_threat_model import P07_INTENDED_REPORT, REPORT_PATH, TARGET_PATH
 
 _P05_TEST_NAME = (
     "tests.test_cli.WorkshopQueueCliTests."
@@ -81,6 +87,81 @@ class CheckpointTests(unittest.TestCase):
         self.write({"schema_version": 2, "id": "F01-fork-clone-doctor", "predicates": [{"id": "remote_and_doctor", "type": "lab_semantics", "profile": "remote_doctor", "artifact": ".codearbiter/reports/academy/F01-doctor.json"}]})
 
     def tearDown(self): self.temp.cleanup()
+
+    def _p07_direct_repository(self) -> tuple[Path, str]:
+        source = Path(__file__).resolve().parents[1]
+        root = self.root / f"p07-direct-{len(tuple(self.root.glob('p07-direct-*')))}"
+        target = root / TARGET_PATH
+        target.parent.mkdir(parents=True)
+        shutil.copyfile(source / TARGET_PATH, target)
+        subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "config", "user.name", "P07 Direct"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "p07-direct@example.invalid"], cwd=root, check=True)
+        subprocess.run(["git", "add", TARGET_PATH], cwd=root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "prepared"], cwd=root, check=True, capture_output=True, text=True)
+        return root, subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+    def test_p07_direct_target_object_rejects_wrong_blob_and_bytes(self) -> None:
+        root, prepared = self._p07_direct_repository()
+        self.assertIsNotNone(_p07_target_object(root, prepared, TARGET_PATH))
+        target = root / TARGET_PATH
+        target.write_bytes(target.read_bytes() + b"\n# changed target\n")
+        subprocess.run(["git", "add", TARGET_PATH], cwd=root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "wrong target"], cwd=root, check=True, capture_output=True, text=True)
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ).stdout.strip()
+        self.assertIsNone(_p07_target_object(root, head, TARGET_PATH))
+
+    def test_p07_direct_parser_rejects_duplicate_academy_label(self) -> None:
+        report = P07_INTENDED_REPORT.replace(
+            b"The boundary must prove containment before a destination write.\n",
+            b"The boundary must prove containment before a destination write.\nAcademy-Target-Path: academy_engine/paths.py\n",
+        )
+        sections = _p07_sections(report)
+        self.assertIsNotNone(sections)
+        self.assertFalse(_p07_native_conversation(sections or {}))
+
+    def test_p07_direct_parser_rejects_crlf_and_missing_final_lf(self) -> None:
+        self.assertIsNone(_p07_sections(P07_INTENDED_REPORT.replace(b"\n", b"\r\n")))
+        self.assertIsNone(_p07_sections(P07_INTENDED_REPORT[:-1]))
+        self.assertIsNone(
+            _p07_sections(
+                P07_INTENDED_REPORT.replace(b"destination write.", b"destination write.\x00", 1)
+            )
+        )
+
+    def test_p07_direct_parser_rejects_stride_table_reordering(self) -> None:
+        report = P07_INTENDED_REPORT.replace(b"| S | L | M |", b"| T | L | M |", 1)
+        sections = _p07_sections(report)
+        self.assertIsNotNone(sections)
+        self.assertFalse(_p07_native_conversation(sections or {}))
+        valid = _p07_sections(P07_INTENDED_REPORT)
+        self.assertIsNotNone(valid)
+        self.assertTrue(_p07_target_binding(valid or {}))
+
+    def test_p07_direct_history_rejects_report_plus_target_cocommit(self) -> None:
+        root, prepared = self._p07_direct_repository()
+        report = root / REPORT_PATH
+        report.parent.mkdir(parents=True)
+        report.write_bytes(P07_INTENDED_REPORT)
+        target = root / TARGET_PATH
+        target.write_bytes(target.read_bytes() + b"\n# co-commit\n")
+        subprocess.run(
+            ["git", "-c", "core.autocrlf=false", "add", REPORT_PATH, TARGET_PATH],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(["git", "commit", "-m", "report plus target"], cwd=root, check=True, capture_output=True, text=True)
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ).stdout.strip()
+        attempt = _Attempt("academy/P07-threat-model/1", 1, prepared, prepared, head)
+        self.assertIsNone(_p07_report_history(root, attempt, REPORT_PATH))
 
     def _p05_git(
         self,

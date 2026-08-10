@@ -15,12 +15,12 @@ next_lab: P08-repository-hygiene
 
 ## Why this mechanism matters
 
-Threat modeling is a scoped design review, not automatic authorization to change a security control.
-The codeArbiter conversation has four native fields: Scope, a complete six-row STRIDE table,
-Recommended controls, and Clearance. Academy needs additional deterministic target evidence, so the
-learner wraps those native fields and adds a clearly separate Academy target identity/SHA section.
-That augmented wrapper is Academy evidence; it must never be called native or canonical codeArbiter
-output.
+Threat modeling is an opt-in and read-only design review, not automatic authorization to change a
+security control. The codeArbiter conversation has four native fields: Scope, a complete six-row
+STRIDE table, Recommended controls before implementation, and Clearance. Academy needs additional
+deterministic target evidence, so you preserve those fields and add a clearly separate Academy
+target identity/SHA-256 section. The resulting report is Academy evidence; it is not native or
+canonical `ca-threat-model` output.
 
 ## Start the scenario
 
@@ -33,8 +33,9 @@ $learnerRepository = (Resolve-Path -LiteralPath '.').Path
 arbiter-academy --repository $learnerRepository prepare P07-threat-model
 ```
 
-The bounded target is `academy_engine/paths.py`. Preparation records its tracked blob and raw
-SHA-256 outside the learner checkout and does not prewrite a threat model or weaken containment.
+The bounded target is `academy_engine/paths.py`. Preparation materializes the frozen scenario descriptor
+without prewriting a threat model or weakening containment. The installed verifier later recomputes
+the target blob identity and raw SHA-256 from the prepared and head committed Git objects.
 
 ## Use your host
 
@@ -63,17 +64,70 @@ Pi is the supported Feature Forge preview and requires project trust. Its docume
 
 ## Do the work
 
-Define path input, trust boundary, archive member behavior, resolved destination, and relevant
-assets. Complete all Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service,
-and Elevation of Privilege rows with an applicable disposition; do not leave a row blank or fill it
-with generic boilerplate. Preserve the command's Scope, STRIDE table, Recommended controls, and
-Clearance exactly as the conversational result.
+Create `.codearbiter/reports/academy/P07-threat-model.md` as strict UTF-8 with LF line endings and
+one final newline. Keep it at or below 12 KiB. Use this exact section order and no extra sections:
 
-Create `.codearbiter/reports/academy/P07-threat-model.md`. Put those four fields in a section labeled
-as the native codeArbiter conversation. Add a separate **Academy Target-SHA256/identity binding**
-section naming `academy_engine/paths.py`, its current tracked blob identity, and the lowercase raw
-SHA-256 of those exact head bytes. Commit the wrapper after prepare without changing the target.
-This lab assesses controls; it does not authorize implementing them.
+```text
+# P07 Threat Model - Archive import containment boundary
+
+## Scope
+<one to six nonempty lines>
+
+## STRIDE findings
+| Threat | Category | Likelihood | Impact | Control |
+| --- | --- | --- | --- | --- |
+| <unique archive-import threat> | S | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+| <unique archive-import threat> | T | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+| <unique archive-import threat> | R | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+| <unique archive-import threat> | I | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+| <unique archive-import threat> | D | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+| <unique archive-import threat> | E | H, M, or L | H, M, or L | PRESENT:, PLANNED:, GAP:, or N/A: with a concrete reason |
+
+## Recommended controls before implementation
+- Keep destination resolution under the selected repository root before creating or copying a file.
+- Reject absolute, traversal, symlink, and Windows reparse-point ancestors in archive destinations.
+- Fail closed on a different drive or an unrepresentable containment path before any write.
+
+## Clearance
+CLEAR TO IMPLEMENT
+```
+
+`BLOCKED - resolve findings first` is the other permitted Clearance line. Both outcomes are
+advisory; neither authorizes a P07 code change.
+
+Your Scope must make two affirmative relationships clear: the review covers
+`academy_engine/paths.py` handling learner-controlled archive-member or overlay-destination input
+beneath the selected repository root, and the boundary proves containment or rejects an escape
+before a destination write. Negated versions, including `not`, `n't` contractions, and
+`fail`/`fails`/`failed`/`failing` predicates, and unordered keyword lists fail.
+
+Give the six rows unique threats in exact `S`, `T`, `R`, `I`, `D`, `E` order. Each Threat cell must
+state a concrete modal relationship and category-specific outcome, such as spoofing identity,
+overwriting a destination, disputing attribution, disclosing a location, exhausting resources, or
+crossing into privilege. A bare category keyword is not a threat. `N/A:` is permitted only when its
+Control explains why that category is not applicable at this local boundary; `NONE`, blank rows,
+reordered categories, repeated threats, and generic boilerplate fail. Required Scope and STRIDE
+meaning must be learner-visible; HTML comments and inline HTML markup, Markdown link metadata, and
+Markdown decoration such as struck-through or emphasized threat verbs are rejected rather than
+counted as evidence. Non-ASCII characters (including lookalikes) are also rejected. A Control
+cannot supply missing Threat semantics. First-person native prose and realized success claims are
+not invocation evidence and are rejected without trying to enumerate every possible action or tool
+noun. Other host/tool clauses are accepted only when their hypothetical, uncertain, threat, or
+rejection context is explicit; they never prove invocation.
+
+After Clearance, add this separate Academy section with these exact labels and values:
+
+```text
+## Academy Target-SHA256/identity binding
+Academy-Target-Path: academy_engine/paths.py
+Academy-Target-Prepared-Blob: b36801add4eb375f796d1107ee63dd604d08a034
+Academy-Target-Head-Blob: b36801add4eb375f796d1107ee63dd604d08a034
+Academy-Target-SHA256: e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d
+```
+
+Do not put an `Academy-Target-` label in a native field, repeat a native heading inside the Academy
+section, claim a host command was invoked, include a secret, or edit `academy_engine/paths.py`.
+Commit only the report after prepare. This lab assesses controls; it never implements them.
 
 ## Hints
 
@@ -95,28 +149,31 @@ of the four native conversational fields and verify the target never changes aft
 
 ## Success evidence
 
-The committed Academy wrapper preserves Scope, all six STRIDE dispositions, Recommended controls,
-and Clearance, then separately labels an exact target path/blob/raw-SHA binding. Git orders it after
-prepare, and the target bytes at head still match the wrapper. Missing fields, generic/blank rows,
-mixed metadata, stale digest, another target, post-wrapper mutation, or calling the augmented file
-native/canonical output fails.
+Success is one report-only commit after the prepared commit, a clean worktree, and byte-identical
+prepared/head target objects matching the frozen blob and SHA-256. The committed report must match
+the ordered native grammar and separate Academy binding above. Missing fields, generic or reordered
+rows, mixed metadata, stale identity, target mutation, another changed path, or extra history fails.
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
 arbiter-academy --repository $learnerRepository check P07-threat-model
 ```
 
+The check cannot prove that a host command was invoked. It proves only the committed report,
+prepared/head target identity, exact bytes, and Git ordering.
+
 ## Recovery
 
-For a wrong target, incomplete model, or stale digest, preserve the attempt and reset:
+For a wrong target, incomplete model, or stale digest, use the installed reset command:
 
 ```powershell
 $learnerRepository = (Resolve-Path -LiteralPath '.').Path
 arbiter-academy --repository $learnerRepository reset P07-threat-model
 ```
 
-Do not alter `academy_engine/paths.py` merely to fit an old digest or copy a model from another
-attempt.
+Reset archives the failed attempt, returns to the immutable base, and uses that base to prepare an
+independent retry. It does not delete learner history. Do not alter `academy_engine/paths.py` merely
+to fit an old digest or copy a model from another attempt.
 
 ## Next lab
 

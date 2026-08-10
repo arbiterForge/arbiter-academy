@@ -135,6 +135,16 @@ def p05_academy_git_fixture() -> tuple[RetryingTemporaryDirectory, Path]:
     return temporary, root
 
 
+def p07_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    """Create a real later-lab repository with the frozen P07 target committed."""
+    temporary, root = p01_academy_git_fixture()
+    source = Path(__file__).parents[1]
+    target = root / "academy_engine" / "paths.py"
+    target.parent.mkdir(parents=True)
+    shutil.copyfile(source / "academy_engine" / "paths.py", target)
+    git(root, "add", "academy_engine/paths.py")
+    git(root, "commit", "-m", "add frozen P07 target")
+    return temporary, root
 
 class ScenarioTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -203,6 +213,82 @@ class ScenarioTests(unittest.TestCase):
             git(root, "show", f"{prepared.commit_sha}:.codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"),
         )
 
+
+    def test_prepare_p07_preserves_the_frozen_target_blob_before_learner_work(self) -> None:
+        """Catches preparation that rebinds or mutates the frozen containment target."""
+        temporary, root = p07_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        expected_descriptor = (
+            b'{"lab_id":"P07-threat-model","operation":"stride_model",'
+            b'"request":"academy_engine/paths.py archive-import containment boundary",'
+            b'"schema_version":1,"starting_condition":"model-absent",'
+            b'"target":"academy_engine/paths.py",'
+            b'"target_blob":"b36801add4eb375f796d1107ee63dd604d08a034",'
+            b'"target_sha256":"e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}\n'
+        )
+
+        prepared = prepare_lab(root, "P07-threat-model", installed_authority=True)
+
+        self.assertEqual(
+            git(root, "rev-parse", f"{prepared.base_sha}:academy_engine/paths.py"),
+            "b36801add4eb375f796d1107ee63dd604d08a034",
+        )
+        self.assertEqual(
+            git(root, "rev-parse", f"{prepared.commit_sha}:academy_engine/paths.py"),
+            "b36801add4eb375f796d1107ee63dd604d08a034",
+        )
+        self.assertEqual(
+            subprocess.run(
+                ["git", "show", f"{prepared.commit_sha}:training_scenarios/P07-threat-model.json"],
+                cwd=root,
+                capture_output=True,
+                check=True,
+            ).stdout,
+            expected_descriptor,
+        )
+        self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
+
+    def test_reset_p07_archives_a_failed_attempt_without_mutating_the_target(self) -> None:
+        """Catches reset discarding the failed branch or rebinding the target on retry."""
+        temporary, root = p07_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        prepared = prepare_lab(root, "P07-threat-model", installed_authority=True)
+        report = root / ".codearbiter" / "reports" / "academy" / "P07-threat-model.md"
+        report.parent.mkdir(parents=True, exist_ok=True)
+        report.write_text("failed learner attempt\n", encoding="utf-8", newline="\n")
+        git(root, "add", ".codearbiter/reports/academy/P07-threat-model.md")
+        git(root, "commit", "-m", "learner: incomplete P07 report")
+        failed_head = git(root, "rev-parse", "HEAD")
+
+        retry = reset_lab(
+            root,
+            "P07-threat-model",
+            now=lambda: datetime(2026, 8, 8, 12, 34, 56, tzinfo=timezone.utc),
+            installed_authority=True,
+        )
+
+        archive = "academy/archive/P07-threat-model/20260808T123456Z"
+        self.assertEqual(git(root, "rev-parse", archive), failed_head)
+        self.assertEqual(retry.attempt, 2)
+        for revision in (archive, retry.base_sha, retry.commit_sha):
+            with self.subTest(revision=revision):
+                self.assertEqual(
+                    git(root, "rev-parse", f"{revision}:academy_engine/paths.py"),
+                    "b36801add4eb375f796d1107ee63dd604d08a034",
+                )
+        self.assertEqual(
+            subprocess.run(
+                ["git", "show", f"{archive}:.codearbiter/reports/academy/P07-threat-model.md"],
+                cwd=root,
+                capture_output=True,
+                check=True,
+            ).stdout,
+            b"failed learner attempt\n",
+        )
+        self.assertEqual(
+            git(root, "status", "--porcelain", "--untracked-files=all"),
+            "",
+        )
 
     def test_p02_patch_remains_applicable_before_p05_stages_its_fixture(self) -> None:
         """P05 may generate blocked behavior, but must not alter the shared P02 source."""

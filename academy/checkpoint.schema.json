@@ -45,6 +45,8 @@
           "handoff": {"$ref": "#/$defs/path"},
           "model": {"$ref": "#/$defs/path"},
           "target": {"$ref": "#/$defs/path"},
+          "target_blob": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "target_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
           "snapshot": {"$ref": "#/$defs/path"},
           "sprint_log": {"$ref": "#/$defs/path"},
           "overrides": {"$ref": "#/$defs/path"},
