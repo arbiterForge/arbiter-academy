@@ -1542,6 +1542,65 @@ class PreviewSiteTests(unittest.TestCase):
             "mobile CSS must not reorder the TOC ahead of the article",
         )
 
+    def test_guided_visual_contract_is_editorial_responsive_and_accessible(self) -> None:
+        """Catches card-heavy styling, clipped variants, or inaccessible lesson controls."""
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
+        f01 = (
+            self.out / "labs" / "F01-fork-clone-doctor" / "index.html"
+        ).read_text(encoding="utf-8")
+
+        for selector in (
+            ".lesson-layout",
+            ".academy-content",
+            ".lesson-action",
+            ".command-variant",
+            ".command-shell",
+        ):
+            with self.subTest(selector=selector):
+                rule = re.search(
+                    rf"{re.escape(selector)}\s*\{{(?P<body>.*?)\}}",
+                    css,
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(rule, f"missing {selector} containment rule")
+                assert rule is not None
+                self.assertRegex(rule.group("body"), r"\bmin-width:\s*0\s*;")
+
+        command_rule = re.search(
+            r"\.academy-content pre,\s*\.start-steps pre\s*\{(?P<body>.*?)\}",
+            css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(command_rule)
+        assert command_rule is not None
+        self.assertRegex(command_rule.group("body"), r"\boverflow-x:\s*auto\s*;")
+        self.assertRegex(command_rule.group("body"), r"\bmax-width:\s*100%\s*;")
+
+        self.assertRegex(css, r"overflow-wrap:\s*anywhere")
+        self.assertRegex(css, r"min-height:\s*2\.75rem")
+        self.assertRegex(css, r":focus-visible\s*\{")
+        self.assertRegex(css, r"\[hidden\]\s*\{\s*display:\s*none\s*!important")
+        self.assertIn("@media (max-width: 42rem)", css)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", css)
+        self.assertIn("@media (forced-colors: active)", css)
+        self.assertIn("@media (prefers-color-scheme: light)", css)
+        self.assertRegex(css, r"\.academy-content\s*\{[^}]*max-width:\s*7[0-5]ch", re.DOTALL)
+
+        self.assertNotIn("radial-gradient", css)
+        self.assertNotRegex(
+            css,
+            r"\.lab-grid\s*\{[^}]*grid-template-columns",
+            "the course catalog must read as a linear ledger, not a card grid",
+        )
+        self.assertNotRegex(css, r"(?:metric|stat|kpi)-(?:card|grid)")
+
+        self.assertIn('class="lesson-action__sequence"', f01)
+        self.assertIn('class="action-role"', f01)
+        self.assertIn('class="action-expected"', f01)
+        self.assertIn('class="action-recovery"', f01)
+        self.assertIn('<nav class="lab-toc" aria-label="On this page">', f01)
+
     def test_build_rejects_a_missing_eligible_lesson(self) -> None:
         """Catches a partial publication when a manifest-selected lesson is absent."""
         source = self._copy_public_source()
