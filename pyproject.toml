@@ -21,6 +21,7 @@ workshop_queue = ["seed/tickets.json"]
 
 [tool.setuptools.data-files]
 "share/arbiter-academy/academy" = [
+  "academy/lesson-action.schema.json",
   "academy/catalog.json",
   "academy/catalog.schema.json",
   "academy/checkpoint.schema.json",
@@ -28,6 +29,8 @@ workshop_queue = ["seed/tickets.json"]
   "academy/receipt.schema.json",
   "academy/scenario.schema.json",
 ]
+"share/arbiter-academy/academy/actions" = ["academy/actions/*.json"]
+"share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
 "share/arbiter-academy/academy/checkpoints" = ["academy/checkpoints/*.json"]
 "share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.3.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
