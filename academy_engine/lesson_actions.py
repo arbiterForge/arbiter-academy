@@ -244,6 +244,10 @@ def _validate_action(value: object) -> LessonAction:
         if surface_value is None:
             raise ValueError("non-command actions require one action-level surface")
         surface = _require_enum(surface_value, SURFACES, "lesson action surface")
+        if surface == "harness":
+            raise ValueError(
+                "non-command actions cannot use harness; use a command variant with a named host"
+            )
 
     return LessonAction(
         action_id,

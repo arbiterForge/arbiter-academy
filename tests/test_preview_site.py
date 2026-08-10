@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
 from academy_engine.checkpoints import LAB_INVENTORY
-from academy_engine.lesson_actions import load_action_manifest
+from academy_engine.lesson_actions import load_action_manifest, validate_action_manifest
 from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
@@ -99,6 +99,23 @@ class PreviewSiteTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         cleanup_temporary_directory(self.temporary_directory)
+
+    def non_command_manifest_action(
+        self, *, action_id: str = "read-prerequisites", surface: str = "browser"
+    ) -> dict[str, object]:
+        return {
+            "id": action_id,
+            "sequence": 1,
+            "title": "Read the prerequisites",
+            "actor": "learner",
+            "surface": surface,
+            "instruction": "Read the prerequisite explanation before changing the repository.",
+            "rationale": None,
+            "variants": [],
+            "expected_result": "You can identify the repository boundary.",
+            "recovery": "Return to the prerequisite section and compare each repository role.",
+            "evidence": None,
+        }
 
     def test_teardown_retries_a_transient_nonempty_directory(self) -> None:
         transient = OSError(errno.ENOTEMPTY, "directory not empty")
@@ -1222,6 +1239,120 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("&lt;script&gt;not markup&lt;/script&gt;", rendered)
         self.assertIn("Open &lt;b&gt;nothing executable&lt;/b&gt;.", rendered)
 
+    def test_non_command_renderer_labels_every_unambiguous_surface(self) -> None:
+        """Catches loss of actor/surface/OS clarity on non-command lesson actions."""
+        expected_labels = {
+            "browser": "You \u00b7 Browser \u00b7 All operating systems",
+            "native-terminal": "You \u00b7 Native terminal \u00b7 All operating systems",
+            "academy-console": "You \u00b7 Academy console \u00b7 All operating systems",
+        }
+        for surface, label in expected_labels.items():
+            with self.subTest(surface=surface):
+                action = preview_site.LessonAction(
+                    f"F01-{surface}",
+                    1,
+                    "Inspect the surface",
+                    "learner",
+                    surface,
+                    "Inspect the named surface.",
+                    None,
+                    (),
+                    "The surface is visible.",
+                    "Return to the lesson and retry.",
+                    None,
+                )
+                self.assertIn(label, preview_site._render_action(action))
+
+        ambiguous = self.non_command_manifest_action(surface="harness")
+        with self.assertRaisesRegex(ValueError, "non-command actions cannot use harness"):
+            validate_action_manifest(
+                {
+                    "schema_version": 1,
+                    "lesson_contract_version": 1,
+                    "document_id": "home",
+                    "actions": [ambiguous],
+                },
+                expected_document_id="home",
+            )
+
+    def test_home_and_recovery_activate_only_with_complete_guide_action_pairs(self) -> None:
+        """Catches partial or malformed guide publication and verifies real pair rendering."""
+        source = self._copy_public_source()
+        guides = source / "academy" / "guides"
+        actions = source / "academy" / "actions"
+        guides.mkdir()
+        actions.mkdir()
+        for document_id, action_id, heading in (
+            ("home", "home-open", "Guided Academy home"),
+            ("recovery", "recovery-inspect", "Guided recovery"),
+        ):
+            (guides / f"{document_id}.md").write_text(
+                f"# {heading}\n\n{{{{action:{action_id}}}}}\n",
+                encoding="utf-8",
+            )
+            (actions / f"{document_id}.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "lesson_contract_version": 1,
+                        "document_id": document_id,
+                        "actions": [self.non_command_manifest_action(action_id=action_id)],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+        build_preview_site(source, self.out, release_sha="6" * 40)
+
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        recovery = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('data-action-id="home-open"', home)
+        self.assertIn("Guided Academy home", home)
+        self.assertIn('data-action-id="recovery-inspect"', recovery)
+        self.assertIn("Guided recovery", recovery)
+
+    def test_home_and_recovery_fail_closed_for_partial_or_malformed_pairs(self) -> None:
+        """Catches a guide or action manifest reaching publication without its reviewed peer."""
+        for document_id in ("home", "recovery"):
+            for present in ("guide", "action"):
+                with self.subTest(document_id=document_id, present=present):
+                    source = self._copy_public_source(f"partial-{document_id}-{present}-source")
+                    guide = source / "academy" / "guides" / f"{document_id}.md"
+                    action = source / "academy" / "actions" / f"{document_id}.json"
+                    if present == "guide":
+                        guide.parent.mkdir()
+                        guide.write_text("# Partial guide\n", encoding="utf-8")
+                    else:
+                        action.parent.mkdir()
+                        action.write_text("{}", encoding="utf-8")
+                    destination = self.out.parent / f"partial-{document_id}-{present}"
+                    with self.assertRaisesRegex(ValueError, "guide/action pair"):
+                        build_preview_site(source, destination, release_sha="7" * 40)
+                    self.assertFalse(destination.exists())
+
+        source = self._copy_public_source("malformed-home-source")
+        guide = source / "academy" / "guides" / "home.md"
+        action = source / "academy" / "actions" / "home.json"
+        guide.parent.mkdir()
+        action.parent.mkdir()
+        guide.write_text("# Malformed home\n\n{{action:home-open}}\n", encoding="utf-8")
+        action.write_text("{", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "could not read lesson action manifest"):
+            build_preview_site(source, self.out.parent / "malformed-home", release_sha="8" * 40)
+
+    def test_no_guide_assets_preserve_legacy_home_and_recovery(self) -> None:
+        """Catches pair activation accidentally becoming mandatory before Task 5 lands."""
+        source = self._copy_public_source()
+
+        build_preview_site(source, self.out, release_sha="9" * 40)
+
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        recovery = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("Before you begin", home)
+        self.assertIn("Diagnose before resetting", recovery)
+        self.assertNotIn('class="lesson-action"', home)
+        self.assertNotIn('class="lesson-action"', recovery)
+
     def test_markdown_renderer_rejects_unreviewed_syntax_before_writing(self) -> None:
         """Catches unknown Markdown or active HTML being silently dropped or published."""
         injections = (
@@ -1445,8 +1576,8 @@ class PreviewSiteTests(unittest.TestCase):
                 self.assertTrue(font.is_file())
                 self.assertEqual(hashlib.sha256(font.read_bytes()).hexdigest(), expected_hash)
 
-    def _copy_public_source(self) -> Path:
-        source = Path(self.temporary_directory.name) / "source"
+    def _copy_public_source(self, label: str = "source") -> Path:
+        source = Path(self.temporary_directory.name) / label
         academy = source / "academy"
         (academy / "publication").mkdir(parents=True)
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")

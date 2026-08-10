@@ -127,6 +127,20 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(manifest.actions[0].surface, "browser")
         self.assertEqual(manifest.actions[0].variants, ())
 
+    def test_non_command_actions_reject_harness_without_a_named_host(self) -> None:
+        """Catches a host-ambiguous harness step with no command variant identity."""
+        action = self.non_command_action()
+        action["surface"] = "harness"
+
+        with self.assertRaisesRegex(ValueError, "non-command actions cannot use harness"):
+            validate_action_manifest(self.manifest(action), expected_document_id=DOCUMENT_ID)
+
+        schema = self.schema()
+        non_command_surfaces = schema["$defs"]["action"]["oneOf"][0]["properties"][  # type: ignore[index]
+            "surface"
+        ]["enum"]
+        self.assertEqual(non_command_surfaces, ["browser", "native-terminal", "academy-console"])
+
     def test_rejects_unknown_or_missing_keys_at_every_level(self) -> None:
         cases: list[tuple[str, dict[str, object]]] = []
         unknown_manifest = self.manifest()

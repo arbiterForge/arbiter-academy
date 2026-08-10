@@ -59,12 +59,16 @@ def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None)
     _reject_unsafe_generated_paths(out, expected_paths, expected_files)
     _reject_unexpected_generated_paths(out, expected_paths)
     assets = _load_public_assets(root)
+    guides = {
+        document_id: _read_optional_guide(root, document_id)
+        for document_id in ("home", "recovery")
+    }
 
     lessons = {
         lab_id: _read_public_lesson(root, lab_id, guided=lab_id in manifest.guided_labs)
         for lab_id in manifest.available_labs
     }
-    rendered_pages = _render_pages(manifest, lessons, templates, commit)
+    rendered_pages = _render_pages(manifest, lessons, guides, templates, commit)
     _validate_rendered_inventory(rendered_pages, _expected_rendered_files(manifest))
 
     for relative_path, content in rendered_pages.items():
@@ -318,6 +322,36 @@ def _read_markdown_document(
         "headings": headings,
         "referenced_actions": referenced_actions,
     }
+
+
+def _read_optional_guide(root: Path, document_id: str) -> dict[str, object] | None:
+    """Activate a guide only when its Markdown and action manifest are both present."""
+    guide_path = root / "academy" / "guides" / f"{document_id}.md"
+    action_path = root / "academy" / "actions" / f"{document_id}.json"
+
+    def present(path: Path) -> bool:
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return False
+        except OSError as error:
+            raise ValueError(f"could not inspect guided {document_id} asset: {error}") from error
+        return True
+
+    guide_present = present(guide_path)
+    action_present = present(action_path)
+    if not guide_present and not action_present:
+        return None
+    if guide_present != action_present:
+        raise ValueError(
+            f"guided {document_id} guide/action pair must be either both present or both absent"
+        )
+    return _read_markdown_document(
+        root,
+        guide_path.relative_to(root),
+        document_id,
+        require_h1=True,
+    )
 
 
 def _render_inline(lab_id: str, value: str) -> str:
@@ -622,6 +656,7 @@ def _render_markdown(
 def _render_pages(
     manifest: PreviewManifest,
     lessons: dict[str, dict[str, object]],
+    guides: dict[str, dict[str, object] | None],
     templates: dict[str, Template],
     commit: str,
 ) -> dict[Path, str]:
@@ -650,6 +685,9 @@ def _render_pages(
             templates,
             "Arbiter Academy Preview 0.3",
             templates["index"].substitute(
+                guide_content=(
+                    "" if guides["home"] is None else str(guides["home"]["content"])
+                ),
                 available_labs=available_labs,
                 coming_next_section=coming_next_section,
                 discussion_url=escape(manifest.discussion_url, quote=True),
@@ -661,7 +699,13 @@ def _render_pages(
         Path("recovery/index.html"): _page(
             templates,
             "Recovery | Arbiter Academy Preview 0.3",
-            templates["recovery"].substitute(),
+            templates["recovery"].substitute(
+                guide_content=(
+                    ""
+                    if guides["recovery"] is None
+                    else str(guides["recovery"]["content"])
+                )
+            ),
             root_prefix="../",
         ),
         Path("release.json"): json.dumps(

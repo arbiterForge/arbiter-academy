@@ -86,7 +86,7 @@
       "oneOf": [
         {
           "properties": {
-            "surface": {"enum": ["browser", "native-terminal", "harness", "academy-console"]},
+            "surface": {"enum": ["browser", "native-terminal", "academy-console"]},
             "variants": {"maxItems": 0}
           }
         },
