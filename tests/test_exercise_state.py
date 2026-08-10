@@ -1730,8 +1730,8 @@ class P02RealRepositoryTests(unittest.TestCase):
         profile = self.repository / ".codearbiter/tech-stack.md"
         original = profile.read_bytes()
         tampered = original.replace(
-            b"- Python 3.10 or newer.",
             b"- Python 3.11 or newer.",
+            b"- Python 3.12 or newer.",
             1,
         )
         self.assertNotEqual(tampered, original)
@@ -2476,15 +2476,16 @@ class P02RealRepositoryTests(unittest.TestCase):
                 )
             else:
                 os.symlink(outside, parent, target_is_directory=True)
-            self.assertEqual(
-                git(
-                    self.repository,
-                    "status",
-                    "--porcelain",
-                    "--untracked-files=all",
-                ).stdout,
-                "",
-            )
+            redirected_status = git(
+                self.repository,
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+            ).stdout
+            if junction:
+                self.assertEqual(redirected_status, "")
+            else:
+                self.assertNotEqual(redirected_status, "")
 
             caught = None
             try:
@@ -2498,6 +2499,15 @@ class P02RealRepositoryTests(unittest.TestCase):
             self.assertEqual(str(caught), "P02 transition is incomplete.")
             self.assertNotIn(str(self.repository), str(caught))
             self.assertNotIn(str(outside), str(caught))
+            self.assertEqual(
+                git(
+                    self.repository,
+                    "status",
+                    "--porcelain",
+                    "--untracked-files=all",
+                ).stdout,
+                redirected_status,
+            )
         finally:
             if os.path.lexists(parent):
                 if junction:
@@ -2505,6 +2515,15 @@ class P02RealRepositoryTests(unittest.TestCase):
                 else:
                     os.unlink(parent)
             original_parent.rename(parent)
+        self.assertEqual(
+            git(
+                self.repository,
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+            ).stdout,
+            "",
+        )
 
     def test_apply_patch_validates_targets_before_repository_status(self) -> None:
         base = git(self.repository, "rev-parse", "HEAD").stdout.strip()
@@ -3799,7 +3818,10 @@ class P02RealRepositoryTests(unittest.TestCase):
             "--chmod=+x",
             target.relative_to(self.repository).as_posix(),
         )
+        if os.name != "nt":
+            target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
         git(self.repository, "commit", "-m", "academy: prepare P02-commit-review-pr attempt 1")
+        self.assertEqual(git(self.repository, "status", "--porcelain").stdout, "")
         git(self.repository, "switch", "main")
         store, lab = self._store_and_lab()
 
@@ -4638,7 +4660,7 @@ class P02RealRepositoryTests(unittest.TestCase):
         try:
             profile = case.repository / ".codearbiter/tech-stack.md"
             original = profile.read_bytes()
-            tampered = original.replace(b"Python 3.10", b"Python 3.11", 1)
+            tampered = original.replace(b"Python 3.11", b"Python 3.12", 1)
             case.assertNotEqual(tampered, original)
             profile.write_bytes(tampered)
             git(case.repository, "add", "--", ".codearbiter/tech-stack.md")

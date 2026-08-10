@@ -390,12 +390,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                     "    strategy:\n"
                     "      fail-fast: false\n"
                     "      matrix:\n"
-                    '        python-version: ["3.10", "3.12"]\n'
+                    '        python-version: ["3.11", "3.12"]\n'
                     "        shard-index: [0, 1, 2, 3, 4, 5, 6, 7]",
                     f"{label} strategy and matrix must match the sixteen-job gate",
                 )
                 self.assertRegex(job, r"(?m)^    timeout-minutes: 90\s*$")
-                self.assertRegex(job, r'python-version:\s*\["3\.10", "3\.12"\]')
+                self.assertRegex(job, r'python-version:\s*\["3\.11", "3\.12"\]')
                 self.assertRegex(job, r"shard-index:\s*\[0, 1, 2, 3, 4, 5, 6, 7\]")
                 self.assertEqual(
                     _named_step(job, "Run one exhaustive milestone shard"),
@@ -425,6 +425,22 @@ class PagesWorkflowContractTests(unittest.TestCase):
 
         self.assertNotIn("upload-pages-artifact", self.main_verify)
         self.assertEqual(self.pages_workflow.count("upload-pages-artifact@"), 1)
+
+    def test_hosted_shards_remove_checkout_only_git_config(self) -> None:
+        cleanup = (
+            "      - name: Remove checkout-only Git configuration\n"
+            "        run: git config --local --unset-all gc.auto"
+        )
+        for label, job in (("pull request", self.verify), ("main", self.main_verify)):
+            with self.subTest(job=label):
+                self.assertEqual(
+                    _named_step(job, "Remove checkout-only Git configuration"),
+                    cleanup,
+                )
+                self.assertLess(
+                    job.index("Remove checkout-only Git configuration"),
+                    job.index("Run one exhaustive milestone shard"),
+                )
 
     def test_shard_gate_contract_rejects_failure_tolerance_mutations(self) -> None:
         mutations = (
@@ -513,16 +529,16 @@ class PagesWorkflowContractTests(unittest.TestCase):
     def test_shard_job_contract_rejects_structural_matrix_mutations(self) -> None:
         matrix = (
             '      matrix:\n'
-            '        python-version: ["3.10", "3.12"]\n'
+            '        python-version: ["3.11", "3.12"]\n'
             '        shard-index: [0, 1, 2, 3, 4, 5, 6, 7]'
         )
         matrix_mutations = {
-            "exclude": matrix + '\n        exclude:\n          - python-version: "3.10"',
+            "exclude": matrix + '\n        exclude:\n          - python-version: "3.11"',
             "include": matrix + '\n        include:\n          - python-version: "3.13"',
             "unknown axis": matrix + "\n        runner: [ubuntu-latest]",
-            "duplicate axis": matrix + '\n        python-version: ["3.10", "3.12"]',
+            "duplicate axis": matrix + '\n        python-version: ["3.11", "3.12"]',
             "missing axis": matrix.replace(
-                '        python-version: ["3.10", "3.12"]\n', ""
+                '        python-version: ["3.11", "3.12"]\n', ""
             ),
             "substituted axis": matrix.replace("shard-index:", "shard-number:"),
         }
@@ -730,7 +746,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 self.assertIn("CODEARBITER_SOURCE_SHA: 469c2fb82555346a739ab72a0f7284f22874aa3e", job)
                 self.assertIn("CODEARBITER_TASKWRITE:", job)
                 self.assertIn("WORKSHOP_QUEUE_TEST_WHEELHOUSE:", job)
-                self.assertRegex(job, r'python-version:\s*\["3\.10", "3\.12"\]')
+                self.assertRegex(job, r'python-version:\s*\["3\.11", "3\.12"\]')
                 self.assertRegex(job, r"shard-index:\s*\[0, 1, 2, 3, 4, 5, 6, 7\]")
         wheel = ROOT / ".github" / "wheelhouse" / "setuptools-83.0.0-py3-none-any.whl"
         self.assertTrue(wheel.is_file())

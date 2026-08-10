@@ -3,3 +3,4 @@
 # Historical records below are fictional Academy fixtures.
 [2026-07-20T09:15:00Z] | BY: Academy Facilitator | GATE: H-05 fixture seeding | REASON: initial Academy fixture creates its first append-only record before learner labs begin
 [2026-08-05T11:08:40.9934335Z] | BY: SUaDtL@users.noreply.github.com | GATE: H-01 | REASON: One-time bypass: H-01 falsely classifies the verified P03 commit on codex/academy-curriculum as a direct main commit; branch proof and 550-test exact-tree run are green.
+[2026-08-10T04:10:18.8169447Z] | BY: SUaDtL@users.noreply.github.com | GATE: commit-gate exhaustive local suite completion | REASON: One-time bypass: tests.test_exercise_state timed out after 1804 seconds without a failure; 70 affected tests, focused P02 Windows cases, and WSL-native Linux regressions are green, while the exact-head hosted 16-job matrix remains mandatory before merge.

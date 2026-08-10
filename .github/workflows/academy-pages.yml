@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.11", "3.12"]
         shard-index: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
       CANDIDATE_SHA: ${{ github.sha }}
@@ -41,6 +41,9 @@ jobs:
           ref: 469c2fb82555346a739ab72a0f7284f22874aa3e
           path: .ci/codearbiter-source
           persist-credentials: false
+
+      - name: Remove checkout-only Git configuration
+        run: git config --local --unset-all gc.auto
 
       - name: Select Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

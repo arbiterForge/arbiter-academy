@@ -2,7 +2,7 @@
 
 ## Stack
 
-- Python 3.10 or newer.
+- Python 3.11 or newer.
 - Python standard library only at runtime.
 - `unittest` from the standard library for tests.
 - Local JSON persistence as constrained by [ADR-0001](decisions/0001-json-storage-boundary.md).

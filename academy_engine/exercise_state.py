@@ -89,7 +89,7 @@ _P08_CONSUMED = (
 )
 _PATCH_PATHS = ("workshop_queue/cli.py", "tests/test_cli.py")
 _PROFILE_PATH = ".codearbiter/tech-stack.md"
-_BASE_PROFILE_SHA256 = "b5737286d0e42b0ab9b70da45ed83151f9990828dc360510e10ee2e82d374f54"
+_BASE_PROFILE_SHA256 = "da8a9d082405da913a9b579d8ce9e26fbd2f26cf2093dacb37534ace86ade165"
 _WORK_PATCH_INCLUDES = tuple(f"--include={path}" for path in _PATCH_PATHS)
 _LATER_LABS = (
     "P03-record-an-adr",

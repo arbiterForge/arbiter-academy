@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import unittest
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import academy_engine.exercise_state as exercise_module
 from workshop_queue.model import Ticket, TicketStatus
 from workshop_queue.service import claim_ticket
 
@@ -100,6 +102,23 @@ def frontmatter_fields(document: Path) -> dict[str, str]:
 
 
 class ProjectStateTests(unittest.TestCase):
+    def test_runtime_floor_matches_tomllib_and_public_guidance(self):
+        pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        tech_stack = (STATE_ROOT / "tech-stack.md").read_text(encoding="utf-8")
+        site_index = (REPO_ROOT / "site/templates/index.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('requires-python = ">=3.11"', pyproject)
+        for document in (readme, tech_stack, site_index):
+            self.assertIn("Python 3.11 or newer", document)
+            self.assertNotIn("Python 3.10 or newer", document)
+        self.assertEqual(
+            hashlib.sha256((STATE_ROOT / "tech-stack.md").read_bytes()).hexdigest(),
+            exercise_module._BASE_PROFILE_SHA256,
+        )
+
     def test_project_state_is_initialized_and_cross_references_are_resolvable(self):
         state = AcademyState.load(STATE_ROOT)
 
@@ -194,7 +213,7 @@ class ProjectStateTests(unittest.TestCase):
             r"(?m)^\[2026-07-20T09:20:00Z\] REMIND \[H-12\] host=academy hook=fixture.py \|",
         )
 
-    def test_checkpoint_baseline_leaves_exactly_one_real_override(self):
+    def test_checkpoint_baseline_preserves_each_attributed_real_override(self):
         marker = (STATE_ROOT / "last-checkpoint").read_bytes()
         self.assertEqual(marker, b"1\n")
 
@@ -204,9 +223,14 @@ class ProjectStateTests(unittest.TestCase):
             if line.startswith("[")
         ]
         post_checkpoint = override_records[int(marker.decode("utf-8").strip()):]
-        self.assertEqual(len(post_checkpoint), 1)
-        self.assertIn("BY: SUaDtL@users.noreply.github.com", post_checkpoint[0])
+        self.assertEqual(len(post_checkpoint), 2)
+        for record in post_checkpoint:
+            self.assertIn("BY: SUaDtL@users.noreply.github.com", record)
         self.assertIn("GATE: H-01", post_checkpoint[0])
+        self.assertIn(
+            "GATE: commit-gate exhaustive local suite completion",
+            post_checkpoint[1],
+        )
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (

@@ -1483,7 +1483,6 @@ raise SystemExit(result.returncode)
         self._prepare_bootstrap_shims(platform, learner, environment)
         child_environment = dict(environment)
         child_block = block
-        command = [executable, *arguments, child_block]
         if platform == "posix" and os.name == "nt":
             path_keys = (
                 "GIT_CONFIG_GLOBAL",
@@ -1526,7 +1525,6 @@ raise SystemExit(result.returncode)
                 if key in child_environment
             )
             child_block = f"{exports}cd {shlex.quote(learner_path)}\n{child_block}"
-            command = [executable, *arguments[:-1]]
         if platform == "posix" and "ACADEMY_TEST_SHIM_ROOT" in child_environment:
             child_block = (
                 f"PATH={shlex.quote(child_environment['ACADEMY_TEST_SHIM_ROOT'])}:\"$PATH\"\n"
@@ -1539,6 +1537,8 @@ raise SystemExit(result.returncode)
             drive, tail = os.path.splitdrive(str(script.resolve()))
             script_path = f"/mnt/{drive[0].lower()}{tail.replace(os.sep, '/')}"
             command = [executable, *arguments[:-1], script_path]
+        else:
+            command = [executable, *arguments, child_block]
         return subprocess.run(
             command,
             cwd=learner,

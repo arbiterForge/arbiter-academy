@@ -13,7 +13,7 @@ paced for 15–60 minutes. P05–P07 are status-only; P08 and the Power User lab
 are not included. The Preview is static, local training: it does not provide
 hosted execution, hosted verification, or a signed credential.
 
-You need Git, a GitHub account, codeArbiter, and Python 3.10 or newer. Run the
+You need Git, a GitHub account, codeArbiter, and Python 3.11 or newer. Run the
 bootstrap below immediately after cloning, before making learner changes. It
 requires the clone's clean `HEAD` to equal the current canonical Academy
 `main`, copies that reviewed commit into a sibling source snapshot, and builds
