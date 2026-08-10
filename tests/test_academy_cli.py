@@ -24,9 +24,9 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 LOCAL_P02_RESTORATION_LABS = (
     "P03-record-an-adr",
     "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
 )
 UNPUBLISHED_LABS = (
-    "P05-checkpoint-remediation",
     "P06-context-drift-recovery",
     "P07-threat-model",
     "P08-repository-hygiene",
@@ -95,7 +95,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(
                     errors.getvalue(),
-                    f"error: {lab_id} is not available in Academy Preview 0.1\n",
+                    f"error: {lab_id} is not available in Academy Preview 0.2\n",
                 )
                 dispatch.assert_not_called()
                 git_config.assert_not_called()

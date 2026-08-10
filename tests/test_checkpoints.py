@@ -25,6 +25,8 @@ from academy_engine.checkpoints import (
     _p01_fixture_models,
     _p01_prepared_defect,
     _p01_source_identity,
+    _p05_finding_is_exact,
+    _p05_red_regression_is_exact,
     _semantic,
     _validate_prepare,
     evaluate_checkpoint,
@@ -32,7 +34,42 @@ from academy_engine.checkpoints import (
     load_contracts,
 )
 from academy_engine.exercise_state import P08AttemptIdentity
+from academy_engine.p05_fixture import stage_p05_fixture
 
+_P05_TEST_NAME = (
+    "tests.test_cli.WorkshopQueueCliTests."
+    "test_report_json_counts_blocked_ticket_as_unresolved"
+)
+_P05_PREPARED_TEST_NAME = (
+    "tests.test_cli.WorkshopQueueCliTests."
+    "test_p05_prepared_blocked_ticket_persists_before_summary_defect"
+)
+_P05_RED_METHOD = (
+    "\n    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+    "        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n"
+    "        tickets[0][\"id\"] = \"RQ-105\"\n"
+    "        self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n"
+    "        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+    "        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n"
+    "        report = self.run_cli(\"report\", \"--format\", \"json\")\n"
+    "        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n"
+    "        self.assertEqual(block_result.returncode, 0, block_result.stderr)\n"
+    "        self.assertEqual(report.returncode, 0, report.stderr)\n"
+    "        parsed = json.loads(report.stdout)\n"
+    "        self.assertEqual(parsed[\"blocked\"], 1)\n"
+    "        self.assertEqual(parsed[\"unresolved\"], 1)\n\n"
+).encode("utf-8")
+_P05_FINDING = (
+    "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+    "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+    "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+).encode("utf-8")
+_P05_ROLE_PATHS = (
+    (".codearbiter/reports/academy/P05-finding.md",),
+    ("tests/test_cli.py",),
+    ("workshop_queue/cli.py",),
+    (".codearbiter/checkpoints/P05-academy.json",),
+)
 
 class CheckpointTests(unittest.TestCase):
     def setUp(self):
@@ -44,6 +81,651 @@ class CheckpointTests(unittest.TestCase):
         self.write({"schema_version": 2, "id": "F01-fork-clone-doctor", "predicates": [{"id": "remote_and_doctor", "type": "lab_semantics", "profile": "remote_doctor", "artifact": ".codearbiter/reports/academy/F01-doctor.json"}]})
 
     def tearDown(self): self.temp.cleanup()
+
+    def _p05_git(
+        self,
+        root: Path,
+        *arguments: str,
+        check: bool = True,
+        environment: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *arguments],
+            cwd=root,
+            check=check,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+
+    def _p05_commit(
+        self,
+        root: Path,
+        paths: tuple[str, ...],
+        subject: str,
+        *,
+        name: str,
+        email: str,
+        timestamp: str,
+    ) -> str:
+        self._p05_git(root, "add", "--", *paths)
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "GIT_AUTHOR_NAME": name,
+                "GIT_AUTHOR_EMAIL": email,
+                "GIT_AUTHOR_DATE": timestamp,
+                "GIT_COMMITTER_NAME": name,
+                "GIT_COMMITTER_EMAIL": email,
+                "GIT_COMMITTER_DATE": timestamp,
+            }
+        )
+        self._p05_git(root, "commit", "-m", subject, environment=environment)
+        return self._p05_git(root, "rev-parse", "HEAD").stdout.strip()
+
+    def _p05_prepared_repository(self) -> tuple[Path, str, str]:
+        source = Path(__file__).resolve().parents[1]
+        root = self.root / "p05-prepared"
+        root.mkdir()
+        for relative in ("academy", "data", "workshop_queue", "tests", ".codearbiter"):
+            shutil.copytree(
+                source / relative,
+                root / relative,
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
+        shutil.copy2(source / "pyproject.toml", root / "pyproject.toml")
+        for relative in (
+            "workshop_queue/model.py",
+            "workshop_queue/service.py",
+            "workshop_queue/cli.py",
+            "tests/test_cli.py",
+        ):
+            (root / relative).write_bytes(
+                subprocess.run(
+                    ["git", "show", f"b0dc9e5:{relative}"],
+                    cwd=source,
+                    check=True,
+                    capture_output=True,
+                ).stdout
+            )
+        p03_adr = root / ".codearbiter/decisions/0004-academy-lab.md"
+        p03_adr.write_text(
+            "---\nstatus: accepted\ndate: 2026-08-01\n"
+            "title: Choose the Workshop Queue summary-format boundary\n"
+            "decided-by: Academy Learner\nsupersedes: none\n---\n\n"
+            "# ADR-0004 — Choose the Workshop Queue summary-format boundary\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        p03_log = root / ".codearbiter/decisions/decision-log.md"
+        p03_log.write_text(
+            p03_log.read_text(encoding="utf-8")
+            + "\n## DECISION-0004 — ADR-0004 — Choose the Workshop Queue summary-format boundary\n\n"
+            "**Date:** 2026-08-01\n**Status:** accepted\n**Supersedes:** none\n"
+            "**Decided by:** Academy Learner\n**Decision category:** architecture\n"
+            "**Artifact-section-hash:** n/a\n\n---\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        (root / "training_scenarios").mkdir()
+        self._p05_git(root, "init", "-b", "main")
+        base = self._p05_commit(
+            root,
+            (".codearbiter", "academy", "data", "pyproject.toml", "workshop_queue", "tests"),
+            "base",
+            name="P05 Prepared Fixture",
+            email="p05-prepared@example.invalid",
+            timestamp="2026-08-02T11:58:00+00:00",
+        )
+        self._p05_git(root, "switch", "-c", "academy/P05-checkpoint-remediation/1")
+        staged = stage_p05_fixture(root, base=base)
+        shutil.copyfile(
+            root / "academy/scenarios/P05-checkpoint-remediation/files/scenario.json",
+            root / "training_scenarios/P05-checkpoint-remediation.json",
+        )
+        prepared = self._p05_commit(
+            root,
+            ("training_scenarios/P05-checkpoint-remediation.json", *staged),
+            "academy: prepare P05-checkpoint-remediation attempt 1",
+            name="P05 Prepared Fixture",
+            email="p05-prepared@example.invalid",
+            timestamp="2026-08-02T11:59:00+00:00",
+        )
+        return root, base, prepared
+
+    def test_p05_prepare_validation_accepts_the_seven_path_governed_fixture(self) -> None:
+        root, base, prepared = self._p05_prepared_repository()
+        attempt = _Attempt(
+            "academy/P05-checkpoint-remediation/1",
+            1,
+            prepared,
+            base,
+            prepared,
+        )
+        contract = LabContract(
+            "P05-checkpoint-remediation",
+            "Remediate a checkpoint finding",
+            "academy/tracks/practitioner/P05-checkpoint-remediation.md",
+            "academy/checkpoints/P05-checkpoint-remediation.json",
+            "training_scenarios/P05-checkpoint-remediation.json",
+        )
+
+        self.assertTrue(_validate_prepare(root, contract, attempt))
+
+    def _p05_mutated_red(self, raw: bytes, mutation: str | None) -> bytes:
+        if mutation is None:
+            return raw
+        encoding_prefixes = {
+            "unknown-encoding-cookie": b"# coding: unknown-p05-codec\n",
+            "non-utf8-cookie": b"# coding: latin-1\n",
+        }
+        if mutation in encoding_prefixes:
+            return encoding_prefixes[mutation] + raw
+        replacements = {
+            "run-cli": (
+                b"    def run_cli(self, *arguments: str) -> subprocess.CompletedProcess[str]:\n"
+                b"        return self.run_cli_for(self.fixture, *arguments)\n",
+                b"    def run_cli(self, *arguments: str) -> subprocess.CompletedProcess[str]:\n"
+                b"        marker = None\n"
+                b"        return self.run_cli_for(self.fixture, *arguments)\n",
+            ),
+            "helper": (
+                b"    def tearDown(self) -> None:\n"
+                b"        self.temporary_directory.cleanup()\n",
+                b"    def tearDown(self) -> None:\n"
+                b"        marker = None\n"
+                b"        self.temporary_directory.cleanup()\n",
+            ),
+            "other-test": (
+                b"    def test_list_json_is_machine_readable(self) -> None:\n"
+                b"        result = self.run_cli(\"list\", \"--format\", \"json\")\n",
+                b"    def test_list_json_is_machine_readable(self) -> None:\n"
+                b"        self.assertTrue(True)\n"
+                b"        result = self.run_cli(\"list\", \"--format\", \"json\")\n",
+            ),
+            "skip-decorator": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+                b"    @unittest.skip(\"disabled regression\")\n"
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+            ),
+            "skip-call": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+                b"        self.skipTest(\"disabled regression\")\n",
+            ),
+            "early-return": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+                b"        return\n",
+            ),
+            "report-before-state": (
+                b"        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+                b"        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n"
+                b"        report = self.run_cli(\"report\", \"--format\", \"json\")\n",
+                b"        report = self.run_cli(\"report\", \"--format\", \"json\")\n"
+                b"        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+                b"        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n",
+            ),
+            "extra-required-arg": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self, required) -> None:\n",
+            ),
+            "no-self": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n",
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved() -> None:\n",
+            ),
+            "fixture-load-keyword": (
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+                b"        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n",
+                b"    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+                b"        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"), object_hook=missing_hook)\n",
+            ),
+            "rebind-self": (
+                b"        parsed = json.loads(report.stdout)\n"
+                b"        self.assertEqual(parsed[\"blocked\"], 1)\n"
+                b"        self.assertEqual(parsed[\"unresolved\"], 1)\n",
+                b"        self = json.loads(report.stdout)\n"
+                b"        self.assertEqual(self[\"blocked\"], 1)\n"
+                b"        self.assertEqual(self[\"unresolved\"], 1)\n",
+            ),
+        }
+        old, new = replacements[mutation]
+        self.assertEqual(raw.count(old), 1, mutation)
+        return raw.replace(old, new)
+
+    def _p05_history(
+        self,
+        prepared_root: Path,
+        prepared: str,
+        label: str,
+        *,
+        name: str,
+        email: str,
+        timestamps: tuple[str, str, str, str],
+        red_mutation: str | None = None,
+    ) -> dict[str, object]:
+        root = self.root / f"p05-{label}"
+        subprocess.run(
+            ["git", "clone", "--no-hardlinks", str(prepared_root), str(root)],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(self._p05_git(root, "rev-parse", "HEAD").stdout.strip(), prepared)
+
+        finding_path = root / ".codearbiter/reports/academy/P05-finding.md"
+        finding_path.parent.mkdir(parents=True)
+        finding_path.write_bytes(_P05_FINDING)
+        finding = self._p05_commit(
+            root,
+            _P05_ROLE_PATHS[0],
+            "record P05 finding",
+            name=name,
+            email=email,
+            timestamp=timestamps[0],
+        )
+
+        test_path = root / "tests/test_cli.py"
+        prepared_test = _git_blob(root, prepared, "tests/test_cli.py")
+        self.assertIsNotNone(prepared_test)
+        assert prepared_test is not None
+        marker = b'\n\nif __name__ == "__main__":'
+        self.assertEqual(prepared_test.count(marker), 1)
+        red_test = prepared_test.replace(marker, _P05_RED_METHOD + b'if __name__ == "__main__":')
+        test_path.write_bytes(self._p05_mutated_red(red_test, red_mutation))
+        red = self._p05_commit(
+            root,
+            _P05_ROLE_PATHS[1],
+            "add P05 regression",
+            name=name,
+            email=email,
+            timestamp=timestamps[1],
+        )
+
+        cli_path = root / "workshop_queue/cli.py"
+        defect = b"sum(ticket.status in {TicketStatus.OPEN, TicketStatus.CLAIMED} for ticket in tickets)"
+        correct = b"sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets)"
+        cli = _git_blob(root, red, "workshop_queue/cli.py")
+        self.assertIsNotNone(cli)
+        assert cli is not None
+        self.assertEqual(cli.count(defect), 1)
+        cli_path.write_bytes(cli.replace(defect, correct))
+        remediation = self._p05_commit(
+            root,
+            _P05_ROLE_PATHS[2],
+            "repair P05 unresolved summary",
+            name=name,
+            email=email,
+            timestamp=timestamps[2],
+        )
+
+        receipt_data = {
+            "affected_paths": ["tests/test_cli.py", "workshop_queue/cli.py"],
+            "finding_commit": finding,
+            "finding_id": "ACADEMY-P05-BLOCKED-UNRESOLVED",
+            "red_commit": red,
+            "remediation_commit": remediation,
+            "schema_version": 2,
+            "status": "remediated",
+        }
+        receipt = root / ".codearbiter/checkpoints/P05-academy.json"
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        receipt.write_bytes(
+            json.dumps(receipt_data, sort_keys=True, separators=(",", ":")).encode("ascii")
+            + b"\n"
+        )
+        head = self._p05_commit(
+            root,
+            _P05_ROLE_PATHS[3],
+            "record P05 receipt",
+            name=name,
+            email=email,
+            timestamp=timestamps[3],
+        )
+        base = self._p05_git(root, "rev-parse", f"{prepared}^").stdout.strip()
+        return {
+            "root": root,
+            "base": base,
+            "prepared": prepared,
+            "finding": finding,
+            "red": red,
+            "remediation": remediation,
+            "head": head,
+            "name": name,
+            "email": email,
+            "timestamps": timestamps,
+            "receipt_data": receipt_data,
+        }
+
+    def _p05_semantic(self, history: dict[str, object]) -> bool:
+        attempt = _Attempt(
+            "academy/P05-checkpoint-remediation/1",
+            1,
+            str(history["prepared"]),
+            str(history["base"]),
+            str(history["head"]),
+        )
+        predicate = Predicate(
+            "finding_remediation_link",
+            "lab_semantics",
+            {
+                "profile": "checkpoint_remediation",
+                "report": ".codearbiter/checkpoints/P05-academy.json",
+            },
+        )
+        return _semantic(_SemanticContext(Path(history["root"]), attempt, predicate))
+
+    def _p05_run_committed_tests(self, history: dict[str, object], label: str) -> None:
+        root = Path(history["root"])
+        checkout = self.root / f"p05-execute-{label}"
+        subprocess.run(
+            ["git", "clone", "--no-hardlinks", str(root), str(checkout)],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        observations = (
+            ("prepared", _P05_PREPARED_TEST_NAME, 0),
+            ("red", _P05_TEST_NAME, 1),
+            ("remediation", _P05_TEST_NAME, 0),
+            ("head", _P05_TEST_NAME, 0),
+        )
+        for role, test_name, expected_returncode in observations:
+            self._p05_git(checkout, "checkout", "--detach", "--force", str(history[role]))
+            result = subprocess.run(
+                [sys.executable, "-m", "unittest", test_name, "-v"],
+                cwd=checkout,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            with self.subTest(history=label, role=role):
+                self.assertEqual(result.returncode, expected_returncode, result.stdout + result.stderr)
+                if role == "red":
+                    self.assertIn("0 != 1", result.stdout + result.stderr)
+
+    def test_p05_accepts_deterministic_intended_and_equivalent_histories(self) -> None:
+        prepared_root, _, prepared = self._p05_prepared_repository()
+        intended = self._p05_history(
+            prepared_root,
+            prepared,
+            "intended",
+            name="P05 Intended Fixture",
+            email="p05-intended@example.invalid",
+            timestamps=tuple(f"2026-08-02T12:0{minute}:00+00:00" for minute in range(4)),
+        )
+        equivalent = self._p05_history(
+            prepared_root,
+            prepared,
+            "equivalent",
+            name="P05 Equivalent Fixture",
+            email="p05-equivalent@example.invalid",
+            timestamps=tuple(f"2026-08-02T13:0{minute}:00+00:00" for minute in range(4)),
+        )
+
+        for label, history in (("intended", intended), ("equivalent", equivalent)):
+            self.assertTrue(self._p05_semantic(history), label)
+            parent = prepared
+            for index, role in enumerate(("finding", "red", "remediation", "head")):
+                commit = str(history[role])
+                self.assertRegex(commit, r"^[0-9a-f]{40}$")
+                self.assertEqual(
+                    self._p05_git(Path(history["root"]), "rev-list", "--parents", "-n", "1", commit).stdout.split(),
+                    [commit, parent],
+                )
+                self.assertEqual(
+                    tuple(
+                        self._p05_git(
+                            Path(history["root"]),
+                            "diff-tree",
+                            "--no-commit-id",
+                            "--name-only",
+                            "-r",
+                            commit,
+                        ).stdout.splitlines()
+                    ),
+                    _P05_ROLE_PATHS[index],
+                )
+                metadata = self._p05_git(
+                    Path(history["root"]),
+                    "show",
+                    "-s",
+                    "--format=%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI",
+                    commit,
+                ).stdout.rstrip("\n").split("\x00")
+                rendered_timestamp = str(history["timestamps"][index]).replace(
+                    "+00:00", "Z"
+                )
+                self.assertEqual(
+                    metadata,
+                    [
+                        history["name"],
+                        history["email"],
+                        rendered_timestamp,
+                        history["name"],
+                        history["email"],
+                        rendered_timestamp,
+                    ],
+                )
+                parent = commit
+            self.assertEqual(
+                _git_blob(Path(history["root"]), str(history["red"]), "tests/test_cli.py"),
+                _git_blob(Path(history["root"]), str(history["head"]), "tests/test_cli.py"),
+            )
+            self._p05_run_committed_tests(history, label)
+
+        for role in ("finding", "red", "remediation", "head"):
+            self.assertNotEqual(intended[role], equivalent[role], role)
+        for role, path in (
+            ("finding", _P05_ROLE_PATHS[0][0]),
+            ("red", _P05_ROLE_PATHS[1][0]),
+            ("remediation", _P05_ROLE_PATHS[2][0]),
+        ):
+            self.assertEqual(
+                _git_blob(Path(intended["root"]), str(intended[role]), path),
+                _git_blob(Path(equivalent["root"]), str(equivalent[role]), path),
+            )
+
+        normalized_receipts = []
+        for history in (intended, equivalent):
+            raw_receipt = _git_blob(
+                Path(history["root"]),
+                str(history["head"]),
+                _P05_ROLE_PATHS[3][0],
+            )
+            self.assertIsNotNone(raw_receipt)
+            assert raw_receipt is not None
+            normalized = json.loads(raw_receipt)
+            for field, role in (
+                ("finding_commit", "finding"),
+                ("red_commit", "red"),
+                ("remediation_commit", "remediation"),
+            ):
+                self.assertEqual(normalized[field], history[role])
+                normalized[field] = f"<{role}>"
+            normalized_receipts.append(normalized)
+        self.assertEqual(normalized_receipts[0], normalized_receipts[1])
+
+        receipt_data = dict(intended["receipt_data"])
+        receipt_mutations = {
+            "extra-field": {**receipt_data, "proof": "synthetic"},
+            "missing-red": {
+                key: value for key, value in receipt_data.items() if key != "red_commit"
+            },
+            "wrong-status": {**receipt_data, "status": "open"},
+            "same-role-commit": {**receipt_data, "red_commit": intended["finding"]},
+            "disjoint-paths": {
+                **receipt_data,
+                "affected_paths": ["README.md", "docs/proof.md"],
+            },
+        }
+        intended_root = Path(intended["root"])
+        receipt = intended_root / ".codearbiter/checkpoints/P05-academy.json"
+        for label, forged_receipt in receipt_mutations.items():
+            with self.subTest(receipt_mutation=label):
+                self._p05_git(
+                    intended_root,
+                    "reset",
+                    "--hard",
+                    str(intended["remediation"]),
+                )
+                receipt.parent.mkdir(parents=True, exist_ok=True)
+                receipt.write_bytes(
+                    json.dumps(
+                        forged_receipt,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("ascii")
+                    + b"\n"
+                )
+                forged_head = self._p05_commit(
+                    intended_root,
+                    _P05_ROLE_PATHS[3],
+                    f"forge {label}",
+                    name=str(intended["name"]),
+                    email=str(intended["email"]),
+                    timestamp="2026-08-02T12:04:00+00:00",
+                )
+                forged_history = {**intended, "head": forged_head}
+                self.assertFalse(self._p05_semantic(forged_history))
+
+    def test_p05_rejects_red_commits_with_other_executable_test_ast_changes(self) -> None:
+        prepared_root, _, prepared = self._p05_prepared_repository()
+        for index, mutation in enumerate(
+            (
+                "run-cli",
+                "helper",
+                "other-test",
+                "skip-decorator",
+                "skip-call",
+                "early-return",
+                "report-before-state",
+                "extra-required-arg",
+                "no-self",
+                "fixture-load-keyword",
+                "rebind-self",
+                "unknown-encoding-cookie",
+                "non-utf8-cookie",
+            )
+        ):
+            with self.subTest(mutation=mutation):
+                history = self._p05_history(
+                    prepared_root,
+                    prepared,
+                    f"mutated-{mutation}",
+                    name="P05 Adversarial Fixture",
+                    email="p05-adversarial@example.invalid",
+                    timestamps=tuple(
+                        f"2026-08-02T14:{index * 4 + minute:02d}:00+00:00"
+                        for minute in range(4)
+                    ),
+                    red_mutation=mutation,
+                )
+                self.assertFalse(self._p05_semantic(history))
+                if mutation == "unknown-encoding-cookie":
+                    red_source = _git_blob(
+                        Path(history["root"]),
+                        str(history["red"]),
+                        "tests/test_cli.py",
+                    )
+                    self.assertIsNotNone(red_source)
+                    assert red_source is not None
+                    with self.assertRaisesRegex(SyntaxError, "unknown encoding"):
+                        compile(red_source, "tests/test_cli.py", "exec")
+
+    def test_p05_finding_parser_rejects_terminal_claims_and_private_data(self):
+        """A P05 finding is reviewed evidence, never a captured host session."""
+        valid = (
+            "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+            "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+            "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+        )
+        self.assertTrue(_p05_finding_is_exact(valid))
+        for label, forged in {
+            "host-command": valid + "$ca-checkpoint\n",
+            "terminal-output": valid + "PS C:\\repo> arbiter-academy check P05\n",
+            "email": valid + "owner@example.com\n",
+            "absolute-path": valid + "C:\\Users\\learner\\secret.txt\n",
+            "token": valid + ("gh" + "p_" + "abcdefghijklmnopqrstuvwxyz1234567890\n"),
+            "extra-section": valid + "## Raw output\nnot evidence\n",
+        }.items():
+            with self.subTest(label=label):
+                self.assertFalse(_p05_finding_is_exact(forged))
+
+    def test_p05_red_parser_rejects_comment_only_regression_bypass(self):
+        text = '''import json
+class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))
+        tickets[0]["id"] = "RQ-105"
+        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")
+        claim_result = self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        block_result = self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        report = self.run_cli("report", "--format", "json")
+        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)
+        self.assertEqual(block_result.returncode, 0, block_result.stderr)
+        self.assertEqual(report.returncode, 0, report.stderr)
+        parsed = json.loads(report.stdout)
+        self.assertEqual(parsed["blocked"], 1)
+        self.assertEqual(parsed["unresolved"], 1)
+
+if __name__ == "__main__":
+    pass
+'''
+        source = text.encode("utf-8")
+        self.assertTrue(_p05_red_regression_is_exact(source))
+        start = text.index("    def test_report_json_counts_blocked_ticket_as_unresolved")
+        end = text.index("\n\nif __name__", start)
+        forged = '''    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        """self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")
+        self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")
+        self.run_cli(\"report\", \"--format\", \"json\")
+        [\"blocked\"], 1; [\"unresolved\"], 1
+        """
+        pass'''
+        self.assertFalse(_p05_red_regression_is_exact((text[:start] + forged + text[end:]).encode("utf-8")))
+
+    def test_p05_red_parser_rejects_missing_fixture_setup(self):
+        text = '''import json
+class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))
+        tickets[0]["id"] = "RQ-105"
+        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")
+        claim_result = self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        block_result = self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        report = self.run_cli("report", "--format", "json")
+        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)
+        self.assertEqual(block_result.returncode, 0, block_result.stderr)
+        self.assertEqual(report.returncode, 0, report.stderr)
+        parsed = json.loads(report.stdout)
+        self.assertEqual(parsed["blocked"], 1)
+        self.assertEqual(parsed["unresolved"], 1)
+'''
+        self.assertTrue(_p05_red_regression_is_exact(text.encode("utf-8")))
+        missing_setup = text.replace(
+            '        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))\n'
+            '        tickets[0]["id"] = "RQ-105"\n'
+            '        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")\n',
+            "",
+        )
+        self.assertFalse(_p05_red_regression_is_exact(missing_setup.encode("utf-8")))
+
+    def test_p05_red_parser_rejects_noop_commands_and_constant_assertions(self):
+        """Calls alone are not evidence unless report data reaches both assertions."""
+        text = '''class WorkshopQueueCliTests:
+    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:
+        self.run_cli("claim", "RQ-105", "--volunteer", "Sam")
+        self.run_cli("block", "RQ-105", "--reason", "Venue access is awaiting facilities clearance")
+        self.run_cli("report", "--format", "json")
+        ("blocked", "unresolved")
+        self.assertEqual(1, 1)
+        self.assertEqual(1, 1)
+'''
+        self.assertFalse(_p05_red_regression_is_exact(text.encode("utf-8")))
+
 
     def test_p01_spec_and_plan_reject_ambiguous_approval_and_scope_creep_variants(self):
         """Catches a P01 verifier that merely token-matches native feature artifacts."""

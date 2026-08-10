@@ -6,10 +6,10 @@ the runnable learner package, and the evidence-preserving recovery route. The
 separate [codeArbiter reference site](https://codearbiter.dev/) explains the
 governance concepts that the Academy lessons put into practice.
 
-## Preview 0.1 quick start
+## Preview 0.2 quick start
 
-Preview 0.1 publishes eight reviewed Foundations and Practitioner labs, each
-paced for 15–60 minutes. P05–P07 are status-only; P08 and the Power User labs
+Preview 0.2 publishes nine reviewed Foundations and Practitioner labs, each
+paced for 15–60 minutes. P06–P07 are status-only; P08 and the Power User labs
 are not included. The Preview is static, local training: it does not provide
 hosted execution, hosted verification, or a signed credential.
 
@@ -47,8 +47,8 @@ and its build source then remain outside the learner repository.
    $academyStatus = & git status --porcelain=v1 --untracked-files=all
    if ($LASTEXITCODE -ne 0 -or $academyStatus) { throw "Bootstrap requires a clean learner checkout." }
    $academyParent = Split-Path -Parent $academyCheckout
-   $academySource = Join-Path $academyParent "arbiter-academy-source-preview-0.1"
-   $academyTools = Join-Path $academyParent "arbiter-academy-tools-preview-0.1"
+   $academySource = Join-Path $academyParent "arbiter-academy-source-preview-0.2"
+   $academyTools = Join-Path $academyParent "arbiter-academy-tools-preview-0.2"
    if ((Test-Path -LiteralPath $academySource) -or (Test-Path -LiteralPath $academyTools)) { throw "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." }
    & git clone --quiet --no-local $academyCheckout $academySource
    if ($LASTEXITCODE -ne 0) { throw "Could not create the reviewed source snapshot." }
@@ -77,8 +77,8 @@ and its build source then remain outside the learner repository.
    if ! academy_status="$(git status --porcelain=v1 --untracked-files=all)"; then echo "Could not inspect learner checkout status." >&2; exit 1; fi
    test -z "$academy_status" || { echo "Bootstrap requires a clean learner checkout." >&2; exit 1; }
    academy_parent="$(dirname "$academy_checkout")"
-   academy_source="$academy_parent/arbiter-academy-source-preview-0.1"
-   academy_tools="$academy_parent/arbiter-academy-tools-preview-0.1"
+   academy_source="$academy_parent/arbiter-academy-source-preview-0.2"
+   academy_tools="$academy_parent/arbiter-academy-tools-preview-0.2"
    test ! -e "$academy_source" && test ! -e "$academy_tools" || { echo "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." >&2; exit 1; }
    git clone --quiet --no-local "$academy_checkout" "$academy_source"
    test "$(git -C "$academy_source" rev-parse --verify HEAD)" = "$academy_reviewed_commit" || { echo "Reviewed source snapshot identity mismatch." >&2; exit 1; }
@@ -134,9 +134,9 @@ explicitly:
 arbiter-academy --repository <learner-repository> check <lab-id>
 ```
 
-Graduation is not available in Preview 0.1. The current receipt requires the
+Graduation is not available in Preview 0.2. The current receipt requires the
 complete 19-lab course through U07, while this release intentionally publishes
-only eight verified labs. The `graduate` command remains reserved for the
+only nine verified labs. The `graduate` command remains reserved for the
 complete course rather than issuing a partial or misleading Preview credential.
 
 After bootstrap, the external snapshot and installed verifier form the local

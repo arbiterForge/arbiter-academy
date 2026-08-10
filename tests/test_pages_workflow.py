@@ -32,8 +32,8 @@ AGGREGATE_GATE_STEPS = (
         "        run: python -m unittest tests.test_project_state -v",
     ),
     (
-        "Build the Preview 0.1 site",
-        "      - name: Build the Preview 0.1 site\n"
+        "Build the Academy site",
+        "      - name: Build the Academy site\n"
         "        run: >-\n"
         "          python scripts/build_preview_site.py\n"
         "          --output site/generated\n"
@@ -255,8 +255,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
             ("build", "Compile Python sources", "folded wrapper"),
             ("verify_candidate", "Verify project state", "shell or success"),
             ("build", "Verify project state", "shell exit zero"),
-            ("verify_candidate", "Build the Preview 0.1 site", "shell exit zero"),
-            ("build", "Build the Preview 0.1 site", "shell or success"),
+            ("verify_candidate", "Build the Academy site", "shell exit zero"),
+            ("build", "Build the Academy site", "shell or success"),
             ("verify_candidate", "Check the generated site", "folded wrapper"),
             ("build", "Check the generated site", "continue on error"),
             ("verify_candidate", "Scan every tracked file for secrets", "extra key"),

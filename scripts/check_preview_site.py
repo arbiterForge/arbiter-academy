@@ -87,6 +87,7 @@ _LABS = (
     "P02-commit-review-pr",
     "P03-record-an-adr",
     "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
 )
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
@@ -230,11 +231,11 @@ def _check_release(root: Path) -> None:
     if (
         not isinstance(data, dict)
         or set(data) != {"release", "commit"}
-        or data.get("release") != "preview-0.1"
+        or data.get("release") != "preview-0.2"
         or not isinstance(data.get("commit"), str)
         or not _SHA.fullmatch(data["commit"])
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.1 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.2 provenance contract")
 
 
 def _check_asset_digests(root: Path) -> None:

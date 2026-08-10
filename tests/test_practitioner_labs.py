@@ -117,11 +117,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
         published = set(load_preview_manifest(SOURCE).available_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in published),
-            PRACTITIONER[2:4],
+            PRACTITIONER[2:5],
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in published),
-            PRACTITIONER[4:],
+            PRACTITIONER[5:],
         )
 
         for lab in track.labs[2:]:
@@ -165,7 +165,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(exit_code, 1)
                     self.assertEqual(
                         output.getvalue(),
-                        f"error: {lab.id} is not available in Academy Preview 0.1\n",
+                        f"error: {lab.id} is not available in Academy Preview 0.2\n",
                     )
                     validated.assert_not_called()
                     authoritative.assert_not_called()
@@ -191,7 +191,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 next_code = lab.next_lab.partition("-")[0]
                 with self.subTest(lab=lab.id, next_lab=lab.next_lab):
                     self.assertIn(
-                        f"{next_code} is not available in Academy Preview 0.1.",
+                        f"{next_code} is not available in Academy Preview 0.2.",
                         next_section,
                     )
                     self.assertNotIn(f"after {current_code} passes", next_section)
@@ -452,7 +452,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertTrue(report.passed, report.issues)
         self.assertEqual(report.lab_count, 8)
-        self.assertEqual(report.matrix_cells, 64)
+        self.assertEqual(report.matrix_cells, 80)
         self.assertNotIn(str(SOURCE), report.render())
 
     def test_p03_freezes_the_native_evidence_adversarial_matrix_and_privacy_guide(self) -> None:
@@ -498,6 +498,41 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
         self.assertNotIn("pip install", guide)
+
+    def test_p05_freezes_remediation_evidence_matrix_and_receipt_guidance(self) -> None:
+        from academy_engine.curriculum import _MATRIX_CASES
+
+        self.assertEqual(
+            _MATRIX_CASES["P05-checkpoint-remediation"],
+            (
+                "untouched", "partial", "wrong", "intended", "equivalent",
+                "blocked-state-missing", "blocked-not-persisted", "defect-not-staged",
+                "json-only-finding", "red-not-meaningful", "red-after-green",
+                "changed-red-test", "broad-repair", "wrong-history-order",
+                "receipt-too-early", "copied-attempt", "uncommitted",
+                "malformed-receipt", "unsafe-path", "generic-event-decoy",
+                "host-invocation-claim",
+            ),
+        )
+        guide = (SOURCE / "academy/tracks/practitioner/P05-checkpoint-remediation.md").read_text(encoding="utf-8")
+        for required in (
+            "test-only RED", "code-only GREEN", "schema_version", "red_commit",
+            "remediation_commit", "receipt last", "not evidence that either command was invoked",
+            "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
+            "P06 is not available in Academy Preview 0.2",
+            "Keep your passing P05 evidence",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        for obsolete in (
+            "shared changed paths",
+            "real shared path",
+            "shared affected paths",
+            "actually intersects it",
+        ):
+            with self.subTest(obsolete=obsolete):
+                self.assertNotIn(obsolete, guide)
+
 
     def test_verify_track_rejects_a_noncanonical_practitioner_binding(self) -> None:
         """Catches a catalog manifest path that drifts from the frozen lab tuple."""
@@ -601,7 +636,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Practitioner: 8 labs", result.stdout)
-        self.assertIn("64 matrix cells", result.stdout)
+        self.assertIn("80 matrix cells", result.stdout)
         self.assertIn("structural", result.stdout.casefold())
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())

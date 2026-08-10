@@ -1,5 +1,5 @@
 {
-  "release": "preview-0.1",
+  "release": "preview-0.2",
   "available_labs": [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -8,10 +8,10 @@
     "P01-feature-through-plan",
     "P02-commit-review-pr",
     "P03-record-an-adr",
-    "P04-review-a-dependency"
+    "P04-review-a-dependency",
+    "P05-checkpoint-remediation"
   ],
   "coming_next": [
-    "P05-checkpoint-remediation",
     "P06-context-drift-recovery",
     "P07-threat-model"
   ],

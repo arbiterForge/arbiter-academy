@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.1."""
+"""Build the fail-closed static public surface for Academy Preview 0.2."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ _PUBLIC_ASSET_FILES = (
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.1 pages into *out*.
+    """Render only the reviewed Preview 0.2 pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -408,7 +408,7 @@ def _render_pages(
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.1",
+            "Arbiter Academy Preview 0.2",
             templates["index"].substitute(
                 available_labs=available_labs,
                 coming_next=coming_next,
@@ -420,7 +420,7 @@ def _render_pages(
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.1",
+            "Recovery | Arbiter Academy Preview 0.2",
             templates["recovery"].substitute(),
             root_prefix="../",
         ),
@@ -457,7 +457,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.1",
+            f"{lesson['title']} | Arbiter Academy Preview 0.2",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,
