@@ -12,6 +12,152 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 
+def _standalone_secret_rule_functions():
+    """Build rules without importing any module from the scanned checkout."""
+    _STANDALONE_FIXED_SECRET_RULES = (
+        (
+            "PEM_PRIVATE_KEY",
+            re.compile(
+                rb"(?<![A-Za-z0-9_])-----BEGIN[ \t]+"
+                rb"(?:RSA[ \t]+|EC[ \t]+|OPENSSH[ \t]+|DSA[ \t]+|ENCRYPTED[ \t]+)?"
+                rb"PRIVATE[ \t]+KEY-----(?![A-Za-z0-9_])"
+            ),
+        ),
+        (
+            "GITHUB_TOKEN",
+            re.compile(
+                rb"(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{20,255}(?![A-Za-z0-9_])"
+            ),
+        ),
+        (
+            "GITHUB_TOKEN",
+            re.compile(
+                rb"(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,255}"
+                rb"(?![A-Za-z0-9_])"
+            ),
+        ),
+        (
+            "AWS_ACCESS_KEY_ID",
+            re.compile(
+                rb"(?<![A-Za-z0-9_])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Za-z0-9_])"
+            ),
+        ),
+        (
+            "OPENAI_API_KEY",
+            re.compile(
+                rb"(?<![A-Za-z0-9_-])sk-(?!proj-)[A-Za-z0-9_-]{20,255}"
+                rb"(?![A-Za-z0-9_-])"
+            ),
+        ),
+        (
+            "OPENAI_API_KEY",
+            re.compile(
+                rb"(?<![A-Za-z0-9_-])sk-proj-[A-Za-z0-9_-]{20,255}"
+                rb"(?![A-Za-z0-9_-])"
+            ),
+        ),
+        (
+            "SLACK_TOKEN",
+            re.compile(
+                rb"(?<![A-Za-z0-9_-])xox[A-Za-z]-[A-Za-z0-9-]{20,255}"
+                rb"(?![A-Za-z0-9_-])"
+            ),
+        ),
+        (
+            "CREDENTIAL_URL",
+            re.compile(
+                rb"(?<![A-Za-z0-9_])https?://[A-Za-z0-9._~-]+:"
+                rb"[A-Za-z0-9._~+/-]{12,255}@[A-Za-z0-9.-]+"
+                rb"(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*)?"
+                rb"(?![A-Za-z0-9._~+/-])",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            "BEARER_AUTHORIZATION",
+            re.compile(
+                rb"(?<![A-Za-z0-9_-])Authorization[ \t]*:[ \t]*Bearer[ \t]+"
+                rb"[A-Za-z0-9._~+/-]{20,255}={0,2}(?![A-Za-z0-9._~+/-=])",
+                re.IGNORECASE,
+            ),
+        ),
+    )
+    _STANDALONE_ASSIGNMENT = re.compile(
+        rb"^[ \t]*(?:api_key|access_token|secret|password|passwd)[ \t]*[:=][ \t]*"
+        rb"(?:\"(?P<double>[^\"\r\n]{16,255})\"|'(?P<single>[^'\r\n]{16,255})'|"
+        rb"(?P<bare>[^\s#;,\"']{16,255}))"
+        rb"[ \t]*(?:[#;][^\r\n]*)?\r?$",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    _STANDALONE_MALFORMED_ASSIGNMENT = re.compile(
+        rb"^[ \t]*(?:api_key|access_token|secret|password|passwd)[ \t]*[:=][ \t]*"
+        rb"(?:\"(?P<double_malformed>[^\"'\r\n]{16,255}?)(?:')?|"
+        rb"'(?P<single_malformed>[^\"'\r\n]{16,255}?)(?:\")?)"
+        rb"[ \t]*(?:[#;][^\r\n]*)?\r?$",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    _STANDALONE_PLACEHOLDER_VALUES = frozenset(
+        (b"placeholder-value", b"example-credential", b"not-a-real-secret")
+    )
+    _STANDALONE_ENVIRONMENT_REFERENCE = re.compile(rb"\$\{[A-Z][A-Z0-9_]{0,63}\}")
+
+    def _standalone_is_placeholder(value: bytes) -> bool:
+        return (
+            value in _STANDALONE_PLACEHOLDER_VALUES
+            or _STANDALONE_ENVIRONMENT_REFERENCE.fullmatch(value) is not None
+        )
+
+    def iter_secret_matches(data: bytes):
+        """Yield canonical secret findings when the scanner is copied alone."""
+        seen: set[tuple[str, int]] = set()
+        for rule, pattern in _STANDALONE_FIXED_SECRET_RULES:
+            for match in pattern.finditer(data):
+                item = (rule, match.start())
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+        for match in _STANDALONE_ASSIGNMENT.finditer(data):
+            group = next(
+                name
+                for name in ("double", "single", "bare")
+                if match.group(name) is not None
+            )
+            value = match.group(group)
+            if not _standalone_is_placeholder(value):
+                item = ("CREDENTIAL_ASSIGNMENT", match.start(group))
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+        for match in _STANDALONE_MALFORMED_ASSIGNMENT.finditer(data):
+            group = next(
+                name
+                for name in ("double_malformed", "single_malformed")
+                if match.group(name) is not None
+            )
+            value = match.group(group)
+            if not _standalone_is_placeholder(value):
+                item = ("CREDENTIAL_ASSIGNMENT", match.start(group))
+                if item not in seen:
+                    seen.add(item)
+                    yield item
+
+    def iter_secret_content_views(content: bytes):
+        """Yield raw and BOM-declared UTF-16 views for a standalone scanner."""
+        yield content
+        if content.startswith(b"\xff\xfe"):
+            encoding = "utf-16-le"
+        elif content.startswith(b"\xfe\xff"):
+            encoding = "utf-16-be"
+        else:
+            return
+        decoded = content[2:].decode(encoding, errors="strict")
+        yield decoded.encode("utf-8")
+
+    return iter_secret_content_views, iter_secret_matches
+
+
+iter_secret_content_views, iter_secret_matches = _standalone_secret_rule_functions()
+
 
 MAX_STAGED_PATHS = 1024
 MAX_PATH_BYTES = 4096
@@ -52,92 +198,6 @@ class InspectionError(RuntimeError):
         self.detail = detail
 
 
-_FIXED_RULES = (
-    (
-        "PEM_PRIVATE_KEY",
-        re.compile(
-            rb"(?<![A-Za-z0-9_])-----BEGIN[ \t]+"
-            rb"(?:RSA[ \t]+|EC[ \t]+|OPENSSH[ \t]+|DSA[ \t]+)?"
-            rb"PRIVATE[ \t]+KEY-----(?![A-Za-z0-9_])"
-        ),
-    ),
-    (
-        "GITHUB_TOKEN",
-        re.compile(
-            rb"(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{20,255}(?![A-Za-z0-9_])"
-        ),
-    ),
-    (
-        "GITHUB_TOKEN",
-        re.compile(
-            rb"(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,255}"
-            rb"(?![A-Za-z0-9_])"
-        ),
-    ),
-    (
-        "AWS_ACCESS_KEY_ID",
-        re.compile(
-            rb"(?<![A-Za-z0-9_])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Za-z0-9_])"
-        ),
-    ),
-    (
-        "OPENAI_API_KEY",
-        re.compile(
-            rb"(?<![A-Za-z0-9_-])sk-(?!proj-)[A-Za-z0-9_-]{20,255}"
-            rb"(?![A-Za-z0-9_-])"
-        ),
-    ),
-    (
-        "OPENAI_API_KEY",
-        re.compile(
-            rb"(?<![A-Za-z0-9_-])sk-proj-[A-Za-z0-9_-]{20,255}"
-            rb"(?![A-Za-z0-9_-])"
-        ),
-    ),
-    (
-        "SLACK_TOKEN",
-        re.compile(
-            rb"(?<![A-Za-z0-9_-])xox[A-Za-z]-[A-Za-z0-9-]{20,255}"
-            rb"(?![A-Za-z0-9_-])"
-        ),
-    ),
-    (
-        "CREDENTIAL_URL",
-        re.compile(
-            rb"(?<![A-Za-z0-9_])https?://[A-Za-z0-9._~-]+:"
-            rb"[A-Za-z0-9._~+/-]{12,255}@[A-Za-z0-9.-]+"
-            rb"(?::[0-9]{1,5})?(?:/[A-Za-z0-9._~!$&'()*+,;=:@%/?#-]*)?"
-            rb"(?![A-Za-z0-9._~+/-])",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "BEARER_AUTHORIZATION",
-        re.compile(
-            rb"(?<![A-Za-z0-9_-])Authorization[ \t]*:[ \t]*Bearer[ \t]+"
-            rb"[A-Za-z0-9._~+/-]{20,255}={0,2}(?![A-Za-z0-9._~+/-=])",
-            re.IGNORECASE,
-        ),
-    ),
-)
-_ASSIGNMENT = re.compile(
-    rb"^[ \t]*(?:api_key|access_token|secret|password|passwd)[ \t]*[:=][ \t]*"
-    rb"(?:\"(?P<double>[^\"\r\n]{16,255})\"|'(?P<single>[^'\r\n]{16,255})'|"
-    rb"(?P<bare>[^\s#;,\"']{16,255}))"
-    rb"[ \t]*(?:[#;][^\r\n]*)?\r?$",
-    re.IGNORECASE | re.MULTILINE,
-)
-_MALFORMED_ASSIGNMENT = re.compile(
-    rb"^[ \t]*(?:api_key|access_token|secret|password|passwd)[ \t]*[:=][ \t]*"
-    rb"(?:\"(?P<double_malformed>[^\"'\r\n]{16,255}?)(?:')?|"
-    rb"'(?P<single_malformed>[^\"'\r\n]{16,255}?)(?:\")?)"
-    rb"[ \t]*(?:[#;][^\r\n]*)?\r?$",
-    re.IGNORECASE | re.MULTILINE,
-)
-_PLACEHOLDER_VALUES = frozenset(
-    (b"placeholder-value", b"example-credential", b"not-a-real-secret")
-)
-_ENVIRONMENT_REFERENCE = re.compile(rb"\$\{[A-Z][A-Z0-9_]{0,63}\}")
 _INDEX_RECORD = re.compile(
     rb"(?P<mode>[0-7]{6}) (?P<object>(?:[0-9a-f]{40}|[0-9a-f]{64})) "
     rb"(?P<stage>[0-3])\t(?P<path>.*)",
@@ -681,42 +741,6 @@ def _blob(
     return content
 
 
-def _is_placeholder(value: bytes) -> bool:
-    return value in _PLACEHOLDER_VALUES or _ENVIRONMENT_REFERENCE.fullmatch(value) is not None
-
-
-def _matches(data: bytes):
-    seen: set[tuple[str, int]] = set()
-    for rule, pattern in _FIXED_RULES:
-        for match in pattern.finditer(data):
-            item = (rule, match.start())
-            if item not in seen:
-                seen.add(item)
-                yield item
-    for match in _ASSIGNMENT.finditer(data):
-        group = next(
-            name for name in ("double", "single", "bare") if match.group(name) is not None
-        )
-        value = match.group(group)
-        if not _is_placeholder(value):
-            item = ("CREDENTIAL_ASSIGNMENT", match.start(group))
-            if item not in seen:
-                seen.add(item)
-                yield item
-    for match in _MALFORMED_ASSIGNMENT.finditer(data):
-        group = next(
-            name
-            for name in ("double_malformed", "single_malformed")
-            if match.group(name) is not None
-        )
-        value = match.group(group)
-        if not _is_placeholder(value):
-            item = ("CREDENTIAL_ASSIGNMENT", match.start(group))
-            if item not in seen:
-                seen.add(item)
-                yield item
-
-
 def _line(data: bytes, offset: int) -> int:
     return data.count(b"\n", 0, offset) + 1
 
@@ -724,7 +748,7 @@ def _line(data: bytes, offset: int) -> int:
 def _path_matches(path: bytes):
     seen: set[str] = set()
     for component in path.split(b"/"):
-        for rule, _ in _matches(component):
+        for rule, _ in iter_secret_matches(component):
             if rule not in seen:
                 seen.add(rule)
                 yield rule
@@ -732,18 +756,10 @@ def _path_matches(path: bytes):
 
 def _content_views(content: bytes):
     """Yield the raw blob, then a strict UTF-8 view for BOM-declared UTF-16."""
-    yield content
-    if content.startswith(b"\xff\xfe"):
-        encoding = "utf-16-le"
-    elif content.startswith(b"\xfe\xff"):
-        encoding = "utf-16-be"
-    else:
-        return
     try:
-        decoded = content[2:].decode(encoding, errors="strict")
+        yield from iter_secret_content_views(content)
     except UnicodeDecodeError as error:
         raise InspectionError("decode-utf16", "malformed declared text") from error
-    yield decoded.encode("utf-8")
 
 
 def _safe_path(path: bytes) -> str:
@@ -793,7 +809,7 @@ def scan_staged(
         for view in _content_views(content):
             if suppressed:
                 continue
-            for rule, offset in _matches(view):
+            for rule, offset in iter_secret_matches(view):
                 location = _line(view, offset)
                 item = (rule, location)
                 if item in blob_findings:

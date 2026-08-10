@@ -640,6 +640,65 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertNotIn(str(REPOSITORY), result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_p07_check_remains_unpublished_in_preview_0_2(self) -> None:
+        learner_local = subprocess.run(
+            [
+                sys.executable,
+                str(REPOSITORY / "scripts" / "academy.py"),
+                "--repository",
+                str(REPOSITORY),
+                "check",
+                "P07-threat-model",
+            ],
+            cwd=REPOSITORY,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertNotEqual(learner_local.returncode, 0)
+        self.assertEqual(
+            learner_local.stderr,
+            "error: P07-threat-model is not available in Academy Preview 0.2\n",
+        )
+        self.assertNotIn(str(REPOSITORY), learner_local.stderr)
+        self.assertNotIn("Traceback", learner_local.stderr)
+
+    def test_p07_future_publication_requires_external_authority(self) -> None:
+        failed = CheckpointResult(
+            "P07-threat-model",
+            False,
+            "a" * 64,
+            "b" * 64,
+            ("prepared_scenario", "source_integrity"),
+            ("stride_model",),
+        )
+        errors = StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ) as validated, patch(
+            "academy_engine.cli.ensure_authoritative_verifier"
+        ) as authoritative, patch(
+            "academy_engine.cli.evaluate_checkpoint", return_value=failed
+        ) as evaluated, redirect_stderr(errors):
+            exit_code = main(
+                [
+                    "--repository",
+                    str(REPOSITORY),
+                    "check",
+                    "P07-threat-model",
+                ]
+            )
+
+        self.assertEqual(exit_code, 1)
+        validated.assert_called_once_with(REPOSITORY)
+        authoritative.assert_called_once_with(REPOSITORY)
+        evaluated.assert_called_once_with(REPOSITORY, "P07-threat-model")
+        self.assertEqual(errors.getvalue(), "checkpoint P07-threat-model: failed (stride_model)\n")
+
     def test_nested_target_canonicalizes_before_circular_trust_check(self) -> None:
         nested = REPOSITORY / "tests"
         result = subprocess.run(

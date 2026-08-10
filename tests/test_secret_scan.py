@@ -177,6 +177,79 @@ class StagedSecretScanTests(unittest.TestCase):
         )
         self.assertEqual(result.stderr, b"")
 
+    def test_standalone_scanner_copy_runs_without_academy_package(self) -> None:
+        """Catches scanner-only learner fixtures depending on an unbundled package."""
+        fixture = IndexedRepository()
+        self.addCleanup(fixture.close)
+        copied = fixture.root / "scripts" / "scan_secrets.py"
+        copied.parent.mkdir()
+        shutil.copy2(SCANNER, copied)
+
+        result = subprocess.run(
+            [sys.executable, str(copied), "--staged"],
+            cwd=fixture.root,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            result.stdout.replace(b"\r\n", b"\n"),
+            b"PASS: inspected 0 staged files; 0 findings.\n",
+        )
+        self.assertNotIn(b"ModuleNotFoundError", result.stderr)
+
+        fixture.write("credential.txt", github_classic())
+        fixture.stage("credential.txt")
+        finding = subprocess.run(
+            [sys.executable, str(copied), "--staged"],
+            cwd=fixture.root,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+
+        self.assertEqual(finding.returncode, 1, finding.stdout + finding.stderr)
+        self.assertIn(b"GITHUB_TOKEN", finding.stdout)
+        self.assertNotIn(b"ModuleNotFoundError", finding.stderr)
+
+    def test_scanner_does_not_import_learner_controlled_secret_rules(self) -> None:
+        """Catches a staged checkout module suppressing canonical scanner findings."""
+        fixture = IndexedRepository()
+        self.addCleanup(fixture.close)
+        copied = fixture.root / "scripts" / "scan_secrets.py"
+        copied.parent.mkdir()
+        shutil.copy2(SCANNER, copied)
+        fixture.write("academy_engine/__init__.py", b"")
+        fixture.write(
+            "academy_engine/secret_rules.py",
+            b"def iter_secret_content_views(content):\n"
+            b"    yield content\n\n"
+            b"def iter_secret_matches(data):\n"
+            b"    return iter(())\n",
+        )
+        fixture.write("credential.txt", github_classic())
+        fixture.stage(
+            "academy_engine/__init__.py",
+            "academy_engine/secret_rules.py",
+            "credential.txt",
+        )
+
+        result = subprocess.run(
+            [sys.executable, str(copied), "--staged"],
+            cwd=fixture.root,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(b"GITHUB_TOKEN", result.stdout)
+
     def test_clean_text_and_binary_index_blobs_pass(self) -> None:
         """Catches worktree-only readers or blanket rejection of binary content."""
         self.fixture.write("notes.txt", b"ordinary Academy notes\n")
@@ -218,6 +291,34 @@ class StagedSecretScanTests(unittest.TestCase):
                 self.assertIn(rule + b" candidate.txt:2", result.stdout)
                 self.assertNotIn(value, result.stdout + result.stderr)
                 self.assertLess(len(result.stdout) + len(result.stderr), 8192)
+
+    def test_encrypted_private_key_header_is_detected_without_a_near_miss(self) -> None:
+        """Catches omission or over-broad matching of the encrypted PKCS#8 PEM label."""
+        cases = (
+            (
+                "encrypted-private-key",
+                b"-----BEGIN " + b"ENCRYPTED PRIVATE KEY-----\nnot-a-real-key\n",
+                1,
+            ),
+            (
+                "extra-label-word",
+                b"-----BEGIN ENCRYPTED PRIVATE KEY DATA-----\nnot-a-real-key\n",
+                0,
+            ),
+        )
+        for label, content, expected in cases:
+            with self.subTest(label=label):
+                fixture = IndexedRepository()
+                self.addCleanup(fixture.close)
+                fixture.write("candidate.txt", content)
+                fixture.stage("candidate.txt")
+
+                result = fixture.scan()
+
+                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                if expected:
+                    self.assertIn(b"PEM_PRIVATE_KEY candidate.txt:1", result.stdout)
+                    self.assertNotIn(b"not-a-real-key", result.stdout + result.stderr)
 
     def test_unterminated_and_mismatched_quoted_assignments_are_detected(self) -> None:
         """Catches malformed quote delimiters hiding credential-shaped assignments."""
@@ -466,6 +567,7 @@ class StagedSecretScanTests(unittest.TestCase):
         """Catches broad substring or scanner-source self-matching false positives."""
         scanner_source = SCANNER.read_bytes()
         test_source = Path(__file__).read_bytes()
+        p07_test_source = (SOURCE / "tests" / "test_p07_threat_model.py").read_bytes()
         digest = hashlib.sha256(b"ordinary source identity").hexdigest().encode()
         prose = b"\n".join(
             (
@@ -480,12 +582,18 @@ class StagedSecretScanTests(unittest.TestCase):
         self.fixture.write("security-controls.md", prose + b"\n")
         self.fixture.write("scanner-source.py", scanner_source)
         self.fixture.write("dynamic-tests.py", test_source)
-        self.fixture.stage("security-controls.md", "scanner-source.py", "dynamic-tests.py")
+        self.fixture.write("p07-tests.py", p07_test_source)
+        self.fixture.stage(
+            "security-controls.md",
+            "scanner-source.py",
+            "dynamic-tests.py",
+            "p07-tests.py",
+        )
 
         result = self.fixture.scan()
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn(b"inspected 3 staged files", result.stdout)
+        self.assertIn(b"inspected 4 staged files", result.stdout)
         self.assert_bounded(result)
 
     def test_alternate_index_cannot_hide_the_real_staged_secret(self) -> None:
