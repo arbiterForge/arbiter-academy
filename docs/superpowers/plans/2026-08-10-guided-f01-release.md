@@ -78,13 +78,25 @@ academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/ar
 - Rename: `academy/publication/preview-0.2.json` -> `academy/publication/preview-0.3.json`
 - Modify: `academy/publication/preview-manifest.schema.json`
 - Modify: `academy_engine/preview.py`
+- Modify: `pyproject.toml`
+- Modify: `README.md`
+- Modify: `academy/tracks/practitioner/P05-checkpoint-remediation.md`
+- Modify: `scripts/build_preview_site.py`
+- Modify: `scripts/check_preview_site.py`
+- Modify: `site/assets/PROVENANCE.md`
+- Modify: `site/templates/base.html`
+- Modify: `site/templates/index.html`
+- Modify: `tests/test_academy_cli.py`
+- Modify: `tests/test_installation.py`
+- Modify: `tests/test_practitioner_labs.py`
 - Modify: `tests/test_preview_manifest.py`
+- Modify: `tests/test_preview_site.py`
 
 **Interfaces:**
 - Produces: `PreviewManifest(release: str, lesson_contract_version: int, available_labs: tuple[str, ...], runnable_labs: tuple[str, ...], guided_labs: tuple[str, ...], coming_next: tuple[str, ...], discussion_url: str, catalog_sha256: str)`.
 - Produces: `require_runnable_lab(root: Path, lab_id: str) -> None`, `require_guided_lab(root: Path, lab_id: str) -> None`; keep `require_published_lab` as a compatibility alias that calls `require_runnable_lab`.
 
-- [ ] **Step 1: Write failing truth-model tests**
+- [x] **Step 1: Write failing truth-model tests**
 
 Add tests that build a manifest with `lesson_contract_version=1`, `available_labs=PREVIEW_0_3`, `runnable_labs=PREVIEW_0_3`, `guided_labs=["F01-fork-clone-doctor"]`, and the existing two-item `coming_next`. Assert acceptance, then separately assert rejection when compatibility lists differ, guided order differs, F01 is omitted, guided contains P06, or runnable intersects coming-next.
 
@@ -105,13 +117,13 @@ def test_preview_manifest_rejects_a_false_guided_claim(self) -> None:
         )
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run: `python -m unittest tests.test_preview_manifest -v`
 
 Expected: FAIL because Preview 0.2 has no `runnable_labs`, `guided_labs`, or `lesson_contract_version` fields.
 
-- [ ] **Step 3: Implement the exact Preview 0.3 model**
+- [x] **Step 3: Implement the exact Preview 0.3 model**
 
 Set `_RELEASE = "preview-0.3"`, rename `_AVAILABLE_LABS` to `_RUNNABLE_LABS`, and validate exact keys:
 
@@ -124,20 +136,24 @@ expected = {
 
 Require integer `lesson_contract_version == 1`; require `available_labs == runnable_labs == _RUNNABLE_LABS`; require `guided_labs == ("F01-fork-clone-doctor",)` and preserve catalog order; reject `set(runnable_labs) & set(coming_next)`. Update the JSON Schema with the same exact keys and pinned ordered arrays.
 
-- [ ] **Step 4: Run the focused tests and verify GREEN**
+- [x] **Step 4: Run the focused tests and verify GREEN**
 
 Run: `python -m unittest tests.test_preview_manifest -v`
 
 Expected: all Preview manifest tests PASS.
 
-- [ ] **Step 5: Commit the truth-model slice**
+- [x] **Step 5: Commit the truth-model slice**
 
 ```powershell
-git add academy/publication/preview-0.3.json academy/publication/preview-manifest.schema.json academy_engine/preview.py tests/test_preview_manifest.py
+git add academy/publication/preview-0.3.json academy/publication/preview-manifest.schema.json academy_engine/preview.py pyproject.toml README.md academy/tracks/practitioner/P05-checkpoint-remediation.md scripts/build_preview_site.py scripts/check_preview_site.py site/assets/PROVENANCE.md site/templates/base.html site/templates/index.html tests/test_academy_cli.py tests/test_installation.py tests/test_practitioner_labs.py tests/test_preview_manifest.py tests/test_preview_site.py
 $ca-commit
 ```
 
 Use commit title `feat: separate guided academy publication truth` when the gate asks for the message.
+
+Review remediation required the complete mechanical Preview 0.2 to Preview 0.3 consumer migration
+so this committed slice left existing site and practitioner suites green. Task 8 still owns the new
+tag, release-asset, checksum, and deployment-gate semantics.
 
 ### Task 2: Versioned Lesson Action Contract
 
