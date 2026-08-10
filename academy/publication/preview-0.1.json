@@ -1,0 +1,20 @@
+{
+  "release": "preview-0.1",
+  "available_labs": [
+    "F01-fork-clone-doctor",
+    "F02-orient-to-state",
+    "F03-work-the-board",
+    "F04-fix-with-evidence",
+    "P01-feature-through-plan",
+    "P02-commit-review-pr",
+    "P03-record-an-adr",
+    "P04-review-a-dependency"
+  ],
+  "coming_next": [
+    "P05-checkpoint-remediation",
+    "P06-context-drift-recovery",
+    "P07-threat-model"
+  ],
+  "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",
+  "catalog_sha256": "834814a46b21717fea1f841c5b020d1cef6c32aeae397d48fcf86f4771a7bafb"
+}

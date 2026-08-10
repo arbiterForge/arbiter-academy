@@ -1,0 +1,1 @@
+{"schema_version":1,"lab_id":"U02-override-audit-metrics","operation":"override_audit_metrics","target":"safe-training-gate","starting_condition":"override-not-taken"}

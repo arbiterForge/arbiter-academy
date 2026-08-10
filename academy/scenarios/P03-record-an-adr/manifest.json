@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P03-record-an-adr","files":[{"source":"scenario.json","destination":"training_scenarios/P03-record-an-adr.json"}],"removals":[],"starting_task":"P03","checkpoint":"academy/checkpoints/P03-record-an-adr.json","requires_push_safe_setup":false}

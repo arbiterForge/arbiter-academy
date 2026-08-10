@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"U05-debug-spike-conflict","predicates":[{"id":"debug_spike_conflict_artifacts","type":"lab_semantics","profile":"debug_spike_conflict","debug":".codearbiter/reports/academy/U05-debug.md","spike":".codearbiter/reports/academy/U05-spike.md","conflict":".codearbiter/reports/academy/U05-conflict.md"}]}

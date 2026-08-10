@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U06-preview-and-advanced-surfaces","files":[{"source":"scenario.json","destination":"training_scenarios/U06-preview-and-advanced-surfaces.json"}],"removals":[],"starting_task":"U06","checkpoint":"academy/checkpoints/U06-preview-and-advanced-surfaces.json","requires_push_safe_setup":false}

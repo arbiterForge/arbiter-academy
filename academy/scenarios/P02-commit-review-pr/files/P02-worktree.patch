@@ -1,0 +1,77 @@
+diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md
+--- a/.codearbiter/tech-stack.md
++++ b/.codearbiter/tech-stack.md
+@@ -41,17 +41,14 @@
+ evidence. Independent review remains required. `compileall` is syntax
+ verification, not lint.
+ 
+-### Integration and release milestones
++### P02 learner commit gate
+ 
+-Run the complete real-Git suite at Practitioner consolidation, first-draft
+-completion, every release or PR gate, or earlier after a demonstrated broad
+-shared-state regression:
++This attempt-local profile keeps both sanctioned P02 commits bounded to the Workshop Queue exercise.
++Run the same three commands for the staged work commit and the staged receipt-only commit.
+ 
+ ```sh
+-python -m unittest discover -v
+-python -m tabnanny academy_engine workshop_queue scripts tests
+-python -m compileall academy_engine workshop_queue scripts tests
+-python -m unittest tests.test_project_state -v
++python -m unittest tests.test_cli -v
++python -m compileall -q workshop_queue tests/test_cli.py
+ python scripts/scan_secrets.py --staged
+ ```
+ 
+@@ -60,15 +57,12 @@
+ reports redacted high-confidence findings and exit `2` fails closed when inspection
+ cannot be completed.
+ 
+-The application remains dependency-free at runtime. Repository verification also
+-requires the externally installed Academy verifier and the reviewed offline wheel
+-proof. An installation test may report its documented offline prerequisite skip only
+-when the reviewed build backend is unavailable; required release and milestone runs
+-supply that backend. All other selected or exhaustive test results must pass. The
+-baseline is [the 2026-07-20 checkpoint](checkpoints/2026-07-20-baseline.md).
++This learner profile intentionally excludes the Academy verifier's long acceptance matrices. The
++installed verifier still recomputes the complete P02 checkpoint after both commits. Academy main
++keeps the full release verification profile for maintainer release and acceptance work.
+ 
+ Learner runtime and offline lab use require no database server, external API, paid
+ service, hosted CI, or network connection. Maintainer publication is a separate
+ repository gate: pull requests and main-branch publication must pass the hosted
+ Academy verification workflows described above. Those gates verify and publish
+ the fixture; they do not add a hosted-service dependency to learner execution.
+diff --git a/workshop_queue/cli.py b/workshop_queue/cli.py
+--- a/workshop_queue/cli.py
++++ b/workshop_queue/cli.py
+@@ -59,6 +59,7 @@ def _write_tickets(tickets: Sequence[Ticket], output_format: str) -> None:
+ 
+ def _write_report(tickets: Sequence[Ticket], output_format: str) -> None:
+     counts = {status.value: sum(ticket.status is status for ticket in tickets) for status in TicketStatus}
++    counts["unresolved"] = counts["open"] + counts["claimed"]
+     if output_format == "json":
+         print(json.dumps(counts, sort_keys=True))
+         return
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -193,7 +193,16 @@ class WorkshopQueueCliTests(unittest.TestCase):
++        tickets = json.loads(self.fixture.read_text(encoding="utf-8"))
++        second = dict(tickets[0])
++        second["id"] = "RQ-102"
++        second["title"] = "Prepare the backup projector"
++        tickets.append(second)
++        self.fixture.write_text(json.dumps(tickets), encoding="utf-8")
++        claim = self.run_cli("claim", "RQ-102", "--volunteer", "Sam")
++        self.assertEqual(claim.returncode, 0, claim.stderr)
++
+         result = self.run_cli("report", "--format", "json")
+ 
+         self.assertEqual(result.returncode, 0, result.stderr)
+-        self.assertEqual(json.loads(result.stdout), {"claimed": 0, "completed": 0, "open": 1})
++        self.assertEqual(json.loads(result.stdout), {"claimed": 1, "completed": 0, "open": 1, "unresolved": 2})
+ 
+     def test_absolute_path_outside_project_data_root_is_rejected(self) -> None:
+         with tempfile.TemporaryDirectory() as outside_directory:

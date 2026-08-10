@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"U03-refactor-chore-release","predicates":[{"id":"refactor_chore_release","type":"lab_semantics","profile":"refactor_chore_release","code":"workshop_queue/store.py","test":"tests/test_store.py","chore":"README.md","tag_prefix":"academy-v"}]}

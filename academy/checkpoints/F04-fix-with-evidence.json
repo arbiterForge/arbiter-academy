@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"F04-fix-with-evidence","predicates":[{"id":"red_then_fix_history","type":"lab_semantics","profile":"tdd_history","code":"workshop_queue/service.py","test":"tests/test_service.py"}]}

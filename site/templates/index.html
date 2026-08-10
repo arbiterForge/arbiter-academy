@@ -1,0 +1,81 @@
+<section class="academy-hero">
+<div class="academy-hero__copy">
+<p class="eyebrow">Real repository practice</p>
+<h1>Arbiter Academy Preview 0.1</h1>
+<p>Practice codeArbiter in a real Git repository through eight available labs, paced at $minimum_minutes–$maximum_minutes minutes each.</p>
+</div>
+<img class="academy-hero__art" src="assets/hero-gates.webp" alt="" width="1881" height="836">
+</section>
+<h2>Before you begin</h2>
+<p>You need Git, a GitHub account, codeArbiter, and Python 3.11 or newer. Run the bootstrap immediately after cloning, before learner changes. It requires the clone's clean <code>HEAD</code> to equal the current canonical Academy <code>main</code>, snapshots that reviewed commit outside the learner repository, and installs there without reaching a package index.</p>
+<h2>Start safely</h2>
+<ol class="start-steps">
+<li><strong>Fork the Academy.</strong> Create your own fork from the <a href="https://github.com/arbiterForge/arbiter-academy/fork">Academy fork page</a>.</li>
+<li><strong>Clone your fork.</strong> <code>git clone https://github.com/&lt;your-account&gt;/arbiter-academy.git</code><p>Work only in that clone. Your <code>origin</code> and every push destination must be your fork; the canonical Academy repository is reference-only.</p></li>
+<li><strong>Verify, snapshot, and install the verifier.</strong><p>The bootstrap refuses a changed or stale fork, a dirty checkout, or pre-existing source/tools paths. The snapshot's committed Setuptools wheel is the only build prerequisite; <code>--no-index --no-deps</code> prevents package-index or dependency resolution.</p><p><strong>Windows PowerShell</strong></p><pre><code class="language-powershell">$$ErrorActionPreference = "Stop"
+$$academyCheckout = (Get-Location).Path
+$$academyCanonical = "https://github.com/arbiterForge/arbiter-academy.git"
+$$academyHead = (&amp; git rev-parse --verify HEAD).Trim()
+if ($$LASTEXITCODE -ne 0) { throw "Could not read the learner checkout commit." }
+&amp; git fetch --quiet --no-tags $$academyCanonical main
+if ($$LASTEXITCODE -ne 0) { throw "Could not fetch the canonical Academy source." }
+$$academyReviewedCommit = (&amp; git rev-parse --verify FETCH_HEAD).Trim()
+if ($$LASTEXITCODE -ne 0 -or $$academyHead -ne $$academyReviewedCommit) { throw "Fork HEAD is not the reviewed canonical Preview source." }
+$$academyStatus = &amp; git status --porcelain=v1 --untracked-files=all
+if ($$LASTEXITCODE -ne 0 -or $$academyStatus) { throw "Bootstrap requires a clean learner checkout." }
+$$academyParent = Split-Path -Parent $$academyCheckout
+$$academySource = Join-Path $$academyParent "arbiter-academy-source-preview-0.1"
+$$academyTools = Join-Path $$academyParent "arbiter-academy-tools-preview-0.1"
+if ((Test-Path -LiteralPath $$academySource) -or (Test-Path -LiteralPath $$academyTools)) { throw "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." }
+&amp; git clone --quiet --no-local $$academyCheckout $$academySource
+if ($$LASTEXITCODE -ne 0) { throw "Could not create the reviewed source snapshot." }
+$$academySnapshotCommit = (&amp; git -C $$academySource rev-parse --verify HEAD).Trim()
+if ($$LASTEXITCODE -ne 0 -or $$academySnapshotCommit -ne $$academyReviewedCommit) { throw "Reviewed source snapshot identity mismatch." }
+&amp; py -3 -m venv $$academyTools
+if ($$LASTEXITCODE -ne 0) { throw "Could not create the Academy tools environment." }
+$$academyPython = Join-Path $$academyTools "Scripts\python.exe"
+&amp; $$academyPython -m pip wheel --no-index --find-links "$$academySource\.github\wheelhouse" --no-deps --wheel-dir "$$academyTools\wheels" $$academySource
+if ($$LASTEXITCODE -ne 0) { throw "Could not build the reviewed Academy wheel." }
+&amp; $$academyPython -m pip install --no-index --no-deps "$$academyTools\wheels\workshop_queue-0.1.0-py3-none-any.whl"
+if ($$LASTEXITCODE -ne 0) { throw "Could not install the reviewed Academy wheel." }
+$$academy = Join-Path $$academyTools "Scripts\arbiter-academy.exe"</code></pre><p><strong>macOS or Linux shell</strong></p><pre><code class="language-sh">set -eu
+academy_checkout="$$PWD"
+academy_canonical="https://github.com/arbiterForge/arbiter-academy.git"
+academy_head="$$(git rev-parse --verify HEAD)"
+git fetch --quiet --no-tags "$$academy_canonical" main
+academy_reviewed_commit="$$(git rev-parse --verify FETCH_HEAD)"
+test "$$academy_head" = "$$academy_reviewed_commit" || { echo "Fork HEAD is not the reviewed canonical Preview source." &gt;&amp;2; exit 1; }
+if ! academy_status="$$(git status --porcelain=v1 --untracked-files=all)"; then echo "Could not inspect learner checkout status." &gt;&amp;2; exit 1; fi
+test -z "$$academy_status" || { echo "Bootstrap requires a clean learner checkout." &gt;&amp;2; exit 1; }
+academy_parent="$$(dirname "$$academy_checkout")"
+academy_source="$$academy_parent/arbiter-academy-source-preview-0.1"
+academy_tools="$$academy_parent/arbiter-academy-tools-preview-0.1"
+test ! -e "$$academy_source" &amp;&amp; test ! -e "$$academy_tools" || { echo "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." &gt;&amp;2; exit 1; }
+git clone --quiet --no-local "$$academy_checkout" "$$academy_source"
+test "$$(git -C "$$academy_source" rev-parse --verify HEAD)" = "$$academy_reviewed_commit" || { echo "Reviewed source snapshot identity mismatch." &gt;&amp;2; exit 1; }
+python3 -m venv "$$academy_tools"
+academy_python="$$academy_tools/bin/python"
+"$$academy_python" -m pip wheel --no-index --find-links "$$academy_source/.github/wheelhouse" --no-deps --wheel-dir "$$academy_tools/wheels" "$$academy_source"
+"$$academy_python" -m pip install --no-index --no-deps "$$academy_tools/wheels/workshop_queue-0.1.0-py3-none-any.whl"
+academy="$$academy_tools/bin/arbiter-academy"</code></pre></li>
+<li><strong>Prepare a lab.</strong> Run the installed executable for your platform and select the clone explicitly:<p><code>&amp; $$academy --repository $$academyCheckout prepare F01-fork-clone-doctor</code> on Windows, or <code>"$$academy" --repository "$$academy_checkout" prepare F01-fork-clone-doctor</code> on macOS or Linux.</p><p>General form: <code>arbiter-academy --repository &lt;learner-repository&gt; prepare &lt;lab-id&gt;</code></p></li>
+<li><strong>Work and check.</strong> Complete the lesson with codeArbiter and Git, then use the installed verifier:<p><code>arbiter-academy --repository &lt;learner-repository&gt; check &lt;lab-id&gt;</code></p></li>
+<li><strong>Reset only for a documented retry.</strong> Preserve the failed attempt, return it to a clean state, then run:<p><code>arbiter-academy --repository &lt;learner-repository&gt; reset &lt;lab-id&gt;</code></p></li>
+</ol>
+<p>After bootstrap, the external snapshot and installed verifier form the local trust anchor. The learner checkout is untrusted input. This assumes the initial canonical fetch, Git, Python, and local machine were not replaced by a malicious operator; it provides no cryptographic or malicious-operator resistance.</p>
+<h2>Preview limits</h2>
+<p>Preview 0.1 is static, local training. P05–P07 are status-only, P08 and the Power User labs are not included, and this Preview provides no hosted execution, hosted verification, or signed credential.</p>
+<p><strong>Graduation is not available in Preview 0.1.</strong> The receipt requires the complete 19-lab course through U07; this release publishes eight verified labs and will not issue a partial credential.</p>
+<h2>Available labs</h2>
+<ul class="lab-grid">
+$available_labs
+</ul>
+<h2>Coming next</h2>
+<p>These labs are status-only until they complete verification.</p>
+<ul class="coming-next">
+$coming_next
+</ul>
+<h2>Help and feedback</h2>
+<p><a href="recovery/index.html">Recovery guidance</a> explains how to preserve evidence and begin a safe retry.</p>
+<p>The <a href="https://github.com/arbiterForge/arbiter-academy">canonical Academy repository</a> is reference-only for learners. Use the <a href="https://codearbiter.dev/">codeArbiter reference documentation</a> when a lab asks you to inspect a governance concept.</p>
+<p>Questions or Preview feedback belong in <a href="$discussion_url">Academy GitHub Discussions</a>.</p>

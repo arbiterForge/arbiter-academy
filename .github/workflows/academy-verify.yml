@@ -1,0 +1,136 @@
+name: Academy Verify
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+        shard-index: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CODEARBITER_SOURCE_SHA: 469c2fb82555346a739ab72a0f7284f22874aa3e
+      CODEARBITER_TASKWRITE: ${{ github.workspace }}/.ci/codearbiter-source/core/pysrc/taskwrite.py
+      WORKSHOP_QUEUE_TEST_WHEELHOUSE: ${{ github.workspace }}/.github/wheelhouse
+    steps:
+      - name: Check out the exact Academy candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Check out the pinned local CodeArbiter source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: arbiterForge/codeArbiter
+          ref: 469c2fb82555346a739ab72a0f7284f22874aa3e
+          path: .ci/codearbiter-source
+          persist-credentials: false
+
+      - name: Remove checkout-only Git configuration
+        run: git config --local --unset-all gc.auto
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Verify pinned hosted prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci/codearbiter-source rev-parse HEAD)" = "$CODEARBITER_SOURCE_SHA"
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          wheel = Path(".github/wheelhouse/setuptools-83.0.0-py3-none-any.whl")
+          assert wheel.stat().st_size == 1008090
+          assert hashlib.sha256(wheel.read_bytes()).hexdigest() == "29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3"
+          PY
+
+      - name: Run one exhaustive milestone shard
+        timeout-minutes: 75
+        run: python scripts/run_test_shards.py --shard-index "${{ matrix.shard-index }}"
+
+  verify-candidate:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out the exact Academy candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Check Python indentation
+        run: python -m tabnanny academy_engine scripts tests workshop_queue
+
+      - name: Compile Python sources
+        run: python -m compileall -q academy_engine scripts tests workshop_queue
+
+      - name: Verify project state
+        run: python -m unittest tests.test_project_state -v
+
+      - name: Build the Preview 0.1 site
+        run: >-
+          python scripts/build_preview_site.py
+          --output site/generated
+          --release-sha "$CANDIDATE_SHA"
+
+      - name: Check the generated site
+        run: python scripts/check_preview_site.py site/generated
+
+      - name: Scan every tracked file for secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan_root="$RUNNER_TEMP/academy-secret-scan"
+          mkdir -p "$scan_root"
+          object_format="$(git -C "$GITHUB_WORKSPACE" rev-parse --show-object-format)"
+          git -C "$scan_root" init --quiet --object-format="$object_format"
+          git -C "$GITHUB_WORKSPACE" ls-tree -r -z HEAD |
+            while IFS= read -r -d '' entry; do
+              metadata="${entry%%$'\t'*}"
+              path="${entry#*$'\t'}"
+              read -r mode object_type object_id <<< "$metadata"
+              if [[ "$mode" == "160000" ]]; then
+                continue
+              fi
+              if [[ "$object_type" != "blob" ]]; then
+                echo "ERROR: unexpected non-blob tree entry." >&2
+                exit 2
+              fi
+              imported="$({
+                git -C "$GITHUB_WORKSPACE" cat-file blob "$object_id"
+              } | git -C "$scan_root" hash-object -w --stdin)"
+              if [[ "$imported" != "$object_id" ]]; then
+                echo "ERROR: reconstructed blob identity mismatch." >&2
+                exit 2
+              fi
+              git -C "$scan_root" update-index --add \
+                --cacheinfo "$mode,$object_id,$path"
+            done
+          (
+            cd "$scan_root"
+            python "$GITHUB_WORKSPACE/scripts/scan_secrets.py" --staged
+          )

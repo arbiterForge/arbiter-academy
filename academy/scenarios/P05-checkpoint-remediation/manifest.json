@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P05-checkpoint-remediation","files":[{"source":"scenario.json","destination":"training_scenarios/P05-checkpoint-remediation.json"}],"removals":[],"starting_task":"P05","checkpoint":"academy/checkpoints/P05-checkpoint-remediation.json","requires_push_safe_setup":false}

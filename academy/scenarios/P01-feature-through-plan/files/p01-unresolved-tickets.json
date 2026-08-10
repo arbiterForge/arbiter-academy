@@ -1,0 +1,5 @@
+[
+  {"id":"RQ-P01-001","title":"Clarify workshop instructions","description":"Fictional Academy ticket.","status":"open","created_at":"2026-08-01T09:00:00Z","claimed_by":null,"claimed_at":null,"completed_at":null,"resolution":null},
+  {"id":"RQ-P01-002","title":"Review queue labels","description":"Fictional Academy ticket.","status":"claimed","created_at":"2026-08-01T09:05:00Z","claimed_by":"Academy Volunteer","claimed_at":"2026-08-01T09:10:00Z","completed_at":null,"resolution":null},
+  {"id":"RQ-P01-003","title":"Archive completed exercise","description":"Fictional Academy ticket.","status":"completed","created_at":"2026-08-01T09:15:00Z","claimed_by":"Academy Volunteer","claimed_at":"2026-08-01T09:20:00Z","completed_at":"2026-08-01T09:25:00Z","resolution":"Recorded"}
+]

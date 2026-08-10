@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"F03-work-the-board","predicates":[{"id":"canonical_board_transition","type":"lab_semantics","profile":"task_transition","board":".codearbiter/open-tasks.md","task_id":"academy.feature.0001"}]}

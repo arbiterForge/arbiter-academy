@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"P06-context-drift-recovery","predicates":[{"id":"provenance_drift_recovery","type":"lab_semantics","profile":"provenance_recovery","context":".codearbiter/CONTEXT.md","handoff":".codearbiter/reports/academy/P06-recovery.json"}]}

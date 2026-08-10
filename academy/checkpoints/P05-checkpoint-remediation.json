@@ -1,0 +1,1 @@
+{"schema_version":2,"id":"P05-checkpoint-remediation","predicates":[{"id":"finding_remediation_link","type":"lab_semantics","profile":"checkpoint_remediation","report":".codearbiter/checkpoints/P05-academy.json"}]}

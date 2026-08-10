@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"F03-work-the-board","files":[{"source":"scenario.json","destination":"training_scenarios/F03-work-the-board.json"}],"removals":[],"starting_task":"F03","checkpoint":"academy/checkpoints/F03-work-the-board.json","requires_push_safe_setup":false}

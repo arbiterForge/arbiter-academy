@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="academy-release" content="preview-0.1">
+  <title>$title</title>
+  <link rel="icon" href="$favicon_url">
+  <link rel="stylesheet" href="$stylesheet_url">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-mark" href="$home_url" aria-label="Arbiter Academy home">
+        <img src="$logo_url" alt="" width="160" height="28">
+        <span class="site-mark__academy">Academy</span>
+      </a>
+      <nav aria-label="Course navigation">
+        <a href="$home_url">Course</a>
+        <a href="$recovery_url">Recovery</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main-content" tabindex="-1">
+    <div class="page-shell">
+      <div class="status-badge status-badge--preview" role="status">
+        <span aria-hidden="true"></span>
+        Preview 0.1
+      </div>
+$body
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <p>Arbiter Academy</p>
+      <p class="status-badge status-badge--positive">
+        <span aria-hidden="true"></span>
+        Reviewed public inventory
+      </p>
+      <p><a href="$home_url">Preview 0.1 release</a></p>
+    </div>
+  </footer>
+</body>
+</html>

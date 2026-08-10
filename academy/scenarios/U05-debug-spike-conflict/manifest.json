@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"U05-debug-spike-conflict","files":[{"source":"scenario.json","destination":"training_scenarios/U05-debug-spike-conflict.json"}],"removals":[],"starting_task":"U05","checkpoint":"academy/checkpoints/U05-debug-spike-conflict.json","requires_push_safe_setup":false}

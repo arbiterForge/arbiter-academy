@@ -1,0 +1,1 @@
+{"schema_version":1,"id":"P07-threat-model","files":[{"source":"scenario.json","destination":"training_scenarios/P07-threat-model.json"}],"removals":[],"starting_task":"P07","checkpoint":"academy/checkpoints/P07-threat-model.json","requires_push_safe_setup":false}
