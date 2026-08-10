@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import inspect
 import json
@@ -58,6 +59,7 @@ from academy_engine.exercise_state import (
 )
 from academy_engine.external_state import ExternalStateError
 from academy_engine.scenario import PreparationError, prepare_lab
+from tests._temporary import RetryingTemporaryDirectory
 
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -68,6 +70,27 @@ def git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProce
         ["git", *args], cwd=root, text=True, encoding="utf-8",
         capture_output=True, check=check,
     )
+
+
+class RealRepositoryFixtureCleanupTests(unittest.TestCase):
+    def test_p02_fixture_uses_the_git_cleanup_retry_policy(self) -> None:
+        """Catches transient Git object teardown races escaping the P02 fixture."""
+        case = P02RealRepositoryTests(
+            "test_preflight_rejects_base_profile_mutation_outside_patch_hunks"
+        )
+        case.setUp()
+        base_cleanup = tempfile.TemporaryDirectory.cleanup
+        transient = OSError(errno.ENOTEMPTY, "directory not empty")
+        try:
+            with patch.object(
+                tempfile.TemporaryDirectory,
+                "cleanup",
+                side_effect=(transient, None),
+            ) as cleanup:
+                case.doCleanups()
+            self.assertEqual(cleanup.call_count, 2)
+        finally:
+            base_cleanup(case.temporary)
 
 
 class P02StateContractTests(unittest.TestCase):
@@ -420,7 +443,7 @@ class P02RealRepositoryTests(unittest.TestCase):
     OBJECT_FORMAT = "sha1"
 
     def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory()
+        self.temporary = RetryingTemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         root = Path(self.temporary.name)
         self.repository = root / "learner"
