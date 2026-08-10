@@ -127,6 +127,23 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertEqual(temporary.cleanup.call_count, 5)
 
+    def test_retrying_directory_applies_the_same_policy_to_cleanup_method(self) -> None:
+        from tests._temporary import RetryingTemporaryDirectory
+
+        temporary = RetryingTemporaryDirectory()
+        base_cleanup = tempfile.TemporaryDirectory.cleanup
+        transient = OSError(errno.ENOTEMPTY, "directory not empty")
+        try:
+            with patch.object(
+                tempfile.TemporaryDirectory,
+                "cleanup",
+                side_effect=(transient, None),
+            ) as cleanup:
+                temporary.cleanup()
+            self.assertEqual(cleanup.call_count, 2)
+        finally:
+            base_cleanup(temporary)
+
     def test_build_emits_only_eligible_labs_and_nonlinked_coming_next_status(self) -> None:
         """Catches a future lab being published or linked as available."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)

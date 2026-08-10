@@ -19,6 +19,7 @@ from academy_engine.exercise_state import ExerciseStateError
 from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
 from academy_engine.external_state import ExternalStateStore
 from academy_engine.progress import inspect_progress
+from tests._temporary import RetryingTemporaryDirectory
 
 
 def git(root: Path, *args: str) -> str:
@@ -26,8 +27,8 @@ def git(root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
-    temporary = tempfile.TemporaryDirectory()
+def academy_git_fixture() -> tuple[RetryingTemporaryDirectory, Path]:
+    temporary = RetryingTemporaryDirectory()
     root = Path(temporary.name) / "repository"
     root.mkdir()
     git(root, "init", "-b", "main")
@@ -61,9 +62,9 @@ def add_scenario(root: Path, lab_id: str) -> None:
     }), encoding="utf-8")
 
 
-def p01_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+def p01_academy_git_fixture() -> tuple[RetryingTemporaryDirectory, Path]:
     """Create the smallest real repository that can prepare the P01 control-state seed."""
-    temporary = tempfile.TemporaryDirectory()
+    temporary = RetryingTemporaryDirectory()
     root = Path(temporary.name) / "repository"
     root.mkdir()
     source = Path(__file__).parents[1]
@@ -79,9 +80,9 @@ def p01_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
     return temporary, root
 
-def p05_academy_git_fixture() -> tuple[tempfile.TemporaryDirectory[str], Path]:
+def p05_academy_git_fixture() -> tuple[RetryingTemporaryDirectory, Path]:
     """Create a P04-shaped learner repository for the real P05 preparation path."""
-    temporary = tempfile.TemporaryDirectory()
+    temporary = RetryingTemporaryDirectory()
     root = Path(temporary.name) / "repository"
     root.mkdir()
     (root / "data").mkdir()
