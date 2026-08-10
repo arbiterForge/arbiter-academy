@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
 from academy_engine.checkpoints import LAB_INVENTORY
+from academy_engine.lesson_actions import load_action_manifest
 from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
@@ -1066,6 +1067,160 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("docs/preserved-note.md", p06)
         p07 = (self.out / "labs" / "P07-threat-model" / "index.html").read_text(encoding="utf-8")
         self.assertIn("P08 is not available in Academy Preview 0.3", p07)
+        self.assertIn("Guided lesson \u00b7 structured rewrite pending", f01)
+        for reference_lesson in (p02, p04, p05):
+            self.assertIn("Reference lesson \u00b7 guided rewrite pending", reference_lesson)
+
+    def test_guided_action_reference_renders_semantic_numbered_step(self) -> None:
+        """Catches action rendering that loses execution identity or mutates commands."""
+        source = Path(self.temporary_directory.name) / "guided-renderer"
+        actions_directory = source / "academy" / "actions"
+        actions_directory.mkdir(parents=True)
+        manifest_data = {
+            "schema_version": 1,
+            "lesson_contract_version": 1,
+            "document_id": "F01-fork-clone-doctor",
+            "actions": [
+                {
+                    "id": "F01-prepare",
+                    "sequence": 1,
+                    "title": "Prepare the attempt",
+                    "actor": "learner",
+                    "surface": None,
+                    "instruction": "Run <only> the command for your surface.",
+                    "rationale": "Preparation creates a bounded attempt.",
+                    "variants": [
+                        {
+                            "id": "native-windows",
+                            "surface": "native-terminal",
+                            "operating_system": "windows",
+                            "host": "none",
+                            "language": "powershell",
+                            "command": "& $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor",
+                            "copy": False,
+                        },
+                        {
+                            "id": "codex-windows",
+                            "surface": "harness",
+                            "operating_system": "windows",
+                            "host": "codex",
+                            "language": "powershell",
+                            "command": "! & $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor",
+                            "copy": True,
+                        },
+                    ],
+                    "expected_result": "Academy prints attempt 1 prepared.",
+                    "recovery": "If preparation refuses, preserve the message and inspect repository state.",
+                    "evidence": "The attempt directory exists outside the learner branch.",
+                }
+            ],
+        }
+        (actions_directory / "F01-fork-clone-doctor.json").write_text(
+            json.dumps(manifest_data), encoding="utf-8"
+        )
+        manifest = load_action_manifest(source, "F01-fork-clone-doctor")
+        actions = {action.id: action for action in manifest.actions}
+
+        rendered, headings, referenced = preview_site._render_markdown(
+            "F01-fork-clone-doctor",
+            ["# Fork and clone Doctor", "", "{{action:F01-prepare}}"],
+            actions,
+        )
+
+        self.assertEqual(rendered.count('class="lesson-action"'), 1)
+        self.assertIn(
+            '<section class="lesson-action" data-action-id="F01-prepare" '
+            'aria-labelledby="action-heading-F01-prepare">',
+            rendered,
+        )
+        self.assertIn('id="action-heading-F01-prepare"', rendered)
+        self.assertIn("Step 1", rendered)
+        self.assertIn("You \u00b7 Native terminal \u00b7 Windows", rendered)
+        self.assertIn("You \u00b7 Codex harness \u00b7 Windows", rendered)
+        self.assertIn("Run &lt;only&gt; the command for your surface.", rendered)
+        native_command = "&amp; $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor"
+        harness_command = "! &amp; $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor"
+        self.assertEqual(rendered.count(f">{native_command}</code>"), 1)
+        self.assertEqual(rendered.count(f">{harness_command}</code>"), 1)
+        self.assertNotIn('data-copy-target="command-F01-prepare-native-windows"', rendered)
+        self.assertIn('data-copy-target="command-F01-prepare-codex-windows"', rendered)
+        self.assertIn('aria-describedby="copy-status-F01-prepare-codex-windows"', rendered)
+        self.assertIn('id="copy-status-F01-prepare-codex-windows"', rendered)
+        self.assertIn('class="action-expected"', rendered)
+        self.assertIn('class="action-recovery"', rendered)
+        self.assertIn('class="action-evidence"', rendered)
+        self.assertEqual(headings, ((1, "fork-and-clone-doctor", "Fork and clone Doctor"),))
+        self.assertEqual(referenced, ("F01-prepare",))
+
+        lesson_path = source / "academy" / "tracks" / "foundations" / "F01-fork-clone-doctor.md"
+        lesson_path.parent.mkdir(parents=True)
+        lesson_path.write_text(
+            "---\n"
+            "title: Fork and clone Doctor\n"
+            "outcome: Establish a safe fork.\n"
+            "estimated_minutes: 20\n"
+            "next_lab: F02-orient-to-state\n"
+            "---\n"
+            "# Fork and clone Doctor\n\n"
+            "{{action:F01-prepare}}\n",
+            encoding="utf-8",
+        )
+        document = preview_site._read_markdown_document(
+            source,
+            Path("academy/tracks/foundations/F01-fork-clone-doctor.md"),
+            "F01-fork-clone-doctor",
+            require_h1=True,
+        )
+        self.assertEqual(document["referenced_actions"], ("F01-prepare",))
+        self.assertEqual(document["heading"], "Fork and clone Doctor")
+        self.assertIn('data-action-id="F01-prepare"', str(document["content"]))
+
+    def test_guided_documents_require_one_to_one_action_references(self) -> None:
+        """Catches ambiguous, missing, duplicated, or prose-injected action bindings."""
+        action = preview_site.LessonAction(
+            "F01-prepare",
+            1,
+            "Prepare",
+            "learner",
+            "browser",
+            "Open the Academy fork page.",
+            None,
+            (),
+            "The fork page opens.",
+            "Return to the Academy home page and retry.",
+            None,
+        )
+        actions = {action.id: action}
+        invalid_documents = (
+            (["# Guided", "Use {{action:F01-prepare}} now."], "standalone"),
+            (["# Guided", "{{action:F01-prepare}}", "{{action:F01-prepare}}"], "duplicate"),
+            (["# Guided", "{{action:F01-unknown}}"], "unknown"),
+            (["# Guided", "No referenced action."], "unreferenced"),
+            (["# Guided", "```powershell", "git status", "```", "{{action:F01-prepare}}"], "raw command"),
+        )
+        for lines, message in invalid_documents:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(ValueError, message):
+                    preview_site._render_markdown("F01-fork-clone-doctor", lines, actions)
+
+        injected = preview_site.LessonAction(
+            "F01-injected",
+            1,
+            "<script>not markup</script>",
+            "learner",
+            "browser",
+            "Open <b>nothing executable</b>.",
+            None,
+            (),
+            "No script runs.",
+            "Return safely.",
+            None,
+        )
+        rendered = preview_site._render_action(injected)
+        self.assertNotIn("<script>", rendered)
+        self.assertNotIn("<b>", rendered)
+        self.assertIn("&lt;script&gt;not markup&lt;/script&gt;", rendered)
+        self.assertIn("Open &lt;b&gt;nothing executable&lt;/b&gt;.", rendered)
 
     def test_markdown_renderer_rejects_unreviewed_syntax_before_writing(self) -> None:
         """Catches unknown Markdown or active HTML being silently dropped or published."""

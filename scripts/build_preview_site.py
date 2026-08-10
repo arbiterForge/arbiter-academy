@@ -8,6 +8,7 @@ import os
 import re
 import stat
 import sys
+from collections.abc import Mapping
 from html import escape
 from pathlib import Path
 from string import Template
@@ -16,6 +17,8 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
+from academy_engine.lesson_actions import LessonAction, load_action_manifest
+from academy_engine.paths import ensure_within
 from academy_engine.preview import PreviewManifest, load_preview_manifest
 
 
@@ -28,6 +31,7 @@ _ORDERED_ITEM = re.compile(r"^(?P<number>[1-9][0-9]*)\. (?P<body>\S.*)$")
 _UNSUPPORTED_BLOCK = re.compile(r"^(?:[-+*]\s|\d+[.)]\s|>|#{4,}\s|<)")
 _RAW_HTML = re.compile(r"(?:</?[A-Za-z][^>]*>|<!--.*?-->)")
 _LINK_OR_IMAGE = re.compile(r"!?\[[^\]]*\]\([^)]*\)")
+_ACTION_REFERENCE = re.compile(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}")
 _UNSUPPORTED_INLINE_MARKERS = ("*", "_", "[", "]", "\\", "~")
 _PUBLIC_ASSET_FILES = (
     Path("assets/academy.css"),
@@ -57,7 +61,7 @@ def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None)
     assets = _load_public_assets(root)
 
     lessons = {
-        lab_id: _read_public_lesson(root, lab_id)
+        lab_id: _read_public_lesson(root, lab_id, guided=lab_id in manifest.guided_labs)
         for lab_id in manifest.available_labs
     }
     rendered_pages = _render_pages(manifest, lessons, templates, commit)
@@ -203,7 +207,7 @@ def _validate_rendered_inventory(rendered_pages: dict[Path, str], approved_files
         raise ValueError(f"rendered inventory is incomplete: {', '.join(missing)}")
 
 
-def _read_public_lesson(root: Path, lab_id: str) -> dict[str, object]:
+def _read_public_lesson(root: Path, lab_id: str, *, guided: bool = False) -> dict[str, object]:
     track = "foundations" if lab_id.startswith("F") else "practitioner" if lab_id.startswith("P") else ""
     if not track:
         raise ValueError(f"eligible lesson has unsupported lab ID: {lab_id}")
@@ -236,7 +240,22 @@ def _read_public_lesson(root: Path, lab_id: str) -> dict[str, object]:
     if not re.fullmatch(r"[1-9][0-9]{0,2}", metadata["estimated_minutes"]):
         raise ValueError(f"eligible lesson {lab_id} has invalid estimated_minutes")
 
-    content, headings = _render_markdown(lab_id, lines[end + 1 :])
+    action_path = root / "academy" / "actions" / f"{lab_id}.json"
+    if guided and action_path.is_file():
+        document = _read_markdown_document(
+            root,
+            path.relative_to(root),
+            lab_id,
+            require_h1=True,
+        )
+        content = str(document["content"])
+        headings = document["headings"]
+        assert isinstance(headings, tuple)
+        referenced_actions = document["referenced_actions"]
+        assert isinstance(referenced_actions, tuple)
+    else:
+        content, headings = _render_markdown(lab_id, lines[end + 1 :])
+        referenced_actions = ()
     h1 = [title for level, _slug, title in headings if level == 1]
     if len(h1) != 1:
         raise ValueError(f"eligible lesson {lab_id} must contain exactly one public title heading")
@@ -244,8 +263,60 @@ def _read_public_lesson(root: Path, lab_id: str) -> dict[str, object]:
         "heading": h1[0],
         "content": content,
         "headings": headings,
+        "referenced_actions": referenced_actions,
+        "guided": bool(guided and action_path.is_file()),
         **metadata,
         "estimated_minutes": int(metadata["estimated_minutes"]),
+    }
+
+
+def _read_markdown_document(
+    root: Path,
+    relative_path: Path,
+    document_id: str,
+    *,
+    require_h1: bool,
+) -> dict[str, object]:
+    """Read one guided Markdown document and bind every declared action exactly once."""
+    if relative_path.is_absolute():
+        raise ValueError("guided document path must be relative to the Academy root")
+    path = ensure_within(root, root / relative_path)
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise ValueError(f"could not read guided document {document_id}: {error}") from error
+
+    metadata: dict[str, str] = {}
+    content_start = 0
+    if lines and lines[0] == "---":
+        try:
+            end = lines.index("---", 1)
+        except ValueError as error:
+            raise ValueError(f"guided document {document_id} has unterminated frontmatter") from error
+        for line in lines[1:end]:
+            key, separator, value = line.partition(":")
+            key = key.strip()
+            if not separator or not key or key in metadata:
+                raise ValueError(f"guided document {document_id} has invalid frontmatter")
+            metadata[key] = value.strip()
+        content_start = end + 1
+
+    manifest = load_action_manifest(root, document_id)
+    actions = {action.id: action for action in manifest.actions}
+    content, headings, referenced_actions = _render_markdown(
+        document_id, lines[content_start:], actions
+    )
+    h1 = [title for level, _slug, title in headings if level == 1]
+    if require_h1 and len(h1) != 1:
+        raise ValueError(f"guided document {document_id} must contain exactly one public title heading")
+    if not require_h1 and len(h1) > 1:
+        raise ValueError(f"guided document {document_id} must not contain multiple public title headings")
+    return {
+        **metadata,
+        "heading": h1[0] if h1 else "",
+        "content": content,
+        "headings": headings,
+        "referenced_actions": referenced_actions,
     }
 
 
@@ -321,13 +392,102 @@ def _table_cells(lab_id: str, line: str) -> tuple[str, str]:
     return cells[0], cells[1]
 
 
+def _execution_label(action: LessonAction, *, surface: str, host: str, operating_system: str) -> str:
+    actor = {"learner": "You", "academy": "Academy", "agent": "Your agent"}[action.actor]
+    if surface == "harness":
+        surface_label = {
+            "claude-code": "Claude Code harness",
+            "codex": "Codex harness",
+            "pi": "Pi harness",
+        }[host]
+    else:
+        surface_label = {
+            "browser": "Browser",
+            "native-terminal": "Native terminal",
+            "academy-console": "Academy console",
+        }[surface]
+    os_label = {
+        "all": "All operating systems",
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux",
+    }[operating_system]
+    return f"{actor} \u00b7 {surface_label} \u00b7 {os_label}"
+
+
+def _render_action(action: LessonAction) -> str:
+    """Render one validated action without interpreting any manifest prose as markup."""
+    action_id = escape(action.id, quote=True)
+    blocks = [
+        f'<section class="lesson-action" data-action-id="{action_id}" '
+        f'aria-labelledby="action-heading-{action_id}">',
+        '<header class="lesson-action__header">',
+        f'<p class="lesson-action__sequence">Step {action.sequence}</p>',
+        f'<h2 id="action-heading-{action_id}">{escape(action.title)}</h2>',
+        "</header>",
+    ]
+    if not action.variants:
+        assert action.surface is not None
+        blocks.append(
+            f'<p class="action-role">{escape(_execution_label(action, surface=action.surface, host="none", operating_system="all"))}</p>'
+        )
+    blocks.append(f'<p class="action-instruction">{escape(action.instruction)}</p>')
+    if action.rationale is not None:
+        blocks.append(
+            f'<div class="action-rationale"><strong>Why</strong><p>{escape(action.rationale)}</p></div>'
+        )
+    for variant in action.variants:
+        variant_id = escape(variant.id, quote=True)
+        command_id = f"command-{action_id}-{variant_id}"
+        status_id = f"copy-status-{action_id}-{variant_id}"
+        blocks.extend(
+            (
+                f'<div class="command-variant" data-os="{escape(variant.operating_system, quote=True)}" '
+                f'data-host="{escape(variant.host, quote=True)}" data-surface="{escape(variant.surface, quote=True)}">',
+                f'<p class="action-role">{escape(_execution_label(action, surface=variant.surface, host=variant.host, operating_system=variant.operating_system))}</p>',
+                '<div class="command-shell">',
+                f'<pre tabindex="0"><code id="{command_id}" class="language-{escape(variant.language, quote=True)}">{escape(variant.command)}</code></pre>',
+            )
+        )
+        if variant.copy:
+            blocks.extend(
+                (
+                    f'<button type="button" class="command-copy" data-copy-target="{command_id}" aria-describedby="{status_id}">Copy</button>',
+                    "</div>",
+                    f'<p id="{status_id}" class="copy-status" role="status" aria-live="polite"></p>',
+                )
+            )
+        else:
+            blocks.append("</div>")
+        blocks.append("</div>")
+    blocks.extend(
+        (
+            f'<div class="action-expected"><strong>Expected result</strong><p>{escape(action.expected_result)}</p></div>',
+            f'<div class="action-recovery"><strong>If that does not happen</strong><p>{escape(action.recovery)}</p></div>',
+        )
+    )
+    if action.evidence is not None:
+        blocks.append(
+            f'<div class="action-evidence"><strong>Evidence</strong><p>{escape(action.evidence)}</p></div>'
+        )
+    blocks.append("</section>")
+    return "\n".join(blocks)
+
+
 def _render_markdown(
-    lab_id: str, lines: list[str]
-) -> tuple[str, tuple[tuple[int, str, str], ...]]:
+    lab_id: str,
+    lines: list[str],
+    actions: Mapping[str, LessonAction] | None = None,
+) -> tuple[str, tuple[tuple[int, str, str], ...]] | tuple[
+    str, tuple[tuple[int, str, str], ...], tuple[str, ...]
+]:
+    guided = actions is not None
+    action_map = actions or {}
     rendered: list[str] = []
     headings: list[tuple[int, str, str]] = []
     used_slugs: set[str] = set()
     paragraph: list[str] = []
+    referenced_actions: list[str] = []
     index = 0
 
     def flush_paragraph() -> None:
@@ -343,8 +503,26 @@ def _render_markdown(
             continue
         if line != line.lstrip() or line.endswith("  "):
             raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+        action_reference = _ACTION_REFERENCE.fullmatch(line)
+        if action_reference:
+            flush_paragraph()
+            action_id = action_reference.group(1)
+            if not guided:
+                raise ValueError(f"eligible lesson {lab_id} contains an action reference outside a guided document")
+            if action_id not in action_map:
+                raise ValueError(f"guided document {lab_id} references unknown action {action_id}")
+            if action_id in referenced_actions:
+                raise ValueError(f"guided document {lab_id} contains duplicate action reference {action_id}")
+            rendered.append(_render_action(action_map[action_id]))
+            referenced_actions.append(action_id)
+            index += 1
+            continue
+        if "{{action:" in line:
+            raise ValueError(f"guided document {lab_id} action references must be standalone")
         if line.startswith("```"):
             flush_paragraph()
+            if guided:
+                raise ValueError(f"guided document {lab_id} contains a raw command fence")
             language = line[3:]
             if language not in _FENCE_LANGUAGES:
                 raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
@@ -426,6 +604,18 @@ def _render_markdown(
         paragraph.append(line.strip())
         index += 1
     flush_paragraph()
+    if guided:
+        expected_actions = tuple(
+            action.id for action in sorted(action_map.values(), key=lambda item: item.sequence)
+        )
+        if tuple(referenced_actions) != expected_actions:
+            missing = tuple(action_id for action_id in expected_actions if action_id not in referenced_actions)
+            if missing:
+                raise ValueError(
+                    f"guided document {lab_id} has unreferenced action(s): {', '.join(missing)}"
+                )
+            raise ValueError(f"guided document {lab_id} action references are out of sequence")
+        return "\n".join(rendered), tuple(headings), tuple(referenced_actions)
     return "\n".join(rendered), tuple(headings)
 
 
@@ -513,6 +703,13 @@ def _render_pages(
                 track=track_label,
                 minutes=escape(str(lesson.get("estimated_minutes", ""))),
                 outcome=escape(str(lesson["outcome"])),
+                lesson_status=(
+                    "Guided lesson"
+                    if lesson["guided"]
+                    else "Guided lesson \u00b7 structured rewrite pending"
+                    if lab_id in manifest.guided_labs
+                    else "Reference lesson \u00b7 guided rewrite pending"
+                ),
                 lesson_content=str(lesson["content"]),
                 toc=toc,
                 next_step=next_step,
