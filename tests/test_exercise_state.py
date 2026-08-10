@@ -5303,7 +5303,7 @@ class P02RealRepositoryTests(unittest.TestCase):
                 os.chmod(path, stat.S_IWRITE)
                 function(path)
 
-            shutil.rmtree(origin, onexc=remove_readonly)
+            shutil.rmtree(origin, onerror=remove_readonly)
             shutil.copytree(origin_backup, origin)
 
         for kind in ("untouched", "partial", "wrong-patch"):

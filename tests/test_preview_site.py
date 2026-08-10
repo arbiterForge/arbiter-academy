@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import hashlib
 import html as html_module
 import json
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import time
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -95,7 +97,25 @@ class PreviewSiteTests(unittest.TestCase):
         self.out = Path(self.temporary_directory.name) / "generated"
 
     def tearDown(self) -> None:
-        self.temporary_directory.cleanup()
+        for attempt in range(5):
+            try:
+                self.temporary_directory.cleanup()
+                return
+            except OSError as error:
+                if error.errno != errno.ENOTEMPTY or attempt == 4:
+                    raise
+                time.sleep(0.05 * (2**attempt))
+
+    def test_teardown_retries_a_transient_nonempty_directory(self) -> None:
+        transient = OSError(errno.ENOTEMPTY, "directory not empty")
+        with patch.object(
+            self.temporary_directory,
+            "cleanup",
+            side_effect=(transient, None),
+        ) as cleanup:
+            self.tearDown()
+
+        self.assertEqual(cleanup.call_count, 2)
 
     def test_build_emits_only_eligible_labs_and_nonlinked_coming_next_status(self) -> None:
         """Catches a future lab being published or linked as available."""

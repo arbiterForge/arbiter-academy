@@ -118,6 +118,11 @@ class ProjectStateTests(unittest.TestCase):
             hashlib.sha256((STATE_ROOT / "tech-stack.md").read_bytes()).hexdigest(),
             exercise_module._BASE_PROFILE_SHA256,
         )
+        exercise_tests = (REPO_ROOT / "tests/test_exercise_state.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("onexc=", exercise_tests)
+        self.assertIn("onerror=", exercise_tests)
 
     def test_project_state_is_initialized_and_cross_references_are_resolvable(self):
         state = AcademyState.load(STATE_ROOT)
