@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from academy_engine.paths import ensure_within
+
 
 ACTORS = frozenset({"learner", "academy", "agent"})
 SURFACES = frozenset({"browser", "native-terminal", "harness", "academy-console"})
@@ -130,8 +132,8 @@ def _require_prose(value: object, label: str, *, nullable: bool = False) -> str 
         return None
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{label} must not be empty")
-    if len(value.encode("utf-8")) > _PROSE_LIMIT:
-        raise ValueError(f"{label} must be at most {_PROSE_LIMIT} UTF-8 bytes")
+    if len(value) > _PROSE_LIMIT:
+        raise ValueError(f"{label} must be at most {_PROSE_LIMIT} characters")
     if _ASCII_CONTROL.search(value):
         raise ValueError(f"{label} must not contain ASCII controls")
     return value
@@ -140,8 +142,8 @@ def _require_prose(value: object, label: str, *, nullable: bool = False) -> str 
 def _require_command(value: object) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("command must not be empty")
-    if len(value.encode("utf-8")) > _COMMAND_LIMIT:
-        raise ValueError(f"command must be at most {_COMMAND_LIMIT} UTF-8 bytes")
+    if len(value) > _COMMAND_LIMIT:
+        raise ValueError(f"command must be at most {_COMMAND_LIMIT} characters")
     if "\r" in value:
         raise ValueError("command must not contain CR bytes")
     if _COMMAND_CONTROL.search(value):
@@ -292,7 +294,9 @@ def validate_action_manifest(
 def load_action_manifest(root: Path, document_id: str) -> LessonActionManifest:
     """Load exactly ``academy/actions/{document_id}.json`` beneath *root*."""
     safe_document_id = _require_safe_id(document_id, "document id")
-    path = root / "academy" / "actions" / f"{safe_document_id}.json"
+    path = ensure_within(
+        root, root / "academy" / "actions" / f"{safe_document_id}.json"
+    )
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:

@@ -27,7 +27,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 1024,
-      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+      "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F]+$"
     },
     "nullableProse": {
       "oneOf": [
@@ -49,7 +49,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 8192,
-          "pattern": "^[^\\u0000-\\u0009\\u000B-\\u001F\\u007F]+$"
+          "pattern": "^(?=[\\s\\S]*\\S)[^\\u0000-\\u0009\\u000B-\\u001F\\u007F]+$"
         },
         "copy": {"type": "boolean"}
       }

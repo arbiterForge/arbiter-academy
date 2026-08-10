@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 from copy import deepcopy
@@ -19,6 +20,18 @@ DOCUMENT_ID = "F01-fork-clone-doctor"
 
 
 class LessonActionTests(unittest.TestCase):
+    def schema(self) -> dict[str, object]:
+        root = Path(__file__).parents[1]
+        return json.loads(
+            (root / "academy" / "lesson-action.schema.json").read_text(encoding="utf-8")
+        )
+
+    def schema_string_accepts(self, definition: dict[str, object], value: str) -> bool:
+        return (
+            int(definition["minLength"]) <= len(value) <= int(definition["maxLength"])
+            and re.search(str(definition["pattern"]), value) is not None
+        )
+
     def command_action(self, **variant_changes: object) -> dict[str, object]:
         variant: dict[str, object] = {
             "id": "status-codex-linux",
@@ -163,6 +176,24 @@ class LessonActionTests(unittest.TestCase):
             with self.subTest(unsafe_id=unsafe_id):
                 with self.assertRaisesRegex(ValueError, "safe ID"):
                     validate_action_manifest(data, expected_document_id=DOCUMENT_ID)
+
+    def test_runtime_and_schema_share_the_ascii_id_character_limit(self) -> None:
+        schema = self.schema()
+        id_schema = schema["$defs"]["id"]  # type: ignore[index]
+        bounded_id = "a" * 96
+        action = self.command_action()
+        action["id"] = bounded_id
+        action["variants"][0]["id"] = bounded_id  # type: ignore[index]
+        data = self.manifest(action)
+        data["document_id"] = bounded_id
+
+        result = validate_action_manifest(data, expected_document_id=bounded_id)
+
+        self.assertEqual(result.document_id, bounded_id)
+        self.assertEqual(result.actions[0].id, bounded_id)
+        self.assertEqual(result.actions[0].variants[0].id, bounded_id)
+        self.assertTrue(self.schema_string_accepts(id_schema, bounded_id))
+        self.assertFalse(self.schema_string_accepts(id_schema, "a" * 97))
 
     def test_document_id_must_match_the_requested_document(self) -> None:
         with self.assertRaisesRegex(ValueError, "document_id must match"):
@@ -329,6 +360,83 @@ class LessonActionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     validate_action_manifest(data, expected_document_id=DOCUMENT_ID)
 
+    def test_runtime_and_schema_use_unicode_code_point_limits_for_every_bounded_string(self) -> None:
+        schema = self.schema()
+        prose_schema = schema["$defs"]["prose"]  # type: ignore[index]
+        command_schema = schema["$defs"]["variant"]["properties"]["command"]  # type: ignore[index]
+        accepted_prose = "é" * 600
+        rejected_prose = "é" * 1025
+        accepted_command = "!" + "é" * 600
+        rejected_command = "!" + "é" * 8192
+
+        for field in (
+            "title",
+            "instruction",
+            "rationale",
+            "expected_result",
+            "recovery",
+            "evidence",
+        ):
+            action = self.command_action()
+            action[field] = accepted_prose
+            with self.subTest(field=field, boundary="accepted"):
+                result = validate_action_manifest(
+                    self.manifest(action), expected_document_id=DOCUMENT_ID
+                )
+                self.assertEqual(getattr(result.actions[0], field), accepted_prose)
+                self.assertTrue(self.schema_string_accepts(prose_schema, accepted_prose))
+
+            action[field] = rejected_prose
+            with self.subTest(field=field, boundary="rejected"):
+                with self.assertRaisesRegex(ValueError, "at most 1024 characters"):
+                    validate_action_manifest(
+                        self.manifest(action), expected_document_id=DOCUMENT_ID
+                    )
+                self.assertFalse(self.schema_string_accepts(prose_schema, rejected_prose))
+
+        accepted = validate_action_manifest(
+            self.manifest(self.command_action(command=accepted_command)),
+            expected_document_id=DOCUMENT_ID,
+        )
+        self.assertEqual(accepted.actions[0].variants[0].command, accepted_command)
+        self.assertTrue(self.schema_string_accepts(command_schema, accepted_command))
+        with self.assertRaisesRegex(ValueError, "at most 8192 characters"):
+            validate_action_manifest(
+                self.manifest(self.command_action(command=rejected_command)),
+                expected_document_id=DOCUMENT_ID,
+            )
+        self.assertFalse(self.schema_string_accepts(command_schema, rejected_command))
+
+    def test_runtime_and_schema_reject_whitespace_only_bounded_strings(self) -> None:
+        schema = self.schema()
+        prose_schema = schema["$defs"]["prose"]  # type: ignore[index]
+        command_schema = schema["$defs"]["variant"]["properties"]["command"]  # type: ignore[index]
+
+        for field in (
+            "title",
+            "instruction",
+            "rationale",
+            "expected_result",
+            "recovery",
+            "evidence",
+        ):
+            action = self.command_action()
+            action[field] = "   "
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, "must not be empty"):
+                    validate_action_manifest(
+                        self.manifest(action), expected_document_id=DOCUMENT_ID
+                    )
+                self.assertFalse(self.schema_string_accepts(prose_schema, "   "))
+
+        whitespace_command = "   "
+        with self.assertRaisesRegex(ValueError, "must not be empty"):
+            validate_action_manifest(
+                self.manifest(self.command_action(command=whitespace_command)),
+                expected_document_id=DOCUMENT_ID,
+            )
+        self.assertFalse(self.schema_string_accepts(command_schema, whitespace_command))
+
     def test_command_newlines_are_allowed_and_preserved_as_visible_copy_bytes(self) -> None:
         command = "!git status --short\nprintf 'done\\n'"
         data = self.manifest(self.command_action(command=command))
@@ -358,6 +466,41 @@ class LessonActionTests(unittest.TestCase):
 
             self.assertEqual(result.document_id, DOCUMENT_ID)
 
+    def test_loader_rejects_an_actions_ancestor_symlink_outside_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "root"
+            academy = root / "academy"
+            outside = base / "outside-actions"
+            academy.mkdir(parents=True)
+            outside.mkdir()
+            (outside / f"{DOCUMENT_ID}.json").write_text(
+                json.dumps(self.manifest()), encoding="utf-8", newline="\n"
+            )
+            try:
+                (academy / "actions").symlink_to(outside, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"directory symlinks are unavailable: {error}")
+
+            with self.assertRaisesRegex(ValueError, "symlink or reparse"):
+                load_action_manifest(root, DOCUMENT_ID)
+
+    def test_loader_rejects_a_manifest_symlink_outside_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            root = base / "root"
+            actions = root / "academy" / "actions"
+            outside = base / "outside.json"
+            actions.mkdir(parents=True)
+            outside.write_text(json.dumps(self.manifest()), encoding="utf-8", newline="\n")
+            try:
+                (actions / f"{DOCUMENT_ID}.json").symlink_to(outside)
+            except OSError as error:
+                self.skipTest(f"file symlinks are unavailable: {error}")
+
+            with self.assertRaisesRegex(ValueError, "symlink or reparse"):
+                load_action_manifest(root, DOCUMENT_ID)
+
     def test_loader_fails_closed_for_missing_malformed_or_mismatched_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -375,8 +518,7 @@ class LessonActionTests(unittest.TestCase):
                 load_action_manifest(root, DOCUMENT_ID)
 
     def test_checked_in_schema_is_closed_and_models_both_action_shapes(self) -> None:
-        root = Path(__file__).parents[1]
-        schema = json.loads((root / "academy" / "lesson-action.schema.json").read_text(encoding="utf-8"))
+        schema = self.schema()
 
         self.assertFalse(schema["additionalProperties"])
         self.assertFalse(schema["$defs"]["action"]["additionalProperties"])
