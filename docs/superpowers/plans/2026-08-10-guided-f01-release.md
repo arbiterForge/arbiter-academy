@@ -540,21 +540,21 @@ the Task 6 diff does not touch their pin loader.
 - Consumes semantic classes from Tasks 3-6.
 - Produces responsive layouts at 1440x900, 1024x768, 390x844, 320x568, and 200% zoom without clipped content or reordered lesson meaning.
 
-- [ ] **Step 1: Write CSS contract RED tests**
+- [x] **Step 1: Write CSS contract RED tests**
 
 Assert `min-width: 0` on grid children, bounded horizontal scrolling on command `<pre>`, `overflow-wrap: anywhere` on prose/path output, 44px minimum pointer targets, visible `:focus-visible`, `[hidden] { display: none !important; }`, a no-motion media query, a high-contrast forced-colors rule, a 42rem single-column breakpoint, and no `.lab-grid` card layout, `radial-gradient`, or invented metric component.
 
-- [ ] **Step 2: Run visual-contract tests and verify RED**
+- [x] **Step 2: Run visual-contract tests and verify RED**
 
 Run: `python -m unittest tests.test_preview_site.PreviewSiteTests.test_guided_visual_contract_is_editorial_responsive_and_accessible -v`
 
 Expected: FAIL because the current CSS uses card grids/gradients and lacks guided controls.
 
-- [ ] **Step 3: Implement the restrained lesson hierarchy**
+- [x] **Step 3: Implement the restrained lesson hierarchy**
 
 Use a linear course ledger for publication states, numbered action rails for the main lesson, compact role labels that include text and icon shape, inset expected-result/recovery blocks, and a sticky desktop TOC that becomes a normal-flow disclosure-free list on narrow screens. Keep the existing local Manrope and JetBrains Mono assets.
 
-- [ ] **Step 4: Verify the generated artifact at all required viewports**
+- [x] **Step 4: Verify the generated artifact at all required viewports**
 
 Build and serve:
 
@@ -565,7 +565,7 @@ python -m http.server 4333 --directory site/generated
 
 Capture Home, Recovery, and F01 at 1440x900, 1024x768, 390x844, and 320x568; repeat F01 at 200% zoom, keyboard-only, and reduced motion. Record no clipping, overlap, obscured focus, inaccessible command, semantic reordering, or decorative competition. If any occurs, add a failing CSS/markup regression before changing the styles.
 
-- [ ] **Step 5: Run site tests and artifact checker**
+- [x] **Step 5: Run site tests and artifact checker**
 
 Run: `python -m unittest tests.test_preview_site -v`
 
@@ -573,7 +573,7 @@ Run: `python scripts/check_preview_site.py site/generated`
 
 Expected: both commands PASS.
 
-- [ ] **Step 6: Commit the visual slice**
+- [x] **Step 6: Commit the visual slice**
 
 ```powershell
 git add site/assets/academy.css site/templates/base.html site/templates/lab.html tests/test_preview_site.py
@@ -581,6 +581,21 @@ $ca-commit
 ```
 
 Use commit title `style: establish guided academy lesson hierarchy`.
+
+The editorial visual system landed as `238a1be` (`feat(site): establish guided lesson
+hierarchy`). Browser inspection covered Home, Recovery, and F01 at 1440x900, 1024x768,
+390x844, and 320x568, plus a 720x450 reflow proxy for 200% zoom. Document width remained
+contained, command regions remained bounded and horizontally scrollable, and the narrow lesson
+TOC followed the article in normal flow. Live keyboard focus injection and media-feature emulation
+were unavailable in the embedded browser and are not claimed; executable focus-visible,
+reduced-motion, and forced-colors contracts cover that boundary.
+
+Independent review BLOCKed sticky-header fragment navigation because TOC targets landed behind the
+header. Test-first correction `30d2e15` (`fix(site): keep lesson anchors below sticky header`)
+added 6rem desktop and 9rem <=42rem target offsets. Live reproduction proved the corrected
+`Prepare safely` heading below the header at 1024x768 and 390x844, and exact-diff re-review returned
+PASS with no findings. Fresh evidence covered 56 preview-site tests, 10 project-state tests,
+tabnanny, compileall, a fresh build, artifact validation, staged secret scans, and diff checks.
 
 ### Task 8: Fail-Closed Publication and Deployment Validation
 
