@@ -737,6 +737,19 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", self.build)
         self.assertNotIn("uses: actions/checkout@", self.deploy)
 
+    def test_academy_checkouts_retain_the_real_training_history(self) -> None:
+        """Catches hosted fixtures losing reviewed ancestor commits to shallow checkout."""
+        academy_checkouts = (
+            (self.verify, "Check out the exact Academy candidate"),
+            (self.verify_candidate, "Check out the exact Academy candidate"),
+            (self.main_verify, "Check out the exact reviewed main commit"),
+            (self.build, "Check out the exact reviewed main commit"),
+        )
+        for job, step_name in academy_checkouts:
+            with self.subTest(step=step_name):
+                checkout = _named_step(job, step_name)
+                self.assertIn("fetch-depth: 0", checkout)
+
     def test_hosted_verifier_has_pinned_codearbiter_and_offline_build_wheel(self) -> None:
         """Catches hosted acceptance running without its reviewed local prerequisites."""
         for label, job in (("pull request", self.verify), ("main", self.main_verify)):
