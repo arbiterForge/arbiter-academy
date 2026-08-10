@@ -160,5 +160,4 @@ Begin the retry from clean prepared project state and review before changing any
 
 ## Next lab
 
-P05 is not available in Academy Preview 0.1. Keep your passing P04 evidence; the Preview site will
-identify **P05 — Remediate a checkpoint finding** when it enters verification.
+Continue to **P05 — Remediate a checkpoint finding** after P04 passes.

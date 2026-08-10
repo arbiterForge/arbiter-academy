@@ -11,7 +11,7 @@ from pathlib import Path
 from academy_engine.preview import load_preview_manifest, validate_preview_manifest
 
 
-PREVIEW_0_1 = [
+PREVIEW_0_2 = [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
     "F03-work-the-board",
@@ -20,9 +20,9 @@ PREVIEW_0_1 = [
     "P02-commit-review-pr",
     "P03-record-an-adr",
     "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
 ]
 COMING_NEXT = [
-    "P05-checkpoint-remediation",
     "P06-context-drift-recovery",
     "P07-threat-model",
 ]
@@ -36,8 +36,8 @@ class PreviewManifestTests(unittest.TestCase):
     def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
         root = root or self.root
         manifest: dict[str, object] = {
-            "release": "preview-0.1",
-            "available_labs": PREVIEW_0_1,
+            "release": "preview-0.2",
+            "available_labs": PREVIEW_0_2,
             "coming_next": COMING_NEXT,
             "discussion_url": DISCUSSION_URL,
             "catalog_sha256": hashlib.sha256(
@@ -57,15 +57,15 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_an_unavailable_future_lab(self) -> None:
         """Catches a future lab being relabeled as available in this release."""
         manifest = self.make_manifest(
-            available_labs=PREVIEW_0_1 + ["P05-checkpoint-remediation"]
+            available_labs=PREVIEW_0_2 + ["P06-context-drift-recovery"]
         )
 
         with self.assertRaisesRegex(ValueError, "not eligible"):
             validate_preview_manifest(self.root, manifest)
 
     def test_preview_manifest_requires_the_reviewed_available_and_status_only_lists(self) -> None:
-        """Catches omission or substitution in the public Preview 0.1 boundary."""
-        manifest = self.make_manifest(coming_next=["P05-checkpoint-remediation"])
+        """Catches omission or substitution in the public Preview 0.2 boundary."""
+        manifest = self.make_manifest(coming_next=["P06-context-drift-recovery"])
 
         with self.assertRaisesRegex(ValueError, "coming_next"):
             validate_preview_manifest(self.root, manifest)
@@ -102,7 +102,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = (self.root / "academy" / "catalog.json").read_bytes()
         self.assertNotIn(b"\r\n", catalog)
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.1.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.2.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -115,7 +115,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.1.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.2.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -212,6 +212,28 @@ class PreviewManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "catalog schema"):
                 validate_preview_manifest(root, self.make_manifest(root))
 
+    def test_publication_schema_pins_nine_available_and_two_status_only_labs(self) -> None:
+        """Catches a second publication truth that disagrees with Preview 0.2."""
+        schema = json.loads(
+            (self.root / "academy" / "publication" / "preview-manifest.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        available = schema["properties"]["available_labs"]
+        coming_next = schema["properties"]["coming_next"]
+
+        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.2")
+        self.assertEqual((available["minItems"], available["maxItems"]), (9, 9))
+        self.assertEqual(
+            [entry["const"] for entry in available["prefixItems"]],
+            PREVIEW_0_2,
+        )
+        self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (2, 2))
+        self.assertEqual(
+            [entry["const"] for entry in coming_next["prefixItems"]],
+            COMING_NEXT,
+        )
+
     def test_preview_manifest_rejects_a_boolean_schema_order_pin(self) -> None:
         """Catches JSON Schema treating a boolean order pin as catalog integer 1."""
         with tempfile.TemporaryDirectory() as directory:
@@ -230,10 +252,16 @@ class PreviewManifestTests(unittest.TestCase):
 
     def test_load_preview_manifest_returns_the_reviewed_public_boundary(self) -> None:
         """Catches a checked-in manifest that does not represent the reviewed release."""
+        release_files = sorted(
+            path.name
+            for path in (self.root / "academy" / "publication").glob("preview-*.json")
+            if path.name != "preview-manifest.schema.json"
+        )
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.1")
-        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_1))
+        self.assertEqual(release_files, ["preview-0.2.json"])
+        self.assertEqual(manifest.release, "preview-0.2")
+        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_2))
         self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
         self.assertEqual(manifest.discussion_url, DISCUSSION_URL)
 

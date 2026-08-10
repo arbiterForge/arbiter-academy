@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Check out the pinned local CodeArbiter source
@@ -79,6 +80,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Select Python
@@ -95,7 +97,7 @@ jobs:
       - name: Verify project state
         run: python -m unittest tests.test_project_state -v
 
-      - name: Build the Preview 0.1 site
+      - name: Build the Academy site
         run: >-
           python scripts/build_preview_site.py
           --output site/generated

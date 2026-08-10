@@ -127,15 +127,34 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertEqual(temporary.cleanup.call_count, 5)
 
+    def test_retrying_directory_applies_the_same_policy_to_cleanup_method(self) -> None:
+        from tests._temporary import RetryingTemporaryDirectory
+
+        temporary = RetryingTemporaryDirectory()
+        base_cleanup = tempfile.TemporaryDirectory.cleanup
+        transient = OSError(errno.ENOTEMPTY, "directory not empty")
+        try:
+            with patch.object(
+                tempfile.TemporaryDirectory,
+                "cleanup",
+                side_effect=(transient, None),
+            ) as cleanup:
+                temporary.cleanup()
+            self.assertEqual(cleanup.call_count, 2)
+        finally:
+            base_cleanup(temporary)
+
     def test_build_emits_only_eligible_labs_and_nonlinked_coming_next_status(self) -> None:
         """Catches a future lab being published or linked as available."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)
 
         self.assertTrue((self.out / "labs" / "P04-review-a-dependency" / "index.html").is_file())
-        self.assertFalse((self.out / "labs" / "P05-checkpoint-remediation" / "index.html").exists())
+        self.assertTrue((self.out / "labs" / "P05-checkpoint-remediation" / "index.html").is_file())
+        self.assertFalse((self.out / "labs" / "P06-context-drift-recovery" / "index.html").exists())
         index = (self.out / "index.html").read_text(encoding="utf-8")
-        self.assertIn("P05 \u2014 in verification", index)
-        self.assertNotIn('href="labs/P05-checkpoint-remediation/', index)
+        self.assertIn('href="labs/P05-checkpoint-remediation/index.html"', index)
+        self.assertIn("P06 \u2014 in verification", index)
+        self.assertNotIn('href="labs/P06-context-drift-recovery/', index)
 
     def test_home_names_fork_before_clone_and_never_invites_push_to_official_origin(self) -> None:
         """Catches onboarding that starts from or sends learner work to the canonical repository."""
@@ -154,11 +173,11 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches public guidance that overstates the preview or omits its runnable workflow."""
         html = read_home(self.root, self.out)
 
-        self.assertIn("eight available labs", html)
+        self.assertIn("nine available labs", html)
         self.assertIn("15–60 minutes", html)
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
-        self.assertIn("P05–P07 are status-only", html)
+        self.assertIn("P06–P07 are status-only", html)
         self.assertIn("Power User labs are not included", html)
         for operation in ("prepare", "check", "reset"):
             self.assertIn(
@@ -198,8 +217,8 @@ class PreviewSiteTests(unittest.TestCase):
                     "the learner mutation hook did not run after snapshot identity verification",
                 )
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                source = learner.parent / "arbiter-academy-source-preview-0.1"
-                tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                source = learner.parent / "arbiter-academy-source-preview-0.2"
+                tools = learner.parent / "arbiter-academy-tools-preview-0.2"
                 self.assertTrue(source.is_dir())
                 self.assertFalse(source.resolve().is_relative_to(learner.resolve()))
                 reviewed_commit = self._git(learner, "rev-parse", "--verify", "HEAD").stdout.strip()
@@ -258,8 +277,8 @@ class PreviewSiteTests(unittest.TestCase):
 
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn("Fork HEAD is not the reviewed canonical Preview source.", result.stderr)
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
-                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.2").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.2").exists())
 
     def test_documented_bootstraps_reject_a_dirty_checkout_before_sibling_creation(self) -> None:
         """Catches dirty learner files reaching snapshot creation despite canonical commit identity."""
@@ -283,8 +302,8 @@ class PreviewSiteTests(unittest.TestCase):
 
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn("Bootstrap requires a clean learner checkout.", result.stderr)
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
-                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.2").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.2").exists())
 
     def test_documented_bootstraps_refuse_each_preexisting_sibling_boundary(self) -> None:
         """Catches either an old source snapshot or stale wheel directory being silently reused."""
@@ -296,8 +315,8 @@ class PreviewSiteTests(unittest.TestCase):
                     learner, environment = self._bootstrap_fixture(
                         f"preexisting-{boundary}-{platform}", platform
                     )
-                    source = learner.parent / "arbiter-academy-source-preview-0.1"
-                    tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                    source = learner.parent / "arbiter-academy-source-preview-0.2"
+                    tools = learner.parent / "arbiter-academy-tools-preview-0.2"
                     if boundary == "source":
                         source.mkdir()
                     else:
@@ -334,7 +353,7 @@ class PreviewSiteTests(unittest.TestCase):
             with self.subTest(platform=platform):
                 learner, environment = self._bootstrap_fixture(f"late-wheel-{platform}", platform)
                 fixture = learner.parents[1]
-                tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+                tools = learner.parent / "arbiter-academy-tools-preview-0.2"
                 stale_cache = fixture / "stale-cache"
                 stale_cache.mkdir()
                 stale_build = subprocess.run(
@@ -372,7 +391,7 @@ class PreviewSiteTests(unittest.TestCase):
                     }
                 )
                 self.assertEqual(self._git(learner, "status", "--porcelain").stdout, "")
-                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
+                self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.2").exists())
                 self.assertFalse(tools.exists())
 
                 result = self._run_bootstrap(
@@ -421,8 +440,8 @@ class PreviewSiteTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("Could not inspect learner checkout status.", result.stderr)
-            self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.1").exists())
-            self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.1").exists())
+            self.assertFalse((learner.parent / "arbiter-academy-source-preview-0.2").exists())
+            self.assertFalse((learner.parent / "arbiter-academy-tools-preview-0.2").exists())
 
     def test_documented_bootstrap_contract_retains_reviewed_offline_boundary_and_limits(self) -> None:
         """Catches executable bootstrap or prose drift from the reviewed local trust boundary."""
@@ -482,7 +501,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.1.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.2.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -545,6 +564,7 @@ class PreviewSiteTests(unittest.TestCase):
             "P02-commit-review-pr",
             "P03-record-an-adr",
             "P04-review-a-dependency",
+            "P05-checkpoint-remediation",
         )
         expected_files = {
             "assets/academy.css",
@@ -572,10 +592,9 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(actual_links, expected_links)
         self.assertEqual(
             re.findall(r"<li>([^<]+) \u2014 in verification</li>", index),
-            ["P05", "P06", "P07"],
+            ["P06", "P07"],
         )
         for future_lab in (
-            "P05-checkpoint-remediation",
             "P06-context-drift-recovery",
             "P07-threat-model",
         ):
@@ -603,7 +622,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(
             json.loads((self.out / "release.json").read_text(encoding="utf-8")),
-            {"release": "preview-0.1", "commit": release_sha},
+            {"release": "preview-0.2", "commit": release_sha},
         )
 
     def test_build_copies_only_the_reviewed_runtime_assets(self) -> None:
@@ -729,7 +748,7 @@ class PreviewSiteTests(unittest.TestCase):
         for surface, text in (("README", readme), ("home", rendered_home)):
             with self.subTest(surface=surface):
                 normalized = " ".join(text.split())
-                self.assertIn("Graduation is not available in Preview 0.1", normalized)
+                self.assertIn("Graduation is not available in Preview 0.2", normalized)
                 self.assertNotRegex(
                     text,
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
@@ -882,7 +901,7 @@ class PreviewSiteTests(unittest.TestCase):
             build_preview_site(self.root, nonregular_output, release_sha="d" * 40)
 
     def test_static_checker_pins_each_reviewed_runtime_asset_digest(self) -> None:
-        """Catches any byte mutation in every runtime asset reviewed for Preview 0.1."""
+        """Catches any byte mutation in every runtime asset reviewed for Preview 0.2."""
         assets = (
             "assets/academy.css",
             "assets/favicon.svg",
@@ -984,6 +1003,7 @@ class PreviewSiteTests(unittest.TestCase):
         f01 = (self.out / "labs" / "F01-fork-clone-doctor" / "index.html").read_text(encoding="utf-8")
         p02 = (self.out / "labs" / "P02-commit-review-pr" / "index.html").read_text(encoding="utf-8")
         p04 = (self.out / "labs" / "P04-review-a-dependency" / "index.html").read_text(encoding="utf-8")
+        p05 = (self.out / "labs" / "P05-checkpoint-remediation" / "index.html").read_text(encoding="utf-8")
         self.assertIn('<article class="academy-content">', f01)
         self.assertIn("Why this mechanism matters", f01)
         self.assertIn('<pre><code class="language-powershell">', f01)
@@ -993,7 +1013,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Typical time", p02)
         self.assertIn('<code class="language-sh">', p02)
         self.assertIn("Candidate-Artifact", p04)
-        self.assertIn("Continue with P05 when it enters verification.", p04)
+        self.assertIn("Continue to <strong>P05", p04)
+        self.assertIn("test-only RED", p05)
+        self.assertIn("ADR-0005", p05)
+        self.assertIn("P06 is not available in Academy Preview 0.2", p05)
 
     def test_markdown_renderer_rejects_unreviewed_syntax_before_writing(self) -> None:
         """Catches unknown Markdown or active HTML being silently dropped or published."""
@@ -1202,8 +1225,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.1.json",
-            academy / "publication" / "preview-0.1.json",
+            self.root / "academy" / "publication" / "preview-0.2.json",
+            academy / "publication" / "preview-0.2.json",
         )
         for track in ("foundations", "practitioner"):
             shutil.copytree(
@@ -1338,8 +1361,8 @@ class PreviewSiteTests(unittest.TestCase):
         fixture = learner.parents[1]
         shim_root = fixture / "command-shims"
         shim_root.mkdir(exist_ok=True)
-        source = learner.parent / "arbiter-academy-source-preview-0.1"
-        tools = learner.parent / "arbiter-academy-tools-preview-0.1"
+        source = learner.parent / "arbiter-academy-source-preview-0.2"
+        tools = learner.parent / "arbiter-academy-tools-preview-0.2"
         environment.update(
             {
                 "ACADEMY_TEST_LEARNER_CLI": str(learner / "academy_engine" / "cli.py"),

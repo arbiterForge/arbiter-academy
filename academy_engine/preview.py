@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.1"
+_RELEASE = "preview-0.2"
 _AVAILABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -23,9 +23,9 @@ _AVAILABLE_LABS = (
     "P02-commit-review-pr",
     "P03-record-an-adr",
     "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
 )
 _COMING_NEXT = (
-    "P05-checkpoint-remediation",
     "P06-context-drift-recovery",
     "P07-threat-model",
 )
@@ -161,7 +161,7 @@ def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
 def validate_preview_manifest(
     root: Path, data: Mapping[str, object] | None = None
 ) -> PreviewManifest:
-    """Validate an in-memory Preview 0.1 manifest against the raw Academy catalog."""
+    """Validate an in-memory Preview 0.2 manifest against the raw Academy catalog."""
     if data is None:
         return load_preview_manifest(root)
 
@@ -184,15 +184,15 @@ def validate_preview_manifest(
     discussion_url = _validate_discussion_url(manifest["discussion_url"])
     _validate_known_ordered_closure(catalog, available_labs)
     if available_labs != _AVAILABLE_LABS:
-        raise ValueError("preview manifest available_labs contains lab(s) not eligible for Preview 0.1")
+        raise ValueError("preview manifest available_labs contains lab(s) not eligible for Preview 0.2")
     if coming_next != _COMING_NEXT:
-        raise ValueError("preview manifest coming_next must list only the reviewed status-only P05-P07 labs")
+        raise ValueError("preview manifest coming_next must list only the reviewed status-only P06-P07 labs")
 
     return PreviewManifest(release, available_labs, coming_next, discussion_url, catalog_sha256)
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:
-    """Load and validate the checked-in Preview 0.1 public eligibility manifest."""
+    """Load and validate the checked-in Preview 0.2 public eligibility manifest."""
     path = root / "academy" / "publication" / f"{_RELEASE}.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -205,7 +205,7 @@ def require_published_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* is runnable in the reviewed public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.available_labs:
-        raise ValueError(f"{lab_id} is not available in Academy Preview 0.1")
+        raise ValueError(f"{lab_id} is not available in Academy Preview 0.2")
 
 
 def require_graduation_available(root: Path) -> None:

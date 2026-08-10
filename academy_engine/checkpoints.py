@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import stat
+import tokenize
 import tomllib
 from dataclasses import dataclass
 from datetime import datetime
@@ -30,6 +31,7 @@ from academy_engine.exercise_state import (
     validate_p08_checkpoint,
 )
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
+from academy_engine.p05_fixture import validate_p05_fixture
 
 LAB_INVENTORY = (
     "F01-fork-clone-doctor",
@@ -603,6 +605,17 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         expected_paths.add(manifest.control_state_seed.destination)
     if contract.id == "P02-commit-review-pr":
         expected_paths.add(".codearbiter/tech-stack.md")
+    if contract.id == "P05-checkpoint-remediation":
+        expected_paths.update(
+            {
+                ".codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md",
+                ".codearbiter/decisions/decision-log.md",
+                "tests/test_cli.py",
+                "workshop_queue/cli.py",
+                "workshop_queue/model.py",
+                "workshop_queue/service.py",
+            }
+        )
     actual_paths = set(
         run_git(
             root,
@@ -639,8 +652,191 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
             branch=attempt.branch,
             attempt_number=attempt.number,
         )
+    if contract.id == "P05-checkpoint-remediation":
+        return validate_p05_fixture(root, attempt.prepared)
     return True
 
+
+def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
+    if run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout:
+        return False
+    if not validate_p05_fixture(root, attempt.prepared):
+        return False
+    raw = _git_blob(root, attempt.head, report_path)
+    if raw is None or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n"):
+        return False
+    try:
+        report = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    required = {"affected_paths", "finding_commit", "finding_id", "red_commit", "remediation_commit", "schema_version", "status"}
+    if (
+        canonical_json(report) + b"\n" != raw
+        or not isinstance(report, dict)
+        or set(report) != required
+        or not _version(report["schema_version"], 2)
+        or report["finding_id"] != "ACADEMY-P05-BLOCKED-UNRESOLVED"
+        or report["status"] != "remediated"
+        or report["affected_paths"] != ["tests/test_cli.py", "workshop_queue/cli.py"]
+    ):
+        return False
+    finding, red, remediation = report["finding_commit"], report["red_commit"], report["remediation_commit"]
+    if not all(isinstance(value, str) and _SHA40.fullmatch(value) for value in (finding, red, remediation)):
+        return False
+    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
+    if commits != (finding, red, remediation, attempt.head):
+        return False
+    parent = attempt.prepared
+    for commit in commits:
+        if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
+            return False
+        parent = commit
+    if tuple(_commit_paths(root, commit) for commit in commits) != (
+        (".codearbiter/reports/academy/P05-finding.md",),
+        ("tests/test_cli.py",),
+        ("workshop_queue/cli.py",),
+        (report_path,),
+    ):
+        return False
+    finding_blob = _text(root, finding, ".codearbiter/reports/academy/P05-finding.md")
+    if not _p05_finding_is_exact(finding_blob):
+        return False
+    prepared_test, red_test, head_test = (
+        _git_blob(root, attempt.prepared, "tests/test_cli.py"),
+        _git_blob(root, red, "tests/test_cli.py"),
+        _git_blob(root, attempt.head, "tests/test_cli.py"),
+    )
+    if prepared_test is None or red_test is None or head_test != red_test:
+        return False
+    if not _p05_red_regression(prepared_test, red_test):
+        return False
+    prepared_cli = _git_blob(root, attempt.prepared, "workshop_queue/cli.py")
+    remediation_cli = _git_blob(root, remediation, "workshop_queue/cli.py")
+    defect = b"sum(ticket.status in {TicketStatus.OPEN, TicketStatus.CLAIMED} for ticket in tickets)"
+    correct = b"sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets)"
+    return bool(prepared_cli and remediation_cli and defect in prepared_cli and correct in remediation_cli and remediation_cli.replace(correct, defect) == prepared_cli)
+
+
+_P05_FINDING = (
+    "# P05 Finding: blocked tickets omitted from unresolved summary\n\n"
+    "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+    "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+)
+
+_P05_RED_REGRESSION_SOURCE = (
+    "def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n"
+    "    tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n"
+    "    tickets[0][\"id\"] = \"RQ-105\"\n"
+    "    self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n"
+    "    claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n"
+    "    block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n"
+    "    report = self.run_cli(\"report\", \"--format\", \"json\")\n"
+    "    self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n"
+    "    self.assertEqual(block_result.returncode, 0, block_result.stderr)\n"
+    "    self.assertEqual(report.returncode, 0, report.stderr)\n"
+    "    parsed = json.loads(report.stdout)\n"
+    "    self.assertEqual(parsed[\"blocked\"], 1)\n"
+    "    self.assertEqual(parsed[\"unresolved\"], 1)\n"
+)
+_P05_RED_REGRESSION_AST = ast.dump(
+    ast.parse(_P05_RED_REGRESSION_SOURCE, filename="tests/test_cli.py").body[0],
+    include_attributes=False,
+)
+
+
+def _p05_finding_is_exact(text: str | None) -> bool:
+    """Accept only the short, reviewable P05 finding grammar.
+
+    The canonical sentence form intentionally has no command/output/identity field in
+    which a learner could smuggle host transcripts, absolute paths, or credentials.
+    """
+    return text == _P05_FINDING
+
+
+def _p05_source_is_utf8(raw: bytes) -> bool:
+    lines = iter(raw.splitlines(keepends=True))
+    try:
+        encoding, _ = tokenize.detect_encoding(lambda: next(lines, b""))
+    except SyntaxError:
+        return False
+    return encoding == "utf-8"
+
+
+def _p05_red_regression(prepared_raw: bytes, red_raw: bytes) -> bool:
+    """Require RED to add only the named direct test method to the prepared AST."""
+    if not _p05_source_is_utf8(prepared_raw) or not _p05_source_is_utf8(red_raw):
+        return False
+    try:
+        prepared_tree = ast.parse(prepared_raw.decode("utf-8"), filename="tests/test_cli.py")
+        red_tree = ast.parse(red_raw.decode("utf-8"), filename="tests/test_cli.py")
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+
+    def owners(tree: ast.Module) -> list[ast.ClassDef]:
+        return [
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"
+        ]
+
+    prepared_owners = owners(prepared_tree)
+    red_owners = owners(red_tree)
+    if len(prepared_owners) != 1 or len(red_owners) != 1:
+        return False
+
+    method_name = "test_report_json_counts_blocked_ticket_as_unresolved"
+    prepared_methods = [
+        node
+        for node in prepared_owners[0].body
+        if isinstance(node, ast.FunctionDef) and node.name == method_name
+    ]
+    red_methods = [
+        node
+        for node in red_owners[0].body
+        if isinstance(node, ast.FunctionDef) and node.name == method_name
+    ]
+    if prepared_methods or len(red_methods) != 1 or red_methods[0].decorator_list:
+        return False
+
+    red_without_regression = copy.deepcopy(red_tree)
+    red_owner = owners(red_without_regression)[0]
+    red_owner.body = [
+        node
+        for node in red_owner.body
+        if not (isinstance(node, ast.FunctionDef) and node.name == method_name)
+    ]
+    return (
+        ast.dump(prepared_tree, include_attributes=False)
+        == ast.dump(red_without_regression, include_attributes=False)
+        and _p05_red_regression_is_exact(red_raw)
+    )
+
+
+def _p05_red_regression_is_exact(raw: bytes) -> bool:
+    """Compare the committed direct regression with the exact taught method AST."""
+    if not _p05_source_is_utf8(raw):
+        return False
+    try:
+        tree = ast.parse(raw.decode("utf-8"), filename="tests/test_cli.py")
+    except (UnicodeDecodeError, SyntaxError):
+        return False
+    owners = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WorkshopQueueCliTests"
+    ]
+    if len(owners) != 1:
+        return False
+    methods = [
+        node
+        for node in owners[0].body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "test_report_json_counts_blocked_ticket_as_unresolved"
+    ]
+    return (
+        len(methods) == 1
+        and ast.dump(methods[0], include_attributes=False) == _P05_RED_REGRESSION_AST
+    )
 
 def _headings(text: str | None, required: tuple[str, ...]) -> bool:
     if text is None:
@@ -1970,62 +2166,7 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "dependency_review":
         return _p04_dependency_review(root, attempt, str(data["review"]), str(data["project"]))
     if profile == "checkpoint_remediation":
-        report = _json(root, attempt.head, str(data["report"]))
-        if not report or not _changed(root, attempt.prepared, attempt.head, str(data["report"])):
-            return False
-        required = {"schema_version", "finding_id", "finding_commit", "remediation_commit", "paths", "status"}
-        if (
-            set(report) != required
-            or not _version(report["schema_version"], 1)
-            or report["status"] != "remediated"
-        ):
-            return False
-        finding, remediation = report["finding_commit"], report["remediation_commit"]
-        paths = report["paths"]
-        if (
-            not isinstance(finding, str)
-            or not _SHA40.fullmatch(finding)
-            or not isinstance(remediation, str)
-            or not _SHA40.fullmatch(remediation)
-            or not isinstance(report["finding_id"], str)
-            or not isinstance(paths, list)
-            or len(paths) < 2
-        ):
-            return False
-        try:
-            safe_paths = [_safe_path(path, "path") for path in paths]
-        except CheckpointError:
-            return False
-        if len(set(safe_paths)) != len(safe_paths):
-            return False
-        finding_paths = set(
-            run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", finding],
-                check=False,
-            ).stdout.splitlines()
-        )
-        remediation_paths = set(
-            run_git(
-                root, ["diff-tree", "--no-commit-id", "--name-only", "-r", remediation],
-                check=False,
-            ).stdout.splitlines()
-        )
-        return bool(
-            all(
-                _changed(root, attempt.prepared, attempt.head, path)
-                for path in safe_paths
-            )
-            and set(safe_paths).issubset(finding_paths | remediation_paths)
-            and finding_paths
-            and remediation_paths
-            and bool(finding_paths & remediation_paths)
-            and finding != remediation
-            and finding != attempt.prepared
-            and remediation != attempt.head
-            and run_git(root, ["merge-base", "--is-ancestor", attempt.prepared, str(finding)], check=False).returncode == 0
-            and run_git(root, ["merge-base", "--is-ancestor", str(finding), str(remediation)], check=False).returncode == 0
-            and run_git(root, ["merge-base", "--is-ancestor", str(remediation), attempt.head], check=False).returncode == 0
-        )
+        return _p05_remediation(root, attempt, str(data["report"]))
     if profile == "provenance_recovery":
         context_path, handoff_path = str(data["context"]), str(data["handoff"])
         handoff = _json(root, attempt.head, handoff_path)
