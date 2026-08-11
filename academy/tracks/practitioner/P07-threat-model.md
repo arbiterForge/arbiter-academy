@@ -177,5 +177,5 @@ to fit an old digest or copy a model from another attempt.
 
 ## Next lab
 
-P08 is not available in Academy Preview 0.3. Keep your passing P07 evidence until repository hygiene
+P08 is not available in Academy Preview 0.4. Keep your passing P07 evidence until repository hygiene
 enters a later release.

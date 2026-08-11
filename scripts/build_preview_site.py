@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.3."""
+"""Build the fail-closed static public surface for Academy Preview 0.4."""
 
 from __future__ import annotations
 
@@ -31,6 +31,13 @@ _ORDERED_ITEM = re.compile(r"^(?P<number>[1-9][0-9]*)\. (?P<body>\S.*)$")
 _UNSUPPORTED_BLOCK = re.compile(r"^(?:[-+*]\s|\d+[.)]\s|>|#{4,}\s|<)")
 _RAW_HTML = re.compile(r"(?:</?[A-Za-z][^>]*>|<!--.*?-->)")
 _LINK_OR_IMAGE = re.compile(r"!?\[[^\]]*\]\([^)]*\)")
+_INLINE_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_GUIDE_LINK_TARGETS = frozenset(
+    {
+        "../../index.html",
+        "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
+    }
+)
 _ACTION_REFERENCE = re.compile(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}")
 _UNSUPPORTED_INLINE_MARKERS = ("*", "_", "[", "]", "\\", "~")
 _PUBLIC_ASSET_FILES = (
@@ -46,7 +53,7 @@ _PUBLIC_ASSET_FILES = (
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.3 pages into *out*.
+    """Render only the reviewed Preview 0.4 pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -381,7 +388,26 @@ def _render_inline(lab_id: str, value: str) -> str:
             parts.append(f"<code>{escape(value[position + 1:end])}</code>")
             position = end + 1
             continue
-        next_markers = [index for index in (value.find("**", position), value.find("`", position)) if index >= 0]
+        if value[position] == "[":
+            match = _INLINE_LINK.match(value, position)
+            if match is None:
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            label, target = match.groups()
+            if (
+                target not in _GUIDE_LINK_TARGETS
+                or not label.strip()
+                or _RAW_HTML.search(label)
+                or any(marker in label for marker in _UNSUPPORTED_INLINE_MARKERS)
+            ):
+                raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+            parts.append(f'<a href="{target}">{escape(label)}</a>')
+            position = match.end()
+            continue
+        next_markers = [
+            index
+            for index in (value.find("**", position), value.find("`", position), value.find("[", position))
+            if index >= 0
+        ]
         end = min(next_markers) if next_markers else len(value)
         plain = value[position:end]
         if (
@@ -458,7 +484,6 @@ def _render_action(action: LessonAction) -> str:
         f'<section class="lesson-action" data-action-id="{action_id}" '
         f'aria-labelledby="action-heading-{action_id}">',
         '<header class="lesson-action__header">',
-        f'<p class="lesson-action__sequence">Step {action.sequence}</p>',
         f'<h2 id="action-heading-{action_id}">{escape(action.title)}</h2>',
         "</header>",
     ]
@@ -714,7 +739,6 @@ def _render_pages(
     templates: dict[str, Template],
     commit: str,
 ) -> dict[Path, str]:
-    durations = [int(lessons[lab_id]["estimated_minutes"]) for lab_id in manifest.available_labs]
     available_labs = "\n".join(
         '<li><a href="labs/{id}/index.html">{heading}</a><p>{outcome}</p></li>'.format(
             id=escape(lab_id, quote=True),
@@ -725,19 +749,31 @@ def _render_pages(
     )
     coming_next_section = ""
     if manifest.coming_next:
-        coming_next = "\n".join(
-            f"<li>{escape(_lab_code(lab_id))} \u2014 in verification</li>"
-            for lab_id in manifest.coming_next
-        )
+        foundations = tuple(_lab_code(lab_id) for lab_id in manifest.coming_next if lab_id.startswith("F"))
+        practitioner = tuple(_lab_code(lab_id) for lab_id in manifest.coming_next if lab_id.startswith("P"))
+        groups = []
+        if foundations:
+            groups.append(
+                "<li><strong>Foundations</strong>: "
+                + escape(", ".join(foundations[:-1]) + f", and {foundations[-1]}" if len(foundations) > 1 else foundations[0])
+                + ". Guided rewrites are in progress.</li>"
+            )
+        if practitioner:
+            groups.append(
+                "<li><strong>Practitioner</strong>: "
+                + escape(f"{practitioner[0]} through {practitioner[-1]}")
+                + ". Guided rewrites are in progress.</li>"
+            )
+        coming_next = "\n".join(groups)
         coming_next_section = (
             "<h2>Coming next</h2>\n"
-            "<p>These labs are status-only until they complete verification.</p>\n"
+            "<p>These lessons are not public routes until their guided rewrites and acceptance evidence are complete.</p>\n"
             f'<ul class="coming-next">\n{coming_next}\n</ul>'
         )
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.3",
+            "Arbiter Academy Preview 0.4",
             templates["index"].substitute(
                 guide_content=(
                     "" if guides["home"] is None else str(guides["home"]["content"])
@@ -745,14 +781,12 @@ def _render_pages(
                 available_labs=available_labs,
                 coming_next_section=coming_next_section,
                 discussion_url=escape(manifest.discussion_url, quote=True),
-                minimum_minutes=min(durations),
-                maximum_minutes=max(durations),
             ),
             root_prefix="",
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.3",
+            "Recovery | Arbiter Academy Preview 0.4",
             templates["recovery"].substitute(
                 guide_content=(
                     ""
@@ -767,6 +801,14 @@ def _render_pages(
                 "release": manifest.release,
                 "commit": commit,
                 "lesson_contract_version": manifest.lesson_contract_version,
+                "catalog_sha256": manifest.catalog_sha256,
+                "available_labs": manifest.available_labs,
+                "runnable_labs": manifest.runnable_labs,
+                "guided_labs": manifest.guided_labs,
+                "coming_next": manifest.coming_next,
+                "prerequisites": manifest.prerequisites,
+                "known_limits": manifest.known_limits,
+                "discussion_url": manifest.discussion_url,
             },
             indent=2,
         ) + "\n",
@@ -780,7 +822,7 @@ def _render_pages(
                 id=escape(next_lab, quote=True)
             )
         else:
-            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.3."
+            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.4."
         previous_link = ""
         if position:
             previous = lab_order[position - 1]
@@ -799,7 +841,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.3",
+            f"{lesson['title']} | Arbiter Academy Preview 0.4",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,

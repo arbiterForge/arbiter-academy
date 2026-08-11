@@ -15,6 +15,12 @@ next_lab: F02-orient-to-state
 
 ## Know before you begin
 
+**No prior Academy lesson is required.** Complete [Academy Home setup steps 1-5](../../index.html)
+before Prepare. New here? Stop on this page until you have created
+your personal GitHub fork, cloned that fork, installed Academy, [chosen and installed your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/), and run Home Doctor in the clone.
+An expected missing `upstream` finding proceeds to F01; this lesson repairs that boundary.
+Those steps require Git 2.39 or newer, Python 3.11 or newer, and Claude Code, Codex, or Pi.
+
 Work only in the `arbiter-academy` fork and clone you prepared from Home. A **fork** is the GitHub
 copy you own. A **clone** is its local working copy. In that clone, `origin` must mean your fork and
 `upstream` must mean the official `arbiterForge/arbiter-academy` repository. You fetch updates from
@@ -116,8 +122,10 @@ numbered attempt is safer than rewriting evidence history.
 
 {{action:F01-reset-retry}}
 
-Continue to F02 only after Check passes. Return to `main` when you want to leave the completed
-attempt untouched. Use Reset only to preserve a failed attempt and prepare the next number.
+After Check passes, return to `main` when you want to leave the completed attempt untouched. The next
+Academy lesson appears on the course home only after its guided rewrite and acceptance evidence are
+complete. Do not use unpublished source exercises as a substitute for the next guided lesson. Use Reset
+only to preserve a failed attempt and prepare the next number.
 
 ## Understand the mechanism
 

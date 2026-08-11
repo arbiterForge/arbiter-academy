@@ -30,6 +30,7 @@ _CSS_IMPORT = re.compile(
 )
 _EXTERNAL_URLS = {
     "https://codearbiter.dev/",
+    "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
 }
 
 
@@ -42,7 +43,7 @@ def _is_approved_external_url(target: str) -> bool:
         return False
     return True
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "004e2701d630c1954b94d29e2bb84f97e194f3e4a204c30720abc6763b68ccb7",
+    Path("assets/academy.css"): "4895e9799cc5f03f922116cedbb50d0afe85eec6810a7b1acddb65dc4ab48153",
     Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
     Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (
@@ -98,6 +99,8 @@ _ALLOWED_HTML_ATTRIBUTES = {
 }
 _LABS = (
     "F01-fork-clone-doctor",
+)
+_COMING_NEXT = (
     "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
@@ -111,18 +114,24 @@ _LABS = (
 )
 _RUNNABLE_LINK_LABELS = (
     "F01 \u2014 Fork, clone, and Doctor safety",
-    "F02 \u2014 Orient to live governance state",
-    "F03 \u2014 Work the governed board",
-    "F04 \u2014 Fix with evidence",
-    "P01 \u2014 Feature through a user-approved spec and derived plan",
-    "P02 \u2014 Review, commit, push, and record an offline local PR receipt",
-    "P03 \u2014 Record an accepted ADR",
-    "P04 \u2014 Review a real dependency before installation",
-    "P05 \u2014 Remediate a checkpoint finding",
-    "P06 - Recover context drift without losing unrelated work",
-    "P07 \u2014 Threat-model the path-handling boundary",
 )
-_COMING_NEXT_ENTRIES: tuple[tuple[str, bool], ...] = ()
+_COMING_NEXT_ENTRIES = (
+    ("Foundations: F02, F03, and F04. Guided rewrites are in progress.", False),
+    ("Practitioner: P01 through P07. Guided rewrites are in progress.", False),
+)
+_PUBLIC_PREREQUISITES = (
+    "A GitHub account that can create a personal fork.",
+    "Git 2.39 or newer.",
+    "Python 3.11 or newer.",
+    "A supported CodeArbiter host: Claude Code, Codex, or Pi.",
+    "Complete Academy Home setup steps 1-5 before starting F01.",
+)
+_KNOWN_LIMITS = (
+    "F01 is the only guided lesson published in Preview 0.4.",
+    "F02-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
+    "P08 and the Power User track are not published in Preview 0.4.",
+    "Graduation is unavailable until the complete 19-lab course is published.",
+)
 _EXPECTED_ACTION_IDS = {
     Path("index.html"): (
         "home-fork",
@@ -440,14 +449,27 @@ def _check_release(root: Path) -> str:
         raise ValueError(f"release.json is unreadable: {error}") from error
     if (
         not isinstance(data, dict)
-        or set(data) != {"release", "commit", "lesson_contract_version"}
-        or data.get("release") != "preview-0.3"
+        or set(data) != {
+            "release", "commit", "lesson_contract_version", "catalog_sha256",
+            "available_labs", "runnable_labs", "guided_labs", "coming_next",
+            "prerequisites", "known_limits", "discussion_url",
+        }
+        or data.get("release") != "preview-0.4"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
         or not _SHA.fullmatch(data["commit"])
+        or not isinstance(data.get("catalog_sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", data["catalog_sha256"])
+        or data.get("available_labs") != list(_LABS)
+        or data.get("runnable_labs") != list(_LABS)
+        or data.get("guided_labs") != list(_LABS)
+        or data.get("coming_next") != list(_COMING_NEXT)
+        or data.get("prerequisites") != list(_PUBLIC_PREREQUISITES)
+        or data.get("known_limits") != list(_KNOWN_LIMITS)
+        or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.3 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.4 provenance contract")
     return data["release"]
 
 
@@ -480,16 +502,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact Preview 0.3 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.4 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match exact unlinked P06-P07 status")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.4 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.3 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.4 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -500,7 +522,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.3 contract: "
+                "generated publication status does not match the exact Preview 0.4 contract: "
                 f"{relative.as_posix()}"
             )
 

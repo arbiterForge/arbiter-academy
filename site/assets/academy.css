@@ -39,6 +39,7 @@
 
 html {
   min-width: 0;
+  overflow-x: clip;
   background: var(--ca-bg);
   scroll-behavior: smooth;
 }
@@ -46,6 +47,7 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
+  overflow-x: clip;
   color: var(--ca-ink-soft);
   background: var(--ca-bg);
   font-feature-settings: "ss01", "ss02", "cv02";
@@ -206,6 +208,23 @@ main {
 }
 
 .academy-hero__art {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.academy-hero__art::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, var(--ca-bg), transparent 20%);
+  content: "";
+}
+
+.academy-hero__art img {
+  display: block;
   width: 100%;
   height: auto;
   border-block: 1px solid var(--ca-line);
@@ -776,7 +795,7 @@ h1 + p {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .academy-hero__art {
+  .academy-hero__art img {
     max-height: 18rem;
     object-fit: cover;
   }
@@ -843,7 +862,7 @@ h1 + p {
     transition-duration: 0.01ms !important;
   }
 
-  .academy-hero__art {
+  .academy-hero__art img {
     filter: none;
   }
 }
@@ -888,7 +907,7 @@ h1 + p {
     background: rgb(245 243 237 / 96%);
   }
 
-  .academy-hero__art {
+  .academy-hero__art img {
     opacity: 0.82;
     filter: saturate(0.68) contrast(1.04);
   }

@@ -93,6 +93,15 @@ jobs:
       - name: Verify project state
         run: python -m unittest tests.test_project_state -v
 
+      - name: Select Node 22.19.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.19.0"
+          check-latest: false
+
+      - name: Verify Academy browser controls
+        run: node --test tests/site/academy.test.mjs
+
       - name: Build the Academy site
         run: >-
           python scripts/build_preview_site.py

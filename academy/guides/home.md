@@ -2,7 +2,7 @@
 
 Arbiter Academy is a practice course for codeArbiter. You work in a real Git repository that belongs to you, so every lesson can produce real commits and evidence without sending changes to the official Academy repository.
 
-Before you begin, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course; the operations console launch will be published with the integrated TUI.
+Before F01, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. [Choose and install your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/) first, then return here to create your practice fork. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course. A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.
 
 ## What the Academy changes
 
@@ -46,9 +46,9 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 **Guided: F01.** Every user action, surface, expected result, and recovery path is explicit.
 
-**Reference lessons: F02 through P07.** These lessons are runnable and verified, but their guided rewrites are still in progress.
+**Coming next: F02 through P07.** These lessons are not public Academy routes yet. Each appears here only after its guided rewrite and acceptance evidence are complete.
 
-**Not yet published.** P08 is not included. Power User lessons are not included in Preview 0.3.
+**Not yet scheduled.** P08 and the Power User lessons are not included in Preview 0.4.
 
 ## Get help
 

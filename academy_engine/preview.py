@@ -13,9 +13,11 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.3"
+_RELEASE = "preview-0.4"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
+)
+_COMING_NEXT = (
     "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
@@ -27,7 +29,19 @@ _RUNNABLE_LABS = (
     "P06-context-drift-recovery",
     "P07-threat-model",
 )
-_COMING_NEXT: tuple[str, ...] = ()
+_PREREQUISITES = (
+    "A GitHub account that can create a personal fork.",
+    "Git 2.39 or newer.",
+    "Python 3.11 or newer.",
+    "A supported CodeArbiter host: Claude Code, Codex, or Pi.",
+    "Complete Academy Home setup steps 1-5 before starting F01.",
+)
+_KNOWN_LIMITS = (
+    "F01 is the only guided lesson published in Preview 0.4.",
+    "F02-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
+    "P08 and the Power User track are not published in Preview 0.4.",
+    "Graduation is unavailable until the complete 19-lab course is published.",
+)
 _DISCUSSIONS_ORIGIN = "github.com"
 _DISCUSSIONS_PATH = "/arbiterForge/arbiter-academy/discussions"
 _DISCUSSIONS_PATH_PATTERN = re.compile(
@@ -46,6 +60,8 @@ class PreviewManifest:
     runnable_labs: tuple[str, ...]
     guided_labs: tuple[str, ...]
     coming_next: tuple[str, ...]
+    prerequisites: tuple[str, ...]
+    known_limits: tuple[str, ...]
     discussion_url: str
     catalog_sha256: str
 
@@ -65,6 +81,19 @@ def _require_ids(value: object, label: str) -> tuple[str, ...]:
     return ids
 
 
+def _require_public_copy(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"preview manifest {label} must be a list of public text entries")
+    entries = tuple(value)
+    if (
+        not entries
+        or len(set(entries)) != len(entries)
+        or any(not entry.strip() or _ASCII_CONTROL.search(entry) for entry in entries)
+    ):
+        raise ValueError(f"preview manifest {label} must contain unique non-empty public text entries")
+    return entries
+
+
 def _require_exact_keys(data: Mapping[str, object]) -> None:
     expected = {
         "release",
@@ -73,6 +102,8 @@ def _require_exact_keys(data: Mapping[str, object]) -> None:
         "runnable_labs",
         "guided_labs",
         "coming_next",
+        "prerequisites",
+        "known_limits",
         "discussion_url",
         "catalog_sha256",
     }
@@ -183,7 +214,7 @@ def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
 def validate_preview_manifest(
     root: Path, data: Mapping[str, object] | None = None
 ) -> PreviewManifest:
-    """Validate an in-memory Preview 0.3 manifest against the raw Academy catalog."""
+    """Validate an in-memory Preview 0.4 manifest against the raw Academy catalog."""
     if data is None:
         return load_preview_manifest(root)
 
@@ -208,6 +239,8 @@ def validate_preview_manifest(
     runnable_labs = _require_ids(manifest["runnable_labs"], "runnable_labs")
     guided_labs = _require_ids(manifest["guided_labs"], "guided_labs")
     coming_next = _require_ids(manifest["coming_next"], "coming_next")
+    prerequisites = _require_public_copy(manifest["prerequisites"], "prerequisites")
+    known_limits = _require_public_copy(manifest["known_limits"], "known_limits")
     discussion_url = _validate_discussion_url(manifest["discussion_url"])
     if available_labs != runnable_labs:
         raise ValueError("preview manifest available_labs must equal runnable_labs")
@@ -215,12 +248,16 @@ def validate_preview_manifest(
         raise ValueError("preview manifest runnable_labs must not overlap coming_next")
     _validate_known_ordered_closure(catalog, runnable_labs)
     if runnable_labs != _RUNNABLE_LABS:
-        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.3")
+        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.4")
     _validate_guided_labs(catalog, runnable_labs, guided_labs)
-    if guided_labs != ("F01-fork-clone-doctor",):
+    if guided_labs != _RUNNABLE_LABS:
         raise ValueError("preview manifest guided_labs must list only the reviewed F01 lesson")
     if coming_next != _COMING_NEXT:
-        raise ValueError("preview manifest coming_next must be empty for Preview 0.3")
+        raise ValueError("preview manifest coming_next must name the reviewed guided-rewrite sequence")
+    if prerequisites != _PREREQUISITES:
+        raise ValueError("preview manifest prerequisites must match the reviewed Preview 0.4 onboarding contract")
+    if known_limits != _KNOWN_LIMITS:
+        raise ValueError("preview manifest known_limits must match the reviewed Preview 0.4 public limits")
 
     return PreviewManifest(
         release,
@@ -229,13 +266,15 @@ def validate_preview_manifest(
         runnable_labs,
         guided_labs,
         coming_next,
+        prerequisites,
+        known_limits,
         discussion_url,
         catalog_sha256,
     )
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:
-    """Load and validate the checked-in Preview 0.3 public eligibility manifest."""
+    """Load and validate the checked-in Preview 0.4 public eligibility manifest."""
     path = root / "academy" / "publication" / f"{_RELEASE}.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -248,19 +287,19 @@ def require_runnable_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* is runnable in the reviewed public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.runnable_labs:
-        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.3")
+        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.4")
 
 
 def require_guided_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* has a reviewed guided lesson in the public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.guided_labs:
-        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.3")
+        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.4")
 
 
 def require_published_lab(root: Path, lab_id: str) -> None:
-    """Compatibility alias for runnable public-release access."""
-    require_runnable_lab(root, lab_id)
+    """Fail closed unless a runnable lab also has reviewed public guidance."""
+    require_guided_lab(root, lab_id)
 
 
 def require_graduation_available(root: Path) -> None:

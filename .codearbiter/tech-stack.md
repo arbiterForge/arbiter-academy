@@ -43,9 +43,13 @@ verification, not lint.
 
 ### Integration and release milestones
 
-Run the complete real-Git suite at Practitioner consolidation, first-draft
-completion, every release or PR gate, or earlier after a demonstrated broad
-shared-state regression:
+For an Academy public-slice PR or release, run the focused release evidence for
+the changed surface locally, then use the PR's exact-head hosted workflow and
+required review gates as the release decision. Do not block a slice on a
+repetitive local exhaustive run when those focused consumers have passed.
+
+Run the complete real-Git suite only at Practitioner consolidation, first-draft
+completion, or after a demonstrated broad shared-state regression:
 
 ```sh
 python -m unittest discover -v
