@@ -173,6 +173,37 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotIn("push to arbiterForge/arbiter-academy", html)
 
+    def test_bootstrap_fixture_copies_objects_into_the_mutable_learner_clone(self) -> None:
+        """Catches the mutable learner fixture sharing hardlinked object inodes with its fork."""
+        commands: list[tuple[str, ...]] = []
+        run_git = self._git
+
+        def record_git(cwd: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+            commands.append(arguments)
+            return run_git(cwd, *arguments)
+
+        with patch.object(self, "_git", side_effect=record_git):
+            learner, _environment = self._bootstrap_fixture(
+                "learner-clone-object-isolation", "powershell"
+            )
+
+        learner_clones = [
+            arguments
+            for arguments in commands
+            if arguments[0] == "clone" and arguments[-1] == str(learner)
+        ]
+        self.assertEqual(
+            learner_clones,
+            [
+                (
+                    "clone",
+                    "--no-hardlinks",
+                    str(learner.parents[1] / "fork.git"),
+                    str(learner),
+                )
+            ],
+        )
+
     def test_home_states_preview_scope_prerequisites_pacing_and_exact_workflow(self) -> None:
         """Catches public guidance that overstates the preview or omits its runnable workflow."""
         html = read_home(self.root, self.out)
@@ -1338,7 +1369,7 @@ class PreviewSiteTests(unittest.TestCase):
         learner_parent = fixture / "learner-work"
         learner_parent.mkdir()
         learner = learner_parent / "arbiter-academy"
-        self._git(fixture, "clone", str(fork), str(learner))
+        self._git(fixture, "clone", "--no-hardlinks", str(fork), str(learner))
         self._git(learner, "config", "user.name", "Academy Learner")
         self._git(learner, "config", "user.email", "learner@example.invalid")
 
