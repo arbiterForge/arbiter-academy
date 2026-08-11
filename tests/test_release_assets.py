@@ -16,7 +16,8 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from unittest import mock
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -37,6 +38,19 @@ CHECKSUM = re.compile(rb"([0-9a-f]{64})  ([A-Za-z0-9_.-]+)\n")
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def safe_tar_members(bundle: tarfile.TarFile) -> list[tarfile.TarInfo]:
+    """Return only ordinary, archive-relative members for Python 3.11 extraction."""
+    members = []
+    for member in bundle.getmembers():
+        path = PurePosixPath(member.name)
+        if path.is_absolute() or ".." in path.parts:
+            raise AssertionError(f"unsafe immutable release archive member: {member.name!r}")
+        if not (member.isdir() or member.isfile()):
+            raise AssertionError(f"unsupported immutable release archive member: {member.name!r}")
+        members.append(member)
+    return members
 
 
 def extract_tagged_release(destination: Path) -> Path:
@@ -68,7 +82,7 @@ def extract_tagged_release(destination: Path) -> Path:
     if archive.returncode:
         raise AssertionError(f"could not archive immutable {RELEASE} source: {archive.stderr.decode()}")
     with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as bundle:
-        bundle.extractall(destination, filter="data")
+        bundle.extractall(destination, members=safe_tar_members(bundle))
     return destination
 
 
@@ -87,6 +101,25 @@ def release_builder_module() -> object:
     module = importlib.util.module_from_spec(specification)
     specification.loader.exec_module(module)
     return module
+
+
+class TaggedReleaseExtractionTests(unittest.TestCase):
+    def test_extracts_with_the_supported_python_311_extractall_signature(self) -> None:
+        """Catches a release test requiring a newer 3.11 patch than the project declares."""
+        original_extractall = tarfile.TarFile.extractall
+
+        def legacy_extractall(archive, path=".", members=None, *, numeric_owner=False):
+            return original_extractall(
+                archive,
+                path=path,
+                members=members,
+                numeric_owner=numeric_owner,
+            )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with mock.patch.object(tarfile.TarFile, "extractall", new=legacy_extractall):
+                source = extract_tagged_release(Path(temporary_directory) / "source")
+            self.assertTrue((source / "scripts" / "build_release_assets.py").is_file())
 
 
 class ReleaseAssetBuilderTests(unittest.TestCase):
