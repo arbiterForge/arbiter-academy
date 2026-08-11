@@ -16,7 +16,7 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from unittest import mock
 
 
@@ -44,8 +44,15 @@ def safe_tar_members(bundle: tarfile.TarFile) -> list[tarfile.TarInfo]:
     """Return only ordinary, archive-relative members for Python 3.11 extraction."""
     members = []
     for member in bundle.getmembers():
-        path = PurePosixPath(member.name)
-        if path.is_absolute() or ".." in path.parts:
+        posix_path = PurePosixPath(member.name)
+        windows_path = PureWindowsPath(member.name)
+        if (
+            posix_path.is_absolute()
+            or ".." in posix_path.parts
+            or windows_path.drive
+            or windows_path.root
+            or ".." in windows_path.parts
+        ):
             raise AssertionError(f"unsafe immutable release archive member: {member.name!r}")
         if not (member.isdir() or member.isfile()):
             raise AssertionError(f"unsupported immutable release archive member: {member.name!r}")
@@ -104,6 +111,23 @@ def release_builder_module() -> object:
 
 
 class TaggedReleaseExtractionTests(unittest.TestCase):
+    def test_rejects_windows_style_archive_path_escapes(self) -> None:
+        """Catches legacy extraction accepting paths that escape on Windows."""
+        unsafe_names = (
+            r"..\outside",
+            r"C:\outside",
+            r"\outside",
+            r"\\server\share\outside",
+        )
+        for name in unsafe_names:
+            with self.subTest(name=name):
+                member = tarfile.TarInfo(name)
+                bundle = mock.Mock()
+                bundle.getmembers.return_value = [member]
+
+                with self.assertRaisesRegex(AssertionError, "unsafe immutable release archive member"):
+                    safe_tar_members(bundle)
+
     def test_extracts_with_the_supported_python_311_extractall_signature(self) -> None:
         """Catches a release test requiring a newer 3.11 patch than the project declares."""
         original_extractall = tarfile.TarFile.extractall
