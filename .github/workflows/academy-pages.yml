@@ -167,7 +167,7 @@ jobs:
       CANDIDATE_SHA: ${{ github.sha }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out the exact release candidate
+      - name: Check out the exact Pages candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
@@ -275,7 +275,31 @@ jobs:
             resolved_sha="$(printf '%s\n' "$tag_rows" | awk -v tag="refs/tags/${RELEASE_TAG}" '$2 == tag { print $1 }')"
           fi
           [[ "$resolved_sha" =~ ^[0-9a-f]{40}$ ]]
-          test "$resolved_sha" = "$CANDIDATE_SHA"
+          if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then
+            echo "ERROR: immutable release tag is not an ancestor of the Pages candidate." >&2
+            exit 1
+          fi
+          if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then
+            release_bound_paths=(
+              "academy/actions/"
+              "academy/publication/"
+              "academy/tracks/"
+              "academy_engine/"
+              "install/"
+              "pyproject.toml"
+              "scripts/build_release_assets.py"
+              "scripts/build_preview_site.py"
+              ".github/workflows/academy-pages.yml"
+            )
+            if ! git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"; then
+              echo "ERROR: release-bound files changed after the immutable tag." >&2
+              exit 1
+            fi
+          fi
+          release_source="$RUNNER_TEMP/academy-release-source"
+          git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"
+          git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"
+          test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"
 
           public_dir="$RUNNER_TEMP/academy-public-release"
           mkdir -p "$public_dir"
@@ -320,8 +344,8 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$CANDIDATE_SHA"
           reproduced_dir="$RUNNER_TEMP/academy-reproduced-release"
           mkdir -p "$reproduced_dir"
-          python "$GITHUB_WORKSPACE/scripts/build_release_assets.py" \
-            --source "$GITHUB_WORKSPACE" \
+          python "$release_source/scripts/build_release_assets.py" \
+            --source "$release_source" \
             --output "$reproduced_dir" \
             --epoch "$RELEASE_EPOCH" \
             --release "$RELEASE_TAG"

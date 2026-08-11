@@ -187,7 +187,9 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     job = _workflow_jobs(workflow).get("verify-release", "")
     shell = _literal_step_script(job, "Verify immutable Preview release assets")
     required = (
-        'test "$resolved_sha" = "$CANDIDATE_SHA"',
+        'git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"',
+        'git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"',
+        'test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"',
         'asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"',
         'raise SystemExit("release asset inventory mismatch")',
         'raise SystemExit("release asset ID is invalid")',
@@ -204,7 +206,7 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
         "sleep 60",
         'test "$release_ready" = true',
         'test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$CANDIDATE_SHA"',
-        'python "$GITHUB_WORKSPACE/scripts/build_release_assets.py"',
+        'python "$release_source/scripts/build_release_assets.py"',
         'cmp --silent "$asset_name" "$public_dir/$asset_name"',
         'cmp --silent "$asset_name" "$reproduced_dir/$asset_name"',
         'cmp --silent "$public_dir/$asset_name" "$reproduced_dir/$asset_name"',
@@ -212,10 +214,14 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     for fragment in required:
         if fragment not in shell:
             raise AssertionError(f"release gate lost fail-closed fragment: {fragment}")
-    checkout = _named_step(job, "Check out the exact release candidate")
+    checkout = _named_step(job, "Check out the exact Pages candidate")
     setup = _named_step(job, "Select release-builder Python 3.12")
     if "ref: ${{ github.sha }}" not in checkout or "persist-credentials: false" not in checkout:
-        raise AssertionError("release reproduction checkout is not the exact credential-free candidate")
+        raise AssertionError("Pages candidate checkout is not exact and credential-free")
+    if 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"' not in shell:
+        raise AssertionError("release source is not fetched after its immutable tag resolves")
+    if 'git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"' not in shell:
+        raise AssertionError("release reproduction does not use an exact detached tag source")
     if 'python-version: "3.12"' not in setup:
         raise AssertionError("release reproduction must use pinned Python 3.12")
     nonempty_lines = [line for line in shell.splitlines() if line.strip()]
@@ -226,10 +232,10 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     if "||" in shell:
         raise AssertionError("release verification may not tolerate a failed command")
     if not re.search(
-        r'(?m)^test "\$resolved_sha" = "\$CANDIDATE_SHA"$',
+        r'(?m)^if ! git -C "\$GITHUB_WORKSPACE" merge-base --is-ancestor "\$resolved_sha" "\$CANDIDATE_SHA"; then$',
         shell,
     ):
-        raise AssertionError("release tag SHA comparison must be an exact blocking command")
+        raise AssertionError("release tag must be an ancestor of the Pages candidate")
     if '"$asset_api" --output "$asset_name"' not in shell:
         raise AssertionError("release download must consume the validated asset API URL")
     public_download = re.search(
@@ -943,10 +949,10 @@ class PagesWorkflowContractTests(unittest.TestCase):
             retry_window_seconds + setup_download_rebuild_margin_seconds,
         )
 
-    def test_release_gate_reproduces_all_assets_from_the_exact_candidate(self) -> None:
-        """Catches remote assets being trusted without rebuilding the exact candidate under pinned Python."""
+    def test_release_gate_reproduces_all_assets_from_the_exact_tag(self) -> None:
+        """Catches remote assets being trusted without rebuilding their immutable tag source."""
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        checkout = _named_step(release_job, "Check out the exact release candidate")
+        checkout = _named_step(release_job, "Check out the exact Pages candidate")
         setup = _named_step(release_job, "Select release-builder Python 3.12")
         shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
         self.assertIn(
@@ -955,6 +961,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         )
         self.assertIn("ref: ${{ github.sha }}", checkout)
         self.assertIn("persist-credentials: false", checkout)
+        self.assertIn('git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"', shell)
+        self.assertIn('git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"', shell)
         self.assertIn(
             "uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0",
             setup,
@@ -965,8 +973,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
             'test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$CANDIDATE_SHA"',
             shell,
         )
-        self.assertIn('python "$GITHUB_WORKSPACE/scripts/build_release_assets.py"', shell)
-        self.assertIn('--source "$GITHUB_WORKSPACE"', shell)
+        self.assertIn(
+            'test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"',
+            shell,
+        )
+        self.assertIn('python "$release_source/scripts/build_release_assets.py"', shell)
+        self.assertIn('--source "$release_source"', shell)
         self.assertIn('--output "$reproduced_dir"', shell)
         self.assertIn('--epoch "$RELEASE_EPOCH"', shell)
         self.assertIn('--release "$RELEASE_TAG"', shell)
@@ -975,11 +987,46 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertIn('public_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${asset_name}"', shell)
         self.assertIn('cmp --silent "$asset_name" "$public_dir/$asset_name"', shell)
         self.assertIn('cmp --silent "$public_dir/$asset_name" "$reproduced_dir/$asset_name"', shell)
-        build = shell.index('python "$GITHUB_WORKSPACE/scripts/build_release_assets.py"')
+        build = shell.index('python "$release_source/scripts/build_release_assets.py"')
         compare = shell.index('cmp --silent "$asset_name" "$reproduced_dir/$asset_name"')
         verified = shell.index('echo "verified=true" >> "$GITHUB_OUTPUT"')
         self.assertLess(build, compare)
         self.assertLess(compare, verified)
+
+    def test_release_gate_allows_a_later_docs_candidate_after_the_tag(self) -> None:
+        """Catches later safe Pages edits being blocked by tag-to-candidate equality."""
+        release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
+        shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
+
+        self.assertIn(
+            'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+            shell,
+        )
+        self.assertIn('if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then', shell)
+        self.assertNotIn('test "$resolved_sha" = "$CANDIDATE_SHA"', shell)
+
+    def test_release_gate_blocks_post_release_changes_to_release_bound_paths(self) -> None:
+        """Catches a later main commit changing release authority without a new immutable tag."""
+        release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
+        shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
+
+        for path in (
+            "academy/actions/",
+            "academy/publication/",
+            "academy/tracks/",
+            "academy_engine/",
+            "install/",
+            "pyproject.toml",
+            "scripts/build_release_assets.py",
+            "scripts/build_preview_site.py",
+            ".github/workflows/academy-pages.yml",
+        ):
+            self.assertIn(f'"{path}"', shell)
+        self.assertIn(
+            'if ! git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"; then',
+            shell,
+        )
+        self.assertIn('ERROR: release-bound files changed after the immutable tag.', shell)
 
     def test_release_metadata_validator_rejects_noncanonical_checksums_and_inventory_drift(self) -> None:
         """Catches ambiguous digest files or a release asset multiset beyond the six approved names."""
@@ -1138,7 +1185,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         fail_open_job = release_job.replace("set -euo pipefail", "set +e", 1)
         mutations = {
             "sha-echo": self.pages_workflow.replace(
-                'test "$resolved_sha" = "$CANDIDATE_SHA"',
+                'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
                 'echo "$resolved_sha $CANDIDATE_SHA"',
                 1,
             ),
@@ -1158,8 +1205,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 1,
             ),
             "sha-or-colon": self.pages_workflow.replace(
-                'test "$resolved_sha" = "$CANDIDATE_SHA"',
-                'test "$resolved_sha" = "$CANDIDATE_SHA" || :',
+                'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+                'if false; then',
                 1,
             ),
             "checksum-or-colon": self.pages_workflow.replace(
