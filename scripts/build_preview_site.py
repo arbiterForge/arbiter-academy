@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.5."""
+"""Build the fail-closed static public surface for the configured Academy preview."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ _PUBLIC_ASSET_FILES = (
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.5 pages into *out*.
+    """Render only the reviewed configured-preview pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -776,10 +776,11 @@ def _render_pages(
             "<p>These lessons are not public routes until their guided rewrites and acceptance evidence are complete.</p>\n"
             f'<ul class="coming-next">\n{coming_next}\n</ul>'
         )
+    release_label = "Preview " + manifest.release.removeprefix("preview-")
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.5",
+            f"Arbiter Academy {release_label}",
             templates["index"].substitute(
                 guide_content=(
                     "" if guides["home"] is None else str(guides["home"]["content"])
@@ -792,7 +793,7 @@ def _render_pages(
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.5",
+            f"Recovery | Arbiter Academy {release_label}",
             templates["recovery"].substitute(
                 guide_content=(
                     ""
@@ -828,7 +829,7 @@ def _render_pages(
                 id=escape(next_lab, quote=True)
             )
         else:
-            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.5."
+            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy {release_label}."
         previous_link = ""
         if position:
             previous = lab_order[position - 1]
@@ -847,7 +848,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.5",
+            f"{lesson['title']} | Arbiter Academy {release_label}",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,

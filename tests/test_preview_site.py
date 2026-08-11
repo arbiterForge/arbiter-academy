@@ -253,6 +253,12 @@ class PreviewSiteTests(unittest.TestCase):
         f03 = f03_path.read_text(encoding="utf-8")
         self.assertIn('href="labs/F03-work-the-board/index.html"', index)
         self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', f03)
+        self.assertIn(
+            "<title>Work the governed board | Arbiter Academy Preview 0.6</title>",
+            f03,
+        )
+        self.assertIn("F04 is not available in Academy Preview 0.6.", f03)
+        self.assertNotIn("Preview 0.5", f03)
         self.assertEqual(
             tuple(re.findall(r'data-action-id="([^"]+)"', f03)),
             (
