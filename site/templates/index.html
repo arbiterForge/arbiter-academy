@@ -1,8 +1,8 @@
 <section class="academy-hero">
 <div class="academy-hero__copy">
 <p class="eyebrow">Real repository practice</p>
-<h1>Arbiter Academy Preview 0.2</h1>
-<p>Practice codeArbiter in a real Git repository through nine available labs, paced at $minimum_minutes–$maximum_minutes minutes each.</p>
+<h1>Arbiter Academy Preview 0.3</h1>
+<p>Practice codeArbiter in a real Git repository through eleven available labs, paced at $minimum_minutes–$maximum_minutes minutes each.</p>
 </div>
 <img class="academy-hero__art" src="assets/hero-gates.webp" alt="" width="1881" height="836">
 </section>
@@ -24,8 +24,8 @@ if ($$LASTEXITCODE -ne 0 -or $$academyHead -ne $$academyReviewedCommit) { throw 
 $$academyStatus = &amp; git status --porcelain=v1 --untracked-files=all
 if ($$LASTEXITCODE -ne 0 -or $$academyStatus) { throw "Bootstrap requires a clean learner checkout." }
 $$academyParent = Split-Path -Parent $$academyCheckout
-$$academySource = Join-Path $$academyParent "arbiter-academy-source-preview-0.2"
-$$academyTools = Join-Path $$academyParent "arbiter-academy-tools-preview-0.2"
+$$academySource = Join-Path $$academyParent "arbiter-academy-source-preview-0.3"
+$$academyTools = Join-Path $$academyParent "arbiter-academy-tools-preview-0.3"
 if ((Test-Path -LiteralPath $$academySource) -or (Test-Path -LiteralPath $$academyTools)) { throw "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." }
 &amp; git clone --quiet --no-local $$academyCheckout $$academySource
 if ($$LASTEXITCODE -ne 0) { throw "Could not create the reviewed source snapshot." }
@@ -48,8 +48,8 @@ test "$$academy_head" = "$$academy_reviewed_commit" || { echo "Fork HEAD is not 
 if ! academy_status="$$(git status --porcelain=v1 --untracked-files=all)"; then echo "Could not inspect learner checkout status." &gt;&amp;2; exit 1; fi
 test -z "$$academy_status" || { echo "Bootstrap requires a clean learner checkout." &gt;&amp;2; exit 1; }
 academy_parent="$$(dirname "$$academy_checkout")"
-academy_source="$$academy_parent/arbiter-academy-source-preview-0.2"
-academy_tools="$$academy_parent/arbiter-academy-tools-preview-0.2"
+academy_source="$$academy_parent/arbiter-academy-source-preview-0.3"
+academy_tools="$$academy_parent/arbiter-academy-tools-preview-0.3"
 test ! -e "$$academy_source" &amp;&amp; test ! -e "$$academy_tools" || { echo "Preview source/tools path already exists; preserve anything needed, then remove it before retrying." &gt;&amp;2; exit 1; }
 git clone --quiet --no-local "$$academy_checkout" "$$academy_source"
 test "$$(git -C "$$academy_source" rev-parse --verify HEAD)" = "$$academy_reviewed_commit" || { echo "Reviewed source snapshot identity mismatch." &gt;&amp;2; exit 1; }
@@ -64,17 +64,13 @@ academy="$$academy_tools/bin/arbiter-academy"</code></pre></li>
 </ol>
 <p>After bootstrap, the external snapshot and installed verifier form the local trust anchor. The learner checkout is untrusted input. This assumes the initial canonical fetch, Git, Python, and local machine were not replaced by a malicious operator; it provides no cryptographic or malicious-operator resistance.</p>
 <h2>Preview limits</h2>
-<p>Preview 0.2 is static, local training. P06–P07 are status-only, P08 and the Power User labs are not included, and this Preview provides no hosted execution, hosted verification, or signed credential.</p>
-<p><strong>Graduation is not available in Preview 0.2.</strong> The receipt requires the complete 19-lab course through U07; this release publishes nine verified labs and will not issue a partial credential.</p>
+<p>Preview 0.3 is static, local training. P08 and the Power User labs are not included, and this Preview provides no hosted execution, hosted verification, or signed credential.</p>
+<p><strong>Graduation is not available in Preview 0.3.</strong> The receipt requires the complete 19-lab course through U07; this release publishes eleven verified labs and will not issue a partial credential.</p>
 <h2>Available labs</h2>
 <ul class="lab-grid">
 $available_labs
 </ul>
-<h2>Coming next</h2>
-<p>These labs are status-only until they complete verification.</p>
-<ul class="coming-next">
-$coming_next
-</ul>
+$coming_next_section
 <h2>Help and feedback</h2>
 <p><a href="recovery/index.html">Recovery guidance</a> explains how to preserve evidence and begin a safe retry.</p>
 <p>The <a href="https://github.com/arbiterForge/arbiter-academy">canonical Academy repository</a> is reference-only for learners. Use the <a href="https://codearbiter.dev/">codeArbiter reference documentation</a> when a lab asks you to inspect a governance concept.</p>

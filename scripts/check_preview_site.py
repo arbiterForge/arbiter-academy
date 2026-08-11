@@ -88,6 +88,8 @@ _LABS = (
     "P03-record-an-adr",
     "P04-review-a-dependency",
     "P05-checkpoint-remediation",
+    "P06-context-drift-recovery",
+    "P07-threat-model",
 )
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
@@ -110,6 +112,7 @@ class _LinkCollector(HTMLParser):
         self.targets: list[tuple[str, str, str | None]] = []
         self.ids: list[str] = []
         self.id_references: list[tuple[str, str]] = []
+        self.academy_releases: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         allowed = _ALLOWED_HTML_ATTRIBUTES.get(tag)
@@ -137,6 +140,8 @@ class _LinkCollector(HTMLParser):
             raise ValueError("disallowed HTML attributes on html")
         if tag == "link" and attributes.get("rel") not in {"stylesheet", "icon"}:
             raise ValueError("disallowed HTML link relationship")
+        if tag == "meta" and attributes.get("name") == "academy-release":
+            self.academy_releases.append(attributes.get("content", ""))
 
     def handle_endtag(self, tag: str) -> None:
         if tag not in _ALLOWED_HTML_ATTRIBUTES:
@@ -223,7 +228,7 @@ def _resolve_local(
     return candidate
 
 
-def _check_release(root: Path) -> None:
+def _check_release(root: Path) -> str:
     try:
         data = json.loads((root / "release.json").read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -231,11 +236,12 @@ def _check_release(root: Path) -> None:
     if (
         not isinstance(data, dict)
         or set(data) != {"release", "commit"}
-        or data.get("release") != "preview-0.2"
+        or data.get("release") != "preview-0.3"
         or not isinstance(data.get("commit"), str)
         or not _SHA.fullmatch(data["commit"])
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.2 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.3 provenance contract")
+    return data["release"]
 
 
 def _check_asset_digests(root: Path) -> None:
@@ -269,7 +275,7 @@ def check_preview_site(site_root: Path) -> None:
             f"missing={missing or 'none'}; unexpected={unexpected or 'none'}"
         )
 
-    _check_release(root)
+    release = _check_release(root)
     _check_asset_digests(root)
     pages: dict[Path, _LinkCollector] = {}
     for relative in sorted(path for path in actual if path.suffix == ".html"):
@@ -286,6 +292,10 @@ def check_preview_site(site_root: Path) -> None:
         if duplicate_ids:
             raise ValueError(
                 f"duplicate HTML id in {relative.as_posix()}: {', '.join(duplicate_ids)}"
+            )
+        if collector.academy_releases != [release]:
+            raise ValueError(
+                f"HTML release identity mismatch in {relative.as_posix()}"
             )
         pages[page] = collector
 
