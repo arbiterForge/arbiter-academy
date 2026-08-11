@@ -1,16 +1,20 @@
 diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md
 --- a/.codearbiter/tech-stack.md
 +++ b/.codearbiter/tech-stack.md
-@@ -41,17 +41,14 @@
+@@ -41,21 +41,14 @@
  evidence. Independent review remains required. `compileall` is syntax
  verification, not lint.
  
 -### Integration and release milestones
 +### P02 learner commit gate
  
--Run the complete real-Git suite at Practitioner consolidation, first-draft
--completion, every release or PR gate, or earlier after a demonstrated broad
--shared-state regression:
+-For an Academy public-slice PR or release, run the focused release evidence for
+-the changed surface locally, then use the PR's exact-head hosted workflow and
+-required review gates as the release decision. Do not block a slice on a
+-repetitive local exhaustive run when those focused consumers have passed.
+-
+-Run the complete real-Git suite only at Practitioner consolidation, first-draft
+-completion, or after a demonstrated broad shared-state regression:
 +This attempt-local profile keeps both sanctioned P02 commits bounded to the Workshop Queue exercise.
 +Run the same three commands for the staged work commit and the staged receipt-only commit.
  
@@ -24,7 +28,7 @@ diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md
  python scripts/scan_secrets.py --staged
  ```
  
-@@ -60,15 +57,12 @@
+@@ -64,15 +57,12 @@
  reports redacted high-confidence findings and exit `2` fails closed when inspection
  cannot be completed.
  

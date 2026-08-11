@@ -4,7 +4,7 @@ umask 077
 
 RELEASE='preview-0.4'
 ARCHIVE_NAME='arbiter-academy-preview-0.4.zip'
-BUNDLE_SHA256='41d5fb07a13a85b6f4765183939f7ca8b939f2578fbd902b38ddf4d01e49717c'
+BUNDLE_SHA256='6ce82d6d3a77feda396face340ddfbd9ee118c3d51e6f95b239174337e9f88f3'
 ASSET_URL='https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/arbiter-academy-preview-0.4.zip'
 BUNDLE_PATH=''
 
@@ -283,13 +283,17 @@ import sys
 from pathlib import Path
 
 root, digest, release = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+root_physical = root.resolve(strict=True)
 owned = []
 for directory, directories, files in os.walk(root, followlinks=False):
     base = Path(directory)
     for name in sorted(directories + files):
         path = base / name
         if path.is_symlink():
-            raise SystemExit("Academy environment contains an unowned symbolic link")
+            try:
+                path.resolve(strict=True).relative_to(root_physical)
+            except (OSError, RuntimeError, ValueError):
+                raise SystemExit("Academy environment contains a symbolic link outside its owned root")
         owned.append(path.relative_to(root).as_posix())
 owned.append("install-manifest.json")
 manifest = {

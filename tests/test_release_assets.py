@@ -650,6 +650,103 @@ class InstallerBehaviorTests(unittest.TestCase):
         self.assertEqual(set(manifest["owned_paths"]), actual)
         self.assertFalse(any(path.name.startswith(f".{RELEASE}-") for path in install_root.parent.iterdir()))
 
+    @unittest.skipIf(os.name == "nt", "POSIX venv symlink behavior")
+    def test_posix_installer_accepts_its_owned_internal_venv_symlink(self) -> None:
+        """Catches rejecting the in-root compatibility links made by a successful POSIX venv."""
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest("a POSIX shell is required")
+        fake_bin = self.scratch / "posix-owned-venv-link-python"
+        fake_bin.mkdir()
+        real_python = subprocess.run(
+            [bash, "-lc", "command -v python3"], text=True, capture_output=True, check=True
+        ).stdout.strip()
+        fake_python = fake_bin / "python3"
+        fake_python.write_bytes((
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = -m ] && [ \"${2:-}\" = venv ]; then\n"
+            f"  {shlex.quote(real_python)} \"$@\"\n"
+            "  destination=${4:?expected venv destination}\n"
+            "  if [ ! -e \"$destination/lib64\" ] && [ ! -L \"$destination/lib64\" ]; then\n"
+            "    ln -s -- lib \"$destination/lib64\"\n"
+            "  fi\n"
+            "  exit 0\n"
+            "fi\n"
+            f"exec {shlex.quote(real_python)} \"$@\"\n"
+        ).encode("utf-8"))
+        data_home = self.scratch / "posix-owned-venv-link"
+        controlled_path = (
+            f"{posix_path(fake_bin)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        )
+        command = (
+            f"chmod 700 {shlex.quote(posix_path(fake_python))}; "
+            f"PATH={shlex.quote(controlled_path)} XDG_DATA_HOME={shlex.quote(posix_path(data_home))} "
+            f"sh {shlex.quote(posix_path(self.assets / 'install.sh'))} "
+            f"--bundle {shlex.quote(posix_path(self.assets / ARCHIVE))}"
+        )
+        result = subprocess.run(
+            [bash, "-lc", command],
+            cwd=REPOSITORY,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        install_root = data_home / "arbiter-academy" / RELEASE
+        self.assertTrue((install_root / "lib64").is_symlink())
+        manifest = json.loads((install_root / "install-manifest.json").read_text(encoding="utf-8"))
+        self.assertIn("lib64", manifest["owned_paths"])
+
+    @unittest.skipIf(os.name == "nt", "POSIX venv symlink behavior")
+    def test_posix_installer_rejects_an_external_venv_symlink(self) -> None:
+        """Catches treating a venv-created link to data outside the owned root as installed content."""
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest("a POSIX shell is required")
+        external = self.scratch / "posix-external-venv-link-target"
+        external.mkdir()
+        sentinel = external / "keep.txt"
+        sentinel.write_bytes(b"outside\n")
+        fake_bin = self.scratch / "posix-external-venv-link-python"
+        fake_bin.mkdir()
+        real_python = subprocess.run(
+            [bash, "-lc", "command -v python3"], text=True, capture_output=True, check=True
+        ).stdout.strip()
+        fake_python = fake_bin / "python3"
+        fake_python.write_bytes((
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = -m ] && [ \"${2:-}\" = venv ]; then\n"
+            f"  {shlex.quote(real_python)} \"$@\"\n"
+            "  destination=${4:?expected venv destination}\n"
+            "  rm -f -- \"$destination/lib64\"\n"
+            f"  ln -s -- {shlex.quote(posix_path(external))} \"$destination/lib64\"\n"
+            "  exit 0\n"
+            "fi\n"
+            f"exec {shlex.quote(real_python)} \"$@\"\n"
+        ).encode("utf-8"))
+        data_home = self.scratch / "posix-external-venv-link"
+        controlled_path = (
+            f"{posix_path(fake_bin)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        )
+        command = (
+            f"chmod 700 {shlex.quote(posix_path(fake_python))}; "
+            f"PATH={shlex.quote(controlled_path)} XDG_DATA_HOME={shlex.quote(posix_path(data_home))} "
+            f"sh {shlex.quote(posix_path(self.assets / 'install.sh'))} "
+            f"--bundle {shlex.quote(posix_path(self.assets / ARCHIVE))}"
+        )
+        result = subprocess.run(
+            [bash, "-lc", command],
+            cwd=REPOSITORY,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("symbolic link", result.stdout + result.stderr)
+        self.assertEqual(sentinel.read_bytes(), b"outside\n")
+
     def test_powershell_rolls_back_a_partial_owned_environment(self) -> None:
         """Catches a failed venv build leaving an installer-owned partial path behind."""
         powershell = shutil.which("powershell") or shutil.which("pwsh")
