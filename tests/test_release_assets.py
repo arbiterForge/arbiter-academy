@@ -362,6 +362,17 @@ class InstallerSourceContractTests(unittest.TestCase):
         self.assertIn("--proto '=https'", posix)
         self.assertNotIn("--location", posix)
 
+    def test_powershell_http_client_loads_explicitly_without_overriding_system_tls_policy(self) -> None:
+        """Catches Windows PowerShell 5.1 failing type resolution or a global TLS downgrade."""
+        source = (REPOSITORY / "install" / "install.ps1").read_text(encoding="utf-8")
+        assembly_load = source.index("Add-Type -AssemblyName System.Net.Http")
+        client_construction = source.index("New-Object Net.Http.HttpClientHandler")
+        self.assertLess(assembly_load, client_construction)
+        self.assertNotRegex(
+            source,
+            r"(?im)^\s*\[Net\.ServicePointManager\]::SecurityProtocol\s*=",
+        )
+
 
 class InstallerBehaviorTests(unittest.TestCase):
     @classmethod
@@ -832,6 +843,38 @@ class InstallerBehaviorTests(unittest.TestCase):
         academy_root = data_home / "arbiter-academy"
         self.assertFalse((academy_root / RELEASE).exists())
         self.assertFalse(academy_root.exists())
+
+    def test_posix_rolls_back_when_interrupted_after_claiming_the_install_root(self) -> None:
+        """Catches cleanup expanding an unset install marker during an ownership-window interrupt."""
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest("a POSIX shell is required")
+        interrupted_installer = self.scratch / "posix-interrupted-after-ownership.sh"
+        source = (self.assets / "install.sh").read_text(encoding="utf-8")
+        needle = "owns_install=1\n"
+        self.assertIn(needle, source)
+        interrupted_installer.write_text(
+            source.replace(needle, "owns_install=1\nkill -TERM \"$$\"\n", 1),
+            encoding="utf-8",
+            newline="\n",
+        )
+        data_home = self.scratch / "posix-interrupted-after-ownership"
+        command = (
+            f"export XDG_DATA_HOME={shlex.quote(posix_path(data_home))}; "
+            f"sh {shlex.quote(posix_path(interrupted_installer))} "
+            f"--bundle {shlex.quote(posix_path(self.assets / ARCHIVE))}"
+        )
+        result = subprocess.run(
+            [bash, "-lc", command],
+            cwd=REPOSITORY,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=120,
+        )
+        academy_root = data_home / "arbiter-academy"
+        self.assertFalse((academy_root / RELEASE).exists(), result.stdout + result.stderr)
+        self.assertFalse(academy_root.exists(), result.stdout + result.stderr)
 
     def test_powershell_preserves_a_substituted_install_root_on_rollback(self) -> None:
         """Catches a substitution after cleanup precheck escaping quarantine revalidation."""

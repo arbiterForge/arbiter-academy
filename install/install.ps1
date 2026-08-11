@@ -94,6 +94,7 @@ function Test-TrustedReleaseRedirect {
 
 function Get-ImmutableReleaseAsset {
     param([string]$Url, [string]$Destination)
+    Add-Type -AssemblyName System.Net.Http
     $handler = New-Object Net.Http.HttpClientHandler
     $handler.AllowAutoRedirect = $false
     $client = New-Object Net.Http.HttpClient($handler)

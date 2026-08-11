@@ -263,10 +263,10 @@ PY
 ) || die 'release bundle validation or extraction failed'
 
 mkdir -- "$install_root" || die "conflicting or unowned install path: $install_root"
-owns_install=1
 install_marker=$install_root/$marker_name
 (set -C; printf '%s\n' "$ownership_token" >"$install_marker") \
     || die 'could not claim the Academy install directory'
+owns_install=1
 "$python_command" -m venv --copies "$install_root" || die 'Python failed to create the Academy environment'
 venv_python=$install_root/bin/python
 academy=$install_root/bin/arbiter-academy
