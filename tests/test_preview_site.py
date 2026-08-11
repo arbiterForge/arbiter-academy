@@ -6,6 +6,7 @@ import html as html_module
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,7 @@ from urllib.parse import urlsplit
 import scripts.build_preview_site as preview_site
 import scripts.check_preview_site as preview_checker
 from academy_engine.checkpoints import LAB_INVENTORY
+from academy_engine.cli import _parser as academy_cli_parser
 from academy_engine.lesson_actions import (
     ActionResource,
     CommandVariant,
@@ -225,6 +227,95 @@ class PreviewSiteTests(unittest.TestCase):
             ],
         )
 
+    def test_published_guided_cli_commands_resolve_through_the_academy_parser(self) -> None:
+        """Catches missing, skipped, or parser-invalid Academy CLI handoffs."""
+        publication = load_preview_manifest(self.root)
+        document_ids = ("home", "recovery", *publication.guided_labs)
+        expected = {
+            ("home", "home-doctor"): ("doctor", None),
+            ("recovery", "recovery-inspect"): ("doctor", None),
+            ("recovery", "recovery-check"): ("check", "F01-fork-clone-doctor"),
+            ("recovery", "recovery-reset"): ("reset", "F01-fork-clone-doctor"),
+            ("F01-fork-clone-doctor", "F01-prepare"): (
+                "prepare",
+                "F01-fork-clone-doctor",
+            ),
+            ("F01-fork-clone-doctor", "F01-academy-doctor"): (
+                "doctor",
+                "F01-fork-clone-doctor",
+            ),
+            ("F01-fork-clone-doctor", "F01-check"): (
+                "check",
+                "F01-fork-clone-doctor",
+            ),
+            ("F01-fork-clone-doctor", "F01-reset-retry"): (
+                "reset",
+                "F01-fork-clone-doctor",
+            ),
+        }
+        academy_looking = re.compile(
+            r'^\s*(?:&\s+\$academy|"\$academy"|arbiter-academy(?:\.exe)?\b)'
+        )
+        invocation = re.compile(
+            r'^\s*(?:&\s+\$academy|"\$academy"|arbiter-academy(?:\.exe)?)\s+'
+            r'(?P<arguments>.+)$'
+        )
+        recognized: dict[tuple[str, str], list[str]] = {}
+
+        for document_id in document_ids:
+            manifest = load_action_manifest(self.root, document_id)
+            for action in manifest.actions:
+                for variant in action.variants:
+                    if not variant.copy:
+                        continue
+                    for line in variant.command.splitlines():
+                        if academy_looking.match(line) is None:
+                            continue
+                        match = invocation.fullmatch(line)
+                        self.assertIsNotNone(
+                            match,
+                            f"Academy-looking invocation was not recognized: {line!r}",
+                        )
+                        assert match is not None
+                        normalized = (
+                            match.group("arguments")
+                            .replace("(Get-Location).Path", ".")
+                            .replace('"$PWD"', ".")
+                            .replace("<lab-id>", "F01-fork-clone-doctor")
+                        )
+                        argv = shlex.split(normalized, posix=True)
+                        with self.subTest(
+                            document=document_id,
+                            action=action.id,
+                            variant=variant.id,
+                            argv=argv,
+                        ):
+                            try:
+                                with patch("sys.stderr"):
+                                    parsed = academy_cli_parser().parse_args(argv)
+                            except SystemExit as error:
+                                self.fail(
+                                    f"published Academy CLI argv {argv!r} is not parser-supported "
+                                    f"(parser exit {error.code})"
+                                )
+                            expected_command, expected_lab = expected[
+                                (document_id, action.id)
+                            ]
+                            self.assertEqual(parsed.repository, Path("."))
+                            self.assertEqual(parsed.command, expected_command)
+                            self.assertEqual(parsed.lab_id, expected_lab)
+                        recognized.setdefault((document_id, action.id), []).append(
+                            variant.operating_system
+                        )
+
+        self.assertEqual(set(recognized), set(expected))
+        for action, operating_systems in recognized.items():
+            with self.subTest(action=action):
+                self.assertEqual(
+                    operating_systems,
+                    ["windows", "macos", "linux"],
+                )
+
     def test_home_states_preview_scope_prerequisites_pacing_and_exact_workflow(self) -> None:
         """Catches public guidance that overstates the preview or omits its runnable workflow."""
         html = read_home(self.root, self.out)
@@ -234,8 +325,11 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
         self.assertIn("Power User lessons are not included", html)
-        for operation in ("Doctor", "console"):
-            self.assertIn(operation, html)
+        self.assertIn("Doctor", html)
+        self.assertIn(
+            "operations console launch will be published with the integrated TUI",
+            html,
+        )
         self.assertIn('href="recovery/index.html"', html)
 
     def test_home_teaches_every_prerequisite_before_first_use(self) -> None:
@@ -252,7 +346,6 @@ class PreviewSiteTests(unittest.TestCase):
             "Create your practice fork",
             "Clone it to your computer",
             "Install the reviewed Academy tools",
-            "Open the operations console",
             "Run readiness checks",
             "Choose your first lesson",
             "Course status",
@@ -286,7 +379,6 @@ class PreviewSiteTests(unittest.TestCase):
                 "home-clone",
                 "home-enter-clone",
                 "home-install",
-                "home-launch-console",
                 "home-doctor",
             ),
         )
@@ -309,17 +401,6 @@ class PreviewSiteTests(unittest.TestCase):
                 "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh.sha256",
             ),
         )
-        launch_commands = tuple(variant.command for variant in actions["home-launch-console"].variants)
-        self.assertIn(
-            '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe"\n'
-            "& $academy --repository (Get-Location).Path console",
-            launch_commands,
-        )
-        self.assertIn(
-            'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy"\n'
-            '"$academy" --repository "$PWD" console',
-            launch_commands,
-        )
         self.assertNotIn("```", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
@@ -330,7 +411,7 @@ class PreviewSiteTests(unittest.TestCase):
             "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh | sh",
             html,
         )
-        for label in ("You \u00b7 Browser", "You \u00b7 Native terminal", "You \u00b7 Academy console"):
+        for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
             self.assertIn(label, html)
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
@@ -419,8 +500,9 @@ class PreviewSiteTests(unittest.TestCase):
         html = (self.out / "recovery" / "index.html").read_text(encoding="utf-8")
 
         self.assertIn("Preserve the branch", html)
-        self.assertIn("Choose Check.", html)
-        self.assertIn("Choose Reset.", html)
+        self.assertIn("check &lt;lab-id&gt;", html)
+        self.assertIn("reset &lt;lab-id&gt;", html)
+        self.assertIn("without typing angle brackets", html)
         self.assertIn("installed Academy checker", html)
         self.assertIn("your fork", html)
         self.assertIn(
@@ -491,6 +573,17 @@ class PreviewSiteTests(unittest.TestCase):
             "pushRemote",
         ):
             self.assertIn(invariant, repair_commands)
+        return_commands = "\n".join(
+            variant.command for variant in actions["recovery-return-base"].variants
+        )
+        for preflight in (
+            "git status --porcelain",
+            "git branch --show-current",
+            "refs/heads/main",
+            "git switch main",
+        ):
+            self.assertIn(preflight, return_commands)
+        self.assertNotIn("return-to-base", return_commands)
         for shortcut in (
             "make the repository clean",
             "delete the branch",

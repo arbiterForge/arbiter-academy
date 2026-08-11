@@ -9,18 +9,36 @@
       "title": "Prepare a numbered attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the Academy console, select F01 and choose Prepare. Begin only from a clean main branch. The <attempt> shown in later branch names means the number Academy prints; do not type the angle-bracket placeholder.",
+      "instruction": "Run the installed Academy Prepare command from the clone. Begin only from a clean main branch. The <attempt> shown in later branch names means the number Academy prints; do not type the angle-bracket placeholder.",
       "rationale": "Preparation creates and switches to an isolated numbered branch while preserving main.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Select F01-fork-clone-doctor, then choose Prepare.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
+          "copy": true
         }
       ],
       "expected_result": "Academy prints a prepared branch named academy/F01-fork-clone-doctor/<attempt> and switches the repository to it.",
@@ -699,18 +717,36 @@
       "title": "Generate the bounded Academy Doctor report",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the Academy console, keep F01 selected and choose Doctor. Do not continue to the evidence commit if Doctor fails.",
+      "instruction": "Run the installed Academy Doctor command for F01. Do not continue to the evidence commit if Doctor fails.",
       "rationale": "Academy Doctor recomputes the lesson-safe remote facts and writes only the bounded report.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "With F01-fork-clone-doctor selected, choose Doctor.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
+          "copy": true
         }
       ],
       "expected_result": "Academy Doctor passes and creates .codearbiter/reports/academy/F01-doctor.json.",
@@ -1157,22 +1193,40 @@
       "title": "Run the external Academy Check",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the Academy console, keep F01 selected and choose Check. This invokes the externally installed verifier, not code imported from the learner checkout.",
+      "instruction": "Run the installed Academy Check command for F01. This invokes the externally installed verifier, not code imported from the learner checkout.",
       "rationale": "An external verifier independently reads the committed report and the current live Git configuration.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "With F01-fork-clone-doctor selected, choose Check.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
+          "copy": true
         }
       ],
       "expected_result": "Check prints checkpoint F01-fork-clone-doctor: passed; progress: .academy/progress.json.",
-      "recovery": "Check failure preserves the clean committed attempt and its failure. Correct the named live boundary or choose Reset for a numbered retry; do not delete the attempt commit.",
+      "recovery": "Check failure preserves the clean committed attempt and its failure. Correct the named live boundary or run Reset for a numbered retry; do not delete the attempt commit.",
       "evidence": "Only after the external verifier reads the committed report and live Git configuration does it write .academy/progress.json."
     },
     {
@@ -1304,18 +1358,36 @@
       "title": "Create a preserved numbered retry",
       "actor": "learner",
       "surface": null,
-      "instruction": "Use this only when you need another attempt: in the Academy console, select F01 and choose Reset.",
+      "instruction": "Use this only when you need another attempt: run the installed Academy Reset command for F01.",
       "rationale": "Reset archives the current attempt ref and prepares the next unused numbered branch without erasing evidence.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Select F01-fork-clone-doctor, then choose Reset.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
+          "copy": true
         }
       ],
       "expected_result": "Academy preserves the prior attempt under an archive ref and prints the next academy/F01-fork-clone-doctor/<attempt> branch.",

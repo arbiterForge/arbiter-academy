@@ -129,7 +129,6 @@ _EXPECTED_ACTION_IDS = {
         "home-clone",
         "home-enter-clone",
         "home-install",
-        "home-launch-console",
         "home-doctor",
     ),
     Path("recovery/index.html"): (

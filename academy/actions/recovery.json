@@ -9,22 +9,40 @@
       "title": "Inspect without changing state",
       "actor": "learner",
       "surface": null,
-      "instruction": "Choose Inspect in the Academy console. Read the repository path, Git state, current branch, attempt, origin, and upstream before taking another action.",
-      "rationale": "One read-only report keeps repository diagnosis separate from recovery changes.",
+      "instruction": "Run the installed Academy Doctor command from the repository. Read the repository path, Git state, current branch, origin, and upstream before taking another action.",
+      "rationale": "The read-only Doctor snapshot keeps repository diagnosis separate from recovery changes; Inspect is a presentation, not another operation.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Choose Inspect.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "copy": true
         }
       ],
-      "expected_result": "Inspect reports each repository boundary and makes no repository change.",
-      "recovery": "If Inspect cannot identify a Git repository, stop and follow the Repository not found decision below.",
+      "expected_result": "Doctor reports each available repository boundary and makes no repository change.",
+      "recovery": "If Doctor cannot identify a Git repository, stop and follow the Repository not found decision below.",
       "evidence": "The report records the state you observed before recovery."
     },
     {
@@ -33,7 +51,7 @@
       "title": "Return to the named attempt branch",
       "actor": "learner",
       "surface": null,
-      "instruction": "Replace <attempt-branch> with the exact numbered branch printed by Inspect, then run the command in a Native terminal. Do not guess a branch name.",
+      "instruction": "Replace <attempt-branch> with the exact numbered branch printed by the Doctor snapshot, then run the command in a Native terminal. Do not guess a branch name.",
       "rationale": "Switching to an existing named branch preserves commits and restores the lesson's intended working context.",
       "resources": [],
       "variants": [
@@ -67,7 +85,7 @@
       ],
       "expected_result": "Git reports that the exact numbered attempt branch is checked out and preserves its existing commits.",
       "recovery": "If Git refuses because of local changes, do not force the switch; return to the Dirty worktree decision and preserve those paths.",
-      "evidence": "A new Inspect report names the intended numbered attempt branch."
+      "evidence": "A new Doctor snapshot names the intended numbered attempt branch."
     },
     {
       "id": "recovery-repair-remotes",
@@ -107,9 +125,9 @@
           "copy": true
         }
       ],
-      "expected_result": "Inspect reports origin fetch and push on your fork, upstream fetch on the official Academy repository, upstream push disabled, and effective push routing to origin.",
-      "recovery": "If any command reports an error, stop before pushing, preserve the complete output, and Inspect again to identify the remaining mismatch.",
-      "evidence": "The Inspect report records the complete learner-safe remote contract."
+      "expected_result": "Doctor reports origin fetch and push on your fork, upstream fetch on the official Academy repository, upstream push disabled, and effective push routing to origin.",
+      "recovery": "If any command reports an error, stop before pushing, preserve the complete output, and run Doctor again to identify the remaining mismatch.",
+      "evidence": "The Doctor snapshot records the complete learner-safe remote contract."
     },
     {
       "id": "recovery-check",
@@ -117,18 +135,36 @@
       "title": "Read the authoritative lesson result",
       "actor": "learner",
       "surface": null,
-      "instruction": "Choose Check in the Academy console only after Inspect identifies the intended numbered attempt.",
+      "instruction": "Replace <lab-id> with the lesson ID from the lesson page or current academy/<lab-id>/<attempt> branch, without typing angle brackets. Run Check only after the Doctor snapshot identifies the intended numbered attempt.",
       "rationale": "The installed Academy checker evaluates the selected repository as untrusted input.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Choose Check.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check <lab-id>",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check <lab-id>",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check <lab-id>",
+          "copy": true
         }
       ],
       "expected_result": "Check either passes or names the exact unmet lesson requirement.",
@@ -141,22 +177,40 @@
       "title": "Create the next documented attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "Choose Reset only after the current attempt evidence is committed, the worktree is clean, and the remotes are safe.",
+      "instruction": "Replace <lab-id> with the same lesson ID used for Check, without typing angle brackets. Run Reset only after the current attempt evidence is committed, the worktree is clean, and the remotes are safe.",
       "rationale": "Reset keeps the failed attempt and creates the next numbered attempt through one bounded operation.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Choose Reset.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset <lab-id>",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset <lab-id>",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset <lab-id>",
+          "copy": true
         }
       ],
-      "expected_result": "The console reports the archived attempt and the next prepared attempt number.",
-      "recovery": "If Reset refuses, keep the current state, run Inspect, and resolve only the condition it reports.",
+      "expected_result": "Academy reports the archived attempt and the next prepared attempt number.",
+      "recovery": "If Reset refuses, keep the current state, run Doctor, and resolve only the condition it reports.",
       "evidence": "Both numbered attempt branches remain available."
     },
     {
@@ -165,22 +219,40 @@
       "title": "Return to the course base",
       "actor": "learner",
       "surface": null,
-      "instruction": "Choose Return to base after Inspect reports committed evidence and a clean attempt worktree.",
-      "rationale": "The console can verify the preservation conditions before leaving the attempt.",
+      "instruction": "Run this native-terminal handoff only after Check has examined committed evidence. It refuses unless the worktree is clean, the current branch is a numbered Academy attempt, and local main exists.",
+      "rationale": "The preflight leaves the numbered attempt branch and its commits intact, then uses the already taught git switch main command without inventing an Academy route.",
       "resources": [],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Choose Return to base.",
-          "copy": false
+          "language": "powershell",
+          "command": "$changes = git status --porcelain\nif ($LASTEXITCODE -ne 0 -or $changes) { throw \"Return to main requires a clean Git worktree.\" }\n$attempt = git branch --show-current\nif ($LASTEXITCODE -ne 0 -or $attempt -notmatch '^academy/[A-Z][0-9]{2}-[A-Za-z0-9-]+/[0-9]+$') { throw \"Return to main requires a numbered Academy attempt branch.\" }\ngit show-ref --verify --quiet refs/heads/main\nif ($LASTEXITCODE -ne 0) { throw \"Return to main requires a local main branch.\" }\ngit switch main",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "test -z \"$(git status --porcelain)\" || { printf '%s\\n' 'Return to main requires a clean Git worktree.' >&2; exit 1; }\nattempt=$(git branch --show-current)\nprintf '%s\\n' \"$attempt\" | grep -Eq '^academy/[A-Z][0-9]{2}-[A-Za-z0-9-]+/[0-9]+$' || { printf '%s\\n' 'Return to main requires a numbered Academy attempt branch.' >&2; exit 1; }\ngit show-ref --verify --quiet refs/heads/main || { printf '%s\\n' 'Return to main requires a local main branch.' >&2; exit 1; }\ngit switch main",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "test -z \"$(git status --porcelain)\" || { printf '%s\\n' 'Return to main requires a clean Git worktree.' >&2; exit 1; }\nattempt=$(git branch --show-current)\nprintf '%s\\n' \"$attempt\" | grep -Eq '^academy/[A-Z][0-9]{2}-[A-Za-z0-9-]+/[0-9]+$' || { printf '%s\\n' 'Return to main requires a numbered Academy attempt branch.' >&2; exit 1; }\ngit show-ref --verify --quiet refs/heads/main || { printf '%s\\n' 'Return to main requires a local main branch.' >&2; exit 1; }\ngit switch main",
+          "copy": true
         }
       ],
-      "expected_result": "The console reports main as the current branch and no local changes while the attempt branch still exists.",
-      "recovery": "If Return to base refuses, keep the attempt open and resolve only the preservation condition named by the console.",
+      "expected_result": "Git switches to main while the numbered attempt branch and its commits remain reachable.",
+      "recovery": "If the preflight refuses, keep the attempt open and resolve only the named dirty-worktree, branch, or missing-main condition; do not force the switch or delete the attempt.",
       "evidence": "The attempt branch and evidence commits remain reachable after returning to main."
     }
   ]

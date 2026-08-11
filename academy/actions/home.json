@@ -170,54 +170,12 @@
       "evidence": "The installed tool lives outside the learner repository at the versioned Preview 0.3 path."
     },
     {
-      "id": "home-launch-console",
-      "sequence": 5,
-      "title": "Launch the operations console",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "Run the variant for your operating system from the root of the cloned arbiter-academy repository.",
-      "rationale": "The explicit repository path prevents the console from operating on a different folder.",
-      "resources": [],
-      "variants": [
-        {
-          "id": "windows",
-          "surface": "native-terminal",
-          "operating_system": "windows",
-          "host": "none",
-          "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path console",
-          "copy": true
-        },
-        {
-          "id": "macos",
-          "surface": "native-terminal",
-          "operating_system": "macos",
-          "host": "none",
-          "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" console",
-          "copy": true
-        },
-        {
-          "id": "linux",
-          "surface": "native-terminal",
-          "operating_system": "linux",
-          "host": "none",
-          "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" console",
-          "copy": true
-        }
-      ],
-      "expected_result": "The Academy console opens and names the cloned repository as its selected repository.",
-      "recovery": "If the executable is missing, return to the installation action. If the repository path is wrong, close the console, change to the clone, and launch it again.",
-      "evidence": "The console header shows the selected repository path."
-    },
-    {
       "id": "home-doctor",
-      "sequence": 6,
+      "sequence": 5,
       "title": "Record the first readiness baseline",
       "actor": "learner",
       "surface": null,
-      "instruction": "Choose Doctor once in the Academy console, read every reported boundary, and continue to F01 when any failures are limited to the expected fresh-clone remote findings.",
+      "instruction": "Run the installed Academy Doctor command from the clone, read every reported boundary, and continue to F01 when any failures are limited to the expected fresh-clone remote findings.",
       "rationale": "Doctor records a baseline; F01 owns the first lesson's remote repair and readiness proof.",
       "resources": [
         {
@@ -227,13 +185,31 @@
       ],
       "variants": [
         {
-          "id": "console",
-          "surface": "academy-console",
-          "operating_system": "all",
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
           "host": "none",
-          "language": "text",
-          "command": "Choose Doctor.",
-          "copy": false
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.3\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.3/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "copy": true
         }
       ],
       "expected_result": "Doctor reports Python and Git versions, the repository root, worktree and branch state, remotes and effective push routing, upstream push protection, and codeArbiter activation and initialization without changing the repository.",

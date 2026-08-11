@@ -21,7 +21,7 @@ copy you own. A **clone** is its local working copy. In that clone, `origin` mus
 upstream, but this lesson makes pushing there fail locally.
 
 Begin on a clean `main`: `clean` means the repository has no staged or unstaged changes. Keep the
-Academy console open for preparation, Doctor, Check, and Reset. Use a **Native terminal** for a
+Installed Academy commands available in a **Native terminal** for preparation, Doctor, Check, and Reset. Use that terminal for a
 command you run directly. When a command appears for your Claude Code, Codex, or Pi **harness**, its
 single leading `!` passes that shell command to the terminal. CodeArbiter commands never use `!`.
 

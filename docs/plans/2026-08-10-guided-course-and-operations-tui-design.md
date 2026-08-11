@@ -22,27 +22,27 @@ The site owns:
 - actor and execution-surface labels;
 - host and operating-system command variants;
 - copy controls, expected results, checkpoints, and recovery guidance;
-- links that open the local operations console or describe the equivalent non-interactive command;
+- links that open the matching website lesson and describe supported non-interactive commands;
 - truthful availability sourced only from the reviewed publication manifest.
 
-The website cannot launch a local full-screen process. Version 1 shows a labeled, copyable native-terminal command and the corresponding harness `!` variant for launching the console. Browser-to-console custom protocols, localhost daemons, and deep links are explicitly out of scope. The console may open a fixed website lesson URL.
+The website cannot launch a local full-screen process. It does not publish a console launch command until the integrated TUI provides that parser-supported route. Browser-to-console custom protocols, localhost daemons, and deep links are explicitly out of scope. The console may open a fixed website lesson URL.
 
 ### Academy console: the operational surface
 
-The full-screen TUI owns:
+The full-screen TUI V1 owns exactly six learner actions:
 
-- repository Doctor and readiness state;
-- listing and selecting published labs;
-- preparing the selected lab;
-- checking evidence and showing the bounded result;
-- resetting or retrying a lab;
-- returning a clean attempt to the course base branch;
-- opening the matching website lesson;
-- showing progress derived from verifier evidence, never an invented completion flag.
+- setup: select the repository and published lab, present Doctor/readiness state, and prepare the selected lab;
+- check: verify evidence and show the bounded result;
+- reset/retry: preserve the current attempt and prepare the next safe attempt;
+- update: run the existing bounded checkout-update operation;
+- progress: show progress derived from verifier evidence, never an invented completion flag;
+- open lesson: open the matching website lesson.
 
-The first TUI release excludes installer self-management, arbitrary shell execution, lesson prose, Markdown rendering, free-form command entry, and whole-tool teardown. Checkout update and installer-managed teardown follow only after their lifecycle contracts are proven.
+Inspect is a read-only snapshot of repository and lesson state presented through the Doctor view. It is not a seventh operation. Return-to-base remains a non-interactive CLI operation and is not exposed as a TUI action.
 
-Within the course, “setup” and “teardown” mean preparing, checking, preserving, resetting, and leaving a lesson attempt. Those operations are first-release TUI responsibilities. Installing or deleting the Academy executable is a separate bootstrap lifecycle and cannot safely be owned entirely by the running TUI.
+The first TUI release excludes installer self-management, arbitrary shell execution, lesson prose, Markdown rendering, free-form command entry, return-to-base, and whole-tool teardown. Installer-managed teardown follows only after its lifecycle contract is proven.
+
+Within the course, setup means selecting a repository and lesson, reading the Doctor snapshot, and preparing an attempt. Check and reset/retry own the evidence and preservation lifecycle. Leaving an attempt through return-to-base stays in the non-interactive CLI. Installing or deleting the Academy executable is a separate bootstrap lifecycle and cannot safely be owned entirely by the running TUI.
 
 ### Existing CLI: the automation and recovery surface
 
@@ -78,7 +78,7 @@ Each lesson follows one educational rhythm:
 4. **Practice** — numbered steps with actor/surface badges and selected host/OS variants.
 5. **Recognize success** — visible outputs and evidence, not “it should work” prose.
 6. **Check** — Academy console verification and bounded failure guidance.
-7. **Recover or continue** — reset/retry, return to base, and next lesson.
+7. **Recover or continue** — reset/retry in the TUI, return to base through the non-interactive CLI, and open the next website lesson.
 8. **Understand the mechanism** — optional deeper implementation detail after the core exercise.
 
 Command cards provide a copy button, accessible copied/error status, keyboard focus, wrapping or bounded horizontal scroll, and no hidden command mutation. Expected output is visually distinct from input and is never copyable as a command.
@@ -92,8 +92,8 @@ The first slice proves the whole system before broad rewriting:
 - explain a GitHub fork in plain language and show the exact browser action;
 - explain `origin` and `upstream` before asking the learner to inspect or repair them;
 - offer one reviewed PowerShell installer and one reviewed POSIX installer, each with a visible source-review link and a safer download/verify alternative;
-- launch the Academy console after installation;
-- guide repository selection, Doctor, F01 preparation, remote repair, Check, reset/retry, and return to course base;
+- defer the Academy console launch card until the integrated TUI route exists;
+- guide repository setup, Doctor presentation, F01 preparation, remote repair, Check, reset/retry, update, progress, opening the lesson, and the separate non-interactive return-to-base handoff;
 - show native-terminal and selected-harness variants with correct `!` passthrough;
 - provide exact expected states and reversible recovery at every risky transition;
 - ensure a first-time learner never needs knowledge not taught by the current or earlier step.
@@ -114,7 +114,7 @@ Recovery becomes an operational decision tree rather than generic advice. It dia
 
 ## Operations architecture
 
-`AcademyOperations` is the only application-facing orchestration boundary. It returns typed state and result objects suitable for both text rendering and TUI rendering. It delegates to the existing trusted modules for Doctor, publication, scenario preparation/reset, checkpoint evaluation, progress, and checkout update.
+`AcademyOperations` is the only application-facing orchestration boundary. It returns typed state and result objects suitable for both text rendering and TUI rendering. It delegates to the existing trusted modules for Doctor, publication, scenario preparation/reset, checkpoint evaluation, progress, and checkout update. Inspect composes those read-only state objects for the Doctor presentation rather than adding an operation.
 
 The console layout is intentionally restrained:
 
@@ -126,9 +126,9 @@ The console layout is intentionally restrained:
 
 The console trusts installed verifier authority and the installed publication manifest. It never uses the learner checkout as the source of lab eligibility, titles, commands, or lesson URLs. “Open lesson” resolves from a fixed Academy origin plus an installed manifest path, not learner-controlled content.
 
-“Return to course base” is a new bounded operation: from a clean canonical Academy attempt, switch to `main` while preserving the attempt branch. It is not reset and does not discard work.
+“Return to course base” is a bounded non-interactive CLI operation: from a clean canonical Academy attempt, switch to `main` while preserving the attempt branch. It is not reset, does not discard work, and is not a TUI action.
 
-Only one mutating operation may run at a time. While an operation is active, incompatible actions are disabled with a visible reason. Prepare, reset/retry, return-to-base, update, and future teardown actions require a preflight result immediately before mutation. Destructive-looking actions require a confirmation that names the repository, current branch, resulting branch, and any archive ref; cancellation performs no writes.
+Only one mutating TUI operation may run at a time. While an operation is active, incompatible actions are disabled with a visible reason. Setup/prepare, reset/retry, and update require a preflight result immediately before mutation. Destructive-looking actions require a confirmation that names the repository, current branch, resulting branch, and any archive ref; cancellation performs no writes. The non-interactive return-to-base command enforces its own equivalent preflight outside the TUI.
 
 ## Bootstrap and lifecycle
 
@@ -140,16 +140,16 @@ The initial installer must remain outside the TUI because an uninstalled applica
 - fail closed on pre-existing conflicting paths;
 - roll back partial installation;
 - install from a reviewed offline wheel set;
-- finish by launching Doctor or the console;
+- finish by launching Doctor; a console launch is added only with the integrated parser-supported TUI route;
 - have committed tests that execute the documented commands.
 
 The fast path is an immutable release-asset URL piped to PowerShell or POSIX shell, with the exact script source linked beside it for review. It does not claim to verify its own hash. The verify-first path downloads the script and checksum separately, validates the pinned digest locally, then executes the verified file. Redirects, mutable branch URLs, and package-index resolution are rejected.
 
 Whole-tool teardown is deferred. On Windows, a running process cannot safely delete its own executable. The future console action will write a validated teardown plan, exit, and hand control to the installer-owned launcher, which removes only manifest-owned paths.
 
-The first-release console still provides lesson teardown: Check, preserve the attempt branch, reset/retry, and return to course base. It never equates leaving a lesson with deleting learner work.
+The first-release console provides Check and reset/retry while preserving the attempt branch. Return-to-base remains a non-interactive CLI handoff. Neither path equates leaving a lesson with deleting learner work.
 
-Reset/retry is enabled only on the matching clean canonical attempt branch. Uncommitted work is not archived. If the worktree is dirty, the console disables reset and explains that the learner must either commit the intended work through the lesson's governed path or cancel and inspect it; the console does not offer a discard shortcut. Confirmation names the old attempt, archive ref, and new attempt branch. A failed reset rolls back its owned mutations or stops with the original ref reachable. Return-to-base requires the same clean/current-attempt preflight, preserves the attempt branch without creating an archive, and switches only to the validated course `main`.
+Reset/retry is enabled only on the matching clean canonical attempt branch. Uncommitted work is not archived. If the worktree is dirty, the console disables reset and explains that the learner must either commit the intended work through the lesson's governed path or cancel and inspect the read-only Doctor snapshot; the console does not offer a discard shortcut. Confirmation names the old attempt, archive ref, and new attempt branch. A failed reset rolls back its owned mutations or stops with the original ref reachable. The separate return-to-base CLI command requires the same clean/current-attempt preflight, preserves the attempt branch without creating an archive, and switches only to the validated course `main`.
 
 ## TUI dependency decision
 
@@ -209,7 +209,7 @@ Implementation proceeds test-first in these cells:
 5. pass a novice-path usability review using only knowledge taught in the slice;
 6. vet and package `prompt_toolkit` and `wcwidth` through `$ca-add-dep`;
 7. implement pure console state/reducer tests, then real-repository operation tests;
-8. add prompt-toolkit navigation, confirmation, cancellation, resize, and non-TTY tests;
+8. add prompt-toolkit setup/check/reset/update/progress/open-lesson navigation, confirmation, cancellation, resize, and non-TTY tests, plus separate non-interactive return-to-base coverage;
 9. add adversarial authority, unsafe remote/config, dirty state, URL tampering, path escape, and interrupted-operation tests;
 10. add Windows and Ubuntu Python 3.11/3.12 hosted cells;
 11. migrate remaining published lessons in dependency order;
@@ -236,7 +236,7 @@ The redesign may publish when a new learner can, using only the public site and 
 - distinguish browser, native terminal, harness, Academy, and agent actions;
 - copy the correct command variant, including required harness `!` passthrough;
 - recognize expected state and failure state;
-- check evidence, understand that only committed clean attempts can be archived, reset/retry with the old commit reachable, return to base, and resume later;
+- check evidence, understand that only committed clean attempts can be archived, reset/retry with the old commit reachable, use the non-interactive CLI to return to base, and resume later;
 - identify exactly which labs are guided and runnable, runnable with a reference lesson whose guided rewrite is pending, or only coming next.
 
 No later lab becomes public merely because its verifier has merged.

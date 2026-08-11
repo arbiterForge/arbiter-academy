@@ -2,7 +2,7 @@
 
 Arbiter Academy is a practice course for codeArbiter. You work in a real Git repository that belongs to you, so every lesson can produce real commits and evidence without sending changes to the official Academy repository.
 
-Before you begin, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git, installation, and launching the Academy console. The Academy console handles setup, checks, retries, and lesson changes. The website remains the course.
+Before you begin, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course; the operations console launch will be published with the integrated TUI.
 
 ## What the Academy changes
 
@@ -30,15 +30,9 @@ Change the Native terminal's current directory to the clone before installing. T
 
 {{action:home-install}}
 
-## Open the operations console
-
-Keep the Native terminal in your cloned repository. The launch command selects that repository explicitly and opens the operational console. It does not replace this website's lesson instructions.
-
-{{action:home-launch-console}}
-
 ## Run readiness checks
 
-Choose Doctor once to inspect this checkout. It reports the Python and Git versions, repository root, clean or detached Git state, remotes, effective push remote, upstream push protection, and whether codeArbiter is activated and initialized. It cannot verify GitHub fork lineage offline.
+Run the installed Academy Doctor command once to inspect this checkout. It reports the Python and Git versions, repository root, clean or detached Git state, remotes, effective push remote, upstream push protection, and whether codeArbiter is activated and initialized. It cannot verify GitHub fork lineage offline.
 
 {{action:home-doctor}}
 
@@ -46,7 +40,7 @@ Choose Doctor once to inspect this checkout. It reports the Python and Git versi
 
 Doctor does not need to pass before F01 when its only failures are the expected fresh-clone remote findings. A new fork clone may report a missing `upstream`; F01 teaches the remote repair. Before Prepare, you do need clean `main`, an `origin` whose fetch and push target your non-official `arbiter-academy` repository, and effective push routing to `origin`.
 
-Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Browser and follow its ordered actions. Do not repair the remaining F01 evidence steps from this page. Use the Academy console only when F01 tells you to prepare, inspect, check, reset, or return to base.
+Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Browser and follow its ordered actions. Do not repair the remaining F01 evidence steps from this page. Keep the website open as the lesson surface and run its copyable installed Academy commands in the Native terminal.
 
 ## Course status
 
