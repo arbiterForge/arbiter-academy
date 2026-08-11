@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import importlib.util
+import io
 import json
 import os
 import re
@@ -11,6 +12,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -35,6 +37,39 @@ CHECKSUM = re.compile(rb"([0-9a-f]{64})  ([A-Za-z0-9_.-]+)\n")
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def extract_tagged_release(destination: Path) -> Path:
+    """Materialize the immutable release source without trusting the current checkout."""
+    resolved = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{RELEASE}^{{}}"],
+        cwd=REPOSITORY,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if resolved.returncode:
+        raise AssertionError(f"missing immutable {RELEASE} tag: {resolved.stderr}")
+    ancestry = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", resolved.stdout.strip(), "HEAD"],
+        cwd=REPOSITORY,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if ancestry.returncode:
+        raise AssertionError(f"immutable {RELEASE} tag is not an ancestor of HEAD")
+    archive = subprocess.run(
+        ["git", "archive", "--format=tar", f"{RELEASE}^{{}}"],
+        cwd=REPOSITORY,
+        capture_output=True,
+        check=False,
+    )
+    if archive.returncode:
+        raise AssertionError(f"could not archive immutable {RELEASE} source: {archive.stderr.decode()}")
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as bundle:
+        bundle.extractall(destination, filter="data")
+    return destination
 
 
 def posix_path(path: Path) -> str:
@@ -109,13 +144,14 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
     def test_canonical_archives_use_runtime_independent_stored_members(self) -> None:
         """Catches zlib or interpreter versions changing canonical release bytes."""
         with tempfile.TemporaryDirectory() as temporary_directory:
+            source = extract_tagged_release(Path(temporary_directory) / "source")
             output = Path(temporary_directory) / "output"
             output.mkdir()
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(BUILDER),
-                    "--source", str(REPOSITORY),
+                    str(source / "scripts" / "build_release_assets.py"),
+                    "--source", str(source),
                     "--output", str(output),
                     "--epoch", str(EPOCH),
                     "--release", RELEASE,
@@ -140,15 +176,16 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
         """Catches host metadata, order, or undeclared files changing release bytes."""
         with tempfile.TemporaryDirectory() as temporary_directory:
             scratch = Path(temporary_directory)
+            source = extract_tagged_release(scratch / "source")
             outputs = (scratch / "first", scratch / "second")
             for output in outputs:
                 output.mkdir()
                 result = subprocess.run(
                     [
                         sys.executable,
-                        str(BUILDER),
+                        str(source / "scripts" / "build_release_assets.py"),
                         "--source",
-                        str(REPOSITORY),
+                        str(source),
                         "--output",
                         str(output),
                         "--epoch",
@@ -306,16 +343,17 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
 
 class InstallerSourceContractTests(unittest.TestCase):
     def test_tracked_installers_and_checksums_are_the_canonical_upload_bytes(self) -> None:
-        """Catches publishing installer bytes that were not the reviewed tracked bytes."""
+        """Catches publication checks rebuilding the mutable candidate instead of the immutable tag."""
         with tempfile.TemporaryDirectory() as temporary_directory:
+            source = extract_tagged_release(Path(temporary_directory) / "source")
             output = Path(temporary_directory) / "assets"
             output.mkdir()
             result = subprocess.run(
                 [
                     sys.executable,
-                    str(BUILDER),
+                    str(source / "scripts" / "build_release_assets.py"),
                     "--source",
-                    str(REPOSITORY),
+                    str(source),
                     "--output",
                     str(output),
                     "--epoch",
@@ -332,8 +370,8 @@ class InstallerSourceContractTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             bundle_digest = sha256(output / ARCHIVE)
             for name in ("install.ps1", "install.sh"):
-                tracked = REPOSITORY / "install" / name
-                tracked_checksum = REPOSITORY / "install" / f"{name}.sha256"
+                tracked = source / "install" / name
+                tracked_checksum = source / "install" / f"{name}.sha256"
                 self.assertEqual(tracked.read_bytes(), (output / name).read_bytes(), name)
                 self.assertEqual(tracked_checksum.read_bytes(), (output / f"{name}.sha256").read_bytes(), name)
                 self.assertIn(bundle_digest.encode("ascii"), tracked.read_bytes(), name)
@@ -344,27 +382,31 @@ class InstallerSourceContractTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/releases/download/"
             f"{RELEASE}/{ARCHIVE}"
         )
-        for name in ("install.ps1", "install.sh"):
-            source = (REPOSITORY / "install" / name).read_text(encoding="utf-8")
-            self.assertIn(immutable_url, source, name)
-            self.assertIn("--no-index", source, name)
-            self.assertIn("--no-deps", source, name)
-            self.assertIn("bundle-manifest.json", source, name)
-            self.assertIn("install-manifest.json", source, name)
-            self.assertIn("doctor", source, name)
-            self.assertIn("release-assets.githubusercontent.com", source, name)
-            self.assertNotIn("raw.githubusercontent.com", source, name)
-            self.assertNotRegex(source, r"/(?:refs/heads/|main/|master/)")
-            self.assertNotRegex(source, r"(?i)(?:invoke-expression|\biex\b|\beval\b)")
-        powershell = (REPOSITORY / "install" / "install.ps1").read_text(encoding="utf-8")
-        posix = (REPOSITORY / "install" / "install.sh").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            release_source = extract_tagged_release(Path(temporary_directory) / "source")
+            for name in ("install.ps1", "install.sh"):
+                source = (release_source / "install" / name).read_text(encoding="utf-8")
+                self.assertIn(immutable_url, source, name)
+                self.assertIn("--no-index", source, name)
+                self.assertIn("--no-deps", source, name)
+                self.assertIn("bundle-manifest.json", source, name)
+                self.assertIn("install-manifest.json", source, name)
+                self.assertIn("doctor", source, name)
+                self.assertIn("release-assets.githubusercontent.com", source, name)
+                self.assertNotIn("raw.githubusercontent.com", source, name)
+                self.assertNotRegex(source, r"/(?:refs/heads/|main/|master/)")
+                self.assertNotRegex(source, r"(?i)(?:invoke-expression|\biex\b|\beval\b)")
+            powershell = (release_source / "install" / "install.ps1").read_text(encoding="utf-8")
+            posix = (release_source / "install" / "install.sh").read_text(encoding="utf-8")
         self.assertIn("AllowAutoRedirect = $false", powershell)
         self.assertIn("--proto '=https'", posix)
         self.assertNotIn("--location", posix)
 
     def test_powershell_http_client_loads_explicitly_without_overriding_system_tls_policy(self) -> None:
         """Catches Windows PowerShell 5.1 failing type resolution or a global TLS downgrade."""
-        source = (REPOSITORY / "install" / "install.ps1").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            release_source = extract_tagged_release(Path(temporary_directory) / "source")
+            source = (release_source / "install" / "install.ps1").read_text(encoding="utf-8")
         assembly_load = source.index("Add-Type -AssemblyName System.Net.Http")
         client_construction = source.index("New-Object Net.Http.HttpClientHandler")
         self.assertLess(assembly_load, client_construction)
@@ -379,14 +421,15 @@ class InstallerBehaviorTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.temporary = tempfile.TemporaryDirectory()
         cls.scratch = Path(cls.temporary.name)
+        cls.release_source = extract_tagged_release(cls.scratch / "source")
         cls.assets = cls.scratch / "assets"
         cls.assets.mkdir()
         result = subprocess.run(
             [
                 sys.executable,
-                str(BUILDER),
+                str(cls.release_source / "scripts" / "build_release_assets.py"),
                 "--source",
-                str(REPOSITORY),
+                str(cls.release_source),
                 "--output",
                 str(cls.assets),
                 "--epoch",

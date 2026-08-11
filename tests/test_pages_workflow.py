@@ -188,7 +188,6 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     shell = _literal_step_script(job, "Verify immutable Preview release assets")
     required = (
         'git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"',
-        'git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"',
         'test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"',
         'asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"',
         'raise SystemExit("release asset inventory mismatch")',
@@ -222,6 +221,8 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
         raise AssertionError("release source is not fetched after its immutable tag resolves")
     if 'git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"' not in shell:
         raise AssertionError("release reproduction does not use an exact detached tag source")
+    if '--source "$GITHUB_WORKSPACE"' in shell:
+        raise AssertionError("immutable release reproduction must not rebuild the mutable Pages candidate")
     if 'python-version: "3.12"' not in setup:
         raise AssertionError("release reproduction must use pinned Python 3.12")
     nonempty_lines = [line for line in shell.splitlines() if line.strip()]
@@ -993,8 +994,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertLess(build, compare)
         self.assertLess(compare, verified)
 
-    def test_release_gate_allows_a_later_docs_candidate_after_the_tag(self) -> None:
-        """Catches later safe Pages edits being blocked by tag-to-candidate equality."""
+    def test_release_gate_allows_a_later_candidate_from_the_immutable_tag(self) -> None:
+        """Catches unpublished course work being blocked despite exact tagged-asset verification."""
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
         shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
 
@@ -1002,31 +1003,11 @@ class PagesWorkflowContractTests(unittest.TestCase):
             'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
             shell,
         )
-        self.assertIn('if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then', shell)
         self.assertNotIn('test "$resolved_sha" = "$CANDIDATE_SHA"', shell)
-
-    def test_release_gate_blocks_post_release_changes_to_release_bound_paths(self) -> None:
-        """Catches a later main commit changing release authority without a new immutable tag."""
-        release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
-
-        for path in (
-            "academy/actions/",
-            "academy/publication/",
-            "academy/tracks/",
-            "academy_engine/",
-            "install/",
-            "pyproject.toml",
-            "scripts/build_release_assets.py",
-            "scripts/build_preview_site.py",
-            ".github/workflows/academy-pages.yml",
-        ):
-            self.assertIn(f'"{path}"', shell)
-        self.assertIn(
-            'if ! git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"; then',
-            shell,
-        )
-        self.assertIn('ERROR: release-bound files changed after the immutable tag.', shell)
+        self.assertNotIn('release_bound_paths=', shell)
+        self.assertNotIn('release-bound files changed after the immutable tag.', shell)
+        self.assertIn('python "$release_source/scripts/build_release_assets.py"', shell)
+        self.assertIn('--source "$release_source"', shell)
 
     def test_release_metadata_validator_rejects_noncanonical_checksums_and_inventory_drift(self) -> None:
         """Catches ambiguous digest files or a release asset multiset beyond the six approved names."""

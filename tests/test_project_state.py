@@ -228,7 +228,7 @@ class ProjectStateTests(unittest.TestCase):
             if line.startswith("[")
         ]
         post_checkpoint = override_records[int(marker.decode("utf-8").strip()):]
-        self.assertEqual(len(post_checkpoint), 2)
+        self.assertEqual(len(post_checkpoint), 3)
         for record in post_checkpoint:
             self.assertIn("BY: SUaDtL@users.noreply.github.com", record)
         self.assertIn("GATE: H-01", post_checkpoint[0])
@@ -236,6 +236,8 @@ class ProjectStateTests(unittest.TestCase):
             "GATE: commit-gate exhaustive local suite completion",
             post_checkpoint[1],
         )
+        self.assertIn("GATE: H-05", post_checkpoint[2])
+        self.assertIn("SD-ACA-005", post_checkpoint[2])
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (

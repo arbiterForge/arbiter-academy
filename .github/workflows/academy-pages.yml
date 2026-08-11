@@ -279,23 +279,6 @@ jobs:
             echo "ERROR: immutable release tag is not an ancestor of the Pages candidate." >&2
             exit 1
           fi
-          if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then
-            release_bound_paths=(
-              "academy/actions/"
-              "academy/publication/"
-              "academy/tracks/"
-              "academy_engine/"
-              "install/"
-              "pyproject.toml"
-              "scripts/build_release_assets.py"
-              "scripts/build_preview_site.py"
-              ".github/workflows/academy-pages.yml"
-            )
-            if ! git -C "$GITHUB_WORKSPACE" diff --quiet "$resolved_sha" "$CANDIDATE_SHA" -- "${release_bound_paths[@]}"; then
-              echo "ERROR: release-bound files changed after the immutable tag." >&2
-              exit 1
-            fi
-          fi
           release_source="$RUNNER_TEMP/academy-release-source"
           git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"
           git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"
