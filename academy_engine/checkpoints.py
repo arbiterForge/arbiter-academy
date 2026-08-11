@@ -2873,9 +2873,28 @@ def _semantic(context: _SemanticContext) -> bool:
         context_blob = _git_blob(root, attempt.head, context_path)
         if not artifact or context_blob is None or not _changed(root, attempt.prepared, attempt.head, artifact_path):
             return False
+        learner_commits = tuple(
+            line
+            for line in run_git(
+                root,
+                ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
+                check=False,
+            ).stdout.splitlines()
+            if _SHA40.fullmatch(line)
+        )
+        clean = not run_git(
+            root, ["status", "--porcelain", "--untracked-files=all"], check=False
+        ).stdout
+        exact_commit_boundary = bool(
+            learner_commits == (attempt.head,)
+            and _commit_paths(root, attempt.head) == (artifact_path,)
+        )
         match = re.search(r"(?m)^stage:\s*(\d+)\s*$", context_blob.decode("utf-8", "surrogateescape"))
         return bool(
-            set(artifact) == {"schema_version", "context_path", "context_sha256", "stage"}
+            clean
+            and exact_commit_boundary
+            and context_blob == _git_blob(root, attempt.prepared, context_path)
+            and set(artifact) == {"schema_version", "context_path", "context_sha256", "stage"}
             and _version(artifact["schema_version"], 1)
             and artifact["context_path"] == context_path
             and artifact["context_sha256"] == _raw_digest(context_blob)

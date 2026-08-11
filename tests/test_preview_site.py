@@ -216,11 +216,13 @@ class PreviewSiteTests(unittest.TestCase):
         finally:
             base_cleanup(temporary)
 
-    def test_build_emits_only_the_guided_route_and_a_status_only_next_sequence(self) -> None:
+    def test_build_emits_the_two_guided_routes_and_a_status_only_next_sequence(self) -> None:
         """Catches unfinished lessons becoming routes or disappearing from the public release status."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)
 
         self.assertTrue((self.out / "labs" / "F01-fork-clone-doctor" / "index.html").is_file())
+        self.assertTrue((self.out / "labs" / "F02-orient-to-state" / "index.html").is_file())
+        self.assertFalse((self.out / "labs" / "F03-work-the-board" / "index.html").exists())
         self.assertFalse((self.out / "labs" / "P05-checkpoint-remediation" / "index.html").exists())
         self.assertFalse((self.out / "labs" / "P08-repository-hygiene" / "index.html").exists())
         index = (self.out / "index.html").read_text(encoding="utf-8")
@@ -232,24 +234,30 @@ class PreviewSiteTests(unittest.TestCase):
             index,
         )
 
-    def test_public_site_does_not_publish_reference_lessons_as_runnable_routes(self) -> None:
-        """Catches reference lessons becoming public links before their guided rewrites are accepted."""
+    def test_public_site_publishes_f02_guidance_but_keeps_f03_status_only(self) -> None:
+        """Catches accepted F02 staying hidden or unfinished F03 becoming a public route."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)
         index = (self.out / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue((self.out / "labs" / "F01-fork-clone-doctor" / "index.html").is_file())
-        self.assertFalse((self.out / "labs" / "F02-orient-to-state" / "index.html").exists())
-        self.assertNotIn('href="labs/F02-orient-to-state/index.html"', index)
+        f02_path = self.out / "labs" / "F02-orient-to-state" / "index.html"
+        self.assertTrue(f02_path.is_file())
+        f02 = f02_path.read_text(encoding="utf-8")
+        self.assertIn('href="labs/F02-orient-to-state/index.html"', index)
+        self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', f02)
+        self.assertIn('data-action-id="F02-prepare"', f02)
+        self.assertIn('data-action-id="F02-reset-retry"', f02)
+        self.assertFalse((self.out / "labs" / "F03-work-the-board" / "index.html").exists())
+        self.assertNotIn('href="labs/F03-work-the-board/index.html"', index)
         self.assertIn("Coming next", index)
         self.assertIn(
-            "<strong>Foundations</strong>: F02, F03, and F04. Guided rewrites are in progress.",
+            "<strong>Foundations</strong>: F03 and F04. Guided rewrites are in progress.",
             index,
         )
         self.assertIn(
             "<strong>Practitioner</strong>: P01 through P07. Guided rewrites are in progress.",
             index,
         )
-        self.assertNotIn("<li>F02:", index)
 
     def test_static_checker_describes_the_exact_empty_coming_next_boundary(self) -> None:
         """Catches diagnostics that still describe the former P06-P07 boundary."""
@@ -269,7 +277,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            r"^home coming-next entries do not match the exact Preview 0\.4 guided-rewrite sequence$",
+            r"^home coming-next entries do not match the exact Preview 0\.5 guided-rewrite sequence$",
         ):
             check_preview_site(self.out)
 
@@ -341,6 +349,18 @@ class PreviewSiteTests(unittest.TestCase):
             ("F01-fork-clone-doctor", "F01-reset-retry"): (
                 "reset",
                 "F01-fork-clone-doctor",
+            ),
+            ("F02-orient-to-state", "F02-prepare"): (
+                "prepare",
+                "F02-orient-to-state",
+            ),
+            ("F02-orient-to-state", "F02-check"): (
+                "check",
+                "F02-orient-to-state",
+            ),
+            ("F02-orient-to-state", "F02-reset-retry"): (
+                "reset",
+                "F02-orient-to-state",
             ),
         }
         academy_looking = re.compile(
@@ -420,6 +440,9 @@ class PreviewSiteTests(unittest.TestCase):
             html,
         )
         self.assertIn('href="recovery/index.html"', html)
+        self.assertIn("<strong>Guided: F01 and F02.</strong>", html)
+        self.assertIn("<strong>Coming next: F03 through P07.</strong>", html)
+        self.assertNotIn("<strong>Coming next: F02 through P07.</strong>", html)
 
     def test_first_lesson_requires_host_setup_but_not_an_impossible_fresh_clone_doctor_pass(self) -> None:
         """Catches beginner onboarding that blocks F01 on the remote repair it is meant to teach."""
@@ -502,20 +525,20 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.4/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.4/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
-            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/install.ps1 | iex",
+            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.ps1 | iex",
             html,
         )
         self.assertIn(
-            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/install.sh | sh",
+            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.sh | sh",
             html,
         )
         for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
@@ -523,11 +546,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.4/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.4/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.sh"',
             html,
         )
         self.assertIn("validates the downloaded bundle", html)
@@ -538,16 +561,16 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("does not need to pass before F01", html)
         self.assertIn("F01 teaches the remote repair", html)
         for state in (
-            "Guided: F01",
-            "Coming next: F02 through P07",
-            "Not yet scheduled",
+            "<strong>Guided: F01 and F02.</strong>",
+            "<strong>Coming next: F03 through P07.</strong>",
+            "<strong>Not yet scheduled.</strong>",
         ):
             self.assertIn(state, html)
 
     def test_home_does_not_derive_public_copy_from_unpublished_lesson_metadata(self) -> None:
         """Catches an unpublished lesson changing the public Academy promise."""
         source = self._copy_public_source()
-        lesson = source / "academy" / "tracks" / "foundations" / "F02-orient-to-state.md"
+        lesson = source / "academy" / "tracks" / "foundations" / "F03-work-the-board.md"
         text = lesson.read_text(encoding="utf-8")
         self.assertIn("estimated_minutes: 15", text)
         lesson.write_text(
@@ -572,7 +595,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.4.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.5.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -703,7 +726,10 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches an unreviewed page, link, or status entry reaching the public artifact."""
         build_preview_site(self.root, self.out, release_sha="f" * 40)
 
-        expected_labs = ("F01-fork-clone-doctor",)
+        expected_labs = (
+            "F01-fork-clone-doctor",
+            "F02-orient-to-state",
+        )
         expected_files = {
             "assets/academy.css",
             "assets/academy.js",
@@ -848,8 +874,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn("broken internal link", rejected.stderr)
 
-    def test_static_checker_rejects_preview_0_4_artifact_mutations(self) -> None:
-        """Catches publication drift that would make the reviewed Preview 0.4 artifact untrue."""
+    def test_static_checker_rejects_stale_preview_0_4_artifact_mutations(self) -> None:
+        """Catches a stale Preview 0.4 identity substituted into Preview 0.5 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -965,8 +991,8 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
+                '"release": "preview-0.5"',
                 '"release": "preview-0.4"',
-                '"release": "preview-0.3"',
             ),
             (
                 "lesson contract version mismatch",
@@ -1075,10 +1101,13 @@ class PreviewSiteTests(unittest.TestCase):
 
         readme = (self.root / "README.md").read_text(encoding="utf-8")
         rendered_home = read_home(self.root, self.out)
-        for surface, text in (("README", readme), ("home", rendered_home)):
+        for surface, text, release in (
+            ("README", readme, "Preview 0.5"),
+            ("home", rendered_home, "Preview 0.5"),
+        ):
             with self.subTest(surface=surface):
                 normalized = " ".join(text.split())
-                self.assertIn("Graduation is not available in Preview 0.4", normalized)
+                self.assertIn(f"Graduation is not available in {release}", normalized)
                 self.assertNotRegex(
                     text,
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
@@ -1231,7 +1260,7 @@ class PreviewSiteTests(unittest.TestCase):
             build_preview_site(self.root, nonregular_output, release_sha="d" * 40)
 
     def test_static_checker_pins_each_reviewed_runtime_asset_digest(self) -> None:
-        """Catches any byte mutation in every runtime asset reviewed for Preview 0.4."""
+        """Catches any byte mutation in every runtime asset reviewed for Preview 0.5."""
         assets = (
             "assets/academy.css",
             "assets/academy.js",
@@ -1348,8 +1377,8 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.4">'
-        stale = '<meta name="academy-release" content="preview-0.3">'
+        current = '<meta name="academy-release" content="preview-0.5">'
+        stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
 
@@ -2211,8 +2240,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.4.json",
-            academy / "publication" / "preview-0.4.json",
+            self.root / "academy" / "publication" / "preview-0.5.json",
+            academy / "publication" / "preview-0.5.json",
         )
         for track in ("foundations", "practitioner"):
             shutil.copytree(
