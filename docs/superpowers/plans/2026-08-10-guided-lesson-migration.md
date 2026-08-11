@@ -1,5 +1,9 @@
 # Guided Lesson Migration Implementation Plan
 
+> Historical migration plan. Use the checked-in action schema, lesson manifests, and current Preview
+> publication record for executable behavior. Earlier draft inventories and command examples here
+> are not release authority.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Migrate F02-F04 and P01-P05 from runnable reference pages to complete guided lessons, then promote P06 and P07 only after their verifiers and guided lessons independently clear release gates.

@@ -1,5 +1,9 @@
 # Arbiter Academy Operations TUI Implementation Plan
 
+> Deferred planning record. The website remains the course. Before implementation resumes, reconcile
+> this draft with the approved four-operation boundary: setup, Check, reset/retry, and lesson change.
+> No console command or TUI-specific action surface described below is public today.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build one typed `AcademyOperations` boundary for the repository setup/check/reset lifecycle and a focused full-screen console for readiness Doctor, F01 evidence Doctor, published-lab selection, prepare, check, reset/retry, return-to-base, progress, update, and opening the matching website lesson.

@@ -1,5 +1,10 @@
 # Arbiter Academy guided course and operations TUI design
 
+> Historical design record. The current public contract is the versioned publication manifest and
+> the checked-in lesson actions. The local operations TUI remains deferred; its only approved future
+> boundary is setup, Check, reset/retry, and lesson change. Do not treat older console examples in
+> companion planning files as a shipped public interface.
+
 **Date:** 2026-08-10
 **Status:** approved
 **Decision owner:** project owner

@@ -1,5 +1,9 @@
 # Guided F01 Release Implementation Plan
 
+> Historical delivery plan. Preview 0.3 command examples and the proposed console launch surface
+> never became the public contract. Current public availability and installer paths are defined by
+> the checked-in Preview manifest, Home actions, and release-assets verification.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Publish Preview 0.3 with a first-class guided Home, Recovery guide, and F01 lesson whose commands, actors, execution surfaces, expected results, recovery paths, and publication state are explicit and testable.
