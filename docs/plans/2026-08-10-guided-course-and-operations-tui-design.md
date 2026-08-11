@@ -57,7 +57,7 @@ Every actionable step is structured data with these fields:
 
 - stable step identity and sequence;
 - actor: `learner`, `academy`, or `agent`;
-- surface: `browser`, `native-terminal`, `harness`, or `academy-tui`;
+- surface: `browser`, `native-terminal`, `harness`, or `academy-console`;
 - supported host and operating-system variants;
 - instruction and optional rationale;
 - command payload and copy policy, when applicable;

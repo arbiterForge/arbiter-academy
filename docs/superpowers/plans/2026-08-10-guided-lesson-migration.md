@@ -165,7 +165,7 @@ Expected: PASS for the empty migration set, while a fixture that adds `F02-orien
 
 - [ ] **Step 3: Write media-schema RED tests**
 
-Require exact keys, safe repository-relative paths below `site/assets/training/`, kind in `webm|gif`, lowercase 64-byte SHA-256, 40-character captured commit, positive duration at most 180 seconds, nonempty description, and a committed `.vtt` or `.md` transcript. Reject `simulated`, `mock`, `fake`, `generated terminal`, missing transcript, remote URLs, mutable release names, path traversal, incorrect digest, and a capture whose disclosed commit is not an ancestor of the release head.
+Require exact keys, safe repository-relative paths below `site/assets/training/`, kind in `webm|gif`, lowercase 64-character hexadecimal SHA-256 digest, 40-character captured commit, positive duration at most 180 seconds, nonempty description, and a committed `.vtt` or `.md` transcript. Reject `simulated`, `mock`, `fake`, `generated terminal`, missing transcript, remote URLs, mutable release names, path traversal, incorrect digest, and a capture whose disclosed commit is not an ancestor of the release head.
 
 - [ ] **Step 4: Implement the media authority without inventing media**
 
@@ -593,7 +593,7 @@ Require definitions of context drift, provenance, tracked Git object, re-scout, 
 
 - [ ] **Step 3: Author the exact two-commit recovery**
 
-Teach the exact stale sentence, replacement sentence, ADR-0005 link, prepared CLI object, provenance source hash, and unchanged `docs/preserved-note.md`. The first CodeArbiter commit-gate action accepts only context and provenance; the second accepts only the canonical v2 handoff. Use `git show "$preparedCommit`:.codearbiter/CONTEXT.md"`, `git show "$preparedCommit`:.codearbiter/.provenance/CONTEXT.json"`, and `git show "$preparedCommit`:docs/preserved-note.md"` for before bytes and filesystem/head reads for after bytes. State exact expected path sets and digest equalities.
+Teach the exact stale sentence, replacement sentence, ADR-0005 link, prepared CLI object, provenance source hash, and unchanged `docs/preserved-note.md`. The first CodeArbiter commit-gate action accepts only context and provenance; the second accepts only the canonical v2 handoff. Use `git show "${preparedCommit}:.codearbiter/CONTEXT.md"`, `git show "${preparedCommit}:.codearbiter/.provenance/CONTEXT.json"`, and `git show "${preparedCommit}:docs/preserved-note.md"` for before bytes and filesystem/head reads for after bytes. State exact expected path sets and digest equalities.
 
 - [ ] **Step 4: Run P06 lesson and verifier tests**
 
