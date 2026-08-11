@@ -606,7 +606,19 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "pi": "/ca-context-check",
             },
         )
-        self.assertIn("`/skill:ca-context-check`", guide)
+        pi_section = guide[guide.index("### Pi") : guide.index("## Do the work")]
+        self.assertIn(
+            "Use the generated `/ca-context-check` alias shown below.",
+            pi_section,
+        )
+        self.assertIn(
+            "host-native `/skill:ca-context-check` fallback.",
+            pi_section,
+        )
+        self.assertLess(
+            pi_section.index("generated `/ca-context-check` alias"),
+            pi_section.index("host-native `/skill:ca-context-check` fallback"),
+        )
         for required in (
             "Workshop Queue report output is JSON-only.",
             "042746e43698e5d2a6de4c536f1024f893aef805",
@@ -672,6 +684,15 @@ class PractitionerCurriculumTests(unittest.TestCase):
         expectations = getattr(curriculum, "_PRACTITIONER_SCENARIO_EXPECTATIONS", {})
         self.assertEqual(expectations.get("P06-context-drift-recovery"), expected_scenario)
 
+    def test_p06_exact_scenario_is_not_duplicated_by_the_generic_registry(self) -> None:
+        """Catches a dead three-field P06 tuple drifting from its exact descriptor."""
+        from academy_engine import curriculum
+
+        self.assertNotIn(
+            "P06-context-drift-recovery",
+            curriculum._PRACTITIONER_SCENARIOS,
+        )
+
     def test_p06_checkpoint_declares_exact_six_field_trusted_contract(self) -> None:
         """Catches a checkpoint definition that leaves a P06 evidence path learner-controlled."""
         checkpoint = json.loads(
@@ -703,6 +724,23 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "provenance": ".codearbiter/.provenance/CONTEXT.json",
             },
         )
+
+    def test_p06_checkpoint_trusted_paths_are_declared_by_the_public_schema(self) -> None:
+        """Catches the published schema rejecting trusted P06 evidence paths."""
+        schema = json.loads(
+            (SOURCE / "academy/checkpoint.schema.json").read_text(encoding="utf-8")
+        )
+        checkpoint = json.loads(
+            (
+                SOURCE / "academy/checkpoints/P06-context-drift-recovery.json"
+            ).read_text(encoding="utf-8")
+        )
+        properties = schema["properties"]["predicates"]["items"]["properties"]
+
+        for field in ("source", "preserved_path", "provenance"):
+            with self.subTest(field=field):
+                self.assertEqual(properties.get(field), {"$ref": "#/$defs/path"})
+        self.assertLessEqual(set(checkpoint["predicates"][0]), set(properties))
 
     def test_p06_declares_exact_twenty_five_case_matrix(self) -> None:
         """Catches P06 falling back to the generic five-case structural declaration."""
