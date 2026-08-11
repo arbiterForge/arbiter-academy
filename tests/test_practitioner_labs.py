@@ -117,11 +117,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
         published = set(load_preview_manifest(SOURCE).available_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in published),
-            PRACTITIONER[2:5],
+            PRACTITIONER[2:7],
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in published),
-            PRACTITIONER[5:],
+            PRACTITIONER[7:],
         )
 
         for lab in track.labs[2:]:
@@ -165,7 +165,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(exit_code, 1)
                     self.assertEqual(
                         output.getvalue(),
-                        f"error: {lab.id} is not available in Academy Preview 0.2\n",
+                        f"error: {lab.id} is not available in Academy Preview 0.3\n",
                     )
                     validated.assert_not_called()
                     authoritative.assert_not_called()
@@ -191,7 +191,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 next_code = lab.next_lab.partition("-")[0]
                 with self.subTest(lab=lab.id, next_lab=lab.next_lab):
                     self.assertIn(
-                        f"{next_code} is not available in Academy Preview 0.2.",
+                        f"{next_code} is not available in Academy Preview 0.3.",
                         next_section,
                     )
                     self.assertNotIn(f"after {current_code} passes", next_section)
@@ -535,8 +535,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "test-only RED", "code-only GREEN", "schema_version", "red_commit",
             "remediation_commit", "receipt last", "not evidence that either command was invoked",
             "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
-            "P06 is not available in Academy Preview 0.2",
-            "Keep your passing P05 evidence",
+            "Continue to **P06",
+            "after P05 passes",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)

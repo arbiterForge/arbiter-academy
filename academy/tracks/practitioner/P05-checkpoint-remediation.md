@@ -152,5 +152,4 @@ Do not edit identifiers in prose to disguise disconnected history.
 
 ## Next lab
 
-P06 is not available in Academy Preview 0.2. Keep your passing P05 evidence; the Preview site will
-identify **P06 — Recover from context drift without losing unrelated work** when it enters verification.
+Continue to **P06 — Recover from context drift without losing unrelated work** after P05 passes.

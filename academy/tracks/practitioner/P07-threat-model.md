@@ -177,4 +177,5 @@ to fit an old digest or copy a model from another attempt.
 
 ## Next lab
 
-Continue to **P08 — Classify repository hygiene without destructive cleanup** after P07 passes.
+P08 is not available in Academy Preview 0.3. Keep your passing P07 evidence until repository hygiene
+enters a later release.

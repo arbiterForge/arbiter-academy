@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.2."""
+"""Build the fail-closed static public surface for Academy Preview 0.3."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ _FRONTMATTER_FIELDS = ("title", "outcome", "estimated_minutes", "next_lab")
 _FENCE_LANGUAGES = {"powershell", "text", "sh", "json"}
 _HEADING = re.compile(r"^(#{1,3}) ([^#].*)$")
 _TABLE_DIVIDER = re.compile(r"^\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|$")
+_ORDERED_ITEM = re.compile(r"^(?P<number>[1-9][0-9]*)\. (?P<body>\S.*)$")
 _UNSUPPORTED_BLOCK = re.compile(r"^(?:[-+*]\s|\d+[.)]\s|>|#{4,}\s|<)")
 _RAW_HTML = re.compile(r"(?:</?[A-Za-z][^>]*>|<!--.*?-->)")
 _LINK_OR_IMAGE = re.compile(r"!?\[[^\]]*\]\([^)]*\)")
@@ -40,7 +41,7 @@ _PUBLIC_ASSET_FILES = (
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.2 pages into *out*.
+    """Render only the reviewed Preview 0.3 pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -249,8 +250,6 @@ def _read_public_lesson(root: Path, lab_id: str) -> dict[str, object]:
 
 
 def _render_inline(lab_id: str, value: str) -> str:
-    if _RAW_HTML.search(value) or _LINK_OR_IMAGE.search(value):
-        raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
     parts: list[str] = []
     position = 0
     while position < len(value):
@@ -259,7 +258,12 @@ def _render_inline(lab_id: str, value: str) -> str:
             if end < 0 or end == position + 2:
                 raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
             strong = value[position + 2 : end]
-            if "`" in strong or any(marker in strong for marker in _UNSUPPORTED_INLINE_MARKERS):
+            if (
+                "`" in strong
+                or _RAW_HTML.search(strong)
+                or _LINK_OR_IMAGE.search(strong)
+                or any(marker in strong for marker in _UNSUPPORTED_INLINE_MARKERS)
+            ):
                 raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
             parts.append(f"<strong>{escape(strong)}</strong>")
             position = end + 2
@@ -274,7 +278,12 @@ def _render_inline(lab_id: str, value: str) -> str:
         next_markers = [index for index in (value.find("**", position), value.find("`", position)) if index >= 0]
         end = min(next_markers) if next_markers else len(value)
         plain = value[position:end]
-        if "`" in plain or any(marker in plain for marker in _UNSUPPORTED_INLINE_MARKERS):
+        if (
+            "`" in plain
+            or _RAW_HTML.search(plain)
+            or _LINK_OR_IMAGE.search(plain)
+            or any(marker in plain for marker in _UNSUPPORTED_INLINE_MARKERS)
+        ):
             raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
         parts.append(escape(plain))
         position = end
@@ -291,6 +300,16 @@ def _heading_slug(value: str, used: set[str]) -> str:
         counter += 1
     used.add(candidate)
     return candidate
+
+
+def _starts_markdown_block(line: str) -> bool:
+    return bool(
+        _HEADING.fullmatch(line)
+        or _ORDERED_ITEM.fullmatch(line)
+        or _UNSUPPORTED_BLOCK.match(line)
+        or line.startswith(("```", "|", "---", "~~~", "#"))
+        or re.fullmatch(r"(?:=+|-+|\*+|_+)", line)
+    )
 
 
 def _table_cells(lab_id: str, line: str) -> tuple[str, str]:
@@ -341,6 +360,33 @@ def _render_markdown(
             )
             index += 1
             continue
+        ordered_item = _ORDERED_ITEM.fullmatch(line)
+        if ordered_item:
+            flush_paragraph()
+            items: list[str] = []
+            expected_number = 1
+            while index < len(lines):
+                item = _ORDERED_ITEM.fullmatch(lines[index])
+                if item is None:
+                    break
+                if int(item.group("number")) != expected_number:
+                    raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+                parts = [item.group("body")]
+                index += 1
+                while index < len(lines) and lines[index].startswith("   "):
+                    continuation = lines[index][3:]
+                    if (
+                        not continuation
+                        or continuation.startswith(" ")
+                        or _starts_markdown_block(continuation)
+                    ):
+                        raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
+                    parts.append(continuation)
+                    index += 1
+                items.append(f"<li>{_render_inline(lab_id, ' '.join(parts))}</li>")
+                expected_number += 1
+            rendered.append(f"<ol>{''.join(items)}</ol>")
+            continue
         heading = _HEADING.fullmatch(line)
         if heading:
             flush_paragraph()
@@ -375,11 +421,7 @@ def _render_markdown(
                 f"</tr></thead><tbody>{body}</tbody></table></div>"
             )
             continue
-        if (
-            _UNSUPPORTED_BLOCK.match(line)
-            or line.startswith(("---", "~~~", "#"))
-            or re.fullmatch(r"(?:=+|-+|\*+|_+)", line)
-        ):
+        if _starts_markdown_block(line):
             raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
         paragraph.append(line.strip())
         index += 1
@@ -402,16 +444,24 @@ def _render_pages(
         )
         for lab_id in manifest.available_labs
     )
-    coming_next = "\n".join(
-        f"<li>{escape(_lab_code(lab_id))} \u2014 in verification</li>" for lab_id in manifest.coming_next
-    )
+    coming_next_section = ""
+    if manifest.coming_next:
+        coming_next = "\n".join(
+            f"<li>{escape(_lab_code(lab_id))} \u2014 in verification</li>"
+            for lab_id in manifest.coming_next
+        )
+        coming_next_section = (
+            "<h2>Coming next</h2>\n"
+            "<p>These labs are status-only until they complete verification.</p>\n"
+            f'<ul class="coming-next">\n{coming_next}\n</ul>'
+        )
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.2",
+            "Arbiter Academy Preview 0.3",
             templates["index"].substitute(
                 available_labs=available_labs,
-                coming_next=coming_next,
+                coming_next_section=coming_next_section,
                 discussion_url=escape(manifest.discussion_url, quote=True),
                 minimum_minutes=min(durations),
                 maximum_minutes=max(durations),
@@ -420,7 +470,7 @@ def _render_pages(
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.2",
+            "Recovery | Arbiter Academy Preview 0.3",
             templates["recovery"].substitute(),
             root_prefix="../",
         ),
@@ -438,7 +488,7 @@ def _render_pages(
                 id=escape(next_lab, quote=True)
             )
         else:
-            next_step = f"Continue with {escape(_lab_code(next_lab))} when it enters verification."
+            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.3."
         previous_link = ""
         if position:
             previous = lab_order[position - 1]
@@ -457,7 +507,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.2",
+            f"{lesson['title']} | Arbiter Academy Preview 0.3",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,

@@ -16,7 +16,7 @@ from academy_engine.checkpoints import CheckpointResult
 from academy_engine.cli import main
 from academy_engine.command import GitCommandError
 from academy_engine.external_state import ExternalStateError
-from academy_engine.preview import PreviewManifest
+from academy_engine.preview import PreviewManifest, require_published_lab
 from academy_engine.scenario import PreparedLab
 
 
@@ -27,8 +27,6 @@ LOCAL_P02_RESTORATION_LABS = (
     "P05-checkpoint-remediation",
 )
 UNPUBLISHED_LABS = (
-    "P06-context-drift-recovery",
-    "P07-threat-model",
     "P08-repository-hygiene",
     "U01-autonomous-sprint",
     "U02-override-audit-metrics",
@@ -95,7 +93,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(
                     errors.getvalue(),
-                    f"error: {lab_id} is not available in Academy Preview 0.2\n",
+                    f"error: {lab_id} is not available in Academy Preview 0.3\n",
                 )
                 dispatch.assert_not_called()
                 git_config.assert_not_called()
@@ -328,57 +326,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertIn("--repository", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_p06_check_remains_unpublished_in_preview_0_2(self) -> None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(REPOSITORY / "scripts" / "academy.py"),
-                "--repository",
-                str(REPOSITORY),
-                "check",
-                "P06-context-drift-recovery",
-            ],
-            cwd=REPOSITORY,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(
-            result.stderr,
-            "error: P06-context-drift-recovery is not available in Academy Preview 0.2\n",
-        )
-        self.assertNotIn(str(REPOSITORY), result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
-
-    def test_p06_future_publication_requires_an_external_authoritative_verifier(self) -> None:
-        """Catches P06 evaluating inside the learner tree or losing the explicit target."""
-        inside_output, inside_errors = StringIO(), StringIO()
-        with patch(
-            "academy_engine.cli.repository_root", return_value=REPOSITORY
-        ), patch(
-            "academy_engine.cli.require_published_lab"
-        ), patch(
-            "academy_engine.cli.validate_repository_git_config"
-        ), patch(
-            "academy_engine.cli.evaluate_checkpoint"
-        ) as evaluated_inside, redirect_stdout(inside_output), redirect_stderr(inside_errors):
-            inside_exit = main(
-                [
-                    "--repository",
-                    str(REPOSITORY),
-                    "check",
-                    "P06-context-drift-recovery",
-                ]
-            )
-
-        self.assertEqual(inside_exit, 1)
-        self.assertEqual(inside_output.getvalue(), "")
-        self.assertIn("installed outside the target repository", inside_errors.getvalue())
-        self.assertNotIn(str(REPOSITORY), inside_errors.getvalue())
-        evaluated_inside.assert_not_called()
-
+    def test_p06_clears_publication_and_reaches_external_authoritative_evaluation(self) -> None:
+        """Catches P06 remaining gated or bypassing installed authoritative evaluation."""
         result = CheckpointResult(
             "P06-context-drift-recovery",
             False,
@@ -388,15 +337,18 @@ class AcademyCliTrustTests(unittest.TestCase):
             ("provenance_drift_recovery",),
         )
         with tempfile.TemporaryDirectory() as directory:
-            learner = Path(directory).resolve()
+            learner = (Path(directory) / "learner").resolve()
+            learner.mkdir()
             installed_output, installed_errors = StringIO(), StringIO()
             with patch(
                 "academy_engine.cli.repository_root", return_value=learner
             ), patch(
-                "academy_engine.cli.require_published_lab"
-            ), patch(
+                "academy_engine.cli.require_published_lab", wraps=require_published_lab
+            ) as publication_gate, patch(
                 "academy_engine.cli.validate_repository_git_config"
             ) as validated, patch(
+                "academy_engine.cli.ensure_authoritative_verifier"
+            ) as authoritative, patch(
                 "academy_engine.cli.evaluate_checkpoint", return_value=result
             ) as evaluated, redirect_stdout(installed_output), redirect_stderr(installed_errors):
                 installed_exit = main(
@@ -409,7 +361,9 @@ class AcademyCliTrustTests(unittest.TestCase):
                 )
 
             self.assertEqual(installed_exit, 1)
+            publication_gate.assert_called_once_with(REPOSITORY, "P06-context-drift-recovery")
             validated.assert_called_once_with(learner)
+            authoritative.assert_called_once_with(learner)
             evaluated.assert_called_once_with(learner, "P06-context-drift-recovery")
             self.assertEqual(installed_output.getvalue(), "")
             self.assertIn("provenance_drift_recovery", installed_errors.getvalue())
@@ -727,30 +681,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertNotIn(str(REPOSITORY), result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_p07_check_remains_unpublished_in_preview_0_2(self) -> None:
-        learner_local = subprocess.run(
-            [
-                sys.executable,
-                str(REPOSITORY / "scripts" / "academy.py"),
-                "--repository",
-                str(REPOSITORY),
-                "check",
-                "P07-threat-model",
-            ],
-            cwd=REPOSITORY,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertNotEqual(learner_local.returncode, 0)
-        self.assertEqual(
-            learner_local.stderr,
-            "error: P07-threat-model is not available in Academy Preview 0.2\n",
-        )
-        self.assertNotIn(str(REPOSITORY), learner_local.stderr)
-        self.assertNotIn("Traceback", learner_local.stderr)
-
-    def test_p07_future_publication_requires_external_authority(self) -> None:
+    def test_p07_clears_publication_and_reaches_external_authoritative_evaluation(self) -> None:
+        """Catches P07 remaining gated or bypassing installed authoritative evaluation."""
         failed = CheckpointResult(
             "P07-threat-model",
             False,
@@ -759,32 +691,36 @@ class AcademyCliTrustTests(unittest.TestCase):
             ("prepared_scenario", "source_integrity"),
             ("stride_model",),
         )
-        errors = StringIO()
-        with patch(
-            "academy_engine.cli.repository_root", return_value=REPOSITORY
-        ), patch(
-            "academy_engine.cli.require_published_lab"
-        ), patch(
-            "academy_engine.cli.validate_repository_git_config"
-        ) as validated, patch(
-            "academy_engine.cli.ensure_authoritative_verifier"
-        ) as authoritative, patch(
-            "academy_engine.cli.evaluate_checkpoint", return_value=failed
-        ) as evaluated, redirect_stderr(errors):
-            exit_code = main(
-                [
-                    "--repository",
-                    str(REPOSITORY),
-                    "check",
-                    "P07-threat-model",
-                ]
-            )
+        with tempfile.TemporaryDirectory() as directory:
+            learner = (Path(directory) / "learner").resolve()
+            learner.mkdir()
+            errors = StringIO()
+            with patch(
+                "academy_engine.cli.repository_root", return_value=learner
+            ), patch(
+                "academy_engine.cli.require_published_lab", wraps=require_published_lab
+            ) as publication_gate, patch(
+                "academy_engine.cli.validate_repository_git_config"
+            ) as validated, patch(
+                "academy_engine.cli.ensure_authoritative_verifier"
+            ) as authoritative, patch(
+                "academy_engine.cli.evaluate_checkpoint", return_value=failed
+            ) as evaluated, redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "--repository",
+                        str(learner),
+                        "check",
+                        "P07-threat-model",
+                    ]
+                )
 
-        self.assertEqual(exit_code, 1)
-        validated.assert_called_once_with(REPOSITORY)
-        authoritative.assert_called_once_with(REPOSITORY)
-        evaluated.assert_called_once_with(REPOSITORY, "P07-threat-model")
-        self.assertEqual(errors.getvalue(), "checkpoint P07-threat-model: failed (stride_model)\n")
+            self.assertEqual(exit_code, 1)
+            publication_gate.assert_called_once_with(REPOSITORY, "P07-threat-model")
+            validated.assert_called_once_with(learner)
+            authoritative.assert_called_once_with(learner)
+            evaluated.assert_called_once_with(learner, "P07-threat-model")
+            self.assertEqual(errors.getvalue(), "checkpoint P07-threat-model: failed (stride_model)\n")
 
     def test_nested_target_canonicalizes_before_circular_trust_check(self) -> None:
         nested = REPOSITORY / "tests"
