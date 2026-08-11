@@ -5,110 +5,135 @@ order: 2
 title: Orient to live governance state
 outcome: Bind a compact orientation record to the exact current context bytes and project stage.
 prerequisites: F01-fork-clone-doctor
-estimated_minutes: 15
-scenario_command: python scripts/academy.py prepare F02-orient-to-state
-checkpoint_command: arbiter-academy --repository <learner-repository> check F02-orient-to-state
+estimated_minutes: 25
+scenario_command: arbiter-academy --repository . prepare F02-orient-to-state
+checkpoint_command: arbiter-academy --repository . check F02-orient-to-state
 next_lab: F03-work-the-board
 ---
 
 # F02 — Orient to live governance state
 
-## Why this mechanism matters
+## Know before you begin
 
-Governed work begins with repository state, not a remembered prompt. `CONTEXT.md` identifies the
-project stage and boundaries, then links to the task board, standards, decisions, plans, and
-evidence. Hashing the tracked bytes makes your orientation record specific to the state you read
-without copying sensitive terminal output or personal machine details.
+Complete F01 first and begin from the same arbiter-academy fork and clone. Before Prepare, switch
+to `main` and confirm the clone is clean. Keep two surfaces open at the repository root: a native
+terminal for installed Academy and shell commands, and your Claude Code, Codex, or Pi harness for
+CodeArbiter commands and learner approvals.
 
-## Start the scenario
+This page labels every command with its actor and surface. A native-terminal command is entered
+directly in PowerShell or your shell and therefore has no `!`. A harness shell command begins with
+exactly one `!`. A CodeArbiter command is handled by the active harness and never begins with `!`.
+You do not need to know how to construct JSON, calculate a digest, or choose a Git commit boundary
+before starting; the actions below provide those exact steps.
 
-From a clean `main` branch with fork-safe origin routing, prepare the orientation attempt:
+## What you will prove
 
-```powershell
-python scripts/academy.py prepare F02-orient-to-state
-```
+You will read the live repository state from its tracked source, follow the source links, and bind
+one four-field orientation report to the exact context bytes you inspected. The evidence report
+contains only `schema_version`, `context_path`, `context_sha256`, and `stage`. You will stage only
+that report, approve only that boundary, let CodeArbiter commit it, and pass the external Academy
+Check with no uncommitted work.
 
-The overlay records only the starting condition. The enabled stage-2 Workshop Queue state already
-in the repository remains the source of truth.
+The status screen helps you navigate. It is not the evidence source. The tracked
+`.codearbiter/CONTEXT.md` bytes and the files linked from that document are the source.
 
-## Use your host
+## Prepare safely
 
-All forms require enabled repository state. Read the files the status result cites; the status
-summary alone is not the exercise.
+{{action:F02-prepare}}
 
-### Claude Code
+`ATTEMPT_NUMBER` in a branch name means the number Academy prints, such as `1`. Do not type the
+words or angle brackets literally. Stay on that numbered branch until Check passes.
 
-```text
-/ca:status
-```
+{{action:F02-run-status}}
 
-### Codex
+## Practice
 
-```text
-$ca-status
-```
+Compare the Status summary with the tracked files instead of accepting either from memory.
 
-### Pi (Feature Forge preview)
+{{action:F02-read-context}}
 
-Pi is the supported Feature Forge preview. Grant project trust before loading the project skill; use
-`/skill:ca-status` as the documented fallback.
+{{action:F02-follow-context-links}}
 
-```text
-/ca-status
-```
+The linked sources answer different questions: specifications and plans define intended work,
+ADRs preserve architecture choices, standards and security controls constrain changes, and the
+task and question boards show work that is still open.
 
-## Do the work
+{{action:F02-hash-context}}
 
-Read `.codearbiter/CONTEXT.md`, then follow its links to `open-tasks.md`, `coding-standards.md`, the
-decision log, and current plans. Record exactly four fields in
-`.codearbiter/reports/academy/F02-orientation.json`: integer `schema_version` 1, canonical
-`context_path`, the SHA-256 of the tracked file bytes, and the integer stage from those same bytes.
+{{action:F02-write-orientation}}
 
-PowerShell can compute the byte digest without normalizing line endings:
+The creation action reads one byte snapshot and derives both `stage` and `context_sha256` from it.
+That prevents a digest copied from one version of the file being paired with a stage copied from
+another. The report must not contain your username, local path, email, remote URL, credential, or
+terminal transcript.
 
-```powershell
-$bytes = [IO.File]::ReadAllBytes('.codearbiter/CONTEXT.md')
-$digest = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
-```
+{{action:F02-inspect-orientation}}
 
-Create the JSON with those values, inspect it, then commit only the orientation record. Do not edit
-`CONTEXT.md` to fit a stale digest.
+{{action:F02-stage-orientation}}
 
-## Hints
+{{action:F02-review-commit-boundary}}
+
+{{action:F02-run-commit-gate}}
+
+{{action:F02-confirm-clean}}
+
+## Recognize success
+
+The attempt contains exactly one learner commit after Prepare. That commit adds only
+`.codearbiter/reports/academy/F02-orientation.json`. The tracked context at the attempt head is
+byte-for-byte identical to the context at Prepare, the report has exactly four fields, and
+`git status --short` prints nothing.
+
+The digest is not a secret and does not summarize the text for a human. It is a reproducible claim:
+someone else can hash the preserved context bytes and prove that they are the same bytes you read.
+
+## Check
+
+{{action:F02-check}}
+
+A pass contains `checkpoint F02-orient-to-state: passed; progress: .academy/progress.json`.
+Check reads the committed report, the prepared and current context blobs, the commit path list, and
+the live worktree. A correct-looking uncommitted file does not pass, and neither does a report
+committed beside another file.
+
+## Recover or continue
+
+If Check fails, preserve the attempt and read the failed predicate. A wrong field, changed context,
+extra commit path, additional learner commit, or dirty worktree has a different recovery. Do not
+hide the evidence by force-resetting or amending it; use a numbered retry when the attempt boundary
+is no longer exact.
 
 ### Hint 1
 
-Start at the activation front matter. Find `stage:` before following every linked artifact.
+Start with the `arbiter` and `stage` front-matter fields, then read the project identity, scope, and
+every linked governing artifact.
 
 ### Hint 2
 
-Cross-check the host status with the file, but hash the file's bytes—not copied output or rendered prose.
+Hash `.codearbiter/CONTEXT.md` as bytes. Do not hash copied Status output, rendered website prose,
+or text saved through an editor.
 
 ### Hint 3
 
-Use `.codearbiter/CONTEXT.md` literally as `context_path`, compute its current byte digest, preserve
-stage as an integer, and commit the four-field object on this attempt branch.
+The final commit changes one path. If anything else is staged, committed, or left uncommitted, stop
+before Check and preserve that state for recovery.
 
-## Success evidence
+{{action:F02-return-base}}
 
-The learner commit adds a four-field orientation record. The external verifier reloads the tracked
-`CONTEXT.md` at the attempt head, recomputes its SHA-256, extracts its stage, and rejects extra keys,
-stale values, altered paths, uncommitted files, or a modified context.
+{{action:F02-reset-retry}}
 
-```powershell
-arbiter-academy --repository <learner-repository> check F02-orient-to-state
-```
+After Check passes, return to `main` and keep the completed attempt branch intact. Continue to F03
+only when it is published as a guided Academy lesson; unpublished source exercises are not a
+substitute for the accepted course.
 
-## Recovery
+## Understand the mechanism
 
-If the record or context became muddled, leave the attempt intact and prepare a deterministic retry:
+Status is advisory orientation generated for the current host. The repository files are durable
+state. The report connects those layers without copying a transcript: its canonical path tells the
+verifier what was read, its raw-byte digest identifies the exact version, and its integer stage
+records the active maturity boundary.
 
-```powershell
-python scripts/academy.py reset F02-orient-to-state
-```
-
-Work only on the new retry branch. Update never rewrites completed attempts.
-
-## Next lab
-
-Continue to **F03 — Work the governed board** after the orientation checkpoint passes.
+The verifier also protects the shape of the attempt. It compares the prepared context blob with the
+attempt head, requires one post-Prepare learner commit containing only the report, and requires a
+clean worktree. That makes the lesson reconstructable later: the claim, source bytes, commit
+boundary, and external verdict all agree.

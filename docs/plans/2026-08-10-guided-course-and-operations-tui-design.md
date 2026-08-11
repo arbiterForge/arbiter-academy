@@ -11,6 +11,10 @@ Arbiter Academy teaches a newcomer from an unfamiliar fork through real CodeArbi
 
 The first redesigned public slice is Home, Recovery, and F01. Preview 0.4 keeps F02–P07 runnable as explicitly labeled reference lessons while guided migration proceeds in dependency order: F02–F04, then P01–P07. A runnable verifier never by itself makes a lab guided.
 
+Real Academy delivery decisions are recorded append-only in
+[`docs/delivery/sprint-log.md`](../delivery/sprint-log.md). The separate
+`.codearbiter/sprint-log.md` remains a fictional learner fixture.
+
 ## Product boundary
 
 ### Website: the teaching surface

@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "F02-orient-to-state",
+  "actions": [
+    {
+      "id": "F02-prepare", "sequence": 1, "title": "Prepare a numbered orientation attempt", "actor": "learner", "surface": null,
+      "instruction": "In the native terminal opened at your arbiter-academy clone, run the installed Academy Prepare command for your operating system. Begin only from a clean main branch.",
+      "rationale": "Prepare isolates the exercise on a numbered attempt branch and preserves main.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.5\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true}
+      ],
+      "expected_result": "Academy prints a prepared branch named academy/F02-orient-to-state/ATTEMPT_NUMBER and switches the repository to it.",
+      "recovery": "If Prepare stops, preserve its message. Return to Recovery for the named dirty-worktree, wrong-branch, or prerequisite condition before retrying.",
+      "evidence": "The numbered branch records the exact starting context for this attempt."
+    },
+    {
+      "id": "F02-run-status", "sequence": 2, "title": "Ask CodeArbiter for live status", "actor": "agent", "surface": null,
+      "instruction": "In your active CodeArbiter harness, ask the agent to invoke Status using the command for that host. These are CodeArbiter commands, not shell commands, so they never begin with an exclamation mark.",
+      "rationale": "Status is the entry point to the repository-owned governance state you will verify against source files.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:status","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-status","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-status","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-status","copy":true}
+      ],
+      "expected_result": "Status identifies an enabled stage-2 Workshop Queue repository and points you to its current tasks, questions, decisions, plans, and governing context.",
+      "recovery": "If Status reports disabled state, the wrong project, or another stage, stop. Confirm the active harness and native terminal are both opened at the prepared arbiter-academy clone before trying again.",
+      "evidence": "You have a host-generated summary to compare with the tracked state rather than relying on memory."
+    },
+    {
+      "id": "F02-read-context", "sequence": 3, "title": "Read the tracked context file", "actor": "learner", "surface": null,
+      "instruction": "Print .codearbiter/CONTEXT.md from either the native terminal or your selected harness. Read the front matter and every section; a harness shell command begins with exactly one exclamation mark.",
+      "rationale": "The tracked file, not the status summary, defines the current project identity and boundaries.", "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-Content -LiteralPath '.codearbiter/CONTEXT.md'","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!Get-Content -LiteralPath '.codearbiter/CONTEXT.md'","copy":true},
+        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!Get-Content -LiteralPath '.codearbiter/CONTEXT.md'","copy":true},
+        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!Get-Content -LiteralPath '.codearbiter/CONTEXT.md'","copy":true},
+        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true},
+        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!sed -n '1,220p' .codearbiter/CONTEXT.md","copy":true}
+      ],
+      "expected_result": "The file names Workshop Queue, declares arbiter enabled and stage 2, defines its local-first scope, and lists five governing artifacts.",
+      "recovery": "If the file is missing or names another project, stop. Return to the prepared Academy clone and do not create a replacement context file.",
+      "evidence": "You can distinguish the tracked context source from the host-generated Status summary."
+    },
+    {
+      "id": "F02-follow-context-links", "sequence": 4, "title": "Follow every governing link", "actor": "learner", "surface": null,
+      "instruction": "Paste the matching prompt into the active CodeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
+      "rationale": "CONTEXT.md is a map; the linked artifacts contain the active requirements, work, decisions, and verification commands.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Open, do not summarize, these files in order: .codearbiter/specs/ticket-assignment.md, .codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, .codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, .codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, and .codearbiter/open-questions.md. Then report the queued task ID, both ADR decisions, the verification command, and the local-only data boundary.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Open, do not summarize, these files in order: .codearbiter/specs/ticket-assignment.md, .codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, .codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, .codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, and .codearbiter/open-questions.md. Then report the queued task ID, both ADR decisions, the verification command, and the local-only data boundary.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Open, do not summarize, these files in order: .codearbiter/specs/ticket-assignment.md, .codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, .codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, .codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, and .codearbiter/open-questions.md. Then report the queued task ID, both ADR decisions, the verification command, and the local-only data boundary.","copy":true}
+      ],
+      "expected_result": "You can name the current queued task, the two recorded architecture decisions, the verification command, and the local-only data boundary from the linked files.",
+      "recovery": "If a relative link does not resolve, start from .codearbiter/CONTEXT.md and join the link to the .codearbiter directory. Do not search for a similarly named file elsewhere.",
+      "evidence": "Your orientation covers the source graph behind Status, not only its first screen."
+    },
+    {
+      "id": "F02-hash-context", "sequence": 5, "title": "Hash the exact context bytes", "actor": "learner", "surface": null,
+      "instruction": "Use the native terminal command for your operating system. Hash the file bytes directly; do not copy the text into an editor or normalize its line endings first.",
+      "rationale": "The digest binds your report to the exact tracked context you inspected.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$contextBytes = [IO.File]::ReadAllBytes('.codearbiter/CONTEXT.md')\n$sha256 = [Security.Cryptography.SHA256]::Create()\ntry { $contextHash = $sha256.ComputeHash($contextBytes) } finally { $sha256.Dispose() }\n-join ($contextHash | ForEach-Object { $_.ToString('x2') })","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"shasum -a 256 .codearbiter/CONTEXT.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"sha256sum .codearbiter/CONTEXT.md","copy":true}
+      ],
+      "expected_result": "The command prints a 64-character lowercase hexadecimal SHA-256 digest; macOS and Linux also print .codearbiter/CONTEXT.md after the digest.",
+      "recovery": "If hashing reports a missing file, return to the repository root. If the digest changes between runs, stop and inspect git status before creating evidence.",
+      "evidence": "The digest is computed from raw bytes and can be independently reproduced."
+    },
+    {
+      "id": "F02-write-orientation", "sequence": 6, "title": "Create the four-field orientation record", "actor": "learner", "surface": null,
+      "instruction": "Run the complete native-terminal command for your operating system. It reads stage and SHA-256 from the same context bytes, creates the report directory, and writes UTF-8 JSON without a byte-order mark. Do not hand-edit the digest or stage.",
+      "rationale": "Generating all four fields from one byte snapshot prevents a stale or mixed orientation record.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$contextPath = '.codearbiter/CONTEXT.md'\n$contextBytes = [IO.File]::ReadAllBytes($contextPath)\n$contextText = [Text.UTF8Encoding]::new($false, $true).GetString($contextBytes)\n$stageMatch = [regex]::Match($contextText, '(?m)^stage:\\s*(\\d+)\\s*$')\nif (-not $stageMatch.Success) { throw 'CONTEXT.md has no integer stage' }\n$sha256 = [Security.Cryptography.SHA256]::Create()\ntry { $contextHash = $sha256.ComputeHash($contextBytes) } finally { $sha256.Dispose() }\n$contextDigest = -join ($contextHash | ForEach-Object { $_.ToString('x2') })\n$payload = [ordered]@{ schema_version = 1; context_path = $contextPath; context_sha256 = $contextDigest; stage = [int]$stageMatch.Groups[1].Value }\n$reportPath = '.codearbiter/reports/academy/F02-orientation.json'\nNew-Item -ItemType Directory -Path (Split-Path $reportPath) -Force | Out-Null\n[IO.File]::WriteAllText($reportPath, (($payload | ConvertTo-Json) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"python3 - <<'PY'\nfrom pathlib import Path\nimport hashlib\nimport json\nimport re\ncontext_path = '.codearbiter/CONTEXT.md'\ncontext = Path(context_path).read_bytes()\nmatch = re.search(r'(?m)^stage:\\s*(\\d+)\\s*$', context.decode('utf-8'))\nif match is None:\n    raise SystemExit('CONTEXT.md has no integer stage')\npayload = {'schema_version': 1, 'context_path': context_path, 'context_sha256': hashlib.sha256(context).hexdigest(), 'stage': int(match.group(1))}\nreport = Path('.codearbiter/reports/academy/F02-orientation.json')\nreport.parent.mkdir(parents=True, exist_ok=True)\nreport.write_text(json.dumps(payload, indent=2) + '\\n', encoding='utf-8', newline='\\n')\nPY","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"python3 - <<'PY'\nfrom pathlib import Path\nimport hashlib\nimport json\nimport re\ncontext_path = '.codearbiter/CONTEXT.md'\ncontext = Path(context_path).read_bytes()\nmatch = re.search(r'(?m)^stage:\\s*(\\d+)\\s*$', context.decode('utf-8'))\nif match is None:\n    raise SystemExit('CONTEXT.md has no integer stage')\npayload = {'schema_version': 1, 'context_path': context_path, 'context_sha256': hashlib.sha256(context).hexdigest(), 'stage': int(match.group(1))}\nreport = Path('.codearbiter/reports/academy/F02-orientation.json')\nreport.parent.mkdir(parents=True, exist_ok=True)\nreport.write_text(json.dumps(payload, indent=2) + '\\n', encoding='utf-8', newline='\\n')\nPY","copy":true}
+      ],
+      "expected_result": "The command creates .codearbiter/reports/academy/F02-orientation.json with exactly schema_version 1, context_path .codearbiter/CONTEXT.md, a 64-character context_sha256, and integer stage 2.",
+      "recovery": "If the command stops, preserve its message. Confirm you are in the repository root and CONTEXT.md still contains an integer stage; do not create a partial report by hand.",
+      "evidence": "The report contains only the four checkpoint fields and no machine, account, URL, credential, or transcript data."
+    },
+    {
+      "id": "F02-inspect-orientation", "sequence": 7, "title": "Inspect the generated JSON", "actor": "learner", "surface": null,
+      "instruction": "Parse and print the report from either the native terminal or your selected harness. Confirm the four field names and values before staging anything.",
+      "rationale": "A parser catches malformed JSON while visual inspection catches the wrong path, stage, or digest source.", "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-Content -Raw -LiteralPath '.codearbiter/reports/academy/F02-orientation.json' | ConvertFrom-Json | Format-List","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!Get-Content -Raw -LiteralPath '.codearbiter/reports/academy/F02-orientation.json' | ConvertFrom-Json | Format-List","copy":true},
+        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!Get-Content -Raw -LiteralPath '.codearbiter/reports/academy/F02-orientation.json' | ConvertFrom-Json | Format-List","copy":true},
+        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!Get-Content -Raw -LiteralPath '.codearbiter/reports/academy/F02-orientation.json' | ConvertFrom-Json | Format-List","copy":true},
+        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!python3 -m json.tool .codearbiter/reports/academy/F02-orientation.json","copy":true}
+      ],
+      "expected_result": "The parser succeeds and displays exactly schema_version, context_path, context_sha256, and stage with no extra field.",
+      "recovery": "If parsing fails or a field is wrong, delete only the uncommitted report, confirm CONTEXT.md is unchanged, and repeat the creation action.",
+      "evidence": "You reviewed the same report file that will be staged."
+    },
+    {
+      "id": "F02-stage-orientation", "sequence": 8, "title": "Stage only the orientation report", "actor": "learner", "surface": null,
+      "instruction": "Stage the one report path from either the native terminal or your selected harness. The double dash ends Git option parsing; the path after it is the entire intended commit boundary.",
+      "rationale": "Path-scoped staging keeps unrelated work outside the governed evidence commit.", "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true},
+        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!git add -- .codearbiter/reports/academy/F02-orientation.json","copy":true}
+      ],
+      "expected_result": "Git stages .codearbiter/reports/academy/F02-orientation.json without printing output.",
+      "recovery": "If Git reports another problem, preserve the report and inspect status. Do not stage all files or use a force option.",
+      "evidence": "The index contains the intended report path and no intentional unrelated path."
+    },
+    {
+      "id": "F02-review-commit-boundary", "sequence": 9, "title": "Review the one-file commit boundary", "actor": "learner", "surface": null,
+      "instruction": "Paste the matching prompt into the active CodeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
+      "rationale": "The learner approves the exact staged change before CodeArbiter creates durable evidence.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff contains exactly schema_version, context_path, context_sha256, and stage.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff contains exactly schema_version, context_path, context_sha256, and stage.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff contains exactly schema_version, context_path, context_sha256, and stage.","copy":true}
+      ],
+      "expected_result": "The agent presents one staged report, no context edit, and no unrelated file for your approval.",
+      "recovery": "If another path appears, do not approve. Ask the agent to preserve and unstage only the unrelated path, then review the boundary again.",
+      "evidence": "Your approval is bounded to the orientation report rather than the whole worktree."
+    },
+    {
+      "id": "F02-run-commit-gate", "sequence": 10, "title": "Let the agent commit through CodeArbiter", "actor": "agent", "surface": null,
+      "instruction": "After the learner approves the staged boundary, invoke the host-native CodeArbiter commit gate. Do not use a shell exclamation mark and do not replace this with git commit.",
+      "rationale": "The commit gate verifies and records the approved evidence boundary.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "CodeArbiter creates one learner commit whose only changed path is .codearbiter/reports/academy/F02-orientation.json.",
+      "recovery": "If the gate blocks, preserve the finding and correct that boundary. Do not bypass it, commit directly, amend a different attempt, or add another file.",
+      "evidence": "The attempt branch now contains one reconstructable orientation commit."
+    },
+    {
+      "id": "F02-confirm-clean", "sequence": 11, "title": "Confirm the committed attempt is clean", "actor": "learner", "surface": null,
+      "instruction": "After the evidence commit, inspect short status from either the native terminal or your selected harness.",
+      "rationale": "External Check accepts only committed evidence in a clean worktree and index.", "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true},
+        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!git status --short","copy":true},
+        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!git status --short","copy":true},
+        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!git status --short","copy":true},
+        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!git status --short","copy":true},
+        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!git status --short","copy":true},
+        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!git status --short","copy":true},
+        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!git status --short","copy":true},
+        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!git status --short","copy":true},
+        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!git status --short","copy":true}
+      ],
+      "expected_result": "Git prints nothing.",
+      "recovery": "If Git prints a path, preserve the orientation commit. Resolve or safely preserve only that uncommitted path before Check; do not reset the committed attempt.",
+      "evidence": "The worktree and index match the committed attempt head."
+    },
+    {
+      "id": "F02-check", "sequence": 12, "title": "Run the external Academy Check", "actor": "learner", "surface": null,
+      "instruction": "In the native terminal, run the installed Academy Check command for F02. It verifies committed Git state from outside the learner checkout.",
+      "rationale": "External verification proves the report matches the preserved context and exact commit boundary.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.5\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true}
+      ],
+      "expected_result": "Check prints checkpoint F02-orient-to-state: passed; progress: .academy/progress.json.",
+      "recovery": "If Check fails, preserve the clean committed attempt and read the named predicate. Use Reset for a new numbered attempt rather than rewriting committed evidence.",
+      "evidence": "Only a passing external Check records F02 progress."
+    },
+    {
+      "id": "F02-return-base", "sequence": 13, "title": "Return to main after success", "actor": "learner", "surface": null,
+      "instruction": "After Check passes, switch back to main from either the native terminal or your selected harness. The completed numbered branch remains available.",
+      "rationale": "Leaving the completed attempt untouched preserves its evidence for audit and review.", "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!git switch main","copy":true},
+        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!git switch main","copy":true},
+        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!git switch main","copy":true},
+        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!git switch main","copy":true},
+        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!git switch main","copy":true},
+        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!git switch main","copy":true},
+        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!git switch main","copy":true},
+        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!git switch main","copy":true},
+        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main and leaves academy/F02-orient-to-state/ATTEMPT_NUMBER reachable.",
+      "recovery": "If Git refuses because of uncommitted work, stop and preserve it. Do not force the switch or delete the completed attempt branch.",
+      "evidence": "The completed evidence remains separated from main."
+    },
+    {
+      "id": "F02-reset-retry", "sequence": 14, "title": "Create a preserved numbered retry", "actor": "learner", "surface": null,
+      "instruction": "Use this only when another attempt is needed. In the native terminal, run the installed Academy Reset command for F02.",
+      "rationale": "Reset archives the current attempt and prepares the next unused number without erasing evidence.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.5\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.5/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true}
+      ],
+      "expected_result": "Academy preserves the previous attempt under an archive ref and prints the next academy/F02-orient-to-state/ATTEMPT_NUMBER branch.",
+      "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named dirty-state or repository boundary before retrying; never force-reset or delete the prior attempt.",
+      "evidence": "The failed attempt stays reachable while the retry starts from the clean lesson base."
+    }
+  ]
+}

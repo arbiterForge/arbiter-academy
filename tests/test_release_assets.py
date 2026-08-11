@@ -17,7 +17,7 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 BUILDER = REPOSITORY / "scripts" / "build_release_assets.py"
-RELEASE = "preview-0.4"
+RELEASE = "preview-0.5"
 ARCHIVE = f"arbiter-academy-{RELEASE}.zip"
 EPOCH = 1_767_225_600
 EXPECTED_ASSETS = {
@@ -774,7 +774,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "#!/bin/sh\n"
             "printf 'arg1=%s arg2=%s arg3=%s\\n' \"${1:-}\" \"${2:-}\" \"${3:-}\" >>\"$ATTACK_EVENT\"\n"
             "case \"${2:-}\" in\n"
-            "*/preview-0.4)\n"
+            "*/preview-0.5)\n"
             "  rm -f -- \"$2/.academy-install-owner\"\n"
             "  rmdir -- \"$2\"\n"
             "  ln -s -- \"$ATTACK_TARGET\" \"$2\"\n"
@@ -831,7 +831,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "$function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-TrustedReleaseRedirect' }, $true)\n"
             "if ($null -eq $function) { throw 'missing redirect validator' }\n"
             ". ([ScriptBlock]::Create($function.Extent.Text))\n"
-            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.4/file.zip'\n"
+            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/file.zip'\n"
             "$cdn = [Uri]'https://release-assets.githubusercontent.com/path?sig=x'\n"
             "$badPort = [Uri]'https://release-assets.githubusercontent.com:444/path?sig=x'\n"
             "$badHost = [Uri]'https://evil.example/path'\n"

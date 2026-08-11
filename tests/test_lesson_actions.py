@@ -36,9 +36,157 @@ F01_ACTION_IDS = (
     "F01-return-base",
     "F01-reset-retry",
 )
+F02_DOCUMENT_ID = "F02-orient-to-state"
+F02_ACTION_IDS = (
+    "F02-prepare",
+    "F02-run-status",
+    "F02-read-context",
+    "F02-follow-context-links",
+    "F02-hash-context",
+    "F02-write-orientation",
+    "F02-inspect-orientation",
+    "F02-stage-orientation",
+    "F02-review-commit-boundary",
+    "F02-run-commit-gate",
+    "F02-confirm-clean",
+    "F02-check",
+    "F02-return-base",
+    "F02-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
+        """Catches an active learner path routing to the stale Preview 0.4 release."""
+        root = Path(__file__).parents[1]
+        for document_id in ("home", DOCUMENT_ID, F02_DOCUMENT_ID, "recovery"):
+            with self.subTest(document_id=document_id):
+                manifest = load_action_manifest(root, document_id)
+                published_text = "\n".join(
+                    part
+                    for action in manifest.actions
+                    for part in (
+                        *(resource.href for resource in action.resources),
+                        *(variant.command for variant in action.variants),
+                        action.expected_result,
+                        action.evidence or "",
+                    )
+                )
+                self.assertNotIn("preview-0.4", published_text)
+                self.assertIn("preview-0.5", published_text)
+
+    def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
+        manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), F02_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+
+        by_id = {action.id: action for action in manifest.actions}
+        for action_id in ("F02-run-status", "F02-run-commit-gate"):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "agent")
+            self.assertEqual(
+                tuple((variant.host, variant.command) for variant in action.variants),
+                (
+                    ("claude-code", "/ca:" + ("status" if action_id == "F02-run-status" else "commit")),
+                    ("codex", "$ca-" + ("status" if action_id == "F02-run-status" else "commit")),
+                    ("pi", "/ca-" + ("status" if action_id == "F02-run-status" else "commit")),
+                    ("pi", "/skill:ca-" + ("status" if action_id == "F02-run-status" else "commit")),
+                ),
+            )
+            self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
+            self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        self.assertEqual(by_id["F02-write-orientation"].actor, "learner")
+        self.assertEqual(by_id["F02-stage-orientation"].actor, "learner")
+
+        context_links = by_id["F02-follow-context-links"]
+        context_prompt = (
+            "Open, do not summarize, these files in order: .codearbiter/specs/ticket-assignment.md, "
+            ".codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, "
+            ".codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, "
+            ".codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, "
+            "and .codearbiter/open-questions.md. Then report the queued task ID, both ADR decisions, "
+            "the verification command, and the local-only data boundary."
+        )
+        self.assertIsNone(context_links.surface)
+        self.assertEqual(
+            tuple(
+                (variant.surface, variant.host, variant.language, variant.command, variant.copy)
+                for variant in context_links.variants
+            ),
+            (
+                ("harness", "claude-code", "text", context_prompt, True),
+                ("harness", "codex", "text", context_prompt, True),
+                ("harness", "pi", "text", context_prompt, True),
+            ),
+        )
+
+        boundary = by_id["F02-review-commit-boundary"]
+        review_prompt = (
+            "Show the staged path list and staged diff. Do not commit. Report whether the staged path "
+            "list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff "
+            "contains exactly schema_version, context_path, context_sha256, and stage."
+        )
+        self.assertIsNone(boundary.surface)
+        self.assertEqual(
+            tuple(
+                (variant.surface, variant.host, variant.language, variant.command, variant.copy)
+                for variant in boundary.variants
+            ),
+            (
+                ("harness", "claude-code", "text", review_prompt, True),
+                ("harness", "codex", "text", review_prompt, True),
+                ("harness", "pi", "text", review_prompt, True),
+            ),
+        )
+
+    def test_checked_in_f02_commands_are_surface_correct_and_beginner_safe(self) -> None:
+        manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)
+        by_id = {action.id: action for action in manifest.actions}
+
+        shell_variants = tuple(
+            variant
+            for action in manifest.actions
+            for variant in action.variants
+            if variant.language in {"powershell", "sh"}
+        )
+        self.assertTrue(shell_variants)
+        for variant in shell_variants:
+            with self.subTest(variant=variant.id):
+                if variant.surface == "harness":
+                    self.assertNotEqual(variant.host, "none")
+                    self.assertTrue(variant.command.startswith("!"))
+                    self.assertFalse(variant.command.startswith("!!"))
+                else:
+                    self.assertEqual(variant.surface, "native-terminal")
+                    self.assertEqual(variant.host, "none")
+                    self.assertFalse(variant.command.startswith("!"))
+                self.assertNotIn("python scripts/academy.py", variant.command)
+                self.assertNotIn("<learner-repository>", variant.command)
+
+        write_commands = {
+            variant.operating_system: variant.command
+            for variant in by_id["F02-write-orientation"].variants
+            if variant.surface == "native-terminal"
+        }
+        self.assertIn("ConvertTo-Json", write_commands["windows"])
+        self.assertIn("WriteAllText", write_commands["windows"])
+        self.assertIn("context_sha256", write_commands["windows"])
+        windows_hash = next(
+            variant.command
+            for variant in by_id["F02-hash-context"].variants
+            if variant.operating_system == "windows"
+        )
+        for command in (windows_hash, write_commands["windows"]):
+            self.assertIn("ComputeHash", command)
+            self.assertNotIn("HashData", command)
+            self.assertNotIn("ToHexString", command)
+        for operating_system in ("macos", "linux"):
+            self.assertIn("json.dump", write_commands[operating_system])
+            self.assertIn("context_sha256", write_commands[operating_system])
+
     def test_checked_in_f01_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], DOCUMENT_ID)
 
