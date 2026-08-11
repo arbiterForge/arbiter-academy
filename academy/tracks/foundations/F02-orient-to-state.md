@@ -123,8 +123,7 @@ before Check and preserve that state for recovery.
 {{action:F02-reset-retry}}
 
 After Check passes, return to `main` and keep the completed attempt branch intact. Continue to F03
-only when it is published as a guided Academy lesson; unpublished source exercises are not a
-substitute for the accepted course.
+only when it is published as a guided Academy lesson. An Academy lesson appears on the course home only after its guided rewrite; unpublished source exercises are not a substitute for the accepted course.
 
 ## Understand the mechanism
 

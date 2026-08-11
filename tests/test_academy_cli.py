@@ -16,7 +16,7 @@ from academy_engine.checkpoints import CheckpointResult
 from academy_engine.cli import main
 from academy_engine.command import GitCommandError
 from academy_engine.external_state import ExternalStateError
-from academy_engine.preview import PreviewManifest
+from academy_engine.preview import PreviewManifest, load_preview_manifest
 from academy_engine.scenario import PreparedLab
 
 
@@ -27,7 +27,6 @@ LOCAL_P02_RESTORATION_LABS = (
     "P05-checkpoint-remediation",
 )
 UNPUBLISHED_LABS = (
-    "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
     "P01-feature-through-plan",
@@ -81,6 +80,7 @@ class AcademyCliTrustTests(unittest.TestCase):
 
     def test_unpublished_labs_never_reach_prepare_reset_or_check_dispatch(self) -> None:
         """Catches non-guided catalog lessons reaching the public command surface."""
+        release = load_preview_manifest(REPOSITORY).release
         for lab_id in UNPUBLISHED_LABS:
             for command, dispatch_name in (
                 ("prepare", "prepare_lab"),
@@ -103,7 +103,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(
                     errors.getvalue(),
-                    f"error: {lab_id} is not guided in Academy Preview 0.4\n",
+                    f"error: {lab_id} is not guided in Academy Preview {release.removeprefix('preview-')}\n",
                 )
                 dispatch.assert_not_called()
                 git_config.assert_not_called()

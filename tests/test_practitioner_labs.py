@@ -108,13 +108,14 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 self.assertNotIn("python scripts/academy.py reset", lab.recovery)
 
     def test_post_p02_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
-        """Future lesson commands must not escape the F01-only public publication gate."""
+        """Future lesson commands must not escape the published Academy boundary."""
         try:
             track = load_track(SOURCE, "practitioner")
         except CurriculumError as error:
             self.fail(f"post-P02 source commands are not loadable: {error}")
 
-        published = set(load_preview_manifest(SOURCE).available_labs)
+        manifest = load_preview_manifest(SOURCE)
+        published = set(manifest.available_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in published),
             (),
@@ -165,7 +166,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(exit_code, 1)
                     self.assertEqual(
                         output.getvalue(),
-                        f"error: {lab.id} is not guided in Academy Preview 0.4\n",
+                        f"error: {lab.id} is not guided in Academy Preview {manifest.release.removeprefix('preview-')}\n",
                     )
                     validated.assert_not_called()
                     authoritative.assert_not_called()
