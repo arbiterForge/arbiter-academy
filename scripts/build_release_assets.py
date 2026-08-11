@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import csv
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import re
@@ -53,9 +56,31 @@ def _write_zip(path: Path, members: dict[str, bytes], timestamp: tuple[int, int,
             archive.writestr(_zip_info(name, timestamp), members[name])
 
 
+def _canonical_wheel_record(members: dict[str, bytes], record_name: str) -> bytes:
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\n")
+    for name in sorted(members):
+        if name == record_name:
+            writer.writerow((name, "", ""))
+            continue
+        digest = base64.urlsafe_b64encode(hashlib.sha256(members[name]).digest()).rstrip(b"=").decode("ascii")
+        writer.writerow((name, f"sha256={digest}", str(len(members[name]))))
+    return output.getvalue().encode("utf-8")
+
+
 def _normalize_wheel(source: Path, destination: Path, timestamp: tuple[int, int, int, int, int, int]) -> None:
     with zipfile.ZipFile(source) as archive:
         members = {info.filename: archive.read(info) for info in archive.infolist() if not info.is_dir()}
+    record_names = [name for name in members if name.endswith(".dist-info/RECORD")]
+    if len(record_names) != 1:
+        raise BuildError(f"wheel must contain exactly one dist-info RECORD, found {len(record_names)}")
+    record_name = record_names[0]
+    dist_info = record_name.rsplit("/", 1)[0]
+    for metadata_name in ("METADATA", "WHEEL", "entry_points.txt", "top_level.txt"):
+        name = f"{dist_info}/{metadata_name}"
+        if name in members:
+            members[name] = members[name].replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    members[record_name] = _canonical_wheel_record(members, record_name)
     _write_zip(destination, members, timestamp)
 
 

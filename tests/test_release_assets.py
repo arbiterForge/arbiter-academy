@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -44,7 +46,66 @@ def posix_path(path: Path) -> str:
     return f"/mnt/{resolved[0].lower()}/{resolved[3:]}"
 
 
+def release_builder_module() -> object:
+    specification = importlib.util.spec_from_file_location("academy_release_builder", BUILDER)
+    assert specification is not None and specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return module
+
+
 class ReleaseAssetBuilderTests(unittest.TestCase):
+    def test_wheel_normalization_canonicalizes_backend_metadata_and_record(self) -> None:
+        """Catches platform line endings leaking through a ZIP-only wheel normalization."""
+        builder = release_builder_module()
+        timestamp = (2026, 1, 1, 0, 0, 0)
+        dist_info = "workshop_queue-0.1.0.dist-info"
+        payload_members = {
+            "academy_engine/__init__.py": b"VERSION = '0.1.0'\n",
+            f"{dist_info}/METADATA": b"Metadata-Version: 2.4\nName: workshop-queue\n",
+            f"{dist_info}/WHEEL": b"Wheel-Version: 1.0\nGenerator: setuptools\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        }
+
+        def raw_wheel(path: Path, metadata_newline: bytes, record_order: list[str]) -> None:
+            members = dict(payload_members)
+            members[f"{dist_info}/METADATA"] = members[f"{dist_info}/METADATA"].replace(b"\n", metadata_newline)
+            record_rows = []
+            for name in record_order:
+                payload = members[name]
+                digest = hashlib.sha256(payload).digest()
+                encoded = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+                record_rows.append(f"{name},sha256={encoded},{len(payload)}")
+            record_rows.append(f"{dist_info}/RECORD,,")
+            members[f"{dist_info}/RECORD"] = (metadata_newline.decode("ascii").join(record_rows) + metadata_newline.decode("ascii")).encode("utf-8")
+            with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for name in reversed(list(members)):
+                    archive.writestr(name, members[name])
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            scratch = Path(temporary_directory)
+            first_raw, second_raw = scratch / "windows.whl", scratch / "linux.whl"
+            first_normalized, second_normalized = scratch / "first.whl", scratch / "second.whl"
+            member_order = sorted(payload_members)
+            raw_wheel(first_raw, b"\r\n", list(reversed(member_order)))
+            raw_wheel(second_raw, b"\n", member_order)
+
+            builder._normalize_wheel(first_raw, first_normalized, timestamp)
+            builder._normalize_wheel(second_raw, second_normalized, timestamp)
+
+            self.assertEqual(first_normalized.read_bytes(), second_normalized.read_bytes())
+            with zipfile.ZipFile(first_normalized) as archive:
+                members = {info.filename: archive.read(info) for info in archive.infolist()}
+            self.assertEqual(members[f"{dist_info}/METADATA"], payload_members[f"{dist_info}/METADATA"])
+            record_name = f"{dist_info}/RECORD"
+            expected_rows = []
+            for name in sorted(members):
+                if name == record_name:
+                    expected_rows.append(f"{name},,")
+                    continue
+                digest = base64.urlsafe_b64encode(hashlib.sha256(members[name]).digest()).rstrip(b"=").decode("ascii")
+                expected_rows.append(f"{name},sha256={digest},{len(members[name])}")
+            self.assertEqual(members[record_name], ("\n".join(expected_rows) + "\n").encode("utf-8"))
+
     def test_canonical_archives_use_runtime_independent_stored_members(self) -> None:
         """Catches zlib or interpreter versions changing canonical release bytes."""
         with tempfile.TemporaryDirectory() as temporary_directory:
