@@ -53,9 +53,74 @@ F02_ACTION_IDS = (
     "F02-return-base",
     "F02-reset-retry",
 )
+F04_DOCUMENT_ID = "F04-fix-with-evidence"
+F04_ACTION_IDS = (
+    "F04-prepare",
+    "F04-inspect-defect",
+    "F04-confirm-baseline",
+    "F04-start-fix",
+    "F04-request-regression",
+    "F04-run-red-regression",
+    "F04-inspect-test-boundary",
+    "F04-stage-regression",
+    "F04-review-regression-boundary",
+    "F04-commit-regression",
+    "F04-prove-red-commit",
+    "F04-request-repair",
+    "F04-prove-repair",
+    "F04-inspect-repair-boundary",
+    "F04-stage-repair",
+    "F04-review-repair-boundary",
+    "F04-commit-repair",
+    "F04-inspect-history",
+    "F04-check",
+    "F04-reset-retry",
+    "F04-return-base",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_checked_in_f04_manifest_encodes_a_red_then_green_two_commit_lifecycle(self) -> None:
+        """Catches F04 becoming guided without a newcomer-safe proof contract."""
+        manifest = load_action_manifest(Path(__file__).parents[1], F04_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), F04_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
+
+        for action_id in ("F04-start-fix", "F04-commit-regression", "F04-commit-repair"):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "agent")
+            self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
+            self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+            self.assertIn("paste", action.instruction.lower())
+            self.assertIn("send", action.instruction.lower())
+
+        for action_id in ("F04-request-regression", "F04-review-regression-boundary", "F04-request-repair", "F04-review-repair-boundary"):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "learner")
+            self.assertTrue(all(variant.surface == "harness" for variant in action.variants))
+            self.assertTrue(all(variant.language == "text" for variant in action.variants))
+            self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        shell_variants = tuple(
+            variant
+            for action in manifest.actions
+            for variant in action.variants
+            if variant.language in {"powershell", "sh"}
+        )
+        self.assertTrue(shell_variants)
+        for variant in shell_variants:
+            with self.subTest(variant=variant.id):
+                self.assertEqual(variant.surface, "native-terminal")
+                self.assertEqual(variant.host, "none")
+                self.assertFalse(variant.command.startswith("!"))
+
+        self.assertIn("tests/test_service.py", by_id["F04-commit-regression"].expected_result)
+        self.assertIn("workshop_queue/service.py", by_id["F04-commit-repair"].expected_result)
+        self.assertIn("red", by_id["F04-prove-red-commit"].evidence.lower())
+        self.assertIn("two commits", by_id["F04-inspect-history"].expected_result.lower())
     def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
         """Catches an active learner path routing to the stale Preview 0.4 release."""
         root = Path(__file__).parents[1]

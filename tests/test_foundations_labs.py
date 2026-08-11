@@ -331,6 +331,44 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
+        text = path.read_text(encoding="utf-8")
+        headings = tuple(
+            line[3:] for line in text.splitlines() if line.startswith("## ")
+        )
+
+        self.assertEqual(
+            headings,
+            (
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ),
+        )
+        action_ids = (
+            "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline",
+            "F04-start-fix", "F04-request-regression", "F04-run-red-regression",
+            "F04-inspect-test-boundary", "F04-stage-regression",
+            "F04-review-regression-boundary",
+            "F04-commit-regression", "F04-prove-red-commit", "F04-request-repair",
+            "F04-prove-repair", "F04-inspect-repair-boundary", "F04-stage-repair",
+            "F04-review-repair-boundary", "F04-commit-repair", "F04-inspect-history",
+            "F04-check", "F04-reset-retry", "F04-return-base",
+        )
+        for action_id in action_ids:
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+        self.assertLess(
+            text.index("{{action:F04-reset-retry}}"),
+            text.index("{{action:F04-return-base}}"),
+        )
+        self.assertNotIn("```", text)
+
     def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
         text = path.read_text(encoding="utf-8")
@@ -1231,6 +1269,7 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
             "unreachable-repair",
             "disconnected-regression",
             "overbroad-then-decoy-repair",
+            "dirty-unrelated",
         )
         for case in cases:
             with self.subTest(case=case):
@@ -1310,6 +1349,10 @@ def complete_ticket'''
                     self.assertEqual(git(fixture.root, "merge-base", "--is-ancestor", test_commit, "HEAD", check=False).returncode, 0)
                     green = focused(fixture)
                     self.assertEqual(green.returncode, 0, green.stdout + green.stderr)
+                    if case == "dirty-unrelated":
+                        (fixture.root / "learner-notes.txt").write_text(
+                            "uncommitted evidence is not accepted\n", encoding="utf-8"
+                        )
 
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[3])
                 if case in {"intended", "equivalent"}:

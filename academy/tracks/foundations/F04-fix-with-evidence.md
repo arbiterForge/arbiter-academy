@@ -13,107 +13,159 @@ next_lab: P01-feature-through-plan
 
 # F04 — Fix with evidence
 
-## Why this mechanism matters
+## Know before you begin
 
-A passing test added after a repair cannot show that it detects the original defect. Regression-first
-history can: one commit introduces an executable test that fails against the prepared code, and a
-later commit makes that same test pass with the smallest repair. This lab uses the real Workshop
-Queue service boundary, not a syntax error or a narrated transcript.
+Complete F03 when it is published, then start from a clean `main` branch in the same Academy clone.
+Keep two surfaces open at the clone root: a native terminal for Academy and shell commands, and your
+Claude Code, Codex, or Pi harness for messages to your agent and CodeArbiter commands.
 
-## Start the scenario
+This page names the surface for every action. Put a native-terminal command directly in PowerShell
+or your shell; it never starts with `!`. Put a learner prompt or CodeArbiter command in the selected
+harness; neither starts with `!`. The `!` prefix is only for a shell command deliberately sent
+through a harness, and this lesson does not use that route. Do not use `git commit` yourself: the
+agent runs the governed commit gate after you inspect and approve each boundary.
 
-From clean `main`, prepare the deterministic defective service and pre-regression test file:
+## What you will prove
 
-```powershell
-python scripts/academy.py prepare F04-fix-with-evidence
-```
+You will turn a real claimant-label defect into durable evidence. A **regression** is a test that
+demonstrates a defect before it is repaired. **Red** means that new test fails for the intended
+reason; **green** means the same test passes after the repair. A **control character** is a non-printing
+character such as newline, tab, or DEL. This lesson rejects control characters in a claimant label
+while preserving an ordinary label such as `Sam Allen`.
 
-The scenario makes `claim_ticket` accept a claimant label containing newline, tab, or DEL even though
-`academy.security.0004` requires those labels to be rejected while ordinary names remain valid.
+The proof has two commits after Prepare: first a test-only red regression in
+`tests/test_service.py`, then a service-only repair in `workshop_queue/service.py`. A **commit
+boundary** is the exact path set in one commit. The **production boundary** is the real
+`claim_ticket` function that receives the label, not a helper, transcript, CLI, or JSON copy.
 
-## Use your host
+## Prepare safely
 
-Enter the governed fix lane before editing production code. Enabled repository state is required.
+{{action:F04-prepare}}
 
-### Claude Code
+The printed attempt number is evidence metadata. Academy uses it in the branch name; do not type
+the literal word `ATTEMPT_NUMBER`. The attempt starts from a deterministic defective service and
+keeps `main` untouched.
 
-```text
-/ca:fix "Reject control characters in a claimant label"
-```
+{{action:F04-inspect-defect}}
 
-### Codex
+{{action:F04-confirm-baseline}}
 
-```text
-$ca-fix "Reject control characters in a claimant label"
-```
+## Practice
 
-### Pi (Feature Forge preview)
+Open the governed fix lane before requesting any change. The copied command below belongs in your
+selected harness, not in a terminal.
 
-Pi is the supported Feature Forge preview and requires project trust. The documented fallback is
-`/skill:ca-fix "Reject control characters in a claimant label"`.
+{{action:F04-start-fix}}
 
-```text
-/ca-fix "Reject control characters in a claimant label"
-```
+Ask your agent for one direct executable regression and nothing in production. The request already
+states the three rejected labels, the expected `ValueError`, and the ordinary-name control. Send it
+unchanged first; it is specific enough to review.
 
-## Do the work
+{{action:F04-request-regression}}
 
-First add an executable `unittest` case in `tests/test_service.py` that calls the real `claim_ticket`
-boundary with a control-character label and expects rejection. Run it and observe a test **failure**,
-not an import or syntax error. Commit only the regression test.
+{{action:F04-run-red-regression}}
 
-```powershell
-python -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v
-git add tests/test_service.py
-git commit -m "test: reproduce control-character claimant defect"
-```
+Read the diff before staging. A test that is red because it cannot import, has a typo, or never
+calls `claim_ticket` is not evidence of this defect.
 
-Only after that commit, apply the smallest validation at the existing claimant boundary in
-`workshop_queue/service.py`. Keep dependency-free runtime, UTC injection, explicit ticket states,
-and valid ordinary labels intact. Re-run the focused test and the service suite, then commit the
-production repair separately.
+{{action:F04-inspect-test-boundary}}
 
-## Hints
+{{action:F04-stage-regression}}
+
+{{action:F04-review-regression-boundary}}
+
+When the report says the whole worktree and staged set contain only `tests/test_service.py`, let
+the agent make the first governed commit.
+
+{{action:F04-commit-regression}}
+
+{{action:F04-prove-red-commit}}
+
+Now request the smallest reachable repair. It must reject characters below `U+0020` and `U+007F`
+at the existing claimant-label boundary, leave the committed regression unchanged, add no
+dependency, and retain ordinary-name behavior.
+
+{{action:F04-request-repair}}
+
+{{action:F04-prove-repair}}
+
+{{action:F04-inspect-repair-boundary}}
+
+{{action:F04-stage-repair}}
+
+{{action:F04-review-repair-boundary}}
+
+After that report identifies only `workshop_queue/service.py`, let the agent make the second
+governed commit.
+
+{{action:F04-commit-repair}}
+
+{{action:F04-inspect-history}}
+
+## Recognize success
+
+Success is not a reassuring transcript. Git shows a clean worktree and exactly two learner commits
+after Prepare: the older commit changes only `tests/test_service.py` and is still red at that point;
+the newer commit changes only `workshop_queue/service.py` and makes the same regression green.
+The full service suite remains green, and `Sam Allen` still succeeds.
+
+That separation lets another person reconstruct what was wrong, confirm that the first commit
+actually detected it, and see the narrow repair without trusting a chat summary.
+
+## Check
+
+{{action:F04-check}}
+
+**Check** is the external Academy verifier. It reads the prepared baseline, your commit order and
+path sets, the retained regression and reachable repair shapes, and whether the live worktree is
+clean. It does not execute learner-authored code. The red and green commands you ran above are your
+real behavioral evidence; Check reconstructs their source and history safely. A green final test
+alone is not enough: Check rejects a same-commit fix, a code-first path, an unreachable guard,
+unrelated changes, or uncommitted work.
+
+Python can refresh its own cache file while it runs the service test. Check excludes only those
+two exercised cache files; every learner-authored, staged, tracked, or untracked change still fails
+the clean-worktree condition.
+
+## Recover or continue
+
+If Check fails, preserve the branch and read the named predicate before attempting anything else.
+Do not amend, rebase, force-reset, delete the branch, or hide evidence. Use Reset only after a
+failed Check or an attempt whose commit boundary is irrecoverably wrong; it preserves the failed
+attempt and creates the next numbered retry.
 
 ### Hint 1
 
-Call the service function directly with an open ticket and a label containing `\n`; the bug is at
-the claimant boundary, not JSON storage or the CLI.
+The defect is at `claim_ticket`. A test that only validates a new helper does not prove the service
+rejects an unsafe label when it claims a ticket.
 
 ### Hint 2
 
-Your regression must fail while `workshop_queue/service.py` is still at the prepared defect. Commit
-that test before editing production code.
+The first commit must remain red. Inspect it before asking for production work, then keep that test
+unchanged while the production repair turns it green.
 
 ### Hint 3
 
-Reject characters below U+0020 and U+007F at the existing non-empty volunteer check. Prove a normal
-label such as `Sam Allen` still succeeds, then commit the repair later in history.
+If a report shows two paths, another commit, a changed regression, or a dirty worktree, stop before
+Check. A fresh numbered retry is more useful evidence than rewritten history.
 
-## Success evidence
+{{action:F04-reset-retry}}
 
-The attempt history has a test-only commit after preparation and a later service commit. Running the
-focused regression at the test-only commit produces the expected assertion failure; running it at
-the final repair commit passes and retains ordinary claimant behavior. Same-commit test/fix, code-only,
-test-only, unrelated tests, reversed order, or transcript-only claims fail.
+After Check passes, return to `main` and leave the completed attempt branch available for review.
 
-```powershell
-arbiter-academy --repository <learner-repository> check F04-fix-with-evidence
-```
+{{action:F04-return-base}}
 
-The verifier evaluates immutable Git history and bounded semantics. It does not treat raw terminal
-output or learner progress JSON as proof.
+F04 is complete only after the external Check passes. Continue to P01 when that guided Academy
+lesson is published; an unpublished source exercise is not a substitute for a course step.
 
-## Recovery
+## Understand the mechanism
 
-If test and code landed together or in the wrong order, do not rewrite history. Preserve it and reset:
+This pattern is a causal proof, not a ritual. Prepare establishes a known defective baseline. The
+first commit records a test that reaches the live production boundary and fails for the missing
+validation. The second commit adds the smallest reachable validation that makes that exact test
+pass. The external verifier checks both snapshots, both path boundaries, and the clean current
+worktree.
 
-```powershell
-python scripts/academy.py reset F04-fix-with-evidence
-```
-
-The new retry starts from the same deterministic defect and keeps the old branch available.
-
-## Next lab
-
-Continue to **P01 — Feature through plan** in the Practitioner track after F04 passes.
+The operations surface stays small on purpose. Academy prepares, checks, resets, and returns an
+attempt; the website teaches the decisions; CodeArbiter governs the agent work. Each part has one
+job, so a learner can tell which command belongs where and a reviewer can reproduce the result.
