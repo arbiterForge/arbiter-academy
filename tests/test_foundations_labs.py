@@ -331,21 +331,46 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
-    def test_f02_keeps_the_legacy_curriculum_anatomy(self) -> None:
+    def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
+        text = path.read_text(encoding="utf-8")
         headings = tuple(
-            line[3:] for line in path.read_text(encoding="utf-8").splitlines()
+            line[3:] for line in text.splitlines()
             if line.startswith("## ")
         )
 
         self.assertEqual(
             headings,
             (
-                "Why this mechanism matters", "Start the scenario", "Use your host",
-                "Do the work", "Hints", "Success evidence", "Recovery", "Next lab",
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
             ),
         )
-        self.assertEqual(load_track(SOURCE, "foundations").labs[1].id, FOUNDATIONS[1])
+        for action_id in (
+            "F02-prepare", "F02-run-status", "F02-read-context",
+            "F02-follow-context-links", "F02-hash-context",
+            "F02-write-orientation", "F02-inspect-orientation",
+            "F02-stage-orientation", "F02-review-commit-boundary",
+            "F02-run-commit-gate", "F02-confirm-clean", "F02-check",
+            "F02-return-base", "F02-reset-retry",
+        ):
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+        lab = load_track(SOURCE, "foundations").labs[1]
+        self.assertEqual(lab.id, FOUNDATIONS[1])
+        self.assertEqual(
+            lab.host_commands,
+            {
+                "claude-code": "/ca:status",
+                "codex": "$ca-status",
+                "pi": "/ca-status\n/skill:ca-status",
+            },
+        )
 
     def test_f01_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F01-fork-clone-doctor.md"
@@ -420,7 +445,9 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 heading = f"### Hint {number}\n"
                 start = text.index(heading) + len(heading)
                 terminator = (
-                    f"### Hint {number + 1}\n" if number < 3 else "## Success evidence\n"
+                    f"### Hint {number + 1}\n"
+                    if number < 3
+                    else "## Understand the mechanism\n"
                 )
                 end = text.index(terminator, start)
                 comment_only = (
@@ -438,7 +465,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copytree(SOURCE / "academy", root / "academy")
-            path = root / "academy/tracks/foundations/F02-orient-to-state.md"
+            path = root / "academy/tracks/foundations/F03-work-the-board.md"
             text = path.read_text(encoding="utf-8")
             duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
             path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")
@@ -486,11 +513,11 @@ class FoundationsCurriculumTests(unittest.TestCase):
             shutil.copytree(SOURCE / "academy", root / "academy")
             path = root / "academy/tracks/foundations/F02-orient-to-state.md"
             text = path.read_text(encoding="utf-8")
-            start = text.index("## Why this mechanism matters")
-            end = text.index("## Start the scenario")
+            start = text.index("## Know before you begin")
+            end = text.index("## What you will prove")
             path.write_text(
                 text[:start]
-                + "## Why this mechanism matters\n\n<!-- deliberately empty -->\n\n"
+                + "## Know before you begin\n\n<!-- deliberately empty -->\n\n"
                 + text[end:],
                 encoding="utf-8",
             )
@@ -932,7 +959,12 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
         self.assertFalse((fixture.root / ".academy/progress.json").exists())
 
     def _record_f02(
-        self, fixture: AcademyRepository, *, compact_reordered: bool = False, **overrides: object
+        self,
+        fixture: AcademyRepository,
+        *,
+        compact_reordered: bool = False,
+        extra_paths: tuple[str, ...] = (),
+        **overrides: object,
     ) -> str:
         context = (fixture.root / ".codearbiter/CONTEXT.md").read_bytes()
         payload: dict[str, object] = {
@@ -955,7 +987,9 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
             json.dumps(payload, separators=(",", ":") if compact_reordered else None, indent=None if compact_reordered else 2),
             encoding="utf-8",
         )
-        return fixture.commit("record live orientation", str(path.relative_to(fixture.root)))
+        return fixture.commit(
+            "record live orientation", str(path.relative_to(fixture.root)), *extra_paths
+        )
 
     def test_f02_accepts_current_context_and_rejects_stale_or_uncommitted_records(self) -> None:
         positive_serializations: dict[str, bytes] = {}
@@ -998,6 +1032,31 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
         self.assertNotEqual(
             positive_serializations["intended"], positive_serializations["equivalent"]
         )
+
+    def test_f02_rejects_evidence_outside_its_single_clean_commit_boundary(self) -> None:
+        for case in ("co-committed", "context-rewritten-before-record", "dirty-worktree"):
+            with self.subTest(case=case):
+                fixture = self._prepared(FOUNDATIONS[1])
+                self.addCleanup(fixture.close)
+                if case == "co-committed":
+                    extra = fixture.root / "learner-notes.md"
+                    extra.write_text("A co-committed learner note.\n", encoding="utf-8")
+                    self._record_f02(
+                        fixture, extra_paths=(str(extra.relative_to(fixture.root)),)
+                    )
+                elif case == "context-rewritten-before-record":
+                    context = fixture.root / ".codearbiter/CONTEXT.md"
+                    context.write_bytes(context.read_bytes() + b"\nRewritten before orientation.\n")
+                    fixture.commit("rewrite context", str(context.relative_to(fixture.root)))
+                    self._record_f02(fixture)
+                else:
+                    self._record_f02(fixture)
+                    (fixture.root / "uncommitted-learner-note.txt").write_text(
+                        "This worktree is not clean.\n", encoding="utf-8"
+                    )
+
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[1])
+                self.assertFalse(result.passed)
 
     def _write_done_board(
         self,

@@ -84,7 +84,7 @@ _REQUIRED_SECTIONS = (
     "Recovery",
     "Next lab",
 )
-_GUIDED_F01_SECTIONS = (
+_GUIDED_SECTIONS = (
     "Know before you begin",
     "What you will prove",
     "Prepare safely",
@@ -169,6 +169,12 @@ _INSTALLED_PREPARE_LABS = (
 _SCENARIO_COMMANDS = {
     lab_id: f"arbiter-academy --repository <learner-repository> prepare {lab_id}"
     for lab_id in _INSTALLED_PREPARE_LABS
+}
+_SCENARIO_COMMANDS["F02-orient-to-state"] = (
+    "arbiter-academy --repository . prepare F02-orient-to-state"
+)
+_CHECKPOINT_COMMANDS = {
+    "F02-orient-to-state": "arbiter-academy --repository . check F02-orient-to-state"
 }
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (
@@ -356,21 +362,36 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
-    guided_f01 = data["id"] == "F01-fork-clone-doctor"
+    action_path = path.parents[3] / "academy" / "actions" / f"{data['id']}.json"
+    guided = action_path.is_file()
     sections = _sections(
-        body, path, _GUIDED_F01_SECTIONS if guided_f01 else _REQUIRED_SECTIONS
+        body, path, _GUIDED_SECTIONS if guided else _REQUIRED_SECTIONS
     )
-    if guided_f01:
+    if guided:
         manifest = load_action_manifest(path.parents[3], data["id"])
         host_action = next(
-            (action for action in manifest.actions if action.id == "F01-host-doctor"),
+            (
+                action
+                for action in manifest.actions
+                if {"claude-code", "codex", "pi"}.issubset(
+                    {
+                        variant.host
+                        for variant in action.variants
+                        if variant.language == "codearbiter"
+                    }
+                )
+            ),
             None,
         )
         if host_action is None:
-            raise CurriculumError(f"{path.name} is missing the guided Host Doctor action.")
+            raise CurriculumError(
+                f"{path.name} is missing a guided CodeArbiter action for all three hosts."
+            )
         host_commands = {
             host: "\n".join(
-                variant.command for variant in host_action.variants if variant.host == host
+                variant.command
+                for variant in host_action.variants
+                if variant.host == host and variant.language == "codearbiter"
             )
             for host in ("claude-code", "codex", "pi")
         }
@@ -427,8 +448,8 @@ def _parse_lab(path: Path) -> CurriculumLab:
         data["checkpoint_command"],
         host_commands,
         tuple(hints[f"Hint {index}"] for index in range(1, 4)),
-        sections["Recognize success"] if guided_f01 else sections["Success evidence"],
-        sections["Recover or continue"] if guided_f01 else sections["Recovery"],
+        sections["Recognize success"] if guided else sections["Success evidence"],
+        sections["Recover or continue"] if guided else sections["Recovery"],
         data["next_lab"],
     )
 
@@ -470,7 +491,10 @@ def load_track(root: Path, track_id: str) -> CurriculumTrack:
         )
         if actual.scenario_command != expected_scenario:
             raise CurriculumError(f"{actual.id} scenario command is noncanonical.")
-        expected_check = f"arbiter-academy --repository <learner-repository> check {actual.id}"
+        expected_check = _CHECKPOINT_COMMANDS.get(
+            actual.id,
+            f"arbiter-academy --repository <learner-repository> check {actual.id}",
+        )
         if actual.checkpoint_command != expected_check:
             raise CurriculumError(f"{actual.id} checkpoint command is noncanonical.")
     return CurriculumTrack(track_id, labs)

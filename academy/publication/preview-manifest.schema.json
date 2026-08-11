@@ -1,46 +1,48 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.4 publication manifest",
+  "title": "Arbiter Academy Preview 0.5 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.4"},
+    "release": {"const": "preview-0.5"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 1,
-      "maxItems": 1,
+      "minItems": 2,
+      "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-fork-clone-doctor"}
+        {"const": "F01-fork-clone-doctor"},
+        {"const": "F02-orient-to-state"}
       ]
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 1,
-      "maxItems": 1,
+      "minItems": 2,
+      "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-fork-clone-doctor"}
+        {"const": "F01-fork-clone-doctor"},
+        {"const": "F02-orient-to-state"}
       ]
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 1,
-      "maxItems": 1,
+      "minItems": 2,
+      "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-fork-clone-doctor"}
+        {"const": "F01-fork-clone-doctor"},
+        {"const": "F02-orient-to-state"}
       ]
     },
     "coming_next": {
       "type": "array",
-      "minItems": 10,
-      "maxItems": 10,
+      "minItems": 9,
+      "maxItems": 9,
       "items": false,
       "prefixItems": [
-        {"const": "F02-orient-to-state"},
         {"const": "F03-work-the-board"},
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
@@ -71,9 +73,9 @@
       "maxItems": 4,
       "items": false,
       "prefixItems": [
-        {"const": "F01 is the only guided lesson published in Preview 0.4."},
-        {"const": "F02-F04 and P01-P07 are coming next after their guided rewrites are accepted."},
-        {"const": "P08 and the Power User track are not published in Preview 0.4."},
+        {"const": "F01 and F02 are the guided lessons published in Preview 0.5."},
+        {"const": "F03-F04 and P01-P07 are coming next after their guided rewrites are accepted."},
+        {"const": "P08 and the Power User track are not published in Preview 0.5."},
         {"const": "Graduation is unavailable until the complete 19-lab course is published."}
       ]
     },

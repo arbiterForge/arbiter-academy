@@ -1513,12 +1513,17 @@ class WorkshopQueueCliTests:
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(checked.returncode, 1)
+            self.assertEqual(checked.returncode, 0)
             self.assertEqual(
-                checked.stderr,
-                f"error: {lab_id} is not guided in Academy Preview 0.4\n",
+                checked.stdout,
+                f"checkpoint {lab_id}: passed; progress: .academy/progress.json\n",
             )
-            self.assertFalse((root / ".academy" / "progress.json").exists())
+            self.assertEqual(checked.stderr, "")
+            progress_path = root / ".academy" / "progress.json"
+            self.assertTrue(progress_path.is_file())
+            # The public command owns progress; this fixture now returns to the
+            # clean attempt boundary before it tests source-integrity drift.
+            progress_path.unlink()
             added_verifier = root / "academy_engine" / "benign_extension.py"
             added_verifier.write_text("# benign but unreviewed verifier extension\n", encoding="utf-8")
             subprocess.run(["git", "add", str(added_verifier.relative_to(root))], cwd=root, check=True, capture_output=True, text=True)
@@ -1543,7 +1548,8 @@ class WorkshopQueueCliTests:
                 text=True,
             )
             restored_baseline = evaluate_checkpoint(root, lab_id)
-            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
+            self.assertFalse(restored_baseline.passed)
+            self.assertIn("live_context_orientation", restored_baseline.failed_predicates)
             remotes_path = root / "academy_engine" / "remotes.py"
             remotes_original = remotes_path.read_bytes()
             remotes_path.write_bytes(remotes_original + b"\n# verifier substitution\n")
@@ -1552,7 +1558,8 @@ class WorkshopQueueCliTests:
             self.assertIn("source_integrity", substituted_verifier.failed_predicates)
             remotes_path.write_bytes(remotes_original)
             restored_baseline = evaluate_checkpoint(root, lab_id)
-            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
+            self.assertFalse(restored_baseline.passed)
+            self.assertIn("live_context_orientation", restored_baseline.failed_predicates)
             checkpoint_path = root / "academy" / "checkpoints" / f"{lab_id}.json"
             checkpoint_original = checkpoint_path.read_bytes()
             checkpoint_path.write_text(
@@ -1564,7 +1571,8 @@ class WorkshopQueueCliTests:
             self.assertIn("source_integrity", substituted.failed_predicates)
             checkpoint_path.write_bytes(checkpoint_original)
             restored_baseline = evaluate_checkpoint(root, lab_id)
-            self.assertTrue(restored_baseline.passed, restored_baseline.failed_predicates)
+            self.assertFalse(restored_baseline.passed)
+            self.assertIn("live_context_orientation", restored_baseline.failed_predicates)
             subprocess.run(
                 ["git", "switch", "-c", "alternate-rules"],
                 cwd=root,
