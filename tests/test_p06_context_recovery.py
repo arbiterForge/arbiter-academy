@@ -194,6 +194,8 @@ def _p06_semantic_fixture(
     test.addCleanup(temporary.cleanup)
     root = Path(temporary.name)
     _git(root, "init", "-b", "main")
+    _git(root, "config", "core.autocrlf", "false")
+    _git(root, "config", "core.eol", "lf")
     _git(root, "config", "user.name", "Academy Learner")
     _git(root, "config", "user.email", "learner@example.test")
     source = subprocess.run(
@@ -281,6 +283,16 @@ def _context_at_head(context: _SemanticContext, head: str) -> _SemanticContext:
 
 
 class P06ContextRecoveryContractTests(unittest.TestCase):
+    def test_p06_fixture_pins_exact_byte_git_normalization(self) -> None:
+        """Catches ambient Git line-ending policy changing the frozen fixture history."""
+        root, _intended = _p06_semantic_fixture(self)
+
+        self.assertEqual(
+            _git(root, "config", "--local", "--get", "core.autocrlf"),
+            "false",
+        )
+        self.assertEqual(_git(root, "config", "--local", "--get", "core.eol"), "lf")
+
     def test_p06_context_transition_bytes_and_hashes_are_exact(self) -> None:
         self.assertEqual(len(P06_CONTEXT_BYTES), 1664)
         self.assertEqual(hashlib.sha256(P06_CONTEXT_BYTES).hexdigest(), P06_CONTEXT_SHA256)

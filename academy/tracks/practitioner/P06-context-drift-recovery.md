@@ -55,7 +55,8 @@ $ca-context-check
 
 ### Pi (Feature Forge preview)
 
-Pi requires project trust. Its documented fallback is `/skill:ca-context-check`.
+Pi requires project trust. Use the generated `/ca-context-check` alias shown below. If that alias is unavailable,
+use the host-native `/skill:ca-context-check` fallback.
 
 ```text
 /ca-context-check

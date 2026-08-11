@@ -108,11 +108,6 @@ _PRACTITIONER_SCENARIOS = {
         "workshop-queue-finding",
         "finding-open",
     ),
-    "P06-context-drift-recovery": (
-        "provenance_recovery",
-        ".codearbiter/CONTEXT.md",
-        "context-stale",
-    ),
     "P07-threat-model": ("stride_model", "academy_engine/paths.py", "model-absent"),
     "P08-repository-hygiene": (
         "ref_classification",
