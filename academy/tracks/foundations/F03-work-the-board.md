@@ -3,117 +3,137 @@ id: F03-work-the-board
 track: foundations
 order: 3
 title: Work the governed board
-outcome: Move the exact queued Academy task through the sanctioned start and done transitions.
+outcome: Move one exact queued Academy task through CodeArbiter start and done transitions, then preserve a one-file evidence commit.
 prerequisites: F02-orient-to-state
-estimated_minutes: 15
-scenario_command: python scripts/academy.py prepare F03-work-the-board
-checkpoint_command: arbiter-academy --repository <learner-repository> check F03-work-the-board
+estimated_minutes: 20
+scenario_command: arbiter-academy --repository . prepare F03-work-the-board
+checkpoint_command: arbiter-academy --repository . check F03-work-the-board
 next_lab: F04-fix-with-evidence
 ---
 
 # F03 — Work the governed board
 
-## Why this mechanism matters
+## Know before you begin
 
-The task board is durable repository state. A sanctioned transition preserves the task's scope and
-evidence while adding a dated lifecycle marker. That lets another session distinguish queued,
-active, and completed work without trusting chat history. The checkpoint proves the exact Git state;
-under the local trust model it does not claim cryptographic proof of which executable made it.
+Complete F01 and F02 first. Begin at the root of the same forked Academy clone, on a clean `main`
+branch. Keep a native terminal open for Academy and Git commands, and your Claude Code, Codex, or
+Pi harness open for CodeArbiter commands and review requests.
 
-## Start the scenario
+This page labels the execution surface on purpose. Native-terminal commands go directly into
+PowerShell or your shell and never start with `!`. Harness shell commands start with one `!`.
+CodeArbiter commands are handled by the harness and never start with `!`. You will not use a direct
+`git commit` in this lesson.
 
-From clean `main`, prepare the board attempt:
+The task board is repository state, not a to-do list you casually edit. F03 changes the lifecycle
+of one prepared training task. It does not implement the feature named on that task.
 
-```powershell
-python scripts/academy.py prepare F03-work-the-board
-```
+## What you will prove
 
-Read `.codearbiter/open-tasks.md` before acting. The target is `academy.feature.0001`; its description,
-completion condition, boundaries, and evidence link are part of the exercise. You are moving the
-task lifecycle, not implementing the listed feature.
+You will identify the scope of `academy.feature.0001`, ask CodeArbiter to move it from queued to
+started and then done, inspect the exact one-line final diff, and approve one board-only commit
+through the CodeArbiter commit gate. External Check accepts the attempt only when all of these are
+true. The final task line changes from `[ ]` to `[x]` with a real `(done YYYY-MM-DD)` date, and
+every other board line remains unchanged. The numbered attempt has exactly one learner commit after
+Prepare, that commit changes only `.codearbiter/open-tasks.md`, and `git status --short` prints
+nothing.
 
-## Use your host
+The temporary `[~]` started state is something you observe before completion. The final board keeps
+the done state, so Check verifies final board evidence rather than pretending it can reconstruct the
+exact executable invocation.
 
-Run both transitions through the installed codeArbiter surface in an enabled repository.
+## Prepare safely
 
-### Claude Code
+{{action:F03-prepare}}
 
-```text
-/ca:task start academy.feature.0001
-/ca:task done academy.feature.0001
-```
+Stay on the numbered attempt branch Academy prints until Check passes. If the number is `1`, the
+branch is `academy/F03-work-the-board/1`; the word `ATTEMPT_NUMBER` is an explanation, not text you
+type.
 
-### Codex
+## Practice
 
-```text
-$ca-task start academy.feature.0001
-$ca-task done academy.feature.0001
-```
+{{action:F03-read-target-task}}
 
-### Pi (Feature Forge preview)
+Write down four things before changing state: the target's description, its `Done when` condition,
+its `Boundaries`, and its `Evidence` link. They explain why you must not implement the ticket-list
+feature, alter a second task, or rewrite the task body during this lab.
 
-Pi is the supported Feature Forge preview and requires project trust. If the direct form is not
-available, use `/skill:ca-task` with the same `start` or `done` arguments.
+{{action:F03-start-task}}
 
-```text
-/ca-task start academy.feature.0001
-/ca-task done academy.feature.0001
-```
+{{action:F03-inspect-started-task}}
 
-## Do the work
+The started date is produced by the sanctioned task writer. Seeing `[~]` first matters: the writer
+does not treat a queued task as complete just because a checkbox was edited.
 
-Inspect the board after `start`: the target should be `[~]` with a real started date. Then run
-`done` and inspect again: the same task line should be `[x]` with `(done YYYY-MM-DD)`. No other task,
-section, description, or evidence link should change.
+{{action:F03-complete-task}}
 
-Commit the final board transition as the sole board change:
+{{action:F03-inspect-final-diff}}
 
-```powershell
-git diff -- .codearbiter/open-tasks.md
-git add .codearbiter/open-tasks.md
-git commit -m "academy: complete governed board transition"
-```
+{{action:F03-stage-board}}
 
-The shipped task writer owns this observable file transition. It does not append `gate-events.log`,
-so this lab neither asks for nor accepts an invented audit event.
+{{action:F03-review-commit-boundary}}
 
-## Hints
+{{action:F03-run-commit-gate}}
+
+{{action:F03-confirm-clean}}
+
+## Recognize success
+
+Before Check, the final board diff contains one changed line: `academy.feature.0001` has its
+original task body, but its marker is `[x]` and it ends with one real done date. The feature's
+description, `Done when`, `Boundaries`, curriculum lane, and Evidence link remain in place.
+
+Your numbered attempt has one learner commit after Prepare, and that commit contains only
+`.codearbiter/open-tasks.md`. There are no uncommitted, staged, or untracked files anywhere in the
+worktree. An additional empty commit, an unrelated note committed beside the board, or a dirty file
+outside the board is a failed evidence boundary—not a harmless detail.
+
+## Check
+
+{{action:F03-check}}
+
+A pass contains `checkpoint F03-work-the-board: passed; progress: .academy/progress.json`. Check
+compares the board at Prepare with the board at the attempt head, confirms the canonical done date
+against the board-changing commit date, enforces the one-commit/one-path boundary, and rejects any
+dirty worktree state.
+
+## Recover or continue
+
+If Check fails, preserve the attempt and read the failed predicate before retrying. Do not amend,
+force-reset, delete, or hide an incorrect route. Reset makes a new numbered attempt from the clean
+lesson base while leaving the previous attempt reachable for learning and review.
 
 ### Hint 1
 
-Read the exact task ID and its boundaries. Do not select the similarly named security or fixture task.
+The target is `academy.feature.0001`, not the nearby security, release, or deliberately stale
+fixture task. Read its body and child lines before you ask the harness to change it.
 
 ### Hint 2
 
-Use `start` before `done`, then compare the final board against the prepared commit. Only the target
-line should differ.
+The `start` command produces `[~]` with a started date. Inspect that live diff, then use `done`.
+Do not turn `[ ]` into `[x]` yourself or skip the start transition.
 
 ### Hint 3
 
-The accepted final shape keeps the complete original line, changes its marker to `[x]`, and carries
-the date written by the sanctioned `done` transition. Commit that one-file outcome.
+The final commit has one path and the entire attempt has one learner commit. If another path,
+commit, or dirty file exists, preserve it and use a numbered retry rather than making the history
+look simpler than it was.
 
-## Success evidence
+{{action:F03-return-base}}
 
-The external verifier compares the board blob at preparation with the board blob at learner head.
-It requires the exact queued target to become canonical done form, binds the date stamp to the
-board-changing commit date, and byte-compares every unrelated line. Checkbox-only edits, stale or
-malformed dates, unrelated edits, wrong tasks, and uncommitted changes fail.
+{{action:F03-reset-retry}}
 
-```powershell
-arbiter-academy --repository <learner-repository> check F03-work-the-board
-```
+After Check passes, return to `main` and leave the completed attempt branch intact. Continue to F04
+only when it is available as a guided Academy lesson; unpublished reference exercises are not a
+substitute for the accepted course.
 
-## Recovery
+## Understand the mechanism
 
-If you selected another task or changed unrelated board text, preserve the current attempt and retry:
+The board is the durable record of work state. The task writer owns the legitimate transition and
+its dates; it does not create a fictional secondary audit record for this lesson. The learner's job
+is to inspect the state, bound the change, approve it, and preserve it through the project’s commit
+gate.
 
-```powershell
-python scripts/academy.py reset F03-work-the-board
-```
-
-Do not amend or erase the old branch to hide the route you tried.
-
-## Next lab
-
-Continue to **F04 — Fix with evidence** after the board checkpoint passes.
+Check is deliberately stricter than “the line looks done.” It ties the final state to the prepared
+baseline, requires exactly one post-Prepare learner commit containing only the board, and requires
+a clean worktree. That produces evidence another person can inspect without trusting a chat
+transcript or guessing what happened between commands.

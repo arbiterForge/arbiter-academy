@@ -331,6 +331,45 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"
+        text = path.read_text(encoding="utf-8")
+        headings = tuple(
+            line[3:] for line in text.splitlines() if line.startswith("## ")
+        )
+
+        self.assertEqual(
+            headings,
+            (
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ),
+        )
+        for action_id in (
+            "F03-prepare", "F03-read-target-task", "F03-start-task",
+            "F03-inspect-started-task", "F03-complete-task", "F03-inspect-final-diff",
+            "F03-stage-board", "F03-review-commit-boundary", "F03-run-commit-gate",
+            "F03-confirm-clean", "F03-check", "F03-return-base", "F03-reset-retry",
+        ):
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+
+        lab = load_track(SOURCE, "foundations").labs[2]
+        self.assertEqual(lab.id, FOUNDATIONS[2])
+        self.assertEqual(
+            lab.host_commands,
+            {
+                "claude-code": "/ca:task start academy.feature.0001",
+                "codex": "$ca-task start academy.feature.0001",
+                "pi": "/ca-task start academy.feature.0001\n/skill:ca-task start academy.feature.0001",
+            },
+        )
+
     def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
         text = path.read_text(encoding="utf-8")
@@ -1090,6 +1129,9 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
             "wrong-id",
             "unrelated-edit",
             "uncommitted",
+            "additional-commit",
+            "co-committed-path",
+            "dirty-unrelated-path",
         )
         for case in cases:
             with self.subTest(case=case):
@@ -1130,6 +1172,25 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
                 elif case == "uncommitted":
                     self._write_done_board(fixture)
                     fixture.commit("leave completion uncommitted", allow_empty=True)
+                elif case == "additional-commit":
+                    self._write_done_board(fixture)
+                    fixture.commit("complete governed task", str(board.relative_to(fixture.root)))
+                    fixture.commit("unrelated learner history", allow_empty=True)
+                elif case == "co-committed-path":
+                    self._write_done_board(fixture)
+                    notes = fixture.root / "learner-notes.md"
+                    notes.write_text("This must stay outside F03 evidence.\n", encoding="utf-8")
+                    fixture.commit(
+                        "complete governed task with unrelated note",
+                        str(board.relative_to(fixture.root)),
+                        str(notes.relative_to(fixture.root)),
+                    )
+                elif case == "dirty-unrelated-path":
+                    self._write_done_board(fixture)
+                    fixture.commit("complete governed task", str(board.relative_to(fixture.root)))
+                    (fixture.root / "learner-notes.md").write_text(
+                        "This worktree is not clean.\n", encoding="utf-8"
+                    )
                 else:
                     raise AssertionError(case)
 

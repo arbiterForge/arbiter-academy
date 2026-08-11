@@ -53,13 +53,73 @@ F02_ACTION_IDS = (
     "F02-return-base",
     "F02-reset-retry",
 )
+F03_DOCUMENT_ID = "F03-work-the-board"
+F03_ACTION_IDS = (
+    "F03-prepare",
+    "F03-read-target-task",
+    "F03-start-task",
+    "F03-inspect-started-task",
+    "F03-complete-task",
+    "F03-inspect-final-diff",
+    "F03-stage-board",
+    "F03-review-commit-boundary",
+    "F03-run-commit-gate",
+    "F03-confirm-clean",
+    "F03-check",
+    "F03-return-base",
+    "F03-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
-    def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
-        """Catches an active learner path routing to the stale Preview 0.4 release."""
+    def test_checked_in_f03_manifest_encodes_a_governed_one_commit_board_lifecycle(self) -> None:
+        """Catches F03 becoming public without an explicit actor/surface/evidence contract."""
+        manifest = load_action_manifest(Path(__file__).parents[1], F03_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), F03_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
+
+        for action_id in ("F03-start-task", "F03-complete-task", "F03-run-commit-gate"):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "agent")
+            self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
+            self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        shell_variants = tuple(
+            variant
+            for action in manifest.actions
+            for variant in action.variants
+            if variant.language in {"powershell", "sh"}
+        )
+        self.assertTrue(shell_variants)
+        for variant in shell_variants:
+            with self.subTest(variant=variant.id):
+                if variant.surface == "harness":
+                    self.assertNotEqual(variant.host, "none")
+                    self.assertTrue(variant.command.startswith("!"))
+                else:
+                    self.assertEqual(variant.surface, "native-terminal")
+                    self.assertEqual(variant.host, "none")
+                    self.assertFalse(variant.command.startswith("!"))
+                self.assertNotIn("python scripts/academy.py", variant.command)
+                self.assertNotIn("<learner-repository>", variant.command)
+
+        boundary = by_id["F03-review-commit-boundary"]
+        self.assertEqual(boundary.actor, "learner")
+        self.assertEqual(boundary.surface, None)
+        self.assertIn(".codearbiter/open-tasks.md", boundary.expected_result)
+        self.assertIn("whole worktree", boundary.instruction)
+        self.assertIn("exactly one learner commit", by_id["F03-run-commit-gate"].evidence)
+        final_diff = by_id["F03-inspect-final-diff"]
+        self.assertTrue(
+            all("git status --short" in variant.command for variant in final_diff.variants)
+        )
+    def test_active_public_action_paths_bind_to_preview_0_6(self) -> None:
+        """Catches an active learner path routing to a prior Preview release."""
         root = Path(__file__).parents[1]
-        for document_id in ("home", DOCUMENT_ID, F02_DOCUMENT_ID, "recovery"):
+        for document_id in ("home", DOCUMENT_ID, F02_DOCUMENT_ID, F03_DOCUMENT_ID, "recovery"):
             with self.subTest(document_id=document_id):
                 manifest = load_action_manifest(root, document_id)
                 published_text = "\n".join(
@@ -73,7 +133,7 @@ class LessonActionTests(unittest.TestCase):
                     )
                 )
                 self.assertNotIn("preview-0.4", published_text)
-                self.assertIn("preview-0.5", published_text)
+                self.assertIn("preview-0.6", published_text)
 
     def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)

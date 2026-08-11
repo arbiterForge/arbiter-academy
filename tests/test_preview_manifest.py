@@ -16,9 +16,9 @@ from academy_engine.preview import load_preview_manifest, validate_preview_manif
 PREVIEW_0_5 = [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
+    "F03-work-the-board",
 ]
 COMING_NEXT = [
-    "F03-work-the-board",
     "F04-fix-with-evidence",
     "P01-feature-through-plan",
     "P02-commit-review-pr",
@@ -37,9 +37,9 @@ PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 KNOWN_LIMITS = (
-    "F01 and F02 are the guided lessons published in Preview 0.5.",
-    "F03-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
-    "P08 and the Power User track are not published in Preview 0.5.",
+    "F01 through F03 are the guided lessons published in Preview 0.6.",
+    "F04 and P01-P07 are coming next after their guided rewrites are accepted.",
+    "P08 and the Power User track are not published in Preview 0.6.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 
@@ -51,7 +51,7 @@ class PreviewManifestTests(unittest.TestCase):
     def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
         root = root or self.root
         manifest: dict[str, object] = {
-            "release": "preview-0.5",
+            "release": "preview-0.6",
             "lesson_contract_version": 1,
             "available_labs": PREVIEW_0_5,
             "runnable_labs": PREVIEW_0_5,
@@ -67,11 +67,27 @@ class PreviewManifestTests(unittest.TestCase):
         manifest.update(changes)
         return manifest
 
+    def test_preview_0_6_is_the_current_immutable_release_with_f03_guided(self) -> None:
+        """Catches a finished F03 lesson remaining inaccessible behind Preview 0.5."""
+        manifest = load_preview_manifest(self.root)
+
+        self.assertEqual(manifest.release, "preview-0.6")
+        self.assertEqual(
+            manifest.guided_labs,
+            (
+                "F01-fork-clone-doctor",
+                "F02-orient-to-state",
+                "F03-work-the-board",
+            ),
+        )
+        self.assertEqual(manifest.runnable_labs, manifest.guided_labs)
+        self.assertEqual(manifest.coming_next[0], "F04-fix-with-evidence")
+
     def test_preview_manifest_separates_runnable_guided_and_coming_next(self) -> None:
         """Catches a public manifest that conflates runnable and guided readiness."""
         manifest = validate_preview_manifest(self.root, self.make_manifest())
 
-        self.assertEqual(manifest.release, "preview-0.5")
+        self.assertEqual(manifest.release, "preview-0.6")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_5))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_5))
@@ -87,7 +103,6 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertEqual(
             manifest.coming_next,
             (
-                "F03-work-the-board",
                 "F04-fix-with-evidence",
                 "P01-feature-through-plan",
                 "P02-commit-review-pr",
@@ -108,10 +123,10 @@ class PreviewManifestTests(unittest.TestCase):
 
     def test_preview_manifest_rejects_the_immediately_stale_release_identity(self) -> None:
         """Catches immutable Preview 0.4 remaining the current publication identity."""
-        with self.assertRaisesRegex(ValueError, "release must be preview-0.5"):
+        with self.assertRaisesRegex(ValueError, "release must be preview-0.6"):
             validate_preview_manifest(
                 self.root,
-                self.make_manifest(release="preview-0.4"),
+                self.make_manifest(release="preview-0.5"),
             )
 
     def test_preview_manifest_rejects_mismatched_compatibility_lists(self) -> None:
@@ -203,8 +218,8 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_an_unavailable_future_lab(self) -> None:
         """Catches a future lab being relabeled as available in this release."""
         manifest = self.make_manifest(
-            available_labs=PREVIEW_0_5 + ["F03-work-the-board"],
-            runnable_labs=PREVIEW_0_5 + ["F03-work-the-board"],
+            available_labs=PREVIEW_0_5 + ["F04-fix-with-evidence"],
+            runnable_labs=PREVIEW_0_5 + ["F04-fix-with-evidence"],
             coming_next=COMING_NEXT[1:],
         )
 
@@ -250,7 +265,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = (self.root / "academy" / "catalog.json").read_bytes()
         self.assertNotIn(b"\r\n", catalog)
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.5.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.6.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -263,7 +278,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.5.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.6.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -373,14 +388,14 @@ class PreviewManifestTests(unittest.TestCase):
         coming_next = schema["properties"]["coming_next"]
         known_limits = schema["properties"]["known_limits"]
 
-        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.5")
+        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.6")
         self.assertEqual(schema["properties"]["lesson_contract_version"]["const"], 1)
-        self.assertEqual((available["minItems"], available["maxItems"]), (2, 2))
+        self.assertEqual((available["minItems"], available["maxItems"]), (3, 3))
         self.assertEqual(
             [entry["const"] for entry in available["prefixItems"]],
             PREVIEW_0_5,
         )
-        self.assertEqual((runnable["minItems"], runnable["maxItems"]), (2, 2))
+        self.assertEqual((runnable["minItems"], runnable["maxItems"]), (3, 3))
         self.assertEqual(
             [entry["const"] for entry in runnable["prefixItems"]],
             PREVIEW_0_5,
@@ -389,7 +404,7 @@ class PreviewManifestTests(unittest.TestCase):
             [entry["const"] for entry in guided["prefixItems"]],
             PREVIEW_0_5,
         )
-        self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (9, 9))
+        self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (8, 8))
         self.assertEqual(
             [entry["const"] for entry in coming_next["prefixItems"]],
             COMING_NEXT,
@@ -425,8 +440,8 @@ class PreviewManifestTests(unittest.TestCase):
         )
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(release_files, ["preview-0.4.json", "preview-0.5.json"])
-        self.assertEqual(manifest.release, "preview-0.5")
+        self.assertEqual(release_files, ["preview-0.4.json", "preview-0.5.json", "preview-0.6.json"])
+        self.assertEqual(manifest.release, "preview-0.6")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_5))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_5))

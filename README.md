@@ -7,19 +7,21 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.5
+## Preview 0.6
 
-Preview 0.5 publishes two guided labs:
+Preview 0.6 publishes three guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
 - **F02 is guided and runnable.** Its lesson turns live CodeArbiter state into a
   bounded, committed orientation record without changing the context it proves.
-- **F03-F04 and P01-P07 are coming next.** They are not public lesson routes
+- **F03 is guided and runnable.** Its lesson moves one scoped task through the
+  sanctioned board lifecycle and preserves a one-file evidence commit.
+- **F04 and P01-P07 are coming next.** They are not public lesson routes
   until each guided rewrite and its acceptance evidence are complete.
 
-P08 and the Power User track are outside Preview 0.5. Graduation is not available
-in Preview 0.5; it remains unavailable until the complete 19-lab course through
+P08 and the Power User track are outside Preview 0.6. Graduation is not available
+in Preview 0.6; it remains unavailable until the complete 19-lab course through
 U07 is published.
 
 ## Start the course
@@ -27,6 +29,7 @@ U07 is published.
 - [Open Arbiter Academy](https://arbiterforge.github.io/arbiter-academy/)
 - [Begin F01 after Home setup - Fork, clone, and Doctor safety](https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/)
 - [Continue to F02 - Orient to live governance state](https://arbiterforge.github.io/arbiter-academy/labs/F02-orient-to-state/)
+- [Continue to F03 - Work the governed board](https://arbiterforge.github.io/arbiter-academy/labs/F03-work-the-board/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

@@ -2931,11 +2931,26 @@ def _semantic(context: _SemanticContext) -> bool:
             if len(commits) == 1
             else ""
         )
-        clean = run_git(
-            root, ["diff", "--no-ext-diff", "--quiet", attempt.head, "--", board], check=False
-        ).returncode == 0
+        learner_commits = tuple(
+            line
+            for line in run_git(
+                root,
+                ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
+                check=False,
+            ).stdout.splitlines()
+            if _SHA40.fullmatch(line)
+        )
+        clean = not run_git(
+            root, ["status", "--porcelain", "--untracked-files=all"], check=False
+        ).stdout
+        exact_commit_boundary = bool(
+            learner_commits == (attempt.head,)
+            and _commit_paths(root, attempt.head) == (board,)
+        )
         return bool(
-            old_match
+            clean
+            and exact_commit_boundary
+            and old_match
             and new_match
             and old_match.group("body") == new_match.group("body")
             and new_match.group("date") == commit_date

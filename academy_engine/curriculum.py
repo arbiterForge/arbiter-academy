@@ -173,8 +173,12 @@ _SCENARIO_COMMANDS = {
 _SCENARIO_COMMANDS["F02-orient-to-state"] = (
     "arbiter-academy --repository . prepare F02-orient-to-state"
 )
+_SCENARIO_COMMANDS["F03-work-the-board"] = (
+    "arbiter-academy --repository . prepare F03-work-the-board"
+)
 _CHECKPOINT_COMMANDS = {
-    "F02-orient-to-state": "arbiter-academy --repository . check F02-orient-to-state"
+    "F02-orient-to-state": "arbiter-academy --repository . check F02-orient-to-state",
+    "F03-work-the-board": "arbiter-academy --repository . check F03-work-the-board",
 }
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (
