@@ -1485,9 +1485,12 @@ class WorkshopQueueCliTests:
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(checked.returncode, 0, checked.stderr)
-            progress = json.loads((root / ".academy" / "progress.json").read_text(encoding="utf-8"))
-            self.assertEqual(progress["checkpoints"][0]["attempt"], f"academy/{lab_id}/2")
+            self.assertEqual(checked.returncode, 1)
+            self.assertEqual(
+                checked.stderr,
+                f"error: {lab_id} is not guided in Academy Preview 0.4\n",
+            )
+            self.assertFalse((root / ".academy" / "progress.json").exists())
             added_verifier = root / "academy_engine" / "benign_extension.py"
             added_verifier.write_text("# benign but unreviewed verifier extension\n", encoding="utf-8")
             subprocess.run(["git", "add", str(added_verifier.relative_to(root))], cwd=root, check=True, capture_output=True, text=True)
