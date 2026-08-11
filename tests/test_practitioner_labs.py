@@ -115,13 +115,13 @@ class PractitionerCurriculumTests(unittest.TestCase):
             self.fail(f"post-P02 source commands are not loadable: {error}")
 
         manifest = load_preview_manifest(SOURCE)
-        published = set(manifest.available_labs)
+        guided = set(manifest.guided_labs)
         self.assertEqual(
-            tuple(lab.id for lab in track.labs[2:] if lab.id in published),
+            tuple(lab.id for lab in track.labs[2:] if lab.id in guided),
             (),
         )
         self.assertEqual(
-            tuple(lab.id for lab in track.labs[2:] if lab.id not in published),
+            tuple(lab.id for lab in track.labs[2:] if lab.id not in guided),
             PRACTITIONER[2:],
         )
 
@@ -153,7 +153,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         ]
                     )
 
-                if lab.id in published:
+                if lab.id in guided:
                     self.assertEqual(exit_code, 0)
                     validated.assert_called_once_with(SOURCE)
                     authoritative.assert_called_once_with(SOURCE)
