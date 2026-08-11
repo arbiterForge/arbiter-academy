@@ -355,7 +355,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
             "F03-prepare", "F03-read-target-task", "F03-start-task",
             "F03-inspect-started-task", "F03-complete-task", "F03-inspect-final-diff",
             "F03-stage-board", "F03-review-commit-boundary", "F03-run-commit-gate",
-            "F03-confirm-clean", "F03-check", "F03-return-base", "F03-reset-retry",
+            "F03-confirm-clean", "F03-check", "F03-reset-retry", "F03-return-base",
         ):
             self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
 

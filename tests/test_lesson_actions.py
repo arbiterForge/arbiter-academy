@@ -66,8 +66,8 @@ F03_ACTION_IDS = (
     "F03-run-commit-gate",
     "F03-confirm-clean",
     "F03-check",
-    "F03-return-base",
     "F03-reset-retry",
+    "F03-return-base",
 )
 
 
@@ -86,6 +86,10 @@ class LessonActionTests(unittest.TestCase):
             self.assertEqual(action.actor, "agent")
             self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
             self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+            self.assertIn("paste", action.instruction.lower())
+            self.assertIn("send", action.instruction.lower())
+            self.assertIn("harness", action.instruction.lower())
+            self.assertIn("not a shell command", action.instruction.lower())
 
         shell_variants = tuple(
             variant

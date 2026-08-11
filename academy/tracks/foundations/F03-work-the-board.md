@@ -118,11 +118,13 @@ The final commit has one path and the entire attempt has one learner commit. If 
 commit, or dirty file exists, preserve it and use a numbered retry rather than making the history
 look simpler than it was.
 
-{{action:F03-return-base}}
-
 {{action:F03-reset-retry}}
 
-After Check passes, return to `main` and leave the completed attempt branch intact. Continue to F04
+After a successful Check, return to `main` and leave the completed attempt branch intact.
+
+{{action:F03-return-base}}
+
+Continue to F04
 only when it is available as a guided Academy lesson; unpublished reference exercises are not a
 substitute for the accepted course.
 

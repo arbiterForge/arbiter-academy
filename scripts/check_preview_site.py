@@ -196,8 +196,8 @@ _EXPECTED_ACTION_IDS = {
         "F03-run-commit-gate",
         "F03-confirm-clean",
         "F03-check",
-        "F03-return-base",
         "F03-reset-retry",
+        "F03-return-base",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"

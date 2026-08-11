@@ -30,7 +30,7 @@
     },
     {
       "id": "F03-start-task", "sequence": 3, "title": "Let CodeArbiter start the target", "actor": "agent", "surface": null,
-      "instruction": "In the active CodeArbiter harness, invoke the host-native start command after the learner has identified the target. This is a CodeArbiter command, not a shell command, so it never begins with !.",
+      "instruction": "In the selected CodeArbiter harness, paste the copied host-native start command into the harness prompt and send it after the learner has identified the target. It is not a shell command, so it never begins with !. The agent performs the sanctioned transition.",
       "rationale": "The task writer performs the sanctioned queued-to-in-progress transition and supplies its real date.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:task start academy.feature.0001","copy":true},
@@ -53,7 +53,7 @@
     },
     {
       "id": "F03-complete-task", "sequence": 5, "title": "Let CodeArbiter complete the target", "actor": "agent", "surface": null,
-      "instruction": "In the active CodeArbiter harness, invoke the host-native done command. The task writer rejects a queued-to-done shortcut, so this follows the observed start state.",
+      "instruction": "In the selected CodeArbiter harness, paste the copied host-native done command into the harness prompt and send it. It is not a shell command. The agent performs the completion after the learner has observed the started state; the task writer rejects a queued-to-done shortcut.",
       "rationale": "Completion records the same task as done with a real date while retaining its scope and evidence text.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:task done academy.feature.0001","copy":true},
@@ -98,7 +98,7 @@
     },
     {
       "id": "F03-run-commit-gate", "sequence": 9, "title": "Let CodeArbiter commit the board evidence", "actor": "agent", "surface": null,
-      "instruction": "After the learner approves the staged boundary, invoke the host-native CodeArbiter commit gate. Do not use git commit or a shell exclamation mark.",
+      "instruction": "After the learner approves the staged boundary, paste the copied host-native commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the CodeArbiter commit gate; do not use git commit or a shell exclamation mark.",
       "rationale": "The commit gate records the approved evidence through the same governed path the course teaches.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
@@ -131,18 +131,7 @@
       "expected_result": "Check prints checkpoint F03-work-the-board: passed; progress: .academy/progress.json.", "recovery": "If Check fails, preserve the clean committed attempt and read the named predicate. Reset creates a new numbered attempt without erasing the failed one.", "evidence": "Only a passing external Check records F03 progress."
     },
     {
-      "id": "F03-return-base", "sequence": 12, "title": "Return to main after success", "actor": "learner", "surface": null,
-      "instruction": "After Check passes, return to main without deleting the completed attempt branch.",
-      "rationale": "The completed branch remains available as durable, reviewable lesson evidence.", "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
-      ],
-      "expected_result": "Git switches to main and leaves academy/F03-work-the-board/ATTEMPT_NUMBER reachable.", "recovery": "If Git refuses because work is uncommitted, stop and preserve it. Do not force the switch.", "evidence": "The completed evidence remains separated from main."
-    },
-    {
-      "id": "F03-reset-retry", "sequence": 13, "title": "Create a preserved numbered retry", "actor": "learner", "surface": null,
+      "id": "F03-reset-retry", "sequence": 12, "title": "Create a preserved numbered retry", "actor": "learner", "surface": null,
       "instruction": "Use this only when F03 needs another attempt. Run Reset from a native terminal at the Academy clone root.",
       "rationale": "Reset preserves the old attempt and prepares the next unused attempt number.", "resources": [],
       "variants": [
@@ -151,6 +140,17 @@
         {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
       ],
       "expected_result": "Academy archives the prior attempt and prints the next academy/F03-work-the-board/ATTEMPT_NUMBER branch.", "recovery": "If Reset stops, preserve its message and current branch. Never force-reset or delete the prior attempt.", "evidence": "The retry starts clean while the earlier route remains reachable."
+    },
+    {
+      "id": "F03-return-base", "sequence": 13, "title": "Return to main after success", "actor": "learner", "surface": null,
+      "instruction": "After Check passes, return to main without deleting the completed attempt branch.",
+      "rationale": "The completed branch remains available as durable, reviewable lesson evidence.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main and leaves academy/F03-work-the-board/ATTEMPT_NUMBER reachable.", "recovery": "If Git refuses because work is uncommitted, stop and preserve it. Do not force the switch.", "evidence": "The completed evidence remains separated from main."
     }
   ]
 }

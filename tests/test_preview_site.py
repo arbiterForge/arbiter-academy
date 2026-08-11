@@ -267,8 +267,8 @@ class PreviewSiteTests(unittest.TestCase):
                 "F03-run-commit-gate",
                 "F03-confirm-clean",
                 "F03-check",
-                "F03-return-base",
                 "F03-reset-retry",
+                "F03-return-base",
             ),
         )
         self.assertIn("Coming next", index)
