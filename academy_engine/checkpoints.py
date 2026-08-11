@@ -986,6 +986,25 @@ def _changed_document(context: "_SemanticContext", path: str) -> str | None:
     ) else None
 
 
+def _f04_has_uncommitted_learner_changes(root: Path) -> bool:
+    """Reject every F04 worktree change except exercised interpreter cache files."""
+    status = run_git(
+        root, ["status", "--porcelain", "--untracked-files=all"], check=False
+    )
+    if status.returncode != 0:
+        return True
+    allowed_cache_prefixes = (
+        "tests/__pycache__/test_service.cpython-",
+        "workshop_queue/__pycache__/service.cpython-",
+    )
+    for line in status.stdout.splitlines():
+        path = line[3:]
+        if path.endswith(".pyc") and path.startswith(allowed_cache_prefixes):
+            continue
+        return True
+    return False
+
+
 def _control_regression_method_matches_contract(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
 ) -> bool:
@@ -2984,6 +3003,7 @@ def _semantic(context: _SemanticContext) -> bool:
                 _git_blob(root, attempt.prepared, code),
                 _git_blob(root, attempt.head, code),
             )
+            and not _f04_has_uncommitted_learner_changes(root)
         )
     if profile == "feature_spec_plan":
         return _p01_feature_spec_plan(context)
