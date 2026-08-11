@@ -186,6 +186,30 @@ def git_bytes(root: Path, *args: str) -> bytes:
 
 
 class ScenarioTests(unittest.TestCase):
+    def test_p02_patch_applies_to_canonical_current_sources(self) -> None:
+        """A profile policy edit must not leave the shipped P02 mutation stale."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = Path(__file__).parents[1]
+        for relative in ("workshop_queue/cli.py", "tests/test_cli.py"):
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((source / relative).read_bytes())
+        git(root, "add", "workshop_queue/cli.py", "tests/test_cli.py")
+        git(root, "commit", "-m", "add canonical P02 sources")
+
+        patch_path = root / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        checked = subprocess.run(
+            ["git", "apply", "--check", "--", str(patch_path)],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+
     def setUp(self) -> None:
         self.temporary, self.root = academy_git_fixture()
         self.addCleanup(self.temporary.cleanup)

@@ -15,7 +15,7 @@ from academy_engine.checkpoints import evaluate_checkpoint
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
-from academy_engine.scenario import PreparationError, prepare_lab
+from academy_engine.scenario import PreparationError, prepare_lab, reset_lab
 from tests._temporary import cleanup_temporary_directory
 
 
@@ -331,6 +331,52 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f02_keeps_the_legacy_curriculum_anatomy(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
+        headings = tuple(
+            line[3:] for line in path.read_text(encoding="utf-8").splitlines()
+            if line.startswith("## ")
+        )
+
+        self.assertEqual(
+            headings,
+            (
+                "Why this mechanism matters", "Start the scenario", "Use your host",
+                "Do the work", "Hints", "Success evidence", "Recovery", "Next lab",
+            ),
+        )
+        self.assertEqual(load_track(SOURCE, "foundations").labs[1].id, FOUNDATIONS[1])
+
+    def test_f01_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F01-fork-clone-doctor.md"
+        text = path.read_text(encoding="utf-8")
+        headings = tuple(
+            line[3:] for line in text.splitlines() if line.startswith("## ")
+        )
+
+        self.assertEqual(
+            headings,
+            (
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ),
+        )
+        for action_id in (
+            "F01-prepare", "F01-inspect-remotes", "F01-repair-origin",
+            "F01-set-upstream", "F01-disable-upstream-push",
+            "F01-select-push-default", "F01-host-doctor", "F01-academy-doctor",
+            "F01-inspect-report", "F01-stage-report", "F01-review-commit-boundary",
+            "F01-commit-report", "F01-confirm-clean", "F01-check",
+            "F01-return-base", "F01-reset-retry",
+        ):
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         track = load_track(SOURCE, "foundations")
 
@@ -392,7 +438,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copytree(SOURCE / "academy", root / "academy")
-            path = root / "academy/tracks/foundations/F01-fork-clone-doctor.md"
+            path = root / "academy/tracks/foundations/F02-orient-to-state.md"
             text = path.read_text(encoding="utf-8")
             duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
             path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")
@@ -438,7 +484,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copytree(SOURCE / "academy", root / "academy")
-            path = root / "academy/tracks/foundations/F01-fork-clone-doctor.md"
+            path = root / "academy/tracks/foundations/F02-orient-to-state.md"
             text = path.read_text(encoding="utf-8")
             start = text.index("## Why this mechanism matters")
             end = text.index("## Start the scenario")
@@ -476,6 +522,139 @@ class FoundationsCurriculumTests(unittest.TestCase):
 
 
 class FoundationsScenarioTests(unittest.TestCase):
+    def test_f01_complete_real_repository_lifecycle_records_progress_after_external_check(self) -> None:
+        fixture = AcademyRepository()
+        self.addCleanup(fixture.close)
+        fixture.add_safe_upstream()
+        git(fixture.root, "config", "remote.pushDefault", "origin")
+
+        prepared = prepare_lab(fixture.root, FOUNDATIONS[0])
+        report = record_foundations_doctor(fixture.root, inspect_doctor(fixture.root))
+        self.assertEqual(
+            json.loads(report.read_text(encoding="utf-8")),
+            {
+                "schema_version": 1,
+                "safe_for_push_labs": True,
+                "effective_push_remote": "origin",
+            },
+        )
+        fixture.commit("record doctor result", ".codearbiter/reports/academy/F01-doctor.json")
+        self.assertEqual(git(fixture.root, "status", "--short").stdout, "")
+
+        command = subprocess.run(
+            [
+                sys.executable,
+                str(SOURCE / "scripts/academy.py"),
+                "--repository",
+                str(fixture.root),
+                "check",
+                FOUNDATIONS[0],
+            ],
+            cwd=SOURCE,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(command.returncode, 0, command.stderr)
+        self.assertEqual(
+            command.stdout.strip(),
+            "checkpoint F01-fork-clone-doctor: passed; progress: .academy/progress.json",
+        )
+        progress = json.loads((fixture.root / ".academy/progress.json").read_text(encoding="utf-8"))
+        self.assertEqual(progress["checkpoints"][0]["attempt"], prepared.branch)
+
+    def test_f01_failed_mutations_preserve_the_attempt_commit(self) -> None:
+        for case in (
+            "uncommitted-report",
+            "extra-committed-path",
+            "changed-live-origin",
+            "missing-upstream-push-disable",
+            "wrong-push-default",
+        ):
+            with self.subTest(case=case):
+                fixture = AcademyRepository()
+                self.addCleanup(fixture.close)
+                fixture.add_safe_upstream()
+                git(fixture.root, "config", "remote.pushDefault", "origin")
+                prepare_lab(fixture.root, FOUNDATIONS[0])
+                report = record_foundations_doctor(fixture.root, inspect_doctor(fixture.root))
+                if case == "uncommitted-report":
+                    attempt_commit = git(fixture.root, "rev-parse", "HEAD").stdout.strip()
+                else:
+                    paths = [str(report.relative_to(fixture.root))]
+                    if case == "extra-committed-path":
+                        extra = fixture.root / "learner-notes.txt"
+                        extra.write_text("not F01 evidence\n", encoding="utf-8")
+                        paths.append(str(extra.relative_to(fixture.root)))
+                    attempt_commit = fixture.commit("record doctor result", *paths)
+                if case == "changed-live-origin":
+                    git(fixture.root, "remote", "set-url", "origin", "https://github.com/arbiterForge/arbiter-academy.git")
+                elif case == "missing-upstream-push-disable":
+                    git(fixture.root, "remote", "set-url", "--push", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+                elif case == "wrong-push-default":
+                    git(fixture.root, "config", "remote.pushDefault", "upstream")
+
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[0])
+
+                self.assertFalse(result.passed)
+                self.assertEqual(git(fixture.root, "rev-parse", "HEAD").stdout.strip(), attempt_commit)
+
+    def test_f01_reset_preserves_the_failed_attempt_and_prepares_a_retry(self) -> None:
+        fixture = AcademyRepository()
+        self.addCleanup(fixture.close)
+        fixture.add_safe_upstream()
+        git(fixture.root, "config", "remote.pushDefault", "origin")
+        prepared = prepare_lab(fixture.root, FOUNDATIONS[0])
+        report = record_foundations_doctor(fixture.root, inspect_doctor(fixture.root))
+        attempt_commit = fixture.commit("record doctor result", str(report.relative_to(fixture.root)))
+
+        retry = reset_lab(fixture.root, FOUNDATIONS[0])
+
+        self.assertEqual(retry.branch, "academy/F01-fork-clone-doctor/2")
+        archive_refs = git(
+            fixture.root,
+            "for-each-ref",
+            "--format=%(refname)",
+            "refs/heads/academy/archive/F01-fork-clone-doctor/",
+        ).stdout.splitlines()
+        self.assertEqual(len(archive_refs), 1)
+        self.assertEqual(
+            git(fixture.root, "rev-parse", archive_refs[0]).stdout.strip(),
+            attempt_commit,
+        )
+
+    def test_f01_in_checkout_check_refuses_circular_authority_and_preserves_commit(self) -> None:
+        fixture = AcademyRepository()
+        self.addCleanup(fixture.close)
+        fixture.add_safe_upstream()
+        git(fixture.root, "config", "remote.pushDefault", "origin")
+        prepare_lab(fixture.root, FOUNDATIONS[0])
+        report = record_foundations_doctor(fixture.root, inspect_doctor(fixture.root))
+        attempt_commit = fixture.commit("record doctor result", str(report.relative_to(fixture.root)))
+
+        command = subprocess.run(
+            [
+                sys.executable,
+                str(fixture.root / "scripts/academy.py"),
+                "--repository",
+                str(fixture.root),
+                "check",
+                FOUNDATIONS[0],
+            ],
+            cwd=fixture.root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(command.returncode, 1, command.stdout + command.stderr)
+        self.assertIn("installed outside the target repository", command.stderr)
+        self.assertEqual(git(fixture.root, "rev-parse", "HEAD").stdout.strip(), attempt_commit)
+        self.assertFalse((fixture.root / ".academy/progress.json").exists())
+
     def test_f01_prepare_accepts_a_fork_safe_origin_before_upstream_is_configured(self) -> None:
         fixture = AcademyRepository()
         self.addCleanup(fixture.close)

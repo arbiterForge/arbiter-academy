@@ -1,5 +1,6 @@
 import json
 import hashlib
+import errno
 import os
 import shutil
 import tempfile
@@ -40,6 +41,7 @@ from academy_engine.checkpoints import (
 )
 from academy_engine.exercise_state import P08AttemptIdentity
 from academy_engine.p05_fixture import stage_p05_fixture
+from tests._temporary import RetryingTemporaryDirectory
 from tests.test_p07_threat_model import P07_INTENDED_REPORT, REPORT_PATH, TARGET_PATH
 
 _P05_TEST_NAME = (
@@ -77,9 +79,35 @@ _P05_ROLE_PATHS = (
     (".codearbiter/checkpoints/P05-academy.json",),
 )
 
+
+class CheckpointFixtureCleanupTests(unittest.TestCase):
+    def test_real_git_checkpoint_fixtures_retry_transient_git_cleanup_races(self) -> None:
+        """Catches transient Git pack-file teardown races escaping these fixtures."""
+        fixtures = (
+            (CheckpointTests, "test_p07_direct_target_object_rejects_wrong_blob_and_bytes"),
+            (P03NativeEvidenceTests, "test_p03_accepts_the_equivalent_ordered_two_commit_history"),
+            (P04NativeDependencyReviewTests, "test_accepts_real_reject_and_two_commit_acceptance_paths"),
+        )
+        for fixture, test_name in fixtures:
+            with self.subTest(fixture=fixture.__name__):
+                case = fixture(test_name)
+                case.setUp()
+                base_cleanup = tempfile.TemporaryDirectory.cleanup
+                transient = OSError(errno.ENOTEMPTY, "directory not empty")
+                try:
+                    with mock.patch.object(
+                        tempfile.TemporaryDirectory,
+                        "cleanup",
+                        side_effect=(transient, None),
+                    ) as cleanup:
+                        case.temp.cleanup()
+                    self.assertEqual(cleanup.call_count, 2)
+                finally:
+                    base_cleanup(case.temp)
+
 class CheckpointTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = RetryingTemporaryDirectory()
         self.root = Path(self.temp.name)
         (self.root / "academy" / "checkpoints").mkdir(parents=True)
         (self.root / "academy" / "catalog.json").write_text('{"schema_version":1,"labs":[]}', encoding="utf-8")
@@ -1485,9 +1513,12 @@ class WorkshopQueueCliTests:
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(checked.returncode, 0, checked.stderr)
-            progress = json.loads((root / ".academy" / "progress.json").read_text(encoding="utf-8"))
-            self.assertEqual(progress["checkpoints"][0]["attempt"], f"academy/{lab_id}/2")
+            self.assertEqual(checked.returncode, 1)
+            self.assertEqual(
+                checked.stderr,
+                f"error: {lab_id} is not guided in Academy Preview 0.4\n",
+            )
+            self.assertFalse((root / ".academy" / "progress.json").exists())
             added_verifier = root / "academy_engine" / "benign_extension.py"
             added_verifier.write_text("# benign but unreviewed verifier extension\n", encoding="utf-8")
             subprocess.run(["git", "add", str(added_verifier.relative_to(root))], cwd=root, check=True, capture_output=True, text=True)
@@ -1574,7 +1605,7 @@ class P03NativeEvidenceTests(unittest.TestCase):
     """Exercise the P03 evidence predicate against immutable, real Git history."""
 
     def setUp(self) -> None:
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = RetryingTemporaryDirectory()
         self.root = Path(self.temp.name)
         subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "config", "user.name", "Ada Learner"], cwd=self.root, check=True)
@@ -1851,7 +1882,7 @@ class P04NativeDependencyReviewTests(unittest.TestCase):
     wrapper_path = ".codearbiter/reports/academy/P04-approved-dependency.lock.json"
 
     def setUp(self) -> None:
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = RetryingTemporaryDirectory()
         self.root = Path(self.temp.name)
         subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "config", "user.name", "Fixture"], cwd=self.root, check=True)

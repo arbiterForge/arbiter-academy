@@ -421,11 +421,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.3.json"
+                        "share/arbiter-academy/academy/publication/preview-0.4.json"
                     )
                     for name in names
                 ),
-                "preview-0.3.json",
+                "preview-0.4.json",
             )
             self.assertEqual(
                 sum(

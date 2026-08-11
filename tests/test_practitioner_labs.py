@@ -107,8 +107,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 )
                 self.assertNotIn("python scripts/academy.py reset", lab.recovery)
 
-    def test_post_p02_documented_transitions_dispatch_with_installed_authority(self) -> None:
-        """The documented command shape must select the authoritative CLI route for prepare and reset."""
+    def test_post_p02_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
+        """Future lesson commands must not escape the F01-only public publication gate."""
         try:
             track = load_track(SOURCE, "practitioner")
         except CurriculumError as error:
@@ -117,11 +117,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
         published = set(load_preview_manifest(SOURCE).available_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in published),
-            PRACTITIONER[2:7],
+            (),
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in published),
-            PRACTITIONER[7:],
+            PRACTITIONER[2:],
         )
 
         for lab in track.labs[2:]:
@@ -165,7 +165,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(exit_code, 1)
                     self.assertEqual(
                         output.getvalue(),
-                        f"error: {lab.id} is not available in Academy Preview 0.3\n",
+                        f"error: {lab.id} is not guided in Academy Preview 0.4\n",
                     )
                     validated.assert_not_called()
                     authoritative.assert_not_called()
@@ -184,17 +184,15 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 if lab.id not in published or lab.next_lab in published:
                     continue
                 guide_path = SOURCE / f"academy/tracks/{track.id}/{lab.id}.md"
-                next_section = guide_path.read_text(encoding="utf-8").partition(
-                    "## Next lab"
-                )[2]
+                guide = guide_path.read_text(encoding="utf-8")
                 current_code = lab.id.partition("-")[0]
                 next_code = lab.next_lab.partition("-")[0]
                 with self.subTest(lab=lab.id, next_lab=lab.next_lab):
                     self.assertIn(
-                        f"{next_code} is not available in Academy Preview 0.3.",
-                        next_section,
+                        "Academy lesson appears on the course home only after its guided rewrite",
+                        guide,
                     )
-                    self.assertNotIn(f"after {current_code} passes", next_section)
+                    self.assertNotIn(f"Continue to {next_code} only after {current_code} passes", guide)
 
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         """Catches a missing/reordered lab or a guide wired to the wrong governed surface."""

@@ -7,12 +7,14 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from academy_engine import preview
 from academy_engine.preview import load_preview_manifest, validate_preview_manifest
 
 
-PREVIEW_0_3 = [
-    "F01-fork-clone-doctor",
+PREVIEW_0_4 = ["F01-fork-clone-doctor"]
+COMING_NEXT = [
     "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
@@ -24,8 +26,20 @@ PREVIEW_0_3 = [
     "P06-context-drift-recovery",
     "P07-threat-model",
 ]
-COMING_NEXT: list[str] = []
 DISCUSSION_URL = "https://github.com/arbiterForge/arbiter-academy/discussions"
+PUBLIC_PREREQUISITES = (
+    "A GitHub account that can create a personal fork.",
+    "Git 2.39 or newer.",
+    "Python 3.11 or newer.",
+    "A supported CodeArbiter host: Claude Code, Codex, or Pi.",
+    "Complete Academy Home setup steps 1-5 before starting F01.",
+)
+KNOWN_LIMITS = (
+    "F01 is the only guided lesson published in Preview 0.4.",
+    "F02-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
+    "P08 and the Power User track are not published in Preview 0.4.",
+    "Graduation is unavailable until the complete 19-lab course is published.",
+)
 
 
 class PreviewManifestTests(unittest.TestCase):
@@ -35,9 +49,14 @@ class PreviewManifestTests(unittest.TestCase):
     def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
         root = root or self.root
         manifest: dict[str, object] = {
-            "release": "preview-0.3",
-            "available_labs": PREVIEW_0_3,
+            "release": "preview-0.4",
+            "lesson_contract_version": 1,
+            "available_labs": PREVIEW_0_4,
+            "runnable_labs": PREVIEW_0_4,
+            "guided_labs": ["F01-fork-clone-doctor"],
             "coming_next": COMING_NEXT,
+            "prerequisites": list(PUBLIC_PREREQUISITES),
+            "known_limits": list(KNOWN_LIMITS),
             "discussion_url": DISCUSSION_URL,
             "catalog_sha256": hashlib.sha256(
                 (root / "academy" / "catalog.json").read_bytes()
@@ -46,9 +65,133 @@ class PreviewManifestTests(unittest.TestCase):
         manifest.update(changes)
         return manifest
 
+    def test_preview_manifest_separates_runnable_guided_and_coming_next(self) -> None:
+        """Catches a public manifest that conflates runnable and guided readiness."""
+        manifest = validate_preview_manifest(self.root, self.make_manifest())
+
+        self.assertEqual(manifest.release, "preview-0.4")
+        self.assertEqual(manifest.lesson_contract_version, 1)
+        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_4))
+        self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_4))
+        self.assertEqual(manifest.guided_labs, ("F01-fork-clone-doctor",))
+        self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
+
+    def test_public_release_exposes_only_lessons_that_are_fully_guided(self) -> None:
+        """Reference material must not be advertised as a runnable public Academy lab."""
+        manifest = load_preview_manifest(self.root)
+
+        self.assertEqual(manifest.available_labs, manifest.guided_labs)
+        self.assertEqual(manifest.runnable_labs, manifest.guided_labs)
+        self.assertEqual(
+            manifest.coming_next,
+            (
+                "F02-orient-to-state",
+                "F03-work-the-board",
+                "F04-fix-with-evidence",
+                "P01-feature-through-plan",
+                "P02-commit-review-pr",
+                "P03-record-an-adr",
+                "P04-review-a-dependency",
+                "P05-checkpoint-remediation",
+                "P06-context-drift-recovery",
+                "P07-threat-model",
+            ),
+        )
+
+    def test_preview_manifest_exposes_public_onboarding_prerequisites_and_known_limits(self) -> None:
+        """Catches a public release record that omits the conditions or limits of use."""
+        manifest = load_preview_manifest(self.root)
+
+        self.assertEqual(manifest.prerequisites, PUBLIC_PREREQUISITES)
+        self.assertEqual(manifest.known_limits, KNOWN_LIMITS)
+
+    def test_preview_manifest_rejects_the_immediately_stale_release_identity(self) -> None:
+        """Catches Preview 0.3 remaining the current publication identity."""
+        with self.assertRaisesRegex(ValueError, "release must be preview-0.4"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(release="preview-0.3"),
+            )
+
+    def test_preview_manifest_rejects_mismatched_compatibility_lists(self) -> None:
+        """Catches the legacy available list disagreeing with runnable lab access."""
+        with self.assertRaisesRegex(ValueError, "available_labs must equal runnable_labs"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(available_labs=PREVIEW_0_4[:-1]),
+            )
+
+    def test_preview_manifest_rejects_a_boolean_lesson_contract_version(self) -> None:
+        """Catches JSON booleans being mistaken for contract version integer 1."""
+        with self.assertRaisesRegex(ValueError, "lesson_contract_version must be integer 1"):
+            validate_preview_manifest(self.root, self.make_manifest(lesson_contract_version=True))
+
+    def test_preview_manifest_rejects_unordered_guided_labs(self) -> None:
+        """Catches an unpublished lab entering the guided claim."""
+        with self.assertRaisesRegex(ValueError, "guided_labs must be an ordered subset"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(guided_labs=["F02-orient-to-state", "F01-fork-clone-doctor"]),
+            )
+
+    def test_preview_manifest_rejects_an_omitted_required_guided_lab(self) -> None:
+        """Catches Preview 0.4 claiming no guided lesson at all."""
+        with self.assertRaisesRegex(ValueError, "guided_labs must list only the reviewed F01 lesson"):
+            validate_preview_manifest(self.root, self.make_manifest(guided_labs=[]))
+
+    def test_preview_manifest_rejects_a_false_guided_claim(self) -> None:
+        """Catches an unpublished lesson being publicly marked guided."""
+        with self.assertRaisesRegex(ValueError, "guided_labs"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(guided_labs=["P06-context-drift-recovery"]),
+            )
+
+    def test_preview_manifest_rejects_runnable_labs_also_marked_coming_next(self) -> None:
+        """Catches a lab simultaneously advertised as runnable and upcoming."""
+        with self.assertRaisesRegex(ValueError, "runnable_labs must not overlap coming_next"):
+            validate_preview_manifest(
+                self.root,
+                self.make_manifest(coming_next=["F01-fork-clone-doctor"]),
+            )
+
+    def test_preview_manifest_exposes_distinct_runnable_and_guided_guards(self) -> None:
+        """Catches verifier access and guided-lesson access silently sharing a claim."""
+        preview.require_runnable_lab(self.root, "F01-fork-clone-doctor")
+        preview.require_guided_lab(self.root, "F01-fork-clone-doctor")
+        preview.require_published_lab(self.root, "F01-fork-clone-doctor")
+        with self.assertRaisesRegex(ValueError, "not runnable"):
+            preview.require_runnable_lab(self.root, "P05-checkpoint-remediation")
+        with self.assertRaisesRegex(ValueError, "not guided"):
+            preview.require_guided_lab(self.root, "P05-checkpoint-remediation")
+
+    def test_published_command_access_requires_a_guided_lesson(self) -> None:
+        """Catches a future runnable-only lesson being dispatched before its public guidance exists."""
+        future_manifest = preview.PreviewManifest(
+            release="academy-1.0",
+            lesson_contract_version=1,
+            available_labs=("F01-fork-clone-doctor", "F02-orient-to-state"),
+            runnable_labs=("F01-fork-clone-doctor", "F02-orient-to-state"),
+            guided_labs=("F01-fork-clone-doctor",),
+            coming_next=(),
+            prerequisites=PUBLIC_PREREQUISITES,
+            known_limits=KNOWN_LIMITS,
+            discussion_url=DISCUSSION_URL,
+            catalog_sha256="a" * 64,
+        )
+
+        with patch("academy_engine.preview.load_preview_manifest", return_value=future_manifest):
+            preview.require_published_lab(self.root, "F01-fork-clone-doctor")
+            with self.assertRaisesRegex(ValueError, "not guided"):
+                preview.require_published_lab(self.root, "F02-orient-to-state")
+
     def test_preview_manifest_requires_the_full_prerequisite_closure(self) -> None:
         """Catches publication of a lab whose required learning path is absent."""
-        manifest = self.make_manifest(available_labs=["P04-review-a-dependency"])
+        manifest = self.make_manifest(
+            available_labs=["P04-review-a-dependency"],
+            runnable_labs=["P04-review-a-dependency"],
+            coming_next=[],
+        )
 
         with self.assertRaisesRegex(ValueError, "missing prerequisite"):
             validate_preview_manifest(self.root, manifest)
@@ -56,14 +199,16 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_an_unavailable_future_lab(self) -> None:
         """Catches a future lab being relabeled as available in this release."""
         manifest = self.make_manifest(
-            available_labs=PREVIEW_0_3 + ["P08-repository-hygiene"]
+            available_labs=PREVIEW_0_4 + ["F02-orient-to-state"],
+            runnable_labs=PREVIEW_0_4 + ["F02-orient-to-state"],
+            coming_next=COMING_NEXT[1:],
         )
 
         with self.assertRaisesRegex(ValueError, "not eligible"):
             validate_preview_manifest(self.root, manifest)
 
     def test_preview_manifest_requires_the_reviewed_available_and_status_only_lists(self) -> None:
-        """Catches omission or substitution in the public Preview 0.3 boundary."""
+        """Catches omission or substitution in the public Preview 0.4 boundary."""
         manifest = self.make_manifest(coming_next=["P08-repository-hygiene"])
 
         with self.assertRaisesRegex(ValueError, "coming_next"):
@@ -101,7 +246,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = (self.root / "academy" / "catalog.json").read_bytes()
         self.assertNotIn(b"\r\n", catalog)
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.3.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.4.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -114,7 +259,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.3.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.4.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -211,26 +356,44 @@ class PreviewManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "catalog schema"):
                 validate_preview_manifest(root, self.make_manifest(root))
 
-    def test_publication_schema_pins_eleven_available_and_no_status_only_labs(self) -> None:
-        """Catches a second publication truth that disagrees with Preview 0.3."""
+    def test_publication_schema_pins_one_guided_public_lab_and_status_only_follow_ups(self) -> None:
+        """Catches a second publication truth that disagrees with Preview 0.4."""
         schema = json.loads(
             (self.root / "academy" / "publication" / "preview-manifest.schema.json").read_text(
                 encoding="utf-8"
             )
         )
         available = schema["properties"]["available_labs"]
+        runnable = schema["properties"]["runnable_labs"]
+        guided = schema["properties"]["guided_labs"]
         coming_next = schema["properties"]["coming_next"]
+        known_limits = schema["properties"]["known_limits"]
 
-        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.3")
-        self.assertEqual((available["minItems"], available["maxItems"]), (11, 11))
+        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.4")
+        self.assertEqual(schema["properties"]["lesson_contract_version"]["const"], 1)
+        self.assertEqual((available["minItems"], available["maxItems"]), (1, 1))
         self.assertEqual(
             [entry["const"] for entry in available["prefixItems"]],
-            PREVIEW_0_3,
+            PREVIEW_0_4,
         )
-        self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (0, 0))
+        self.assertEqual((runnable["minItems"], runnable["maxItems"]), (1, 1))
+        self.assertEqual(
+            [entry["const"] for entry in runnable["prefixItems"]],
+            PREVIEW_0_4,
+        )
+        self.assertEqual(
+            [entry["const"] for entry in guided["prefixItems"]],
+            ["F01-fork-clone-doctor"],
+        )
+        self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (10, 10))
         self.assertEqual(
             [entry["const"] for entry in coming_next["prefixItems"]],
             COMING_NEXT,
+        )
+        self.assertEqual((known_limits["minItems"], known_limits["maxItems"]), (4, 4))
+        self.assertEqual(
+            [entry["const"] for entry in known_limits["prefixItems"]],
+            list(KNOWN_LIMITS),
         )
 
     def test_preview_manifest_rejects_a_boolean_schema_order_pin(self) -> None:
@@ -258,10 +421,15 @@ class PreviewManifestTests(unittest.TestCase):
         )
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(release_files, ["preview-0.3.json"])
-        self.assertEqual(manifest.release, "preview-0.3")
-        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_3))
+        self.assertEqual(release_files, ["preview-0.4.json"])
+        self.assertEqual(manifest.release, "preview-0.4")
+        self.assertEqual(manifest.lesson_contract_version, 1)
+        self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_4))
+        self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_4))
+        self.assertEqual(manifest.guided_labs, ("F01-fork-clone-doctor",))
         self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
+        self.assertEqual(manifest.prerequisites, PUBLIC_PREREQUISITES)
+        self.assertEqual(manifest.known_limits, KNOWN_LIMITS)
         self.assertEqual(manifest.discussion_url, DISCUSSION_URL)
 
 

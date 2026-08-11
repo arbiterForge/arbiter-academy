@@ -13,21 +13,38 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from academy_engine.lesson_actions import validate_action_resource_href
+
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+OPERATING_SYSTEMS = frozenset({"windows", "macos", "linux"})
+HOSTS = frozenset({"claude-code", "codex", "pi"})
 _CSS_URL = re.compile(r"url\(\s*[\"']?([^\"')]+)")
 _CSS_IMPORT = re.compile(
     r"@import\s+(?:url\(\s*)?(?:[\"']([^\"']+)[\"']|([^\"'()\s;]+))\s*\)?",
     re.IGNORECASE,
 )
 _EXTERNAL_URLS = {
-    "https://github.com/arbiterForge/arbiter-academy",
-    "https://github.com/arbiterForge/arbiter-academy/fork",
-    "https://github.com/arbiterForge/arbiter-academy/discussions",
     "https://codearbiter.dev/",
+    "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
 }
+
+
+def _is_approved_external_url(target: str) -> bool:
+    if target in _EXTERNAL_URLS:
+        return True
+    try:
+        validate_action_resource_href(target)
+    except ValueError:
+        return False
+    return True
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "598d570d7fcb1eba7d752a011d9bc6d1ed472d4b3874f94bc21083eeab2aee09",
+    Path("assets/academy.css"): "4895e9799cc5f03f922116cedbb50d0afe85eec6810a7b1acddb65dc4ab48153",
+    Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
     Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (
         "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
@@ -49,19 +66,19 @@ _ALLOWED_HTML_ATTRIBUTES = {
     "a": {"class", "href", "aria-label", "rel"},
     "img": {"class", "src", "alt", "width", "height"},
     "header": {"class"},
-    "div": {"class", "role"},
+    "div": {"class", "role", "aria-labelledby", "data-os", "data-host", "data-surface", "hidden"},
     "span": {"class", "aria-hidden"},
     "nav": {"class", "aria-label"},
     "main": {"id", "tabindex"},
     "footer": {"class"},
-    "p": {"class"},
-    "section": {"class", "aria-labelledby"},
+    "p": {"id", "class", "role", "aria-live"},
+    "section": {"class", "aria-labelledby", "data-action-id"},
     "article": {"class"},
     "aside": {"class", "aria-label"},
     "h1": {"id"},
     "h2": {"id"},
     "h3": {"id"},
-    "code": {"class"},
+    "code": {"id", "class", "tabindex"},
     "pre": set(),
     "ol": {"class"},
     "li": {"class"},
@@ -74,12 +91,16 @@ _ALLOWED_HTML_ATTRIBUTES = {
     "tr": set(),
     "th": set(),
     "td": set(),
+    "button": {"type", "class", "data-os", "data-host", "data-copy-target", "aria-describedby", "aria-pressed"},
+    "script": {"type", "src"},
     "svg": {"width", "height", "viewbox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "aria-hidden"},
     "path": {"d"},
     "circle": {"cx", "cy", "r"},
 }
 _LABS = (
     "F01-fork-clone-doctor",
+)
+_COMING_NEXT = (
     "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
@@ -91,8 +112,66 @@ _LABS = (
     "P06-context-drift-recovery",
     "P07-threat-model",
 )
+_RUNNABLE_LINK_LABELS = (
+    "F01 \u2014 Fork, clone, and Doctor safety",
+)
+_COMING_NEXT_ENTRIES = (
+    ("Foundations: F02, F03, and F04. Guided rewrites are in progress.", False),
+    ("Practitioner: P01 through P07. Guided rewrites are in progress.", False),
+)
+_PUBLIC_PREREQUISITES = (
+    "A GitHub account that can create a personal fork.",
+    "Git 2.39 or newer.",
+    "Python 3.11 or newer.",
+    "A supported CodeArbiter host: Claude Code, Codex, or Pi.",
+    "Complete Academy Home setup steps 1-5 before starting F01.",
+)
+_KNOWN_LIMITS = (
+    "F01 is the only guided lesson published in Preview 0.4.",
+    "F02-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
+    "P08 and the Power User track are not published in Preview 0.4.",
+    "Graduation is unavailable until the complete 19-lab course is published.",
+)
+_EXPECTED_ACTION_IDS = {
+    Path("index.html"): (
+        "home-fork",
+        "home-clone",
+        "home-enter-clone",
+        "home-install",
+        "home-doctor",
+    ),
+    Path("recovery/index.html"): (
+        "recovery-inspect",
+        "recovery-return-attempt",
+        "recovery-repair-remotes",
+        "recovery-check",
+        "recovery-reset",
+        "recovery-return-base",
+    ),
+    Path("labs/F01-fork-clone-doctor/index.html"): (
+        "F01-prepare",
+        "F01-inspect-remotes",
+        "F01-repair-origin",
+        "F01-set-upstream",
+        "F01-disable-upstream-push",
+        "F01-select-push-default",
+        "F01-host-doctor",
+        "F01-academy-doctor",
+        "F01-inspect-report",
+        "F01-stage-report",
+        "F01-review-commit-boundary",
+        "F01-commit-report",
+        "F01-confirm-clean",
+        "F01-check",
+        "F01-return-base",
+        "F01-reset-retry",
+    ),
+}
+_GUIDED_STATUS = "Guided lesson"
+_REFERENCE_STATUS = "Reference lesson \u00b7 guided rewrite pending"
 _EXPECTED_FILES = {
     Path("assets/academy.css"),
+    Path("assets/academy.js"),
     Path("assets/favicon.svg"),
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"),
     Path("assets/fonts/manrope-latin-wght-normal.woff2"),
@@ -111,8 +190,22 @@ class _LinkCollector(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.targets: list[tuple[str, str, str | None]] = []
         self.ids: list[str] = []
-        self.id_references: list[tuple[str, str]] = []
+        self.id_references: list[tuple[str, str, str]] = []
         self.academy_releases: list[str] = []
+        self.copy_bindings: list[tuple[str, str]] = []
+        self.id_contracts: dict[str, tuple[str, dict[str, str | None]]] = {}
+        self.script_sources: list[str] = []
+        self.action_ids: list[str] = []
+        self.anchor_texts: list[tuple[str, str]] = []
+        self.coming_next_entries: list[tuple[str, bool]] = []
+        self.publication_statuses: list[str] = []
+        self._anchor_target: str | None = None
+        self._anchor_text_parts: list[str] | None = None
+        self._coming_next = False
+        self._coming_next_item_has_link = False
+        self._coming_next_item_parts: list[str] | None = None
+        self._publication_status_parts: list[str] | None = None
+        self._script_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         allowed = _ALLOWED_HTML_ATTRIBUTES.get(tag)
@@ -123,29 +216,150 @@ class _LinkCollector(HTMLParser):
             raise ValueError(f"disallowed HTML duplicate attribute on {tag}")
         attributes = dict(attrs)
         for name, value in attrs:
-            if name not in allowed or value is None:
+            if name not in allowed or (value is None and name != "hidden"):
                 raise ValueError(f"disallowed HTML attribute on {tag}: {name}")
+            if name == "hidden":
+                if tag == "div" and attributes.get("class") == "command-variant":
+                    raise ValueError("command variant must remain visible without JavaScript")
+                if not (
+                    tag == "div" and attributes.get("class") == "academy-command-preferences"
+                ):
+                    raise ValueError("hidden is reserved for Academy command preferences")
             if name == "href":
                 self.targets.append((tag, value, attributes.get("rel")))
             if name == "src":
                 self.targets.append((tag, value, None))
             if name == "id":
                 self.ids.append(value)
-            if name == "aria-labelledby":
+                self.id_contracts[value] = (tag, attributes)
+            if name in {"aria-labelledby", "aria-describedby"}:
                 references = value.split()
                 if not references:
-                    raise ValueError(f"empty aria-labelledby reference on {tag}")
-                self.id_references.extend((tag, reference) for reference in references)
+                    raise ValueError(f"empty {name} reference on {tag}")
+                self.id_references.extend((tag, name, reference) for reference in references)
+        if "data-action-id" in attributes and not (
+            tag == "section" and attributes.get("class") == "lesson-action"
+        ):
+            raise ValueError("data-action-id is reserved for exact lesson-action sections")
         if tag == "html" and attributes != {"lang": "en"}:
             raise ValueError("disallowed HTML attributes on html")
         if tag == "link" and attributes.get("rel") not in {"stylesheet", "icon"}:
             raise ValueError("disallowed HTML link relationship")
         if tag == "meta" and attributes.get("name") == "academy-release":
             self.academy_releases.append(attributes.get("content", ""))
+        if tag == "section" and attributes.get("class") == "lesson-action":
+            action_id = attributes.get("data-action-id")
+            if action_id:
+                self.action_ids.append(action_id)
+        if tag == "a":
+            self._anchor_target = str(attributes["href"])
+            self._anchor_text_parts = []
+            if self._coming_next_item_parts is not None:
+                self._coming_next_item_has_link = True
+        if tag == "ul" and attributes.get("class") == "coming-next":
+            self._coming_next = True
+        if tag == "li" and self._coming_next:
+            self._coming_next_item_parts = []
+            self._coming_next_item_has_link = False
+        if tag == "p" and attributes.get("class") == "lesson-publication-status":
+            self._publication_status_parts = []
+        if tag == "code" and str(attributes.get("id", "")).startswith("command-"):
+            if attributes.get("tabindex") != "0":
+                raise ValueError("command code is not focusable")
+        if tag == "div" and attributes.get("class") == "command-variant":
+            if "hidden" in attributes:
+                raise ValueError("command variant must remain visible without JavaScript")
+            if (
+                attributes.get("data-os") not in {"all", "windows", "macos", "linux"}
+                or attributes.get("data-host") not in {"none", "claude-code", "codex", "pi"}
+                or attributes.get("data-surface") not in {
+                    "browser", "native-terminal", "harness", "academy-console"
+                }
+            ):
+                raise ValueError("disallowed HTML command-variant contract")
+        if tag == "div" and attributes.get("class") == "academy-command-preferences":
+            if (
+                "hidden" not in attributes
+                or attributes.get("aria-labelledby") != "academy-command-preferences-heading"
+            ):
+                raise ValueError("preference controls must be hidden until JavaScript binds")
+            if set(attributes) != {"class", "hidden", "aria-labelledby"}:
+                raise ValueError("disallowed exact preference-container contract")
+        if tag == "script" and set(attributes.items()) != {
+            ("type", "module"),
+            ("src", attributes.get("src")),
+        }:
+            raise ValueError("disallowed HTML script contract")
+        if tag == "script":
+            self.script_sources.append(attributes["src"])
+            self._script_depth += 1
+        if tag == "button" and attributes.get("class") == "command-copy":
+            if (
+                attributes.get("type") != "button"
+                or not attributes.get("data-copy-target")
+                or not attributes.get("aria-describedby")
+            ):
+                raise ValueError("disallowed HTML copy-button contract")
+            self.copy_bindings.append(
+                (attributes["data-copy-target"], attributes["aria-describedby"])
+            )
+        elif tag == "button":
+            preference_kind = (
+                "os" if attributes.get("class") == "academy-os-choice" else
+                "host" if attributes.get("class") == "academy-host-choice" else None
+            )
+            expected_data = f"data-{preference_kind}" if preference_kind else None
+            if (
+                preference_kind is None
+                or attributes.get("type") != "button"
+                or attributes.get("aria-pressed") != "false"
+                or not attributes.get(expected_data)
+            ):
+                raise ValueError("disallowed HTML preference-button contract")
+            allowed_values = OPERATING_SYSTEMS if preference_kind == "os" else HOSTS
+            if attributes[expected_data] not in allowed_values:
+                raise ValueError("disallowed HTML preference-button value")
 
     def handle_endtag(self, tag: str) -> None:
         if tag not in _ALLOWED_HTML_ATTRIBUTES:
             raise ValueError(f"disallowed HTML element: {tag}")
+        if tag == "script":
+            self._script_depth -= 1
+        if tag == "a" and self._anchor_text_parts is not None:
+            self.anchor_texts.append(
+                (
+                    str(self._anchor_target),
+                    " ".join("".join(self._anchor_text_parts).split()),
+                )
+            )
+            self._anchor_target = None
+            self._anchor_text_parts = None
+        if tag == "li" and self._coming_next_item_parts is not None:
+            self.coming_next_entries.append(
+                (
+                    " ".join("".join(self._coming_next_item_parts).split()),
+                    self._coming_next_item_has_link,
+                )
+            )
+            self._coming_next_item_parts = None
+            self._coming_next_item_has_link = False
+        if tag == "ul" and self._coming_next:
+            self._coming_next = False
+        if tag == "p" and self._publication_status_parts is not None:
+            self.publication_statuses.append(
+                " ".join("".join(self._publication_status_parts).split())
+            )
+            self._publication_status_parts = None
+
+    def handle_data(self, data: str) -> None:
+        if self._script_depth and data.strip():
+            raise ValueError("disallowed inline JavaScript")
+        if self._anchor_text_parts is not None:
+            self._anchor_text_parts.append(data)
+        if self._coming_next_item_parts is not None:
+            self._coming_next_item_parts.append(data)
+        if self._publication_status_parts is not None:
+            self._publication_status_parts.append(data)
 
     def handle_decl(self, decl: str) -> None:
         if decl.lower() != "doctype html":
@@ -208,7 +422,7 @@ def _resolve_local(
 ) -> Path | None:
     parsed = urlsplit(target)
     if parsed.scheme or parsed.netloc:
-        if not allow_external or target not in _EXTERNAL_URLS:
+        if not allow_external or not _is_approved_external_url(target):
             raise ValueError(f"unapproved external URL in {source.relative_to(root).as_posix()}: {target}")
         return None
     path = unquote(parsed.path)
@@ -235,12 +449,27 @@ def _check_release(root: Path) -> str:
         raise ValueError(f"release.json is unreadable: {error}") from error
     if (
         not isinstance(data, dict)
-        or set(data) != {"release", "commit"}
-        or data.get("release") != "preview-0.3"
+        or set(data) != {
+            "release", "commit", "lesson_contract_version", "catalog_sha256",
+            "available_labs", "runnable_labs", "guided_labs", "coming_next",
+            "prerequisites", "known_limits", "discussion_url",
+        }
+        or data.get("release") != "preview-0.4"
+        or type(data.get("lesson_contract_version")) is not int
+        or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
         or not _SHA.fullmatch(data["commit"])
+        or not isinstance(data.get("catalog_sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", data["catalog_sha256"])
+        or data.get("available_labs") != list(_LABS)
+        or data.get("runnable_labs") != list(_LABS)
+        or data.get("guided_labs") != list(_LABS)
+        or data.get("coming_next") != list(_COMING_NEXT)
+        or data.get("prerequisites") != list(_PUBLIC_PREREQUISITES)
+        or data.get("known_limits") != list(_KNOWN_LIMITS)
+        or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.3 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.4 provenance contract")
     return data["release"]
 
 
@@ -259,6 +488,43 @@ def _check_stylesheet_dependencies(root: Path, stylesheet: Path, css: str) -> No
         _resolve_local(root, stylesheet, quoted or unquoted)
     for target in _CSS_URL.findall(css):
         _resolve_local(root, stylesheet, target)
+
+
+def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> None:
+    home = root / "index.html"
+    home_collector = pages[home]
+    expected_lab_pages = tuple(root / "labs" / lab_id / "index.html" for lab_id in _LABS)
+    runnable_links = tuple(
+        (resolved, label)
+        for target, label in home_collector.anchor_texts
+        if (resolved := _resolve_local(root, home, target, allow_external=True))
+        in expected_lab_pages
+    )
+    expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
+    if runnable_links != expected_runnable_links:
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.4 inventory")
+    if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
+        raise ValueError("home coming-next entries do not match the exact Preview 0.4 guided-rewrite sequence")
+
+    for page, collector in pages.items():
+        relative = page.relative_to(root)
+        expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
+        if tuple(collector.action_ids) != expected_actions:
+            raise ValueError(
+                f"generated action IDs do not match the exact Preview 0.4 contract: {relative.as_posix()}"
+            )
+
+        if relative.parts[:1] != ("labs",):
+            expected_statuses: tuple[str, ...] = ()
+        elif relative == Path("labs/F01-fork-clone-doctor/index.html"):
+            expected_statuses = (_GUIDED_STATUS,)
+        else:
+            expected_statuses = (_REFERENCE_STATUS,)
+        if tuple(collector.publication_statuses) != expected_statuses:
+            raise ValueError(
+                "generated publication status does not match the exact Preview 0.4 contract: "
+                f"{relative.as_posix()}"
+            )
 
 
 def check_preview_site(site_root: Path) -> None:
@@ -313,6 +579,8 @@ def check_preview_site(site_root: Path) -> None:
                 )
                 if resolved != expected:
                     raise ValueError(f"unapproved linked asset URL: {target}")
+            if tag == "script" and resolved != root / "assets" / "academy.js":
+                raise ValueError(f"unapproved script asset URL: {target}")
             fragment = unquote(urlsplit(target).fragment)
             if fragment:
                 target_collector = pages.get(resolved) if resolved is not None else None
@@ -321,12 +589,38 @@ def check_preview_site(site_root: Path) -> None:
                         f"broken HTML fragment in {page.relative_to(root).as_posix()}: {target}"
                     )
         page_ids = set(collector.ids)
-        for tag, reference in collector.id_references:
+        if len(collector.script_sources) != 1:
+            raise ValueError(
+                f"generated page must load exactly one reviewed module: {page.relative_to(root).as_posix()}"
+            )
+        for target, status in collector.copy_bindings:
+            target_contract = collector.id_contracts.get(target)
+            status_contract = collector.id_contracts.get(status)
+            if (
+                target_contract is None
+                or target_contract[0] != "code"
+                or target_contract[1].get("tabindex") != "0"
+            ):
+                raise ValueError(
+                    "broken copy target in "
+                    f"{page.relative_to(root).as_posix()} on button: {target}"
+                )
+            if status_contract is None or status_contract[0] != "p" or (
+                status_contract[1].get("role") != "status"
+                or status_contract[1].get("aria-live") != "polite"
+            ):
+                raise ValueError(
+                    "broken copy status in "
+                    f"{page.relative_to(root).as_posix()} on button: {status}"
+                )
+        for tag, attribute, reference in collector.id_references:
             if reference not in page_ids:
                 raise ValueError(
-                    "broken aria-labelledby reference in "
+                    f"broken {attribute} reference in "
                     f"{page.relative_to(root).as_posix()} on {tag}: {reference}"
                 )
+
+    _check_publication_truth(root, pages)
 
     stylesheet = root / "assets/academy.css"
     try:

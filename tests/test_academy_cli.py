@@ -16,7 +16,7 @@ from academy_engine.checkpoints import CheckpointResult
 from academy_engine.cli import main
 from academy_engine.command import GitCommandError
 from academy_engine.external_state import ExternalStateError
-from academy_engine.preview import PreviewManifest, require_published_lab
+from academy_engine.preview import PreviewManifest
 from academy_engine.scenario import PreparedLab
 
 
@@ -27,6 +27,16 @@ LOCAL_P02_RESTORATION_LABS = (
     "P05-checkpoint-remediation",
 )
 UNPUBLISHED_LABS = (
+    "F02-orient-to-state",
+    "F03-work-the-board",
+    "F04-fix-with-evidence",
+    "P01-feature-through-plan",
+    "P02-commit-review-pr",
+    "P03-record-an-adr",
+    "P04-review-a-dependency",
+    "P05-checkpoint-remediation",
+    "P06-context-drift-recovery",
+    "P07-threat-model",
     "P08-repository-hygiene",
     "U01-autonomous-sprint",
     "U02-override-audit-metrics",
@@ -70,7 +80,7 @@ class AcademyCliTrustTests(unittest.TestCase):
         )
 
     def test_unpublished_labs_never_reach_prepare_reset_or_check_dispatch(self) -> None:
-        """Catches catalog-only labs becoming runnable outside the release manifest."""
+        """Catches non-guided catalog lessons reaching the public command surface."""
         for lab_id in UNPUBLISHED_LABS:
             for command, dispatch_name in (
                 ("prepare", "prepare_lab"),
@@ -93,7 +103,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(
                     errors.getvalue(),
-                    f"error: {lab_id} is not available in Academy Preview 0.3\n",
+                    f"error: {lab_id} is not guided in Academy Preview 0.4\n",
                 )
                 dispatch.assert_not_called()
                 git_config.assert_not_called()
@@ -107,11 +117,16 @@ class AcademyCliTrustTests(unittest.TestCase):
         )
         full_catalog = Catalog.load(REPOSITORY / "academy" / "catalog.json")
         future_manifest = PreviewManifest(
-            "academy-1.0",
-            tuple(lab.id for lab in full_catalog.labs),
-            (),
-            "https://github.com/arbiterForge/arbiter-academy/discussions",
-            "a" * 64,
+            release="academy-1.0",
+            lesson_contract_version=1,
+            available_labs=tuple(lab.id for lab in full_catalog.labs),
+            runnable_labs=tuple(lab.id for lab in full_catalog.labs),
+            guided_labs=tuple(lab.id for lab in full_catalog.labs),
+            coming_next=(),
+            prerequisites=(),
+            known_limits=(),
+            discussion_url="https://github.com/arbiterForge/arbiter-academy/discussions",
+            catalog_sha256="a" * 64,
         )
 
         preview_output, errors = StringIO(), StringIO()
@@ -180,6 +195,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         output = StringIO()
 
         with patch("academy_engine.cli.repository_root", return_value=REPOSITORY), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
             "academy_engine.cli.validate_repository_git_config"
         ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
             "academy_engine.cli.prepare_lab", return_value=result
@@ -221,6 +238,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         output = StringIO()
 
         with patch("academy_engine.cli.repository_root", return_value=REPOSITORY), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
             "academy_engine.cli.validate_repository_git_config"
         ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
             "academy_engine.cli.reset_lab", return_value=result
@@ -286,6 +305,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         output, errors = StringIO(), StringIO()
 
         with patch("academy_engine.cli.repository_root", return_value=REPOSITORY), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
             "academy_engine.cli.validate_repository_git_config"
         ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
             "academy_engine.cli.prepare_lab", return_value=result
@@ -326,8 +347,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertIn("--repository", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_p06_clears_publication_and_reaches_external_authoritative_evaluation(self) -> None:
-        """Catches P06 remaining gated or bypassing installed authoritative evaluation."""
+    def test_p06_simulated_future_publication_reaches_external_authoritative_evaluation(self) -> None:
+        """Catches P06 losing authoritative evaluation after a future publication gate opens."""
         result = CheckpointResult(
             "P06-context-drift-recovery",
             False,
@@ -343,7 +364,7 @@ class AcademyCliTrustTests(unittest.TestCase):
             with patch(
                 "academy_engine.cli.repository_root", return_value=learner
             ), patch(
-                "academy_engine.cli.require_published_lab", wraps=require_published_lab
+                "academy_engine.cli.require_published_lab"
             ) as publication_gate, patch(
                 "academy_engine.cli.validate_repository_git_config"
             ) as validated, patch(
@@ -403,6 +424,8 @@ class AcademyCliTrustTests(unittest.TestCase):
                 with self.subTest(command=command, lab_id=lab_id), patch(
                     "academy_engine.cli.repository_root", return_value=REPOSITORY
                 ), patch(
+                    "academy_engine.cli.require_published_lab"
+                ), patch(
                     "academy_engine.external_state.ExternalStateStore.has_records", return_value=False
                 ) as probed, patch(
                     "academy_engine.cli.validate_repository_git_config"
@@ -433,6 +456,8 @@ class AcademyCliTrustTests(unittest.TestCase):
                 with self.subTest(command=command, lab_id=lab_id), patch(
                     "academy_engine.cli.repository_root", return_value=REPOSITORY
                 ), patch(
+                    "academy_engine.cli.require_published_lab"
+                ), patch(
                     "academy_engine.external_state.ExternalStateStore.has_records", return_value=True
                 ) as probed, patch(
                     "academy_engine.cli.validate_repository_git_config"
@@ -462,6 +487,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         with patch(
             "academy_engine.cli.repository_root", return_value=REPOSITORY
         ), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
             "academy_engine.external_state.ExternalStateStore.has_records",
             side_effect=GitCommandError(f"fatal: failed at {private_path}"),
         ), patch(
@@ -483,6 +510,8 @@ class AcademyCliTrustTests(unittest.TestCase):
 
         with patch(
             "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch(
+            "academy_engine.cli.require_published_lab"
         ), patch(
             "academy_engine.external_state.ExternalStateStore.has_records",
             side_effect=ExternalStateError("unsafe-state-path"),
@@ -511,6 +540,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         for command, target in (("prepare", "prepare_lab"), ("reset", "reset_lab")):
             with self.subTest(command=command), patch(
                 "academy_engine.cli.repository_root", return_value=REPOSITORY
+            ), patch(
+                "academy_engine.cli.require_published_lab"
             ), patch(
                 "academy_engine.cli.validate_repository_git_config"
             ) as validated, patch(
@@ -639,26 +670,27 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertNotIn(private_path, errors.getvalue())
         self.assertNotIn(raw_git, errors.getvalue())
 
-    def test_in_checkout_p02_prepare_refuses_circular_trust(self) -> None:
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(REPOSITORY / "scripts" / "academy.py"),
-                "--repository",
-                str(REPOSITORY),
-                "prepare",
-                "P02-commit-review-pr",
-            ],
-            cwd=REPOSITORY,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+    def test_in_checkout_p02_prepare_refuses_circular_trust_after_future_publication(self) -> None:
+        """Catches a future P02 release trusting its learner checkout as a verifier."""
+        errors = StringIO()
+        with patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), redirect_stderr(errors):
+            exit_code = main(
+                [
+                    "--repository",
+                    str(REPOSITORY),
+                    "prepare",
+                    "P02-commit-review-pr",
+                ]
+            )
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("outside the target repository", result.stderr)
-        self.assertNotIn(str(REPOSITORY), result.stderr)
-        self.assertNotIn("Traceback", result.stderr)
+        self.assertEqual(exit_code, 1)
+        self.assertIn("outside the target repository", errors.getvalue())
+        self.assertNotIn(str(REPOSITORY), errors.getvalue())
+        self.assertNotIn("Traceback", errors.getvalue())
 
     def test_in_checkout_authoritative_command_refuses_circular_trust(self) -> None:
         result = subprocess.run(
@@ -681,8 +713,8 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertNotIn(str(REPOSITORY), result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_p07_clears_publication_and_reaches_external_authoritative_evaluation(self) -> None:
-        """Catches P07 remaining gated or bypassing installed authoritative evaluation."""
+    def test_p07_simulated_future_publication_reaches_external_authoritative_evaluation(self) -> None:
+        """Catches P07 losing authoritative evaluation after a future publication gate opens."""
         failed = CheckpointResult(
             "P07-threat-model",
             False,
@@ -698,7 +730,7 @@ class AcademyCliTrustTests(unittest.TestCase):
             with patch(
                 "academy_engine.cli.repository_root", return_value=learner
             ), patch(
-                "academy_engine.cli.require_published_lab", wraps=require_published_lab
+                "academy_engine.cli.require_published_lab"
             ) as publication_gate, patch(
                 "academy_engine.cli.validate_repository_git_config"
             ) as validated, patch(

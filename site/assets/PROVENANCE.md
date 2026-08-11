@@ -1,6 +1,6 @@
 # Academy design provenance
 
-Academy Preview 0.3 adapts platform-neutral design primitives from the local
+Academy Preview 0.4 adapts platform-neutral design primitives from the local
 `codeArbiter` checkout at commit `9ce7faceccaae819730a3534fdc6aa0992ab04bc`.
 It does not import Astro or Starlight code at build or runtime.
 

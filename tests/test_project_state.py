@@ -106,12 +106,12 @@ class ProjectStateTests(unittest.TestCase):
         pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         tech_stack = (STATE_ROOT / "tech-stack.md").read_text(encoding="utf-8")
-        site_index = (REPO_ROOT / "site/templates/index.html").read_text(
+        home_guide = (REPO_ROOT / "academy/guides/home.md").read_text(
             encoding="utf-8"
         )
 
         self.assertIn('requires-python = ">=3.11"', pyproject)
-        for document in (readme, tech_stack, site_index):
+        for document in (readme, tech_stack, home_guide):
             self.assertIn("Python 3.11 or newer", document)
             self.assertNotIn("Python 3.10 or newer", document)
         self.assertEqual(
