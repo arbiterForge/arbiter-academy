@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import errno
@@ -18,6 +19,30 @@ SOURCE = Path(__file__).resolve().parents[1]
 P05_ADR_PATH = ".codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"
 P05_DECISION_LOG_PATH = ".codearbiter/decisions/decision-log.md"
 P05_ADR_TITLE = "Extend the immutable ticket state machine with terminal blocked tickets"
+
+
+class P05FixtureCloneContractTests(unittest.TestCase):
+    def test_fixture_clones_disable_local_clone_optimization(self) -> None:
+        """Every independent learner fixture uses Git's transport clone path."""
+        source = Path(__file__).read_text(encoding="utf-8")
+        clone_commands = []
+        for node in ast.walk(ast.parse(source)):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr != "run" or not node.args or not isinstance(node.args[0], ast.List):
+                continue
+            command = [
+                element.value
+                for element in node.args[0].elts
+                if isinstance(element, ast.Constant) and isinstance(element.value, str)
+            ]
+            if command[:2] == ["git", "clone"]:
+                clone_commands.append(command)
+        self.assertEqual(len(clone_commands), 4)
+        for command in clone_commands:
+            with self.subTest(command=command):
+                self.assertIn("--no-local", command)
+                self.assertIn("--no-hardlinks", command)
 
 
 class P05FixtureCleanupTests(unittest.TestCase):
@@ -148,7 +173,7 @@ class P05FixtureTests(unittest.TestCase):
 
         canonical = Path(self.temporary.name) / "canonical"
         subprocess.run(
-            ["git", "clone", "--no-hardlinks", str(self.root), str(canonical)],
+            ["git", "clone", "--no-local", "--no-hardlinks", str(self.root), str(canonical)],
             check=True,
             capture_output=True,
             text=True,
@@ -285,7 +310,7 @@ class P05FixtureTests(unittest.TestCase):
             with self.subTest(mutation=mutation):
                 clone = Path(self.temporary.name) / mutation
                 subprocess.run(
-                    ["git", "clone", "--no-hardlinks", str(self.root), str(clone)],
+                    ["git", "clone", "--no-local", "--no-hardlinks", str(self.root), str(clone)],
                     check=True,
                     capture_output=True,
                     text=True,
@@ -417,7 +442,7 @@ class P05FixtureTests(unittest.TestCase):
             with self.subTest(mutation=mutation):
                 clone = Path(self.temporary.name) / mutation
                 subprocess.run(
-                    ["git", "clone", "--no-hardlinks", str(self.root), str(clone)],
+                    ["git", "clone", "--no-local", "--no-hardlinks", str(self.root), str(clone)],
                     check=True,
                     capture_output=True,
                     text=True,
@@ -444,7 +469,7 @@ class P05FixtureTests(unittest.TestCase):
 
         clone = Path(self.temporary.name) / "current-context"
         subprocess.run(
-            ["git", "clone", "--no-hardlinks", str(self.root), str(clone)],
+            ["git", "clone", "--no-local", "--no-hardlinks", str(self.root), str(clone)],
             check=True,
             capture_output=True,
             text=True,
