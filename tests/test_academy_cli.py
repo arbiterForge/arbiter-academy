@@ -27,7 +27,6 @@ LOCAL_P02_RESTORATION_LABS = (
     "P05-checkpoint-remediation",
 )
 UNPUBLISHED_LABS = (
-    "F03-work-the-board",
     "F04-fix-with-evidence",
     "P01-feature-through-plan",
     "P02-commit-review-pr",

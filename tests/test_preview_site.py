@@ -638,9 +638,9 @@ class PreviewSiteTests(unittest.TestCase):
             html,
         )
         self.assertIn('href="recovery/index.html"', html)
-        self.assertIn("<strong>Guided: F01 and F02.</strong>", html)
-        self.assertIn("<strong>Coming next: F03 through P07.</strong>", html)
-        self.assertNotIn("<strong>Coming next: F02 through P07.</strong>", html)
+        self.assertIn("<strong>Guided: F01, F02, and F03.</strong>", html)
+        self.assertIn("<strong>Coming next: F04 and P01 through P08.</strong>", html)
+        self.assertNotIn("<strong>Coming next: F03 through P08.</strong>", html)
 
     def test_first_lesson_requires_host_setup_but_not_an_impossible_fresh_clone_doctor_pass(self) -> None:
         """Catches beginner onboarding that blocks F01 on the remote repair it is meant to teach."""
@@ -723,20 +723,20 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
-            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.ps1 | iex",
+            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.ps1 | iex",
             html,
         )
         self.assertIn(
-            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.sh | sh",
+            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.sh | sh",
             html,
         )
         for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
@@ -744,11 +744,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.sh"',
             html,
         )
         self.assertIn("validates the downloaded bundle", html)
@@ -759,8 +759,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("does not need to pass before F01", html)
         self.assertIn("F01 teaches the remote repair", html)
         for state in (
-            "<strong>Guided: F01 and F02.</strong>",
-            "<strong>Coming next: F03 through P07.</strong>",
+            "<strong>Guided: F01, F02, and F03.</strong>",
+            "<strong>Coming next: F04 and P01 through P08.</strong>",
             "<strong>Not yet scheduled.</strong>",
         ):
             self.assertIn(state, html)
@@ -793,7 +793,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.6.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.7.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -927,6 +927,7 @@ class PreviewSiteTests(unittest.TestCase):
         expected_labs = (
             "F01-fork-clone-doctor",
             "F02-orient-to-state",
+            "F03-work-the-board",
         )
         expected_files = {
             "assets/academy.css",
@@ -1189,7 +1190,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.6"',
+                '"release": "preview-0.7"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1578,7 +1579,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.6">'
+        current = '<meta name="academy-release" content="preview-0.7">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2469,8 +2470,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.6.json",
-            academy / "publication" / "preview-0.6.json",
+            self.root / "academy" / "publication" / "preview-0.7.json",
+            academy / "publication" / "preview-0.7.json",
         )
         for track in ("foundations", "practitioner"):
             shutil.copytree(
