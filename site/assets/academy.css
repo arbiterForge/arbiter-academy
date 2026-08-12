@@ -528,6 +528,35 @@ h1 + p {
   border-inline-start: 1px solid var(--ca-line-strong);
 }
 
+.lesson-milestone {
+  display: grid;
+  max-width: 52rem;
+  margin-block: 5.25rem 1.4rem;
+  padding-block: 0.85rem;
+  border-block: 1px solid var(--ca-line-strong);
+  background: linear-gradient(90deg, var(--ca-bg-raised), transparent 72%);
+}
+
+.lesson-milestone p {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  color: var(--ca-ink);
+  font: 700 0.88rem/1.35 var(--ca-font-mono);
+  letter-spacing: 0.035em;
+}
+
+.lesson-milestone span {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid var(--ca-accent);
+  color: var(--ca-accent);
+  font-size: 0.72rem;
+}
+
 .lesson-action::before {
   position: absolute;
   inset-block-start: 0;
@@ -847,6 +876,39 @@ h1 + p {
   .command-copy {
     border-inline-start: 1px solid var(--ca-line-strong);
     border-block-start: 0;
+  }
+
+  .command-shell pre {
+    overflow-x: clip;
+  }
+
+  .command-shell pre code {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .academy-content .table-shell {
+    overflow-x: clip;
+  }
+
+  .academy-content table {
+    min-width: 0;
+    font-size: 0.76rem;
+  }
+
+  .academy-content :is(th, td) {
+    padding: 0.65rem 0.75rem;
+    overflow-wrap: anywhere;
+  }
+
+  .academy-content :is(th, td):first-child {
+    width: 4.8rem;
+  }
+
+  .academy-content th {
+    font-size: 0.62rem;
+    letter-spacing: 0.055em;
   }
 }
 

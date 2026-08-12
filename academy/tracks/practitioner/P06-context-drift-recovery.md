@@ -15,7 +15,7 @@ next_lab: P07-threat-model
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.7. Its action cards document an unreleased lesson and do not create a public course route.
+This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
 
 Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
 your worktree is clean: `git status --short` should print nothing. Keep a native terminal open at

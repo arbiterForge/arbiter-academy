@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.7")
+                    self.assertEqual(release.release, "preview-0.8")
                     self.assertNotIn(lab.id, release.runnable_labs)
                     self.assertNotIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):

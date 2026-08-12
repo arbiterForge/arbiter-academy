@@ -44,11 +44,11 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 ## Course status
 
-**Guided: F01, F02, and F03.** Every user action, surface, expected result, and recovery path is explicit.
+**Guided: F01 through F04.** Every user action, surface, expected result, and recovery path is explicit.
 
-**Coming next: F04 and P01 through P08.** These lessons are not public Academy routes yet. Each appears here only after its guided rewrite and acceptance evidence are complete.
+**Coming next: P01 through P08.** These lessons are not public Academy routes yet. Each appears here only after its guided rewrite and acceptance evidence are complete.
 
-**Not yet scheduled.** The Power User lessons are not included in Preview 0.7.
+**Not yet scheduled.** The Power User lessons are not included in Preview 0.8.
 
 ## Get help
 

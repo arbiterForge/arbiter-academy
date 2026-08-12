@@ -121,19 +121,19 @@
       "resources": [
         {
           "label": "Review the immutable PowerShell installer source",
-          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.ps1"
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.8/install/install.ps1"
         },
         {
           "label": "Download the PowerShell verify-first checksum",
-          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.ps1.sha256"
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.ps1.sha256"
         },
         {
           "label": "Review the immutable POSIX installer source",
-          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.7/install/install.sh"
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.8/install/install.sh"
         },
         {
           "label": "Download the POSIX verify-first checksum",
-          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.sh.sha256"
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.sh.sha256"
         }
       ],
       "variants": [
@@ -143,7 +143,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.ps1 | iex",
+          "command": "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.ps1 | iex",
           "copy": true
         },
         {
@@ -152,7 +152,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.sh | sh",
+          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.sh | sh",
           "copy": true
         },
         {
@@ -161,13 +161,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/install.sh | sh",
+          "command": "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.sh | sh",
           "copy": true
         }
       ],
-      "expected_result": "The installer reports Preview 0.7 and the path of the installed arbiter-academy executable.",
+      "expected_result": "The installer reports Preview 0.8 and the path of the installed arbiter-academy executable.",
       "recovery": "If verification or installation stops, preserve the complete message and use the linked source plus checksum before deciding whether to retry.",
-      "evidence": "The installed tool lives outside the learner repository at the versioned Preview 0.7 path."
+      "evidence": "The installed tool lives outside the learner repository at the versioned Preview 0.8 path."
     },
     {
       "id": "home-doctor",
@@ -190,7 +190,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.7\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.8\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
           "copy": true
         },
         {
@@ -199,7 +199,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
           "copy": true
         },
         {
@@ -208,7 +208,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
           "copy": true
         }
       ],

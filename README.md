@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.7
+## Preview 0.8
 
-Preview 0.7 publishes three guided labs:
+Preview 0.8 publishes four guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -17,11 +17,13 @@ Preview 0.7 publishes three guided labs:
   bounded, committed orientation record without changing the context it proves.
 - **F03 is guided and runnable.** Its lesson teaches one governed board lifecycle
   and a board-only evidence commit without implementing the listed feature.
-- **F04 and P01-P08 are coming next.** They are not public lesson routes
-  until each guided rewrite and its acceptance evidence are complete.
+- **F04 is guided and runnable.** Its lesson carries a real red-to-green repair
+  through two reviewable commits, ending in an independent Check.
+- **P01-P08 are coming next.** They are not public lesson routes until each
+  guided rewrite and its acceptance evidence are complete.
 
-The Power User track is outside Preview 0.7. Graduation is not available
-in Preview 0.7; it remains unavailable until the complete 19-lab course through
+The Power User track is outside Preview 0.8. Graduation is not available
+in Preview 0.8; it remains unavailable until the complete 19-lab course through
 U07 is published.
 
 ## Start the course
@@ -30,6 +32,7 @@ U07 is published.
 - [Begin F01 after Home setup - Fork, clone, and Doctor safety](https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/)
 - [Continue to F02 - Orient to live governance state](https://arbiterforge.github.io/arbiter-academy/labs/F02-orient-to-state/)
 - [Continue to F03 - Work the governed board](https://arbiterforge.github.io/arbiter-academy/labs/F03-work-the-board/)
+- [Continue to F04 - Fix with executable evidence](https://arbiterforge.github.io/arbiter-academy/labs/F04-fix-with-evidence/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

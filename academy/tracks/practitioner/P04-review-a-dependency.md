@@ -15,7 +15,7 @@ next_lab: P05-checkpoint-remediation
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.7. Its action cards document an unreleased lesson and do not create a public course route.
+This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
 
 Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one CodeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. CodeArbiter commands and agent messages belong in the harness and never begin with `!`.
 

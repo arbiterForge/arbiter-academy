@@ -1,23 +1,25 @@
 {
-  "release": "preview-0.7",
+  "release": "preview-0.8",
   "lesson_contract_version": 1,
   "available_labs": [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
-    "F03-work-the-board"
+    "F03-work-the-board",
+    "F04-fix-with-evidence"
   ],
   "runnable_labs": [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
-    "F03-work-the-board"
+    "F03-work-the-board",
+    "F04-fix-with-evidence"
   ],
   "guided_labs": [
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
-    "F03-work-the-board"
+    "F03-work-the-board",
+    "F04-fix-with-evidence"
   ],
   "coming_next": [
-    "F04-fix-with-evidence",
     "P01-feature-through-plan",
     "P02-commit-review-pr",
     "P03-record-an-adr",
@@ -35,9 +37,9 @@
     "Complete Academy Home setup steps 1-5 before starting F01."
   ],
   "known_limits": [
-    "F01, F02, and F03 are the guided lessons published in Preview 0.7.",
-    "F04 and P01-P08 are coming next after their guided rewrites are accepted.",
-    "The Power User track is not published in Preview 0.7.",
+    "F01, F02, F03, and F04 are the guided lessons published in Preview 0.8.",
+    "P01-P08 are coming next after their guided rewrites are accepted.",
+    "The Power User track is not published in Preview 0.8.",
     "Graduation is unavailable until the complete 19-lab course is published."
   ],
   "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",
