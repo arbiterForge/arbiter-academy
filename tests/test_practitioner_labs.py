@@ -452,6 +452,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-revise-spec",
                 "P01-proceed",
                 "P01-check",
+                "P01-return-base",
                 "P01-reset-retry",
             ),
         )

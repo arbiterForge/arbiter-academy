@@ -117,11 +117,16 @@ feedback with those same facts before relaying it.
 The final verifier recomputes data and repository shape. Keep the test narrow and inspect the final
 commit boundary; it cannot reconstruct chat, review, or command history.
 
-{{action:P01-reset-retry}}
+After Check passes, leave the completed branch intact and return to `main` with this native-terminal action.
 
-After Check passes, leave the completed branch intact and return to `main` when you are ready. P02
-appears on the course home only after its guided rewrite and acceptance evidence are complete. Do not
+{{action:P01-return-base}}
+
+P02 appears on the course home only after its guided rewrite and acceptance evidence are complete. Do not
 use unpublished source exercises as a substitute for the accepted course.
+
+If P01 needs another attempt, use the preserved retry action.
+
+{{action:P01-reset-retry}}
 
 ## Understand the mechanism
 

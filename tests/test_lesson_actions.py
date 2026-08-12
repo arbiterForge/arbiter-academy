@@ -94,6 +94,7 @@ P01_ACTION_IDS = (
     "P01-revise-spec",
     "P01-proceed",
     "P01-check",
+    "P01-return-base",
     "P01-reset-retry",
 )
 P04_DOCUMENT_ID = "P04-review-a-dependency"
@@ -487,6 +488,17 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertTrue(all("preview-0.9" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        return_base = by_id["P01-return-base"]
+        self.assertEqual((return_base.actor, return_base.surface), ("learner", None))
+        self.assertEqual(
+            tuple((variant.surface, variant.operating_system, variant.host, variant.command, variant.copy) for variant in return_base.variants),
+            (
+                ("native-terminal", "windows", "none", "git switch main", True),
+                ("native-terminal", "macos", "none", "git switch main", True),
+                ("native-terminal", "linux", "none", "git switch main", True),
+            ),
+        )
 
     def test_p05_prerequisite_routes_first_time_learners_to_rendered_f01(self) -> None:
         """Catches P05 exposing raw Markdown action tokens as runnable guidance."""

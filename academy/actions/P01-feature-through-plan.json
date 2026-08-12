@@ -141,8 +141,26 @@
       "evidence": "Only a passing external Check records P01 progress."
     },
     {
-      "id": "P01-reset-retry",
+      "id": "P01-return-base",
       "sequence": 9,
+      "title": "Return to main after success",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After Check passes, return to main in a native terminal without deleting the completed attempt branch.",
+      "rationale": "The passing attempt remains available for a reviewer to inspect while the clone is ready for the next guided lesson.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main and leaves academy/P01-feature-through-plan/ATTEMPT_NUMBER reachable.",
+      "recovery": "If Git refuses because work is uncommitted, stop and preserve it. Do not force the switch or delete the completed attempt.",
+      "evidence": "The completed evidence remains separated from main and available for later inspection."
+    },
+    {
+      "id": "P01-reset-retry",
+      "sequence": 10,
       "title": "Create a preserved numbered retry",
       "actor": "learner",
       "surface": null,
