@@ -232,7 +232,7 @@ class CheckpointTests(unittest.TestCase):
         self._p05_git(root, "commit", "-m", subject, environment=environment)
         return self._p05_git(root, "rev-parse", "HEAD").stdout.strip()
 
-    def _p05_prepared_repository(self) -> tuple[Path, str, str]:
+    def _p05_prepared_repository(self, *, object_format: str = "sha1") -> tuple[Path, str, str]:
         source = Path(__file__).resolve().parents[1]
         root = self.root / "p05-prepared"
         root.mkdir()
@@ -277,7 +277,7 @@ class CheckpointTests(unittest.TestCase):
             newline="\n",
         )
         (root / "training_scenarios").mkdir()
-        self._p05_git(root, "init", "-b", "main")
+        self._p05_git(root, "init", "-b", "main", f"--object-format={object_format}")
         base = self._p05_commit(
             root,
             (".codearbiter", "academy", "data", "pyproject.toml", "workshop_queue", "tests"),
@@ -320,6 +320,20 @@ class CheckpointTests(unittest.TestCase):
         )
 
         self.assertTrue(_validate_prepare(root, contract, attempt))
+
+    def test_p05_checkpoint_accepts_an_otherwise_valid_sha256_history(self) -> None:
+        prepared_root, _, prepared = self._p05_prepared_repository(object_format="sha256")
+        history = self._p05_history(
+            prepared_root,
+            prepared,
+            "sha256",
+            name="P05 SHA-256 Fixture",
+            email="p05-sha256@example.invalid",
+            timestamps=tuple(f"2026-08-02T12:1{minute}:00+00:00" for minute in range(4)),
+        )
+
+        self.assertEqual(len(prepared), 64)
+        self.assertTrue(self._p05_semantic(history))
 
     def _p05_mutated_red(self, raw: bytes, mutation: str | None) -> bytes:
         if mutation is None:
