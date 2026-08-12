@@ -1432,6 +1432,21 @@ class PreviewSiteTests(unittest.TestCase):
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
                 )
 
+    def test_readme_matches_the_preview_zero_eleven_public_lesson_boundary(self) -> None:
+        """Catches the repository entrypoint drifting from the rendered public Academy routes."""
+        readme = (self.root / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("Preview 0.11 publishes nine guided labs:", readme)
+        for lab_id in (
+            "P04-review-a-dependency",
+            "P05-checkpoint-remediation",
+        ):
+            with self.subTest(lab=lab_id):
+                self.assertIn(
+                    f"https://arbiterforge.github.io/arbiter-academy/labs/{lab_id}/",
+                    readme,
+                )
+
     def test_build_rejects_redirected_output_paths_before_external_write(self) -> None:
         """Catches output roots, expected leaves, or directories redirected outside the artifact."""
         cases = ("output-root", "expected-leaf", "expected-directory")
