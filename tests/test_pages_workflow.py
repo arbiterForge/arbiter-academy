@@ -297,6 +297,9 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.verify_candidate = _block(
             self.verify_workflow, "  verify-candidate:", r"  [a-zA-Z0-9_-]+:"
         )
+        self.browser = _block(
+            self.verify_workflow, "  academy-browser:", r"  [a-zA-Z0-9_-]+:"
+        )
         self.main_verify = _block(
             self.pages_workflow, "  verify-main:", r"  [a-zA-Z0-9_-]+:"
         )
@@ -1260,13 +1263,24 @@ class PagesWorkflowContractTests(unittest.TestCase):
     def test_workflow_adds_no_install_or_third_party_action_step(self) -> None:
         actions = re.findall(r"(?m)^\s*-?\s*uses:\s*([^\s]+)", self.workflow)
         self.assertTrue(actions)
-        self.assertTrue(all(action.startswith("actions/") for action in actions), actions)
+        self.assertTrue(
+            all(
+                action.startswith(("actions/", "actions/upload-artifact@"))
+                for action in actions
+            ),
+            actions,
+        )
         self.assertTrue(
             all(re.fullmatch(r"actions/[a-z-]+@[0-9a-f]{40}", action) for action in actions),
             actions,
         )
-        self.assertNotRegex(self.workflow, r"(?i)\b(?:pip|npm|pnpm|yarn)\s+install\b")
-        self.assertNotRegex(self.workflow, r"(?i)\bnpx\b|https?://[^\s]+\.js\b|\bcdn\b")
+        for job in (self.verify, self.verify_candidate, self.main_verify, self.build):
+            with self.subTest(job=job[:32]):
+                self.assertNotRegex(job, r"(?i)\b(?:pip|npm|pnpm|yarn)\s+(?:ci|install)\b")
+                self.assertNotRegex(job, r"(?i)\bnpx\b|https?://[^\s]+\.js\b|\bcdn\b")
+        self.assertIn("npm ci --ignore-scripts", self.browser)
+        self.assertIn("./node_modules/.bin/playwright install --with-deps --only-shell chromium", self.browser)
+        self.assertNotRegex(self.browser, r"(?i)\bnpx\b|https?://[^\s]+\.js\b|\bcdn\b")
 
     def test_each_candidate_gate_runs_browser_controls_before_site_build(self) -> None:
         """Catches a PR or deployment build skipping browser controls before rendering."""
