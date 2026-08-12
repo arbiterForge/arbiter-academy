@@ -74,6 +74,8 @@ a broad context rewrite, or a new baseline.
 The helper writes one untracked candidate. It does not stage, commit, reset, run Check, contact a
 network service, or replace a report that already exists.
 
+{{action:P06-stage-handoff}}
+
 {{action:P06-review-handoff-boundary}}
 
 {{action:P06-commit-handoff}}

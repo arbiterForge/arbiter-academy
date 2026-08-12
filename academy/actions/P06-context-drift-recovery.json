@@ -142,8 +142,26 @@
       "evidence": "The helper derives a candidate from committed objects. Check later recomputes it and does not prove that a host command ran."
     },
     {
-      "id": "P06-review-handoff-boundary",
+      "id": "P06-stage-handoff",
       "sequence": 9,
+      "title": "Stage only the generated handoff",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In the native terminal at the Academy clone root, stage only the generated handoff. Do not stage the preserved note, correction files, or any substitute report.",
+      "rationale": "The learner-visible staging boundary keeps the generated evidence separate from the earlier correction and makes the second commit reviewable.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- .codearbiter/reports/academy/P06-recovery.json","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/P06-recovery.json","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/P06-recovery.json","copy":true}
+      ],
+      "expected_result": "The staged path list contains only .codearbiter/reports/academy/P06-recovery.json, ready for the second-commit review.",
+      "recovery": "If the staged path list contains any other entry, stop and use Reset for a fresh attempt. Do not unstage around an unclear boundary or stage a replacement report.",
+      "evidence": "Only this staged handoff path may become the second commit; the next action reviews that exact boundary."
+    },
+    {
+      "id": "P06-review-handoff-boundary",
+      "sequence": 10,
       "title": "Review the handoff as the second commit",
       "actor": "learner",
       "surface": "active-harness",
@@ -157,7 +175,7 @@
     },
     {
       "id": "P06-commit-handoff",
-      "sequence": 10,
+      "sequence": 11,
       "title": "Commit the handoff through CodeArbiter",
       "actor": "agent",
       "surface": null,
@@ -176,7 +194,7 @@
     },
     {
       "id": "P06-check",
-      "sequence": 11,
+      "sequence": 12,
       "title": "Run the external Academy Check",
       "actor": "learner",
       "surface": null,
@@ -194,7 +212,7 @@
     },
     {
       "id": "P06-return-base",
-      "sequence": 12,
+      "sequence": 13,
       "title": "Return to main after a passing Check",
       "actor": "learner",
       "surface": null,
@@ -212,7 +230,7 @@
     },
     {
       "id": "P06-reset-retry",
-      "sequence": 13,
+      "sequence": 14,
       "title": "Create a preserved numbered retry",
       "actor": "learner",
       "surface": null,

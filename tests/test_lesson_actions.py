@@ -171,6 +171,7 @@ P06_ACTION_IDS = (
     "P06-review-correction-boundary",
     "P06-commit-correction",
     "P06-write-handoff",
+    "P06-stage-handoff",
     "P06-review-handoff-boundary",
     "P06-commit-handoff",
     "P06-check",
@@ -832,6 +833,28 @@ class LessonActionTests(unittest.TestCase):
                 for variant in handoff.variants
             )
         )
+
+        stage_handoff = by_id["P06-stage-handoff"]
+        self.assertEqual(stage_handoff.actor, "learner")
+        self.assertEqual(
+            tuple(variant.command for variant in stage_handoff.variants),
+            (
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+            ),
+        )
+        self.assertTrue(
+            all(
+                variant.surface == "native-terminal"
+                and variant.host == "none"
+                and not variant.command.startswith("!")
+                for variant in stage_handoff.variants
+            )
+        )
+        self.assertIn("only .codearbiter/reports/academy/P06-recovery.json", stage_handoff.expected_result)
+        self.assertIn("use Reset", stage_handoff.recovery)
+        self.assertIn("second commit", stage_handoff.evidence or "")
 
         return_base = by_id["P06-return-base"]
         self.assertEqual(return_base.actor, "learner")

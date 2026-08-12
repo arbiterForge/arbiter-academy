@@ -902,7 +902,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             (
                 "P06-prepare", "P06-inspect-evidence", "P06-run-context-audit",
                 "P06-select-rescout", "P06-apply-correction", "P06-review-correction-boundary",
-                "P06-commit-correction", "P06-write-handoff", "P06-review-handoff-boundary",
+                "P06-commit-correction", "P06-write-handoff", "P06-stage-handoff", "P06-review-handoff-boundary",
                 "P06-commit-handoff", "P06-check", "P06-return-base", "P06-reset-retry",
             ),
         )
@@ -934,6 +934,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "P06-apply-correction",
             "P06-commit-correction",
             "P06-write-handoff",
+            "P06-stage-handoff",
             "P06-commit-handoff",
             "P06-check",
             "P06-return-base",
