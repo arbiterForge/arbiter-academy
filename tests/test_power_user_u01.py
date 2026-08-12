@@ -340,6 +340,26 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
 
             self.assertFalse(_semantic(context))
 
+    def test_sprint_decisions_rejects_a_brief_tampered_after_prepare(self) -> None:
+        """Catches a prepared contract changed after the learner starts the sprint."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = self._context(root)
+            (root / "training_scenarios/U01-sprint-brief.json").write_text(
+                json.dumps({"tampered": True}) + "\n",
+                encoding="utf-8",
+            )
+            self._git(root, "add", "training_scenarios/U01-sprint-brief.json")
+            self._git(root, "commit", "-m", "tamper with prepared sprint brief")
+            head = self._git(root, "rev-parse", "HEAD")
+            context = _SemanticContext(
+                root,
+                _Attempt(context.attempt.branch, 1, context.attempt.prepared, context.attempt.base, head),
+                context.predicate,
+            )
+
+            self.assertFalse(_semantic(context))
+
     def test_sprint_decisions_rejects_an_unrelated_committed_path(self) -> None:
         """Catches scope creep after a valid autonomous documentation sprint."""
         with tempfile.TemporaryDirectory() as directory:
