@@ -15,7 +15,7 @@ next_lab: P04-review-a-dependency
 
 ## Know before you begin
 
-P03 is a private, source-only guided lesson. The current public release is Preview 0.8: it publishes
+P03 is a private, source-only guided lesson. The current public release is Preview 0.9: it publishes
 F01 through F04, lists P03 as `coming_next`, and does not permit P03 Prepare, Check, or Reset. There is no
 released P03 path to invoke. The Academy operation cards below are future published execution
 contracts, not commands for learners to run now. They become executable only after a later installed
@@ -138,7 +138,7 @@ your private deliberation or prove a human approval. Keep those distinctions cle
 
 {{action:P03-reset}}
 
-No P03 learner Check can pass on Preview 0.8. After a future published Check actually passes, leave
+No P03 learner Check can pass on Preview 0.9. After a future published Check actually passes, leave
 the completed branch intact. Continue to P04 only when its own guided rewrite is published; do not
 substitute unpublished source exercises for a released lesson.
 

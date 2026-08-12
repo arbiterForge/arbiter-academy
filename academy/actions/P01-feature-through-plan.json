@@ -13,9 +13,9 @@
       "rationale": "The prepared branch preserves a fixed starting point for the specification, plan, repair, and final Check.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P01-feature-through-plan","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true}
       ],
       "expected_result": "Academy switches this clone to academy/P01-feature-through-plan/ATTEMPT_NUMBER and queues academy.feature.0002.",
       "recovery": "If Prepare stops, preserve its message and resolve the named clean-worktree or branch condition. Do not force-reset main or delete another attempt.",
@@ -87,8 +87,26 @@
       "evidence": "Discussion participation is external process context. Check does not authenticate a GitHub Discussion response."
     },
     {
-      "id": "P01-proceed",
+      "id": "P01-revise-spec",
       "sequence": 6,
+      "title": "Request a bounded specification revision",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "If review identifies a concrete correction, send this message in the active harness. It asks the agent to revise only the draft specification, do not derive a plan, and stop for another review. It is not a shell command, so it never begins with !.",
+      "rationale": "A visible revision path lets a first-time learner correct a weak contract without accidentally authorizing planning or implementation.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Revise only .codearbiter/specs/academy-feature.md to address this concrete review finding: [paste the concrete finding here]. Keep the task boundary: the Workshop Queue summary must report the exact total of open plus claimed tickets. Do not derive a plan, start academy.feature.0002, edit tests or production code, or commit. Stop and show the revised acceptance criteria for my review.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Revise only .codearbiter/specs/academy-feature.md to address this concrete review finding: [paste the concrete finding here]. Keep the task boundary: the Workshop Queue summary must report the exact total of open plus claimed tickets. Do not derive a plan, start academy.feature.0002, edit tests or production code, or commit. Stop and show the revised acceptance criteria for my review.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Revise only .codearbiter/specs/academy-feature.md to address this concrete review finding: [paste the concrete finding here]. Keep the task boundary: the Workshop Queue summary must report the exact total of open plus claimed tickets. Do not derive a plan, start academy.feature.0002, edit tests or production code, or commit. Stop and show the revised acceptance criteria for my review.","copy":true}
+      ],
+      "expected_result": "The agent changes only the draft specification and presents its revised criteria before any plan, task transition, test, production edit, or commit.",
+      "recovery": "If the agent changes anything beyond the draft or starts planning, stop. Preserve the attempt and use Reset for a new baseline rather than trying to hide the boundary violation.",
+      "evidence": "The revised specification remains visible for learner review. Check does not authenticate the review or revision conversation."
+    },
+    {
+      "id": "P01-proceed",
+      "sequence": 7,
       "title": "Give the separate proceed instruction",
       "actor": "learner",
       "surface": null,
@@ -106,7 +124,7 @@
     },
     {
       "id": "P01-check",
-      "sequence": 7,
+      "sequence": 8,
       "title": "Run the external Academy Check",
       "actor": "learner",
       "surface": null,
@@ -114,17 +132,35 @@
       "rationale": "Check independently recomputes the final artifact and commit-boundary contract.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P01-feature-through-plan","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true}
       ],
       "expected_result": "Check prints checkpoint P01-feature-through-plan: passed; progress: .academy/progress.json.",
       "recovery": "If Check fails, preserve the clean committed attempt and read the failed predicate. Use Reset for a new numbered attempt instead of rewriting committed evidence.",
       "evidence": "Only a passing external Check records P01 progress."
     },
     {
+      "id": "P01-return-base",
+      "sequence": 9,
+      "title": "Return to main after success",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After Check passes, return to main in a native terminal without deleting the completed attempt branch.",
+      "rationale": "The passing attempt remains available for a reviewer to inspect while the clone is ready for the next guided lesson.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main and leaves academy/P01-feature-through-plan/ATTEMPT_NUMBER reachable.",
+      "recovery": "If Git refuses because work is uncommitted, stop and preserve it. Do not force the switch or delete the completed attempt.",
+      "evidence": "The completed evidence remains separated from main and available for later inspection."
+    },
+    {
       "id": "P01-reset-retry",
-      "sequence": 8,
+      "sequence": 10,
       "title": "Create a preserved numbered retry",
       "actor": "learner",
       "surface": null,
@@ -132,9 +168,9 @@
       "rationale": "Preserved retries leave review and implementation evidence inspectable instead of hiding it with a force reset or rebase.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P01-feature-through-plan","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true}
       ],
       "expected_result": "Academy archives the prior attempt and prints the next academy/P01-feature-through-plan/ATTEMPT_NUMBER branch.",
       "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named repository condition; never force-reset or delete the prior attempt.",

@@ -15,7 +15,7 @@ next_lab: P02-commit-review-pr
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
+P01 is the first Practitioner lesson in Preview 0.9. It starts from the F04 repair boundary and ends with one preserved feature attempt on a safe learner branch.
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
@@ -65,6 +65,14 @@ Use exactly one review path before you continue.
 
 {{action:P01-discussion-review}}
 
+### If review finds a concrete correction
+
+Use the revision action. It sends a bounded request and returns you to the same review choice. It does not begin planning or implementation.
+
+{{action:P01-revise-spec}}
+
+### When the draft is acceptable
+
 {{action:P01-proceed}}
 
 After you send the proceed instruction, let the agent execute the governed path it describes. Add and run a focused summary test before touching production code. The RED result must fail because unresolved tickets are absent, not because a file, import, or fixture is broken. The repair remains the exact `open + claimed` assignment. Do not create a RED commit, amend, or rebase.
@@ -88,9 +96,10 @@ Check validates the final descendant commit, exact spec and plan shape, task tra
 
 ## Recover or continue
 
-If the draft is wrong, review is incomplete, plan coverage is weak, the task transition is wrong, or
-Check fails, preserve the attempt. Read the named predicate and correct only that boundary in a new
-numbered attempt. Do not conceal evidence by amending or rebasing history.
+If the draft is wrong, use the revision action and repeat the review before proceeding. If review is
+incomplete, plan coverage is weak, the task transition is wrong, or Check fails, preserve the attempt.
+Read the named predicate and correct only that boundary in a new numbered attempt. Do not conceal
+evidence by amending or rebasing history.
 
 ### Hint 1
 
@@ -108,11 +117,16 @@ feedback with those same facts before relaying it.
 The final verifier recomputes data and repository shape. Keep the test narrow and inspect the final
 commit boundary; it cannot reconstruct chat, review, or command history.
 
-{{action:P01-reset-retry}}
+After Check passes, leave the completed branch intact and return to `main` with this native-terminal action.
 
-After Check passes, leave the completed branch intact and return to `main` when you are ready. P02
-appears on the course home only after its guided rewrite and acceptance evidence are complete. Do not
+{{action:P01-return-base}}
+
+P02 is not available in this preview. Continue only after its guided Academy lesson is published. Do not
 use unpublished source exercises as a substitute for the accepted course.
+
+If P01 needs another attempt, use the preserved retry action.
+
+{{action:P01-reset-retry}}
 
 ## Understand the mechanism
 

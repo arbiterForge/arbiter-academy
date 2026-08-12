@@ -15,7 +15,7 @@ next_lab: P06-context-drift-recovery
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
+This is private authoring material. It is unavailable in Preview 0.9. Its action cards document an unreleased lesson and do not create a public course route.
 
 P05 is the first Practitioner exercise that asks you to preserve a precise remediation history. It
 uses the Workshop Queue practice project that Academy prepares in your learner clone; it does not

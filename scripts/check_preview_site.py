@@ -102,9 +102,9 @@ _LABS = (
     "F02-orient-to-state",
     "F03-work-the-board",
     "F04-fix-with-evidence",
+    "P01-feature-through-plan",
 )
 _COMING_NEXT = (
-    "P01-feature-through-plan",
     "P02-commit-review-pr",
     "P03-record-an-adr",
     "P04-review-a-dependency",
@@ -118,9 +118,10 @@ _RUNNABLE_LINK_LABELS = (
     "F02 \u2014 Orient to live governance state",
     "F03: Work the governed board",
     "F04 — Fix with evidence",
+    "P01 - Feature through a user-approved spec and derived plan",
 )
 _COMING_NEXT_ENTRIES = (
-    ("Practitioner: P01 through P08. Guided rewrites are in progress.", False),
+    ("Practitioner: P02 through P08. Guided rewrites are in progress.", False),
 )
 _PUBLIC_PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
@@ -130,9 +131,9 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01, F02, F03, and F04 are the guided lessons published in Preview 0.8.",
-    "P01-P08 are coming next after their guided rewrites are accepted.",
-    "The Power User track is not published in Preview 0.8.",
+    "F01-F04 and P01 are the guided lessons published in Preview 0.9.",
+    "P02-P08 are coming next after their guided rewrites are accepted.",
+    "The Power User track is not published in Preview 0.9.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -208,6 +209,11 @@ _EXPECTED_ACTION_IDS = {
         "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary",
         "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry",
         "F04-return-base",
+    ),
+    Path("labs/P01-feature-through-plan/index.html"): (
+        "P01-prepare", "P01-draft-spec", "P01-read-spec", "P01-solo-review",
+        "P01-discussion-review", "P01-revise-spec", "P01-proceed", "P01-check",
+        "P01-return-base", "P01-reset-retry",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -497,7 +503,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.8"
+        or data.get("release") != "preview-0.9"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -512,7 +518,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.8 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.9 provenance contract")
     return data["release"]
 
 
@@ -545,16 +551,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.8 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.9 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.8 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.9 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.8 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.9 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -564,13 +570,14 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             Path("labs/F02-orient-to-state/index.html"),
             Path("labs/F03-work-the-board/index.html"),
             Path("labs/F04-fix-with-evidence/index.html"),
+            Path("labs/P01-feature-through-plan/index.html"),
         }:
             expected_statuses = (_GUIDED_STATUS,)
         else:
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.8 contract: "
+                "generated publication status does not match the exact Preview 0.9 contract: "
                 f"{relative.as_posix()}"
             )
 

@@ -121,19 +121,19 @@
       "resources": [
         {
           "label": "Review the immutable PowerShell installer source",
-          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.8/install/install.ps1"
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.9/install/install.ps1"
         },
         {
           "label": "Review the published PowerShell installer digest",
-          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.ps1.sha256"
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.9/install.ps1.sha256"
         },
         {
           "label": "Review the immutable POSIX installer source",
-          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.8/install/install.sh"
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.9/install/install.sh"
         },
         {
           "label": "Review the published POSIX installer digest",
-          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.sh.sha256"
+          "href": "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.9/install.sh.sha256"
         }
       ],
       "variants": [
@@ -143,7 +143,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$releaseTag = \"preview-0.8\"\n$source = Join-Path ([IO.Path]::GetTempPath()) (\"arbiter-academy-\" + [guid]::NewGuid())\n$installer = Join-Path $source \"install.ps1\"\nNew-Item -ItemType Directory -Path $source | Out-Null\ngit -C $source init --quiet\ngit -C $source remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C $source fetch --depth 1 origin \"refs/tags/$releaseTag\"\n$git = (Get-Command git -ErrorAction Stop).Source\n$command = \"`\"$git`\" -C `\"$source`\" show `\"FETCH_HEAD:install/install.ps1`\" > `\"$installer`\"\"\n& $env:ComSpec /d /s /c $command\nif ($LASTEXITCODE -ne 0) { throw \"could not extract the tagged installer\" }\n& $installer",
+          "command": "$releaseTag = \"preview-0.9\"\n$source = Join-Path ([IO.Path]::GetTempPath()) (\"arbiter-academy-\" + [guid]::NewGuid())\n$installer = Join-Path $source \"install.ps1\"\nNew-Item -ItemType Directory -Path $source | Out-Null\ngit -C $source init --quiet\ngit -C $source remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C $source fetch --depth 1 origin \"refs/tags/$releaseTag\"\n$git = (Get-Command git -ErrorAction Stop).Source\n$command = \"`\"$git`\" -C `\"$source`\" show `\"FETCH_HEAD:install/install.ps1`\" > `\"$installer`\"\"\n& $env:ComSpec /d /s /c $command\nif ($LASTEXITCODE -ne 0) { throw \"could not extract the tagged installer\" }\n& $installer",
           "copy": true
         },
         {
@@ -152,7 +152,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "set -eu\nrelease_tag='preview-0.8'\nworkdir=$(mktemp -d)\ngit -C \"$workdir\" init --quiet\ngit -C \"$workdir\" remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C \"$workdir\" fetch --depth 1 origin \"refs/tags/$release_tag\"\ngit -C \"$workdir\" show FETCH_HEAD:install/install.sh > \"$workdir/install.sh\"\nsh \"$workdir/install.sh\"",
+          "command": "set -eu\nrelease_tag='preview-0.9'\nworkdir=$(mktemp -d)\ngit -C \"$workdir\" init --quiet\ngit -C \"$workdir\" remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C \"$workdir\" fetch --depth 1 origin \"refs/tags/$release_tag\"\ngit -C \"$workdir\" show FETCH_HEAD:install/install.sh > \"$workdir/install.sh\"\nsh \"$workdir/install.sh\"",
           "copy": true
         },
         {
@@ -161,13 +161,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "set -eu\nrelease_tag='preview-0.8'\nworkdir=$(mktemp -d)\ngit -C \"$workdir\" init --quiet\ngit -C \"$workdir\" remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C \"$workdir\" fetch --depth 1 origin \"refs/tags/$release_tag\"\ngit -C \"$workdir\" show FETCH_HEAD:install/install.sh > \"$workdir/install.sh\"\nsh \"$workdir/install.sh\"",
+          "command": "set -eu\nrelease_tag='preview-0.9'\nworkdir=$(mktemp -d)\ngit -C \"$workdir\" init --quiet\ngit -C \"$workdir\" remote add origin https://github.com/arbiterForge/arbiter-academy.git\ngit -C \"$workdir\" fetch --depth 1 origin \"refs/tags/$release_tag\"\ngit -C \"$workdir\" show FETCH_HEAD:install/install.sh > \"$workdir/install.sh\"\nsh \"$workdir/install.sh\"",
           "copy": true
         }
       ],
-      "expected_result": "The installer reports Preview 0.8 and the path of the installed arbiter-academy executable.",
+      "expected_result": "The installer reports Preview 0.9 and the path of the installed arbiter-academy executable.",
       "recovery": "If the tag fetch, extraction, or installation stops, do not substitute a branch or a different remote URL. Preserve the complete message and the temporary source folder, compare the linked immutable source, and ask in Academy Discussions before retrying.",
-      "evidence": "The immutable tag and the installed tool path both identify the versioned Preview 0.8 release outside the learner repository."
+      "evidence": "The immutable tag and the installed tool path both identify the versioned Preview 0.9 release outside the learner repository."
     },
     {
       "id": "home-doctor",
@@ -190,7 +190,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.8\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor",
           "copy": true
         },
         {
@@ -199,7 +199,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
           "copy": true
         },
         {
@@ -208,7 +208,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor",
           "copy": true
         }
       ],

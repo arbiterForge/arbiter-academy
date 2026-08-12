@@ -115,3 +115,27 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Chosen: SD-ACA-013 supersedes SD-ACA-012's chosen checksum-download route. Preview
   0.8 fetches the canonical immutable Git tag, extracts the installer locally, and then
   executes that local file; it does not download a checksum alongside the installer.
+
+## SD-ACA-010 - Give P01 a bounded specification revision path - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether a learner who finds a weak P01 draft specification should infer an informal recovery, restart the whole lesson, or receive a visible revision action that preserves the review boundary.
+- Options: retain prose-only recovery; reset every imperfect draft; add one copyable learner-to-agent revision action that changes only the draft specification and stops for review.
+- SMARTS: Safety and Security favor an explicit stop before planning, task transition, tests, production edits, or commits. Reliability and Testability favor one typed action contract with actor, surface, expected result, recovery, and evidence assertions. Maintainability and Simplicity preserve the existing final-state verifier and avoid a new TUI workflow. Reviewability and Availability give a first-time learner a concrete correction path without inventing approval evidence or waiting for Discussion feedback.
+- Chosen: prepare P01 for Preview 0.9 with a bounded specification-revision action and explicit planned-release commands. It remains private until F04 is released and the complete Preview 0.9 manifest, installer, immutable tag, assets, and hosted verification are accepted.
+
+## SD-ACA-011 - Keep P01 review branches inside the shared lesson contract - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether P01's optional draft-revision path should receive bespoke visual treatment or remain a semantically explicit sequence of shared action cards.
+- Options: introduce a P01-only diagram, artwork, or layout; leave the revision and proceed actions visually adjacent without branch labels; add short decision headings above the existing shared cards and lock their order in the course contract.
+- SMARTS: Maintainability and Simplicity favor one renderer and action-card system across every lesson. Reviewability and Availability favor clear learner-facing conditions for revision versus proceed. Safety and Testability preserve the stop-before-planning boundary and prove the rendered source order without falsely treating either review path as authenticated approval. Speed avoids a visual subsystem that only one lesson needs.
+- Chosen: P01 uses the shared guide and typed-action renderer. Its Practice section labels the concrete-correction and acceptable-draft branches before the existing revision and proceed cards; no bespoke art, diagram, animation, or lesson-specific layout is introduced.
+
+## SD-ACA-015 - Publish P01 as the next immutable guided slice - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether to keep P01 private until the remaining Practitioner track is complete, publish it through a one-off page, or promote it with F01-F04 as Preview 0.9 using the shared course contract.
+- Options: wait for P02-P08; add a bespoke P01 public page; publish P01 as the fifth guided lab in a fresh immutable Preview 0.9 release while P02-P08 remain explicit coming-next lessons.
+- SMARTS: Safety and Security require a fresh tag, installer digest, release asset set, and exact public manifest rather than altering Preview 0.8. Reliability and Availability favor releasing the complete F01-F04-to-P01 prerequisite path now. Maintainability and Simplicity keep one Markdown/action-manifest renderer, one responsive command-card pattern, and one visual baseline contract. Reviewability and Testability bind P01's actor, surface, review, recovery, and Check limits to rendered cards, deterministic screenshots, static artifact validation, and hosted exact-head verification.
+- Chosen: publish F01-F04 plus P01 only in Preview 0.9 after the immutable tag, six release assets, hosted verification, and Pages deployment succeed. P02-P08 remain non-routable until their guided prerequisite closure is accepted.

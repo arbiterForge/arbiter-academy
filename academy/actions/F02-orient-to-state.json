@@ -8,9 +8,9 @@
       "instruction": "In the native terminal opened at your arbiter-academy clone, run the installed Academy Prepare command for your operating system. Begin only from a clean main branch.",
       "rationale": "Prepare isolates the exercise on a numbered attempt branch and preserves main.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.8\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F02-orient-to-state","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F02-orient-to-state","copy":true}
       ],
       "expected_result": "Academy prints a prepared branch named academy/F02-orient-to-state/ATTEMPT_NUMBER and switches the repository to it.",
       "recovery": "If Prepare stops, preserve its message. Return to Recovery for the named dirty-worktree, wrong-branch, or prerequisite condition before retrying.",
@@ -189,9 +189,9 @@
       "instruction": "In the native terminal, run the installed Academy Check command for F02. It verifies committed Git state from outside the learner checkout.",
       "rationale": "External verification proves the report matches the preserved context and exact commit boundary.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.8\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F02-orient-to-state","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F02-orient-to-state","copy":true}
       ],
       "expected_result": "Check prints checkpoint F02-orient-to-state: passed; progress: .academy/progress.json.",
       "recovery": "If Check fails, preserve the clean committed attempt and read the named predicate. Use Reset for a new numbered attempt rather than rewriting committed evidence.",
@@ -224,9 +224,9 @@
       "instruction": "Use this only when another attempt is needed. In the native terminal, run the installed Academy Reset command for F02.",
       "rationale": "Reset archives the current attempt and prepares the next unused number without erasing evidence.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.8\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F02-orient-to-state","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.8/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.9\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F02-orient-to-state","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.9/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F02-orient-to-state","copy":true}
       ],
       "expected_result": "Academy preserves the previous attempt under an archive ref and prints the next academy/F02-orient-to-state/ATTEMPT_NUMBER branch.",
       "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named dirty-state or repository boundary before retrying; never force-reset or delete the prior attempt.",

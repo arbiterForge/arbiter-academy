@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.8")
+                    self.assertEqual(release.release, "preview-0.9")
                     self.assertNotIn(lab.id, release.runnable_labs)
                     self.assertNotIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -449,12 +449,25 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-read-spec",
                 "P01-solo-review",
                 "P01-discussion-review",
+                "P01-revise-spec",
                 "P01-proceed",
                 "P01-check",
+                "P01-return-base",
                 "P01-reset-retry",
             ),
         )
+        self.assertIn("P01 is the first Practitioner lesson in Preview 0.9.", guide)
+        self.assertIn("### If review finds a concrete correction", guide)
+        self.assertRegex(
+            guide,
+            r"### If review finds a concrete correction[\s\S]*?"
+            r"\{\{action:P01-revise-spec\}\}[\s\S]*?"
+            r"### When the draft is acceptable[\s\S]*?"
+            r"\{\{action:P01-proceed\}\}",
+        )
+        self.assertIn("do not derive a plan", actions["P01-revise-spec"].instruction.casefold())
         self.assertEqual(actions["P01-draft-spec"].actor, "agent")
+        self.assertEqual(actions["P01-revise-spec"].actor, "learner")
         self.assertEqual(actions["P01-proceed"].actor, "learner")
         self.assertEqual(actions["P01-check"].actor, "learner")
 
@@ -1296,7 +1309,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
         """Catches an unpublished draft being mistaken for the current public lesson set."""
         release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         for document_id in (
-            "P01-feature-through-plan",
             "P02-commit-review-pr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
