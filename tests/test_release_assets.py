@@ -136,9 +136,9 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
         self.assertIn("academy/publication/preview-0.7.json", package)
         self.assertNotIn("academy/publication/preview-0.6.json", package)
 
-    def test_fresh_preview_candidate_has_no_preexisting_immutable_tag_binding(self) -> None:
-        """A fresh preview builds from the reviewed candidate before its first immutable tag exists."""
-        self.assertIsNone(immutable_release_tag_commit(RELEASE))
+    def test_unpublished_preview_candidate_has_no_preexisting_immutable_tag_binding(self) -> None:
+        """A future preview builds from its reviewed candidate before its first tag exists."""
+        self.assertIsNone(immutable_release_tag_commit("preview-9.9"))
 
     def test_current_preview_uses_its_tag_as_soon_as_publication_creates_it(self) -> None:
         """A published Preview 0.7 must stop selecting mutable candidate bytes."""

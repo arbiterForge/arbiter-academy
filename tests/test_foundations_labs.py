@@ -11,8 +11,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from academy_engine.checkpoints import evaluate_checkpoint
-from academy_engine.curriculum import CurriculumError, load_track, verify_track
+from academy_engine.checkpoints import _f04_has_uncommitted_learner_changes, evaluate_checkpoint
+from academy_engine.curriculum import CurriculumError, _subsections, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
 from academy_engine.scenario import PreparationError, prepare_lab, reset_lab
@@ -332,6 +332,19 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(
+            tuple(line[3:] for line in text.splitlines() if line.startswith("## ")),
+            ("Know before you begin", "What you will prove", "Prepare safely", "Practice", "Recognize success", "Check", "Recover or continue", "Understand the mechanism"),
+        )
+        for action_id in (
+            "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix", "F04-request-regression", "F04-run-red-regression", "F04-inspect-test-boundary", "F04-stage-regression", "F04-review-regression-boundary", "F04-commit-regression", "F04-prove-red-commit", "F04-request-repair", "F04-prove-repair", "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary", "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry", "F04-return-base",
+        ):
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+        self.assertNotIn("```", text)
+
     def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         """F03 must teach the real board route with action cards, not prose fences."""
         path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"
@@ -508,19 +521,13 @@ class FoundationsCurriculumTests(unittest.TestCase):
                     load_track(root, "foundations")
 
     def test_loader_rejects_duplicate_host_sections_instead_of_overwriting_one(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shutil.copytree(SOURCE / "academy", root / "academy")
-            # F03 is action-backed, so its host forms are intentionally supplied by
-            # its manifest. F04 remains the legacy guide that exercises the parser
-            # branch this mutation protects.
-            path = root / "academy/tracks/foundations/F04-fix-with-evidence.md"
-            text = path.read_text(encoding="utf-8")
-            duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
-            path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")
-
-            with self.assertRaisesRegex(CurriculumError, "repeats host subsection Codex"):
-                load_track(root, "foundations")
+        """Preserve duplicate legacy host-heading detection after all lessons went guided."""
+        with self.assertRaisesRegex(CurriculumError, "repeats host subsection Codex"):
+            _subsections(
+                "### Codex\n\nFirst command.\n\n### Codex\n\nSecond command.\n",
+                Path("legacy-guide.md"),
+                "host",
+            )
 
     def test_verify_track_matrix_binds_sources_scenarios_and_checkpoints(self) -> None:
         report = verify_track(SOURCE, "foundations", matrix=True)
@@ -1452,6 +1459,34 @@ def complete_ticket'''
                     self.assertTrue(result.passed, result.failed_predicates)
                 else:
                     self.assertFalse(result.passed)
+
+    def test_f04_rejects_ignored_and_disguised_non_cache_worktree_dirt(self) -> None:
+        """Only exact exercised cache files may remain outside the two evidence commits."""
+        for case, relative, expected in (
+            ("ignored-note", "ignored-f04-note.txt", True),
+            (
+                "nested-disguised-cache",
+                "tests/__pycache__/test_service.cpython-311.pyc/payload.pyc",
+                True,
+            ),
+            ("exact-service-cache", "tests/__pycache__/test_service.cpython-311.pyc", False),
+        ):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                git(root, "init", "-b", "main")
+                git(root, "config", "user.name", "Academy Learner")
+                git(root, "config", "user.email", "learner@example.invalid")
+                (root / ".gitignore").write_text(
+                    "ignored-f04-note.txt\ntests/__pycache__/\n",
+                    encoding="utf-8",
+                )
+                git(root, "add", ".gitignore")
+                git(root, "commit", "-m", "baseline")
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"not an allowed interpreter cache")
+
+                self.assertEqual(_f04_has_uncommitted_learner_changes(root), expected)
 
     def test_f04_rejects_unrelated_production_delta_beside_valid_guard(self) -> None:
         """Catches an F04 false green that compares only the repaired function AST."""

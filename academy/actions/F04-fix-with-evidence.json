@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "F04-fix-with-evidence",
+  "actions": [
+    {
+      "id": "F04-prepare", "sequence": 1, "title": "Prepare a numbered fix attempt", "actor": "learner", "surface": null,
+      "instruction": "From a clean main branch at your Academy clone root, run Prepare in a native terminal. The printed attempt number is evidence metadata, not text to type.",
+      "rationale": "Prepare gives the intentionally defective service a separate, reviewable history.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true}
+      ],
+      "expected_result": "Academy switches this clone to academy/F04-fix-with-evidence/ATTEMPT_NUMBER.", "recovery": "If Prepare stops, preserve its message and resolve only the named clean-worktree, branch, or prerequisite condition. Do not force-reset main or delete an earlier attempt.", "evidence": "The numbered branch preserves the defective starting point."
+    },
+    {
+      "id": "F04-inspect-defect", "sequence": 2, "title": "Read the defect and its boundary", "actor": "learner", "surface": null,
+      "instruction": "Read the prepared service and test file before requesting a change. Identify claim_ticket as the live boundary and confirm that the regression name is not already present.",
+      "rationale": "The lesson repairs one claimant-label rule, not the CLI, JSON storage, or a fictional copy of the service.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-Content -LiteralPath 'workshop_queue/service.py'; Get-Content -LiteralPath 'tests/test_service.py'","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"sed -n '1,240p' workshop_queue/service.py; sed -n '1,180p' tests/test_service.py","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"sed -n '1,240p' workshop_queue/service.py; sed -n '1,180p' tests/test_service.py","copy":true}
+      ],
+      "expected_result": "claim_ticket accepts a volunteer label without rejecting newline, tab, or DEL characters, and tests/test_service.py has no claimant-label control-character regression.", "recovery": "If either file differs from that prepared state, stop. Preserve the branch and use Reset for a new F04 attempt rather than adapting another lesson's state.", "evidence": "You identified the real production boundary and the missing executable regression."
+    },
+    {
+      "id": "F04-confirm-baseline", "sequence": 3, "title": "Confirm the prepared baseline is clean", "actor": "learner", "surface": null,
+      "instruction": "Run the service suite in a native terminal before adding the regression. The existing suite must be green and Git must print no paths.",
+      "rationale": "A green prepared baseline lets the later red result identify the new regression instead of a pre-existing failure.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short; python -m unittest tests.test_service -v","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short && python3 -m unittest tests.test_service -v","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short && python3 -m unittest tests.test_service -v","copy":true}
+      ],
+      "expected_result": "Git prints nothing and the existing service tests pass.", "recovery": "If Git prints a path or a baseline test fails, preserve the output. Do not add a regression until the prepared attempt is understood; use Reset if the attempt is not clean.", "evidence": "The red test will be attributable to the regression you request next."
+    },
+    {
+      "id": "F04-start-fix", "sequence": 4, "title": "Open the governed fix lane", "actor": "agent", "surface": null,
+      "instruction": "In the selected CodeArbiter harness, paste the copied fix command into the harness prompt and send it. It is not a shell command and never begins with !. The agent opens the governed fix lane before changing production code.",
+      "rationale": "The fix lane records the defect boundary and keeps the upcoming work under the repository's rules.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:fix \"Reject control characters in a claimant label\"","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-fix \"Reject control characters in a claimant label\"","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-fix \"Reject control characters in a claimant label\"","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-fix \"Reject control characters in a claimant label\"","copy":true}
+      ],
+      "expected_result": "The agent identifies the claimant-label defect and waits for a regression-first change.", "recovery": "If the command blocks, preserve its finding. Do not bypass the lane or edit workshop_queue/service.py from a terminal.", "evidence": "The governed path names the production boundary before it changes."
+    },
+    {
+      "id": "F04-request-regression", "sequence": 5, "title": "Request the test-only regression", "actor": "learner", "surface": null,
+      "instruction": "Paste this request into the selected harness and send it. It is an instruction to your agent, not a terminal command, so it never begins with !.",
+      "rationale": "The first commit must prove the defect exists before any repair can make it pass.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Add exactly one direct unittest named test_claim_rejects_control_characters_in_volunteer_label in tests/test_service.py. Loop over Sam\\nAdmin, Sam\\tAdmin, and Sam\\x7fAdmin; for each, use assertRaisesRegex(ValueError, a message containing control characters) around the real claim_ticket call. Then assign the real claim_ticket result for Sam Allen to a variable and assert its claimed_by is Sam Allen. Do not edit workshop_queue/service.py. Run only that test and stop after its semantic assertion failure.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Add exactly one direct unittest named test_claim_rejects_control_characters_in_volunteer_label in tests/test_service.py. Loop over Sam\\nAdmin, Sam\\tAdmin, and Sam\\x7fAdmin; for each, use assertRaisesRegex(ValueError, a message containing control characters) around the real claim_ticket call. Then assign the real claim_ticket result for Sam Allen to a variable and assert its claimed_by is Sam Allen. Do not edit workshop_queue/service.py. Run only that test and stop after its semantic assertion failure.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Add exactly one direct unittest named test_claim_rejects_control_characters_in_volunteer_label in tests/test_service.py. Loop over Sam\\nAdmin, Sam\\tAdmin, and Sam\\x7fAdmin; for each, use assertRaisesRegex(ValueError, a message containing control characters) around the real claim_ticket call. Then assign the real claim_ticket result for Sam Allen to a variable and assert its claimed_by is Sam Allen. Do not edit workshop_queue/service.py. Run only that test and stop after its semantic assertion failure.","copy":true}
+      ],
+      "expected_result": "Only tests/test_service.py changes, and the focused regression fails because claim_ticket does not raise ValueError.", "recovery": "If the result is an import, syntax, or unrelated failure, reject it as evidence and ask the agent to correct only the regression. If production code changes, do not stage it.", "evidence": "The same named test is executable proof of the original defect."
+    },
+    {
+      "id": "F04-run-red-regression", "sequence": 6, "title": "Observe the semantic red failure", "actor": "learner", "surface": null,
+      "instruction": "Run the focused regression yourself in a native terminal. This command is expected to fail at this point; read the assertion before continuing.",
+      "rationale": "A test that passes before the repair cannot prove the repair fixed the intended defect.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"python -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true}
+      ],
+      "expected_result": "The test fails because ValueError was not raised for a claimant label containing a control character.", "recovery": "If the test passes, errors before reaching claim_ticket, or names a different failure, stop. Return to the regression request and preserve the current attempt.", "evidence": "You personally observed the red assertion against the prepared production code."
+    },
+    {
+      "id": "F04-inspect-test-boundary", "sequence": 7, "title": "Inspect the test-only boundary", "actor": "learner", "surface": null,
+      "instruction": "Inspect whole-worktree status and both relevant paths before staging. The service path must have no diff yet.",
+      "rationale": "The history proof fails if the regression and repair share one commit.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short; git diff --check; git diff -- tests/test_service.py workshop_queue/service.py","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short && git diff --check && git diff -- tests/test_service.py workshop_queue/service.py","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short && git diff --check && git diff -- tests/test_service.py workshop_queue/service.py","copy":true}
+      ],
+      "expected_result": "Only tests/test_service.py is modified, with no whitespace error and no workshop_queue/service.py change.", "recovery": "If another path changed, do not stage. Preserve the attempt and ask the agent to remove the unrelated change before the regression commit.", "evidence": "The first commit boundary is visibly test-only."
+    },
+    {
+      "id": "F04-stage-regression", "sequence": 8, "title": "Stage only the red regression", "actor": "learner", "surface": null,
+      "instruction": "Stage exactly tests/test_service.py in a native terminal. This is a shell command you run directly, so it never begins with !. Do not stage production code or any other path.",
+      "rationale": "The review and governed commit need one visible, test-only staged boundary.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- tests/test_service.py; git diff --cached --check; git diff --cached --name-only","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- tests/test_service.py && git diff --cached --check && git diff --cached --name-only","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- tests/test_service.py && git diff --cached --check && git diff --cached --name-only","copy":true}
+      ],
+      "expected_result": "The staged path list prints exactly tests/test_service.py and the staged diff has no whitespace error.", "recovery": "If another path is staged, unstage only that path and inspect the whole worktree again. Do not commit until the staged list is exact.", "evidence": "The first proposed commit has one visible staged test path."
+    },
+    {
+      "id": "F04-review-regression-boundary", "sequence": 9, "title": "Approve the red-test commit boundary", "actor": "learner", "surface": null,
+      "instruction": "Paste this review request into the selected harness and send it. It is not a shell command and never begins with !.",
+      "rationale": "The learner approves a narrow test-only commit after inspecting the real diff.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only tests/test_service.py, whether the staged path is exactly tests/test_service.py, and whether the named regression reaches real claim_ticket and is red because ValueError is absent.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only tests/test_service.py, whether the staged path is exactly tests/test_service.py, and whether the named regression reaches real claim_ticket and is red because ValueError is absent.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only tests/test_service.py, whether the staged path is exactly tests/test_service.py, and whether the named regression reaches real claim_ticket and is red because ValueError is absent.","copy":true}
+      ],
+      "expected_result": "The agent reports one test path, a real red regression, and no production change for learner approval.", "recovery": "If the report names another path, a passing test, or a production diff, do not approve. Preserve the evidence and correct the boundary first.", "evidence": "The learner approved the exact first commit boundary."
+    },
+    {
+      "id": "F04-commit-regression", "sequence": 10, "title": "Commit the red regression", "actor": "agent", "surface": null,
+      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the CodeArbiter commit gate; do not use git commit.",
+      "rationale": "The governed commit makes the failing regression durable history before the repair exists.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "CodeArbiter creates one learner commit after Prepare containing only tests/test_service.py.", "recovery": "If the gate blocks, preserve the finding. Do not direct-commit, amend another attempt, or add workshop_queue/service.py to this commit.", "evidence": "The first immutable learner commit contains the red regression only."
+    },
+    {
+      "id": "F04-prove-red-commit", "sequence": 11, "title": "Prove the first commit is still red", "actor": "learner", "surface": null,
+      "instruction": "Inspect the new head and run the same focused test again in a native terminal. The command is still expected to fail.",
+      "rationale": "This ties the red failure to the committed test-only history, not a transient working-tree edit.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git show --stat --oneline HEAD; python -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git show --stat --oneline HEAD; python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git show --stat --oneline HEAD; python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v","copy":true}
+      ],
+      "expected_result": "HEAD lists only tests/test_service.py, and the same regression remains red because the service has not changed.", "recovery": "If HEAD includes service code or the test is not the expected red assertion, preserve the attempt and use Reset. Do not rewrite history to make it appear ordered.", "evidence": "The committed red regression predates the repair."
+    },
+    {
+      "id": "F04-request-repair", "sequence": 12, "title": "Request the minimal production repair", "actor": "learner", "surface": null,
+      "instruction": "Paste this request into the selected harness and send it. It is a request to your agent, not a terminal command, so it never begins with !.",
+      "rationale": "The repair must be a reachable claimant-label guard, not a broad rewrite or a disconnected test helper.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Add only the smallest reachable control-character validation at the existing claim_ticket volunteer-label boundary in workshop_queue/service.py. Reject characters below U+0020 and U+007F, preserve the existing regression unchanged, preserve valid Sam Allen behavior, add no dependency, and run the focused regression plus tests.test_service.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Add only the smallest reachable control-character validation at the existing claim_ticket volunteer-label boundary in workshop_queue/service.py. Reject characters below U+0020 and U+007F, preserve the existing regression unchanged, preserve valid Sam Allen behavior, add no dependency, and run the focused regression plus tests.test_service.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Add only the smallest reachable control-character validation at the existing claim_ticket volunteer-label boundary in workshop_queue/service.py. Reject characters below U+0020 and U+007F, preserve the existing regression unchanged, preserve valid Sam Allen behavior, add no dependency, and run the focused regression plus tests.test_service.","copy":true}
+      ],
+      "expected_result": "Only workshop_queue/service.py changes and the existing regression is ready to turn green.", "recovery": "If the agent changes the test, adds a dependency, or edits another path, do not stage. Ask it to restore the test and reduce the repair to the claimant boundary.", "evidence": "The repair is separate from the committed regression."
+    },
+    {
+      "id": "F04-prove-repair", "sequence": 13, "title": "Prove the same test turns green", "actor": "learner", "surface": null,
+      "instruction": "Run the named regression and then the complete service suite in a native terminal before staging the repair.",
+      "rationale": "The same test must change from red to green, while an ordinary claimant remains valid.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"python -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v; python -m unittest tests.test_service -v","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v && python3 -m unittest tests.test_service -v","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"python3 -m unittest tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label -v && python3 -m unittest tests.test_service -v","copy":true}
+      ],
+      "expected_result": "The named regression passes and the service suite passes, including its ordinary claimant behavior.", "recovery": "If either command fails, preserve the output and ask the agent to revise only workshop_queue/service.py. Keep the red-test commit unchanged.", "evidence": "One named regression is red before the repair and green after it."
+    },
+    {
+      "id": "F04-inspect-repair-boundary", "sequence": 14, "title": "Inspect the service-only boundary", "actor": "learner", "surface": null,
+      "instruction": "Inspect the whole worktree and both lesson paths before the repair commit. The committed test must have no new diff.",
+      "rationale": "The external checkpoint rejects any combined, extra-path, or rewritten-test repair.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short; git diff --check; git diff -- tests/test_service.py workshop_queue/service.py","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short && git diff --check && git diff -- tests/test_service.py workshop_queue/service.py","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short && git diff --check && git diff -- tests/test_service.py workshop_queue/service.py","copy":true}
+      ],
+      "expected_result": "Only workshop_queue/service.py is modified, with no whitespace error and no new tests/test_service.py diff.", "recovery": "If another path changed, do not stage. Preserve the attempt and remove only the unintended uncommitted scope before requesting review.", "evidence": "The second commit boundary is visibly production-only."
+    },
+    {
+      "id": "F04-stage-repair", "sequence": 15, "title": "Stage only the production repair", "actor": "learner", "surface": null,
+      "instruction": "Stage exactly workshop_queue/service.py in a native terminal. This is a shell command you run directly, so it never begins with !. Do not stage the committed regression or any other path.",
+      "rationale": "The second review and governed commit need one visible, service-only staged boundary.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- workshop_queue/service.py; git diff --cached --check; git diff --cached --name-only","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- workshop_queue/service.py && git diff --cached --check && git diff --cached --name-only","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- workshop_queue/service.py && git diff --cached --check && git diff --cached --name-only","copy":true}
+      ],
+      "expected_result": "The staged path list prints exactly workshop_queue/service.py and the staged diff has no whitespace error.", "recovery": "If another path is staged, unstage only that path and inspect the whole worktree again. Do not commit until the staged list is exact.", "evidence": "The second proposed commit has one visible staged service path."
+    },
+    {
+      "id": "F04-review-repair-boundary", "sequence": 16, "title": "Approve the service-only boundary", "actor": "learner", "surface": null,
+      "instruction": "Paste this review request into the selected harness and send it. It is not a shell command and never begins with !.",
+      "rationale": "The learner approves the narrow repair after the regression and full service suite pass.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only workshop_queue/service.py, whether the staged path is exactly workshop_queue/service.py, whether the earlier regression remains unchanged, and whether the guard is reachable from claim_ticket.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only workshop_queue/service.py, whether the staged path is exactly workshop_queue/service.py, whether the earlier regression remains unchanged, and whether the guard is reachable from claim_ticket.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Show git status --short, the staged path list, and the staged diff. Do not commit. Report whether the whole worktree changes only workshop_queue/service.py, whether the staged path is exactly workshop_queue/service.py, whether the earlier regression remains unchanged, and whether the guard is reachable from claim_ticket.","copy":true}
+      ],
+      "expected_result": "The agent reports one service path, an unchanged regression, and a reachable narrow guard for learner approval.", "recovery": "If the report names a changed test, another path, or an unreachable guard, do not approve. Preserve the attempt and correct only that defect.", "evidence": "The learner approved the exact second commit boundary."
+    },
+    {
+      "id": "F04-commit-repair", "sequence": 17, "title": "Commit the production repair", "actor": "agent", "surface": null,
+      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the CodeArbiter commit gate; do not use git commit.",
+      "rationale": "The second governed commit preserves the repair separately from the red regression.", "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "CodeArbiter creates one later learner commit containing only workshop_queue/service.py.", "recovery": "If the gate blocks, preserve the finding. Do not amend the red regression, direct-commit, or add tests/test_service.py to this repair commit.", "evidence": "The second immutable learner commit contains the production repair only."
+    },
+    {
+      "id": "F04-inspect-history", "sequence": 18, "title": "Inspect the exact two-commit proof", "actor": "learner", "surface": null,
+      "instruction": "Confirm the worktree is clean and read the most recent two learner commits in a native terminal. The older commit must be test-only and the newer commit service-only.",
+      "rationale": "Check reconstructs this history from Git rather than trusting a transcript.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short; git log --oneline --name-only -2","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short && git log --oneline --name-only -2","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short && git log --oneline --name-only -2","copy":true}
+      ],
+      "expected_result": "Git prints no status paths and shows two commits after Prepare: tests/test_service.py first, then workshop_queue/service.py.", "recovery": "If the history has another path, another commit, or dirty state, preserve it and use Reset for a numbered retry. Do not rebase, amend, or delete the failed evidence.", "evidence": "The exact two commits are available for the external checkpoint to inspect."
+    },
+    {
+      "id": "F04-check", "sequence": 19, "title": "Run the external Academy Check", "actor": "learner", "surface": null,
+      "instruction": "Run Check from a native terminal. Academy reads the prepared baseline, commit order, retained source shapes, and clean current worktree without executing learner-authored code.",
+      "rationale": "External verification makes the evidence independently reconstructable.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true}
+      ],
+      "expected_result": "Check prints checkpoint F04-fix-with-evidence: passed; progress: .academy/progress.json.", "recovery": "If Check fails, preserve the exact history and read its named predicate. Use Reset for a new numbered attempt instead of rewriting committed evidence.", "evidence": "Only a passing external Check records F04 progress."
+    },
+    {
+      "id": "F04-reset-retry", "sequence": 20, "title": "Create a preserved numbered retry", "actor": "learner", "surface": null,
+      "instruction": "Use this only after a failed Check or an irrecoverably wrong attempt. Run Reset in a native terminal at the Academy clone root.",
+      "rationale": "Reset keeps the failed red-to-green history reachable and starts the same defect on the next unused branch number.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true}
+      ],
+      "expected_result": "Academy archives the prior attempt and switches to the next academy/F04-fix-with-evidence/ATTEMPT_NUMBER branch.", "recovery": "If Reset stops, preserve its message and current branch. Never force-reset or delete the prior attempt.", "evidence": "The failed attempt remains reachable while the retry starts clean."
+    },
+    {
+      "id": "F04-return-base", "sequence": 21, "title": "Return to main after success", "actor": "learner", "surface": null,
+      "instruction": "After Check passes, return to main in a native terminal without deleting the completed attempt branch.",
+      "rationale": "The passing attempt remains available for a reviewer to inspect.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main and leaves academy/F04-fix-with-evidence/ATTEMPT_NUMBER reachable.", "recovery": "If Git refuses because work is uncommitted, stop and preserve it. Do not force the switch.", "evidence": "The completed evidence remains separated from main."
+    }
+  ]
+}
