@@ -37,13 +37,13 @@
       "title": "Keep Prepare behind the publication gate",
       "actor": "academy",
       "surface": "academy-console",
-      "instruction": "Do not run P03 Prepare from the current public Preview 0.8. P03 is not published or runnable there. This private card specifies a future published release contract: only an installed release whose manifest includes P03 in runnable_labs and guided_labs may expose Prepare through the Academy console.",
+      "instruction": "Do not run P03 Prepare from the current public Preview 0.9. P03 is not published or runnable there. This private card specifies a future published release contract: only an installed release whose manifest includes P03 in runnable_labs and guided_labs may expose Prepare through the Academy console.",
       "rationale": "A private lesson may define reviewed future behavior, but it cannot invent an executable path or claim an unpublished operation succeeds.",
       "resources": [],
       "variants": [],
-      "expected_result": "No P03 Prepare runs in Preview 0.8, and the learner repository remains unchanged.",
+      "expected_result": "No P03 Prepare runs in Preview 0.9, and the learner repository remains unchanged.",
       "recovery": "If any private draft names an install path or tells a learner to run P03 Prepare, stop authoring and restore this publication gate; do not substitute source-checkout execution.",
-      "evidence": "academy/publication/preview-0.8.json lists P03 under coming_next and excludes it from runnable_labs and guided_labs."
+      "evidence": "academy/publication/preview-0.9.json lists P03 under coming_next and excludes it from runnable_labs and guided_labs."
     },
     {
       "id": "P03-read-decision-context",
@@ -200,13 +200,13 @@
       "title": "Keep Check behind the publication gate",
       "actor": "academy",
       "surface": "academy-console",
-      "instruction": "Do not run P03 Check from the current public Preview 0.8; P03 is not published there. This private card specifies a future published release contract: after that release prepares P03 and the learner commits accepted evidence, its installed Academy console will own Check.",
+      "instruction": "Do not run P03 Check from the current public Preview 0.9; P03 is not published there. This private card specifies a future published release contract: after that release prepares P03 and the learner commits accepted evidence, its installed Academy console will own Check.",
       "rationale": "The checked-in semantic predicate is maintainer test evidence, not permission to claim an unavailable public command ran or passed.",
       "resources": [],
       "variants": [],
-      "expected_result": "No P03 Check runs or records progress in Preview 0.8; only focused maintainer semantic tests evaluate the private contract.",
+      "expected_result": "No P03 Check runs or records progress in Preview 0.9; only focused maintainer semantic tests evaluate the private contract.",
       "recovery": "If private copy claims Check passed, remove that claim. Wait for a future published release that lists P03 as runnable, then rely only on that installed release's actual result.",
-      "evidence": "academy/publication/preview-0.8.json lists P03 as coming_next, while tests exercise the exact future Check predicate without presenting it as learner execution."
+      "evidence": "academy/publication/preview-0.9.json lists P03 as coming_next, while tests exercise the exact future Check predicate without presenting it as learner execution."
     },
     {
       "id": "P03-reset",
@@ -214,13 +214,13 @@
       "title": "Keep Reset behind the publication gate",
       "actor": "academy",
       "surface": "academy-console",
-      "instruction": "Do not run P03 Reset from the current public Preview 0.8 because P03 is not published there. This private card specifies a future published release contract: its Academy console may preserve a prepared P03 attempt and create a numbered retry only after that release exposes P03.",
+      "instruction": "Do not run P03 Reset from the current public Preview 0.9 because P03 is not published there. This private card specifies a future published release contract: its Academy console may preserve a prepared P03 attempt and create a numbered retry only after that release exposes P03.",
       "rationale": "Future recovery behavior can be reviewed privately without inventing an executable command or encouraging destructive manual cleanup.",
       "resources": [],
       "variants": [],
-      "expected_result": "No P03 Reset runs in Preview 0.8, so no learner branch or attempt is changed by this private lesson.",
+      "expected_result": "No P03 Reset runs in Preview 0.9, so no learner branch or attempt is changed by this private lesson.",
       "recovery": "Do not imitate future Reset with force-reset, branch deletion, or a source-checkout command. Preserve local authoring evidence and wait for the published operation contract.",
-      "evidence": "The current Preview 0.8 manifest is the release boundary; a future published release must provide and verify preservation semantics before this card becomes executable."
+      "evidence": "The current Preview 0.9 manifest is the release boundary; a future published release must provide and verify preservation semantics before this card becomes executable."
     }
   ]
 }

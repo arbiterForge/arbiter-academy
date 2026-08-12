@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.8")
+                    self.assertEqual(release.release, "preview-0.9")
                     self.assertNotIn(lab.id, release.runnable_labs)
                     self.assertNotIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -456,7 +456,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-reset-retry",
             ),
         )
-        self.assertIn("This lesson is planned for Preview 0.9.", guide)
+        self.assertIn("P01 is the first Practitioner lesson in Preview 0.9.", guide)
         self.assertIn("### If review finds a concrete correction", guide)
         self.assertRegex(
             guide,
@@ -1308,14 +1308,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
     def test_private_practitioner_drafts_name_their_preview_boundary_without_command_claims(self) -> None:
         """Catches an unpublished draft being mistaken for the current public lesson set."""
         release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
-        p01 = (
-            SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn(
-            "This lesson is planned for Preview 0.9. Until that release is verified, it remains a private rehearsal rather than a public course route.",
-            p01,
-        )
-
         for document_id in (
             "P02-commit-review-pr",
             "P04-review-a-dependency",

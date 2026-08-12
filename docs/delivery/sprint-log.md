@@ -131,3 +131,11 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Options: introduce a P01-only diagram, artwork, or layout; leave the revision and proceed actions visually adjacent without branch labels; add short decision headings above the existing shared cards and lock their order in the course contract.
 - SMARTS: Maintainability and Simplicity favor one renderer and action-card system across every lesson. Reviewability and Availability favor clear learner-facing conditions for revision versus proceed. Safety and Testability preserve the stop-before-planning boundary and prove the rendered source order without falsely treating either review path as authenticated approval. Speed avoids a visual subsystem that only one lesson needs.
 - Chosen: P01 uses the shared guide and typed-action renderer. Its Practice section labels the concrete-correction and acceptable-draft branches before the existing revision and proceed cards; no bespoke art, diagram, animation, or lesson-specific layout is introduced.
+
+## SD-ACA-015 - Publish P01 as the next immutable guided slice - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether to keep P01 private until the remaining Practitioner track is complete, publish it through a one-off page, or promote it with F01-F04 as Preview 0.9 using the shared course contract.
+- Options: wait for P02-P08; add a bespoke P01 public page; publish P01 as the fifth guided lab in a fresh immutable Preview 0.9 release while P02-P08 remain explicit coming-next lessons.
+- SMARTS: Safety and Security require a fresh tag, installer digest, release asset set, and exact public manifest rather than altering Preview 0.8. Reliability and Availability favor releasing the complete F01-F04-to-P01 prerequisite path now. Maintainability and Simplicity keep one Markdown/action-manifest renderer, one responsive command-card pattern, and one visual baseline contract. Reviewability and Testability bind P01's actor, surface, review, recovery, and Check limits to rendered cards, deterministic screenshots, static artifact validation, and hosted exact-head verification.
+- Chosen: publish F01-F04 plus P01 only in Preview 0.9 after the immutable tag, six release assets, hosted verification, and Pages deployment succeed. P02-P08 remain non-routable until their guided prerequisite closure is accepted.

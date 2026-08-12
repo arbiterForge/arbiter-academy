@@ -923,7 +923,7 @@ class LessonActionTests(unittest.TestCase):
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
                     expected_preview = (
-                        "preview-0.8"
+                        "preview-0.9"
                         if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS
                         else "preview-0.9"
                         if document_id == P01_DOCUMENT_ID
@@ -936,7 +936,7 @@ class LessonActionTests(unittest.TestCase):
                         self.assertNotIn("preview-0.6", commands)
                         self.assertNotIn("preview-0.7", commands)
                     else:
-                        self.assertNotIn("preview-0.8", commands)
+                        self.assertNotIn("preview-0.9", commands)
 
     def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
         """Catches F03 losing its exact board-only route or Preview 0.8 learner commands."""
@@ -953,7 +953,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.8" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.9" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (

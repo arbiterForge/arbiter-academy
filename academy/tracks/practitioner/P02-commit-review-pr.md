@@ -15,7 +15,7 @@ next_lab: P03-record-an-adr
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
+This is private authoring material. It is unavailable in Preview 0.9. Its action cards document an unreleased lesson and do not create a public course route.
 
 The receipt recorder currently requires descriptor-safe filesystem operations available on macOS or Linux. Native Windows cannot complete this private draft yet; do not treat its Windows action variants as a public runnable route.
 
