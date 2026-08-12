@@ -3,3 +3,7 @@ __pycache__/
 build/
 *.egg-info/
 /.academy/
+node_modules/
+playwright-report/
+test-results/
+site/generated/
