@@ -72,6 +72,27 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_f03_guided_document_renders_action_cards_before_promotion(self) -> None:
+        """The F03 document is action-backed before Preview 0.7 makes it public."""
+        manifest = load_action_manifest(self.root, "F03-work-the-board")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/foundations/F03-work-the-board.md"),
+            "F03-work-the-board",
+            require_h1=True,
+        )
+        html = str(document["content"])
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="F03-start-task"', html)
+        self.assertIn('data-copy-target="command-F03-prepare-windows"', html)
+        self.assertIn("Your agent · Codex harness", html)
+        self.assertIn("You · Native terminal · Windows", html)
+        self.assertNotIn("{{action:", html)
+
     def test_p07_guided_document_renders_action_cards_without_entering_the_public_catalog(self) -> None:
         """Catches a future private P07 guide losing action rendering or leaking into Preview 0.6."""
         manifest = load_action_manifest(self.root, "P07-threat-model")
