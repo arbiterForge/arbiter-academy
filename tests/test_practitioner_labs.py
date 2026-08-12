@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from academy_engine.cli import main
+from academy_engine import curriculum
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
 from academy_engine.lesson_actions import load_action_manifest
 from academy_engine.preview import load_preview_manifest
@@ -544,6 +545,38 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
             with self.assertRaisesRegex(CurriculumError, "learner-visible"):
                 load_track(root, "practitioner")
+
+    def test_loader_rejects_empty_guided_inline_hint_before_the_next_paragraph(self) -> None:
+        """A later hint paragraph cannot be misbound as content for an empty earlier hint."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(SOURCE / "academy", root / "academy")
+            path = root / "academy/tracks/practitioner/P07-threat-model.md"
+            text = path.read_text(encoding="utf-8")
+            start = text.index("**Hint 2.**") + len("**Hint 2.**")
+            end = text.index("**Hint 3.**", start)
+            text = text[:start] + "\n\n" + text[end:]
+            hints = curriculum._guided_inline_hints(text, path)
+
+            self.assertEqual(hints["Hint 2"], "")
+            self.assertIn("Hint 3", hints)
+            path.write_text(text, encoding="utf-8")
+
+            with self.assertRaisesRegex(CurriculumError, "learner-visible"):
+                load_track(root, "practitioner")
+
+    def test_loader_rejects_unsafe_mapped_action_id_before_action_path_probe(self) -> None:
+        """Mapped action document identifiers must not reach pathlib filesystem probing."""
+        path = SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
+        with (
+            patch.dict(
+                curriculum._ACTION_DOCUMENT_IDS,
+                {"P01-feature-through-plan": "../outside"},
+            ),
+            patch.object(Path, "is_file", side_effect=AssertionError("filesystem probe")),
+        ):
+            with self.assertRaisesRegex(CurriculumError, "safe action document ID"):
+                curriculum._parse_lab(path)
 
     def test_verify_track_matrix_binds_exact_structural_inventory(self) -> None:
         """Catches a missing scenario/checkpoint binding or matrix declaration."""

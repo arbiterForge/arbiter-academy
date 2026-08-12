@@ -109,6 +109,7 @@ _ACTION_DOCUMENT_IDS = {
     # describes the learner-facing decision-log outcome without changing that identity.
     "P03-record-an-adr": "P03-adr-decision-log",
 }
+_SAFE_ACTION_DOCUMENT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,95}")
 _HOST_HEADINGS = {
     "Claude Code": "claude-code",
     "Codex": "codex",
@@ -371,7 +372,7 @@ def _guided_inline_hints(text: str, path: Path) -> dict[str, str]:
     """Read the three inline progressive hints used inside a guided recovery section."""
     matches = list(
         re.finditer(
-            r"(?m)^\*\*Hint ([^.*\n]+)\.\*\*\s*(.*?)(?=\n\s*\n|\Z)",
+            r"(?m)^\*\*Hint ([^.*\n]+)\.\*\*[^\S\r\n]*(.*?)(?=\n\s*\n|\Z)",
             text,
             re.DOTALL,
         )
@@ -398,6 +399,8 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
     action_document_id = _ACTION_DOCUMENT_IDS.get(data["id"], data["id"])
+    if _SAFE_ACTION_DOCUMENT_ID.fullmatch(action_document_id) is None:
+        raise CurriculumError(f"{path.name} maps to an unsafe action document ID.")
     action_path = path.parents[3] / "academy" / "actions" / f"{action_document_id}.json"
     guided = action_path.is_file()
     guided_sections = (
