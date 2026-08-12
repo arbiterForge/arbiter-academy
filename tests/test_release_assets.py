@@ -151,13 +151,17 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
 
     def test_fresh_preview_uses_its_candidate_source_until_the_immutable_tag_exists(self) -> None:
         """A new public route still needs candidate bytes before its tag can be published."""
-        with tempfile.TemporaryDirectory() as temporary_directory, patch(
-            "tests.test_release_assets.RELEASE", "preview-9.9"
-        ):
-            self.assertEqual(
-                published_release_source(Path(temporary_directory) / "source"),
-                REPOSITORY,
-            )
+        global RELEASE
+        previous_release = RELEASE
+        RELEASE = "preview-9.9"
+        try:
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                self.assertEqual(
+                    published_release_source(Path(temporary_directory) / "source"),
+                    REPOSITORY,
+                )
+        finally:
+            RELEASE = previous_release
 
     def test_wheel_normalization_canonicalizes_backend_metadata_and_record(self) -> None:
         """Catches platform line endings leaking through a ZIP-only wheel normalization."""
