@@ -5678,8 +5678,7 @@ class P02RealRepositoryTests(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    os.open in os.supports_dir_fd
-    and os.mkdir in os.supports_dir_fd
+    os.name == "posix"
     and hasattr(os, "O_DIRECTORY")
     and hasattr(os, "O_NOFOLLOW"),
     "P02 receipt recording requires descriptor-safe filesystem operations",

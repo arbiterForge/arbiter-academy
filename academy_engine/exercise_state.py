@@ -3266,12 +3266,7 @@ def _write_new_contained_receipt(
     encoded: bytes,
 ) -> Path:
     """Create a receipt through pinned directory descriptors, never a checked path."""
-    if (
-        os.open not in os.supports_dir_fd
-        or os.mkdir not in os.supports_dir_fd
-        or not hasattr(os, "O_DIRECTORY")
-        or not hasattr(os, "O_NOFOLLOW")
-    ):
+    if os.name != "posix" or not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
         raise OSError("descriptor-safe receipt creation is unavailable on this platform")
     if relative_destination.is_absolute() or relative_destination.name != "P02-pr-receipt.json":
         raise PathBoundaryError("receipt destination is invalid")
