@@ -17,6 +17,8 @@ next_lab: P03-record-an-adr
 
 This is private authoring material. It is unavailable in Preview 0.6. Its action cards document an unreleased lesson and do not create a public course route.
 
+The receipt recorder currently requires descriptor-safe filesystem operations available on macOS or Linux. Native Windows cannot complete this private draft yet; do not treat its Windows action variants as a public runnable route.
+
 This is an offline-local pull-request rehearsal. Academy temporarily routes the checkout to two verifier-owned local bare repositories. It does not open GitHub, contact a hosted reviewer, run hosted CI, or prove that a person reviewed the change. The Browser explains the boundary; the native terminal and active CodeArbiter harness perform the lesson work.
 
 {{action:P02-read-boundary}}

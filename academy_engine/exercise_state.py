@@ -3260,6 +3260,54 @@ def validate_p02_checkpoint(repository: Path, store: ExternalStateStore, attempt
         return False
 
 
+def _write_new_contained_receipt(
+    repository: Path,
+    relative_destination: Path,
+    encoded: bytes,
+) -> Path:
+    """Create a receipt through pinned directory descriptors, never a checked path."""
+    if (
+        os.open not in os.supports_dir_fd
+        or os.mkdir not in os.supports_dir_fd
+        or not hasattr(os, "O_DIRECTORY")
+        or not hasattr(os, "O_NOFOLLOW")
+    ):
+        raise OSError("descriptor-safe receipt creation is unavailable on this platform")
+    if relative_destination.is_absolute() or relative_destination.name != "P02-pr-receipt.json":
+        raise PathBoundaryError("receipt destination is invalid")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptors: list[int] = []
+    receipt_descriptor: int | None = None
+    try:
+        current = os.open(str(repository), directory_flags)
+        descriptors.append(current)
+        for component in relative_destination.parent.parts:
+            if component in {"", "."}:
+                continue
+            try:
+                child = os.open(component, directory_flags, dir_fd=current)
+            except FileNotFoundError:
+                os.mkdir(component, 0o700, dir_fd=current)
+                child = os.open(component, directory_flags, dir_fd=current)
+            descriptors.append(child)
+            current = child
+        receipt_descriptor = os.open(
+            relative_destination.name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=current,
+        )
+        with os.fdopen(receipt_descriptor, "wb") as stream:
+            receipt_descriptor = None
+            stream.write(encoded)
+    finally:
+        if receipt_descriptor is not None:
+            os.close(receipt_descriptor)
+        while descriptors:
+            os.close(descriptors.pop())
+    return repository / relative_destination
+
+
 def record_p02_receipt(repository: Path, store: ExternalStateStore) -> Path:
     """Record the learner-declared, offline-local P02 receipt without staging it.
 
@@ -3340,14 +3388,12 @@ def record_p02_receipt(repository: Path, store: ExternalStateStore) -> Path:
     }
     try:
         _parse_p02_receipt(payload, object_format=object_format)
-        receipt_path.parent.mkdir(parents=True, exist_ok=True)
-        receipt_path = ensure_within(repository, receipt_relative)
         encoded = json.dumps(
             payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
         ).encode("utf-8") + b"\n"
-        descriptor = os.open(str(receipt_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(encoded)
+        receipt_path = _write_new_contained_receipt(
+            repository, receipt_relative, encoded
+        )
     except (OSError, PathBoundaryError, ValueError) as error:
         raise _fail("exercise-evidence-mismatch", error) from error
     return receipt_path

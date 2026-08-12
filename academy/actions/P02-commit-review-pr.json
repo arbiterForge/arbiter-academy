@@ -9,11 +9,11 @@
             "title": "Read the offline boundary",
             "actor": "learner",
             "surface": "browser",
-            "instruction": "Read this lesson before running a command. The exercise uses local bare repositories and never creates a hosted pull request.",
+            "instruction": "Read this lesson before running a command. The exercise uses local bare repositories and never creates a hosted pull request. The private receipt recorder currently requires macOS or Linux; native Windows is not a complete P02 route.",
             "rationale": "The learner must distinguish local proof from a hosted collaboration workflow.",
             "resources": [],
             "variants": [],
-            "expected_result": "You can state that this is an offline-local rehearsal.",
+            "expected_result": "You can state that this is an offline-local rehearsal and that native Windows cannot complete this private draft.",
             "recovery": "If you expected a GitHub pull request or hosted CI, stop here and reread the boundary.",
             "evidence": "No repository state changes yet."
         },

@@ -1700,6 +1700,9 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(tuple(action.id for action in manifest.actions), P02_ACTION_IDS)
         self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
         by_id = {action.id: action for action in manifest.actions}
+        boundary = by_id["P02-read-boundary"]
+        self.assertIn("macOS or Linux", boundary.instruction)
+        self.assertIn("native Windows", boundary.expected_result)
         staged_work = by_id["P02-stage-work"]
         self.assertEqual(staged_work.sequence, 5)
         self.assertEqual(staged_work.actor, "learner")

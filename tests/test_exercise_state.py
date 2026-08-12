@@ -5677,6 +5677,13 @@ class P02RealRepositoryTests(unittest.TestCase):
             self.assertEqual(locked.read_record("p02", 1)["phase"], "restoring-origin-pushurl")
 
 
+@unittest.skipUnless(
+    os.open in os.supports_dir_fd
+    and os.mkdir in os.supports_dir_fd
+    and hasattr(os, "O_DIRECTORY")
+    and hasattr(os, "O_NOFOLLOW"),
+    "P02 receipt recording requires descriptor-safe filesystem operations",
+)
 class P02ReceiptRecorderTests(unittest.TestCase):
     def _case(self) -> P02RealRepositoryTests:
         case = P02RealRepositoryTests(
@@ -5697,6 +5704,48 @@ class P02ReceiptRecorderTests(unittest.TestCase):
         git(case.repository, "commit", "--amend", "--no-edit")
         self.addCleanup(case.doCleanups)
         return case
+
+    @unittest.skipUnless(
+        os.open in os.supports_dir_fd
+        and hasattr(os, "O_DIRECTORY")
+        and hasattr(os, "O_NOFOLLOW"),
+        "descriptor-relative receipt creation requires POSIX directory descriptors",
+    )
+    def test_receipt_writer_keeps_an_ancestor_swap_inside_the_open_directory(self) -> None:
+        """Catches a checked path being redirected through a later symlink swap."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            outside = Path(temporary) / "outside"
+            academy = root / ".codearbiter/reports/academy"
+            archived = academy.with_name("academy-before-swap")
+            root.mkdir()
+            outside.mkdir()
+            academy.mkdir(parents=True)
+            original_open = exercise_module.os.open
+            swapped = False
+
+            def racing_open(path, flags, mode=0o777, *, dir_fd=None):
+                nonlocal swapped
+                if path == "P02-pr-receipt.json" and dir_fd is not None and not swapped:
+                    swapped = True
+                    academy.rename(archived)
+                    academy.symlink_to(outside, target_is_directory=True)
+                return original_open(path, flags, mode, dir_fd=dir_fd)
+
+            with patch.object(exercise_module.os, "open", side_effect=racing_open):
+                destination = exercise_module._write_new_contained_receipt(
+                    root,
+                    Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                    b'{"receipt":"evidence"}\n',
+                )
+
+            self.assertTrue(swapped)
+            self.assertEqual(destination, root / ".codearbiter/reports/academy/P02-pr-receipt.json")
+            self.assertFalse((outside / "P02-pr-receipt.json").exists())
+            self.assertEqual(
+                (archived / "P02-pr-receipt.json").read_bytes(),
+                b'{"receipt":"evidence"}\n',
+            )
 
     def test_record_writes_only_the_unstaged_canonical_offline_receipt(self) -> None:
         """Catches a recorder that stages, commits, pushes, or writes another path."""
