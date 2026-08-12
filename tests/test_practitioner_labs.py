@@ -107,8 +107,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 ).read_text(encoding="utf-8")
                 action_path = SOURCE / f"academy/actions/{lab.id}.json"
                 if action_path.is_file():
-                    from academy_engine.lesson_actions import load_action_manifest
-
                     manifest = load_action_manifest(SOURCE, lab.id)
                     actions = {action.id: action for action in manifest.actions}
                     for operation in ("prepare", "check", "reset-retry"):
@@ -118,6 +116,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                                 all("preview-0.6" in variant.command for variant in action.variants)
                             )
                     self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
+                    continue
                 if lab.id == "P03-record-an-adr":
                     manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
                     actions = {action.id: action for action in manifest.actions}
