@@ -511,7 +511,10 @@ class FoundationsCurriculumTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copytree(SOURCE / "academy", root / "academy")
-            path = root / "academy/tracks/foundations/F03-work-the-board.md"
+            # F03 is action-backed, so its host forms are intentionally supplied by
+            # its manifest. F04 remains the legacy guide that exercises the parser
+            # branch this mutation protects.
+            path = root / "academy/tracks/foundations/F04-fix-with-evidence.md"
             text = path.read_text(encoding="utf-8")
             duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
             path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")

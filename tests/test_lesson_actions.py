@@ -58,6 +58,15 @@ F02_ACTION_IDS = (
     "F02-reset-retry",
 )
 F03_DOCUMENT_ID = "F03-work-the-board"
+PUBLIC_PREVIEW_0_7_DOCUMENT_IDS = frozenset(
+    {
+        "F01-fork-clone-doctor",
+        "F02-orient-to-state",
+        F03_DOCUMENT_ID,
+        "home",
+        "recovery",
+    }
+)
 F03_ACTION_IDS = (
     "F03-prepare",
     "F03-read-target-task",
@@ -872,8 +881,8 @@ class LessonActionTests(unittest.TestCase):
                 {"windows", "macos", "linux"},
             )
 
-    def test_all_action_command_variants_bind_to_preview_0_6(self) -> None:
-        """Catches any copied Academy command retaining a stale Preview 0.5 path."""
+    def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
+        """Catches public copies retaining an old release or private copies claiming the new one."""
         root = Path(__file__).parents[1]
         for path in sorted((root / "academy" / "actions").glob("*.json")):
             document_id = path.stem
@@ -886,10 +895,16 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
-                    expected_preview = "preview-0.7" if document_id == F03_DOCUMENT_ID else "preview-0.6"
+                    expected_preview = (
+                        "preview-0.7"
+                        if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS
+                        else "preview-0.6"
+                    )
                     self.assertIn(expected_preview, commands)
-                    if document_id == F03_DOCUMENT_ID:
+                    if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS:
                         self.assertNotIn("preview-0.6", commands)
+                    else:
+                        self.assertNotIn("preview-0.7", commands)
 
     def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
         """Catches F03 losing its exact board-only route or Preview 0.7 learner commands."""
