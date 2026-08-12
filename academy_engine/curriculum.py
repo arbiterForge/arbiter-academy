@@ -94,6 +94,21 @@ _GUIDED_SECTIONS = (
     "Recover or continue",
     "Understand the mechanism",
 )
+_P03_GUIDED_SECTIONS = (
+    "Know before you begin",
+    "What you will prove",
+    "Prepare safely",
+    "Practice the decision",
+    "Recognize success",
+    "Check",
+    "Recover or continue",
+    "Understand the mechanism",
+)
+_ACTION_DOCUMENT_IDS = {
+    # P03's verifier/scenario identifier is historical and immutable. Its action document name
+    # describes the learner-facing decision-log outcome without changing that identity.
+    "P03-record-an-adr": "P03-adr-decision-log",
+}
 _HOST_HEADINGS = {
     "Claude Code": "claude-code",
     "Codex": "codex",
@@ -362,13 +377,17 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
-    action_path = path.parents[3] / "academy" / "actions" / f"{data['id']}.json"
+    action_document_id = _ACTION_DOCUMENT_IDS.get(data["id"], data["id"])
+    action_path = path.parents[3] / "academy" / "actions" / f"{action_document_id}.json"
     guided = action_path.is_file()
-    sections = _sections(
-        body, path, _GUIDED_SECTIONS if guided else _REQUIRED_SECTIONS
+    guided_sections = (
+        _P03_GUIDED_SECTIONS
+        if data["id"] == "P03-record-an-adr"
+        else _GUIDED_SECTIONS
     )
+    sections = _sections(body, path, guided_sections if guided else _REQUIRED_SECTIONS)
     if guided:
-        manifest = load_action_manifest(path.parents[3], data["id"])
+        manifest = load_action_manifest(path.parents[3], action_document_id)
         host_action = next(
             (
                 action

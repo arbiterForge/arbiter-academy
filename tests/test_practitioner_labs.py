@@ -118,6 +118,24 @@ class PractitionerCurriculumTests(unittest.TestCase):
                                 all("preview-0.6" in variant.command for variant in action.variants)
                             )
                     self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
+                if lab.id == "P03-record-an-adr":
+                    manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
+                    actions = {action.id: action for action in manifest.actions}
+                    release = load_preview_manifest(SOURCE)
+                    self.assertNotIn("```", guide)
+                    self.assertEqual(release.release, "preview-0.6")
+                    self.assertNotIn(lab.id, release.runnable_labs)
+                    self.assertNotIn(lab.id, release.guided_labs)
+                    for action_id in ("P03-prepare", "P03-check", "P03-reset"):
+                        action = actions[action_id]
+                        with self.subTest(action=action_id):
+                            self.assertEqual((action.actor, action.surface), ("academy", "academy-console"))
+                            self.assertEqual(action.variants, ())
+                    p03_copy = guide + json.dumps(
+                        json.loads((SOURCE / "academy/actions/P03-adr-decision-log.json").read_text(encoding="utf-8"))
+                    )
+                    self.assertIn("preview-0.6", p03_copy.casefold())
+                    self.assertNotIn("preview-0.5", p03_copy.casefold())
                     continue
                 prepare_block = re.search(
                     rf"(?ms)^```powershell\n(?P<body>.*?prepare {re.escape(lab.id)}.*?)\n```$",
@@ -566,6 +584,43 @@ class PractitionerCurriculumTests(unittest.TestCase):
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
+
+    def test_p03_is_a_private_action_backed_decision_lesson(self) -> None:
+        """Catches the P03 filename alias or learner-facing decision boundary drifting."""
+        guide_path = SOURCE / "academy/tracks/practitioner/P03-record-an-adr.md"
+        guide = guide_path.read_text(encoding="utf-8")
+
+        expected_headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice the decision",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        self.assertEqual(
+            tuple(line for line in guide.splitlines() if line in expected_headings),
+            expected_headings,
+        )
+        manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
+        lab = load_track(SOURCE, "practitioner").labs[2]
+        self.assertNotIn("```", guide)
+        self.assertEqual(
+            tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)),
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(lab.id, "P03-record-an-adr")
+        self.assertEqual(lab.host_commands["codex"], '$ca-adr "Choose the Workshop Queue summary-format boundary"')
+        normalized_guide = " ".join(guide.split())
+        for required in (
+            "stable text", "structured JSON", "You choose", "does not prove that you personally chose",
+            "does not prove that a host command ran", "does not prove that anyone reviewed",
+            "P03-adr-decision-log.json", "Preview 0.6", "proposed", "explicit learner acceptance",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, normalized_guide)
 
     def test_p04_freezes_offline_candidate_review_matrix_and_no_install_guide(self) -> None:
         """Catches P04 drifting back to generic review prose or an install-oriented exercise."""

@@ -107,6 +107,30 @@ class PreviewSiteTests(unittest.TestCase):
                 self.assertIn(f'data-action-id="{action_id}"', html)
         self.assertIn("Arbiter Academy GitHub Discussion", html)
         self.assertIn('class="command-copy"', html)
+    def test_private_p03_renders_choice_copy_and_future_operations_without_false_commands(self) -> None:
+        """Catches rendered P03 cards giving the agent the choice or learners fake release commands."""
+        manifest = load_action_manifest(self.root, "P03-adr-decision-log")
+        actions = {action.id: action for action in manifest.actions}
+
+        self.assertIn("P03-make-choice", actions)
+        choice = preview_site._render_action(actions["P03-make-choice"])
+        for expected in (
+            "Use stable text for Workshop Queue summaries.",
+            "Use structured JSON for Workshop Queue summaries.",
+        ):
+            self.assertEqual(choice.count(expected), 3)
+        self.assertEqual(choice.count('class="command-copy"'), 6)
+        self.assertIn("You · Codex harness · All operating systems", choice)
+
+        for action_id in ("P03-prepare", "P03-check", "P03-reset"):
+            with self.subTest(action=action_id):
+                rendered = preview_site._render_action(actions[action_id])
+                self.assertIn("Academy · Academy console · All operating systems", rendered)
+                self.assertIn("Preview 0.6", rendered)
+                self.assertNotIn("command-variant", rendered)
+                self.assertNotIn("command-copy", rendered)
+                self.assertNotIn("<pre>", rendered)
+                self.assertNotIn("preview-0.5", rendered.casefold())
 
     def test_f01_renders_the_complete_evidence_and_recovery_contract(self) -> None:
         manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
