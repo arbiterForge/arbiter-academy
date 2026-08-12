@@ -661,6 +661,9 @@ class LessonActionTests(unittest.TestCase):
         """Catches private P06 guidance asking learners to infer execution surfaces."""
         manifest = load_action_manifest(Path(__file__).parents[1], P06_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P06_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(by_id["P06-run-context-audit"].actor, "agent")
         self.assertEqual(by_id["P06-apply-correction"].actor, "agent")
         self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
