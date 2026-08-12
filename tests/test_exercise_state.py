@@ -5702,6 +5702,20 @@ class P02ReceiptRecorderTests(unittest.TestCase):
         """Catches a recorder that stages, commits, pushes, or writes another path."""
         case = self._case()
         store, prepared, _identity = case._verifiable_attempt()
+        origin = case._origin_directory(store)
+        branch_ref = f"refs/heads/{prepared.branch}"
+        head_before = git(case.repository, "rev-parse", "HEAD").stdout.strip()
+        refs_before = git(
+            case.repository,
+            "for-each-ref",
+            "--format=%(refname)%00%(objectname)",
+        ).stdout
+        origin_before = git(
+            origin.parent,
+            f"--git-dir={origin}",
+            "rev-parse",
+            branch_ref,
+        ).stdout.strip()
 
         with patch(
             "academy_engine.exercise_state.sysconfig.get_path",
@@ -5711,6 +5725,26 @@ class P02ReceiptRecorderTests(unittest.TestCase):
 
         expected = case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json"
         self.assertEqual(receipt, expected)
+        self.assertEqual(
+            git(case.repository, "rev-parse", "HEAD").stdout.strip(), head_before
+        )
+        self.assertEqual(
+            git(
+                case.repository,
+                "for-each-ref",
+                "--format=%(refname)%00%(objectname)",
+            ).stdout,
+            refs_before,
+        )
+        self.assertEqual(
+            git(
+                origin.parent,
+                f"--git-dir={origin}",
+                "rev-parse",
+                branch_ref,
+            ).stdout.strip(),
+            origin_before,
+        )
         self.assertEqual(
             git(case.repository, "status", "--porcelain", "--untracked-files=all").stdout,
             "?? .codearbiter/reports/academy/P02-pr-receipt.json\n",
@@ -5726,6 +5760,38 @@ class P02ReceiptRecorderTests(unittest.TestCase):
         case = self._case()
         store, _prepared, _identity = case._verifiable_attempt()
         (case.repository / "uncommitted-drift.txt").write_text("drift\n", encoding="utf-8")
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ), self.assertRaisesRegex(ExerciseStateError, "evidence"):
+            record_p02_receipt(case.repository, store)
+
+        self.assertFalse(
+            (case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json").exists()
+        )
+
+    def test_record_refuses_to_overwrite_existing_receipt(self) -> None:
+        """Catches a recorder that replaces a learner's earlier evidence."""
+        case = self._case()
+        store, _prepared, _identity = case._verifiable_attempt()
+        target = case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b'{"prior":"evidence"}\n')
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ), self.assertRaisesRegex(ExerciseStateError, "evidence"):
+            record_p02_receipt(case.repository, store)
+
+        self.assertEqual(target.read_bytes(), b'{"prior":"evidence"}\n')
+
+    def test_record_refuses_head_off_attempt_branch(self) -> None:
+        """Catches recording evidence from a branch unrelated to the active attempt."""
+        case = self._case()
+        store, _prepared, _identity = case._verifiable_attempt()
+        git(case.repository, "switch", "-c", "foreign-record-branch")
 
         with patch(
             "academy_engine.exercise_state.sysconfig.get_path",

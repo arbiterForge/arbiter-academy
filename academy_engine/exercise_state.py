@@ -3271,7 +3271,7 @@ def record_p02_receipt(repository: Path, store: ExternalStateStore) -> Path:
     try:
         receipt_path = ensure_within(repository, receipt_relative)
     except PathBoundaryError as error:
-        raise _fail("exercise-evidence-mismatch", error)
+        raise _fail("exercise-evidence-mismatch", error) from error
     if receipt_path.exists() or receipt_path.is_symlink():
         raise _fail("exercise-evidence-mismatch")
     if _git(repository, ["status", "--porcelain", "--untracked-files=all"]):
@@ -3349,7 +3349,7 @@ def record_p02_receipt(repository: Path, store: ExternalStateStore) -> Path:
         with os.fdopen(descriptor, "wb") as stream:
             stream.write(encoded)
     except (OSError, PathBoundaryError, ValueError) as error:
-        raise _fail("exercise-evidence-mismatch", error)
+        raise _fail("exercise-evidence-mismatch", error) from error
     return receipt_path
 
 
