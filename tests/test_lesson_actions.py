@@ -174,6 +174,7 @@ P06_ACTION_IDS = (
     "P06-review-handoff-boundary",
     "P06-commit-handoff",
     "P06-check",
+    "P06-return-base",
     "P06-reset-retry",
 )
 P07_DOCUMENT_ID = "P07-threat-model"
@@ -780,6 +781,7 @@ class LessonActionTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(by_id["P06-run-context-audit"].actor, "agent")
         self.assertEqual(by_id["P06-apply-correction"].actor, "agent")
+        self.assertEqual(by_id["P06-write-handoff"].actor, "learner")
         self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
         self.assertEqual(by_id["P06-review-correction-boundary"].surface, "active-harness")
         self.assertEqual(by_id["P06-review-handoff-boundary"].surface, "active-harness")
@@ -814,11 +816,26 @@ class LessonActionTests(unittest.TestCase):
                         self.assertEqual(variant.host, "none")
                         self.assertFalse(variant.command.startswith("!"))
 
-        for action_id in ("P06-prepare", "P06-check", "P06-reset-retry"):
+        for action_id in ("P06-prepare", "P06-write-handoff", "P06-check", "P06-return-base", "P06-reset-retry"):
             self.assertEqual(
                 {variant.operating_system for variant in by_id[action_id].variants},
                 {"windows", "macos", "linux"},
             )
+
+        handoff = by_id["P06-write-handoff"]
+        self.assertTrue(
+            all(
+                variant.surface == "native-terminal"
+                and variant.host == "none"
+                and "write-handoff P06-context-drift-recovery" in variant.command
+                and not variant.command.startswith("!")
+                for variant in handoff.variants
+            )
+        )
+
+        return_base = by_id["P06-return-base"]
+        self.assertEqual(return_base.actor, "learner")
+        self.assertTrue(all("git switch main" in variant.command for variant in return_base.variants))
 
     def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
         """Catches release-bound commands retaining stale paths or missing a planned boundary."""
@@ -835,7 +852,12 @@ class LessonActionTests(unittest.TestCase):
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
                     public_documents = {"home", "recovery", *load_preview_manifest(root).guided_labs}
-                    expected_release = "preview-0.11" if document_id in public_documents else "preview-0.10"
+                    expected_release = (
+                        "preview-0.11"
+                        if document_id in public_documents
+                        or document_id == "P06-context-drift-recovery"
+                        else "preview-0.10"
+                    )
                     self.assertIn(expected_release, commands)
                     for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
                         self.assertNotIn(stale, commands)

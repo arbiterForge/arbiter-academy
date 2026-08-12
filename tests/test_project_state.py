@@ -228,7 +228,7 @@ class ProjectStateTests(unittest.TestCase):
             if line.startswith("[")
         ]
         post_checkpoint = override_records[int(marker.decode("utf-8").strip()):]
-        self.assertEqual(len(post_checkpoint), 12)
+        self.assertEqual(len(post_checkpoint), 14)
         for record in post_checkpoint:
             self.assertIn("BY: SUaDtL@users.noreply.github.com", record)
         self.assertIn("GATE: H-01", post_checkpoint[0])
@@ -256,6 +256,10 @@ class ProjectStateTests(unittest.TestCase):
         self.assertIn("push the reviewed Preview 0.11 candidate branch", post_checkpoint[10])
         self.assertIn("GATE: Git hook resolver", post_checkpoint[11])
         self.assertIn("Preview 0.11 hosted-CI correction", post_checkpoint[11])
+        self.assertIn("GATE: Git hook resolver", post_checkpoint[12])
+        self.assertIn("reviewed private P06 integration", post_checkpoint[12])
+        self.assertIn("GATE: Git hook resolver", post_checkpoint[13])
+        self.assertIn("private P06 integration onto the isolated Preview 0.12 candidate", post_checkpoint[13])
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (

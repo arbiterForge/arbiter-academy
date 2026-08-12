@@ -13,9 +13,9 @@
       "rationale": "A prepared commit gives Check a fixed before-state and keeps a failed recovery attempt inspectable.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P06-context-drift-recovery","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true}
       ],
       "expected_result": "Academy prints academy/P06-context-drift-recovery/ATTEMPT_NUMBER and leaves you on that numbered branch.",
       "recovery": "If Prepare names a dirty worktree or branch condition, preserve the message and resolve only that condition. Do not reset, rebase, or delete an earlier attempt.",
@@ -126,20 +126,20 @@
     {
       "id": "P06-write-handoff",
       "sequence": 8,
-      "title": "Ask the agent for the digest-bound recovery handoff",
-      "actor": "agent",
+      "title": "Generate the digest-bound recovery handoff",
+      "actor": "learner",
       "surface": null,
-      "instruction": "In the selected harness, ask the agent to create only the canonical P06 handoff from committed Git objects. The agent stages that one file and stops; it does not alter the preserved note or make another correction.",
-      "rationale": "The second commit records the evidence needed to reconstruct the repair without turning the report into an unverified activity transcript.",
+      "instruction": "In a native terminal at the Academy clone root, run the local Academy helper. It derives a candidate only from committed Git objects and leaves it untracked and unstaged for your review.",
+      "rationale": "The lesson teaches evidence-led recovery, not hand-authoring canonical JSON or blob hashes.",
       "resources": [],
       "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true},
-        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path write-handoff P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-handoff P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-handoff P06-context-drift-recovery","copy":true}
       ],
-      "expected_result": "The staged path list contains only .codearbiter/reports/academy/P06-recovery.json, whose route is re-scout and whose preserved-note before and after digests are identical.",
-      "recovery": "If any digest cannot be tied to a committed object or any extra path is staged, stop and use Reset for a fresh attempt. Do not rewrite the correction commit.",
-      "evidence": "The handoff declares the chosen route and computed object evidence; Check recomputes those values independently."
+      "expected_result": "Only .codearbiter/reports/academy/P06-recovery.json is untracked. It names re-scout and has identical preserved-note digests; it is not staged or committed.",
+      "recovery": "If the helper refuses, preserve its message and use Reset for a fresh attempt. Do not create, overwrite, stage, or hand-edit a substitute handoff.",
+      "evidence": "The helper derives a candidate from committed objects. Check later recomputes it and does not prove that a host command ran."
     },
     {
       "id": "P06-review-handoff-boundary",
@@ -184,17 +184,35 @@
       "rationale": "The installed verifier evaluates the attempt from outside the learner flow and recomputes the evidence from Git objects.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P06-context-drift-recovery","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true}
       ],
       "expected_result": "Check prints checkpoint P06-context-drift-recovery: passed; progress: .academy/progress.json.",
       "recovery": "If Check fails, preserve the committed attempt and read the failed predicate. Use Reset for a fresh numbered attempt instead of rewriting committed evidence.",
       "evidence": "A pass verifies the frozen baseline, exact two-commit topology, object bytes, provenance repair, handoff, and clean worktree."
     },
     {
-      "id": "P06-reset-retry",
+      "id": "P06-return-base",
       "sequence": 12,
+      "title": "Return to main after a passing Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After Check passes, return to main in a native terminal. Leave the completed numbered attempt branch intact for later inspection.",
+      "rationale": "A completed attempt remains evidence. Returning to main prepares the clone for the next published lesson without erasing the recovery history.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "You are back on main and the completed academy/P06-context-drift-recovery/ATTEMPT_NUMBER branch still exists.",
+      "recovery": "If Check did not pass, stay on the preserved attempt and use Reset instead. Do not delete, force-reset, or rebase the completed or failed branch.",
+      "evidence": "The retained attempt branch remains the inspectable recovery record; returning to main is not part of Check."
+    },
+    {
+      "id": "P06-reset-retry",
+      "sequence": 13,
       "title": "Create a preserved numbered retry",
       "actor": "learner",
       "surface": null,
@@ -202,9 +220,9 @@
       "rationale": "A retained failed attempt is evidence you can inspect, not debris to erase.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P06-context-drift-recovery","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true}
       ],
       "expected_result": "Academy archives the earlier attempt and prints the next academy/P06-context-drift-recovery/ATTEMPT_NUMBER branch.",
       "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named repository condition; never force-reset, rebase, or delete the prior attempt.",

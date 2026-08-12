@@ -319,8 +319,29 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('data-action-id="P06-run-context-audit"', html)
         self.assertIn('data-copy-target="command-P06-prepare-windows"', html)
         self.assertIn('data-copy-target="command-P06-check-linux"', html)
+        self.assertIn('data-action-id="P06-return-base"', html)
         self.assertIn("CodeArbiter command", html)
         self.assertIn("Check does not prove that the host command ran", html)
+        headings = re.findall(
+            r"^## (.+)$",
+            (self.root / "academy/tracks/practitioner/P06-context-drift-recovery.md").read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        self.assertEqual(
+            headings,
+            [
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ],
+        )
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        self.assertFalse((self.out / "labs" / "P06-context-drift-recovery" / "index.html").exists())
 
     def test_public_release_record_contains_provenance_availability_and_support_contract(self) -> None:
         """Catches release.json shrinking to commit-only metadata instead of public release truth."""

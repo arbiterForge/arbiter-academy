@@ -178,6 +178,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 ("prepare", "prepare_lab"),
                 ("reset", "reset_lab"),
                 ("check", "evaluate_checkpoint"),
+                ("write-handoff", "write_p06_handoff"),
             ):
                 with self.subTest(lab_id=lab_id, command=command), patch(
                     "academy_engine.cli.repository_root", return_value=REPOSITORY
@@ -481,6 +482,40 @@ class AcademyCliTrustTests(unittest.TestCase):
             self.assertEqual(installed_output.getvalue(), "")
             self.assertIn("provenance_drift_recovery", installed_errors.getvalue())
             self.assertNotIn(str(learner), installed_errors.getvalue())
+
+    def test_p06_write_handoff_is_authoritative_and_reports_only_the_candidate_path(self) -> None:
+        """Catches write-handoff leaking a candidate outside the target repository."""
+        learner = REPOSITORY / "learner"
+        destination = learner / ".codearbiter/reports/academy/P06-recovery.json"
+        output, errors = StringIO(), StringIO()
+        with patch("academy_engine.cli.repository_root", return_value=learner), patch(
+            "academy_engine.cli.require_published_lab"
+        ) as publication_gate, patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ) as validated, patch(
+            "academy_engine.cli.ensure_authoritative_verifier"
+        ) as authoritative, patch(
+            "academy_engine.cli.write_p06_handoff", return_value=destination
+        ) as written, redirect_stdout(output), redirect_stderr(errors):
+            exit_code = main(
+                [
+                    "--repository",
+                    str(learner),
+                    "write-handoff",
+                    "P06-context-drift-recovery",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            output.getvalue(),
+            "Drafted P06 recovery handoff: .codearbiter/reports/academy/P06-recovery.json\n",
+        )
+        self.assertEqual(errors.getvalue(), "")
+        publication_gate.assert_called_once_with(REPOSITORY, "P06-context-drift-recovery")
+        validated.assert_called_once_with(learner)
+        authoritative.assert_called_once_with(learner)
+        written.assert_called_once_with(learner)
 
     def test_p02_prepare_and_reset_require_explicit_repository(self) -> None:
         for command in ("prepare", "reset"):

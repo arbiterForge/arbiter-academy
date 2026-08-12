@@ -222,7 +222,12 @@ class PractitionerCurriculumTests(unittest.TestCase):
                             action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
                             self.assertTrue(
                             all(
-                                ("preview-0.11" if lab.id in load_preview_manifest(SOURCE).guided_labs else "preview-0.10")
+                                (
+                                    "preview-0.11"
+                                    if lab.id in load_preview_manifest(SOURCE).guided_labs
+                                    or lab.id == "P06-context-drift-recovery"
+                                    else "preview-0.10"
+                                )
                                 in variant.command
                                 for variant in action.variants
                             )
@@ -898,7 +903,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P06-prepare", "P06-inspect-evidence", "P06-run-context-audit",
                 "P06-select-rescout", "P06-apply-correction", "P06-review-correction-boundary",
                 "P06-commit-correction", "P06-write-handoff", "P06-review-handoff-boundary",
-                "P06-commit-handoff", "P06-check", "P06-reset-retry",
+                "P06-commit-handoff", "P06-check", "P06-return-base", "P06-reset-retry",
             ),
         )
 
@@ -931,6 +936,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "P06-write-handoff",
             "P06-commit-handoff",
             "P06-check",
+            "P06-return-base",
             "P06-reset-retry",
         ):
             with self.subTest(action_id=action_id):
@@ -951,7 +957,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         for variant in reset.variants:
             with self.subTest(variant=variant.id):
-                self.assertIn("preview-0.10", variant.command)
+                self.assertIn("preview-0.11", variant.command)
                 self.assertIn("reset P06-context-drift-recovery", variant.command)
                 self.assertNotIn("<learner-repository>", variant.command)
 
