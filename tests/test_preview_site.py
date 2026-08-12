@@ -72,6 +72,33 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_p01_renders_its_action_backed_review_and_evidence_boundaries(self) -> None:
+        """Catches an unpublished P01 guide losing its action cards before release promotion."""
+        manifest = load_action_manifest(self.root, "P01-feature-through-plan")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P01-feature-through-plan.md"),
+            "P01-feature-through-plan",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        for action_id in (
+            "P01-solo-review",
+            "P01-discussion-review",
+            "P01-proceed",
+            "P01-check",
+        ):
+            with self.subTest(action=action_id):
+                self.assertIn(f'data-action-id="{action_id}"', html)
+        self.assertIn("Arbiter Academy GitHub Discussion", html)
+        self.assertIn('class="command-copy"', html)
+
     def test_f01_renders_the_complete_evidence_and_recovery_contract(self) -> None:
         manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
         actions = {action.id: action for action in manifest.actions}
