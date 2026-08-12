@@ -32,7 +32,7 @@ PRACTITIONER = (
 )
 POST_P02_PRACTITIONER = PRACTITIONER[2:]
 EXPECTED_HOST_ACTIONS = {
-    PRACTITIONER[0]: ("feature", "task"),
+    PRACTITIONER[0]: ("feature",),
     # P02's action manifest owns its later commit gates. The compact track
     # metadata presents the first host entry point only.
     PRACTITIONER[1]: ("review",),
@@ -1380,4 +1380,3 @@ if __name__ == "__main__":
         self.assertIn("{{action:P02-run-work-commit}}", guide)
         self.assertIn("{{action:P02-run-receipt-commit}}", guide)
         self.assertIn("separate receipt-only commit", guide)
-
