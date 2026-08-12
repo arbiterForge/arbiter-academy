@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from academy_engine.checkpoints import evaluate_checkpoint
-from academy_engine.curriculum import CurriculumError, load_track, verify_track
+from academy_engine.curriculum import CurriculumError, _subsections, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
 from academy_engine.scenario import PreparationError, prepare_lab, reset_lab
@@ -521,19 +521,13 @@ class FoundationsCurriculumTests(unittest.TestCase):
                     load_track(root, "foundations")
 
     def test_loader_rejects_duplicate_host_sections_instead_of_overwriting_one(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shutil.copytree(SOURCE / "academy", root / "academy")
-            # F03 is action-backed, so its host forms are intentionally supplied by
-            # its manifest. F04 remains the legacy guide that exercises the parser
-            # branch this mutation protects.
-            path = root / "academy/tracks/foundations/F04-fix-with-evidence.md"
-            text = path.read_text(encoding="utf-8")
-            duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
-            path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")
-
-            with self.assertRaisesRegex(CurriculumError, "repeats host subsection Codex"):
-                load_track(root, "foundations")
+        """Preserve duplicate legacy host-heading detection after all lessons went guided."""
+        with self.assertRaisesRegex(CurriculumError, "repeats host subsection Codex"):
+            _subsections(
+                "### Codex\n\nFirst command.\n\n### Codex\n\nSecond command.\n",
+                Path("legacy-guide.md"),
+                "host",
+            )
 
     def test_verify_track_matrix_binds_sources_scenarios_and_checkpoints(self) -> None:
         report = verify_track(SOURCE, "foundations", matrix=True)
