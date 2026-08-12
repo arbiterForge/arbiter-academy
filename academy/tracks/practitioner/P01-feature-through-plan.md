@@ -15,7 +15,7 @@ next_lab: P02-commit-review-pr
 
 ## Know before you begin
 
-This lesson is planned for Preview 0.9. Until that release is verified, it remains private authoring material rather than a public course route.
+This lesson is planned for Preview 0.9. Until that release is verified, it remains a private rehearsal rather than a public course route.
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
