@@ -15,7 +15,7 @@ next_lab: P02-commit-review-pr
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.8. Its action cards document an unreleased lesson and do not create a public course route.
+This lesson is planned for Preview 0.9. Until that release is verified, it remains private authoring material rather than a public course route.
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
@@ -65,6 +65,10 @@ Use exactly one review path before you continue.
 
 {{action:P01-discussion-review}}
 
+If the draft needs a correction, use the revision action. It sends a bounded request and returns you to the same review choice. It does not begin planning or implementation.
+
+{{action:P01-revise-spec}}
+
 {{action:P01-proceed}}
 
 After you send the proceed instruction, let the agent execute the governed path it describes. Add and run a focused summary test before touching production code. The RED result must fail because unresolved tickets are absent, not because a file, import, or fixture is broken. The repair remains the exact `open + claimed` assignment. Do not create a RED commit, amend, or rebase.
@@ -88,9 +92,10 @@ Check validates the final descendant commit, exact spec and plan shape, task tra
 
 ## Recover or continue
 
-If the draft is wrong, review is incomplete, plan coverage is weak, the task transition is wrong, or
-Check fails, preserve the attempt. Read the named predicate and correct only that boundary in a new
-numbered attempt. Do not conceal evidence by amending or rebasing history.
+If the draft is wrong, use the revision action and repeat the review before proceeding. If review is
+incomplete, plan coverage is weak, the task transition is wrong, or Check fails, preserve the attempt.
+Read the named predicate and correct only that boundary in a new numbered attempt. Do not conceal
+evidence by amending or rebasing history.
 
 ### Hint 1
 

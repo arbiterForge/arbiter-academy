@@ -449,12 +449,17 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-read-spec",
                 "P01-solo-review",
                 "P01-discussion-review",
+                "P01-revise-spec",
                 "P01-proceed",
                 "P01-check",
                 "P01-reset-retry",
             ),
         )
+        self.assertIn("This lesson is planned for Preview 0.9.", guide)
+        self.assertIn("If the draft needs a correction, use the revision action", guide)
+        self.assertIn("do not derive a plan", actions["P01-revise-spec"].instruction.casefold())
         self.assertEqual(actions["P01-draft-spec"].actor, "agent")
+        self.assertEqual(actions["P01-revise-spec"].actor, "learner")
         self.assertEqual(actions["P01-proceed"].actor, "learner")
         self.assertEqual(actions["P01-check"].actor, "learner")
 
@@ -1295,8 +1300,15 @@ class PractitionerCurriculumTests(unittest.TestCase):
     def test_private_practitioner_drafts_name_their_preview_boundary_without_command_claims(self) -> None:
         """Catches an unpublished draft being mistaken for the current public lesson set."""
         release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
+        p01 = (
+            SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "This lesson is planned for Preview 0.9. Until that release is verified, it remains a private rehearsal rather than a public course route.",
+            p01,
+        )
+
         for document_id in (
-            "P01-feature-through-plan",
             "P02-commit-review-pr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",

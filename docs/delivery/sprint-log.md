@@ -115,3 +115,11 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Chosen: SD-ACA-013 supersedes SD-ACA-012's chosen checksum-download route. Preview
   0.8 fetches the canonical immutable Git tag, extracts the installer locally, and then
   executes that local file; it does not download a checksum alongside the installer.
+
+## SD-ACA-010 - Give P01 a bounded specification revision path - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether a learner who finds a weak P01 draft specification should infer an informal recovery, restart the whole lesson, or receive a visible revision action that preserves the review boundary.
+- Options: retain prose-only recovery; reset every imperfect draft; add one copyable learner-to-agent revision action that changes only the draft specification and stops for review.
+- SMARTS: Safety and Security favor an explicit stop before planning, task transition, tests, production edits, or commits. Reliability and Testability favor one typed action contract with actor, surface, expected result, recovery, and evidence assertions. Maintainability and Simplicity preserve the existing final-state verifier and avoid a new TUI workflow. Reviewability and Availability give a first-time learner a concrete correction path without inventing approval evidence or waiting for Discussion feedback.
+- Chosen: prepare P01 for Preview 0.9 with a bounded specification-revision action and explicit planned-release commands. It remains private until F04 is released and the complete Preview 0.9 manifest, installer, immutable tag, assets, and hosted verification are accepted.

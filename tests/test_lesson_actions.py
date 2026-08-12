@@ -91,6 +91,7 @@ P01_ACTION_IDS = (
     "P01-read-spec",
     "P01-solo-review",
     "P01-discussion-review",
+    "P01-revise-spec",
     "P01-proceed",
     "P01-check",
     "P01-reset-retry",
@@ -453,6 +454,17 @@ class LessonActionTests(unittest.TestCase):
             (("Arbiter Academy GitHub Discussion", "https://github.com/arbiterForge/arbiter-academy/discussions"),),
         )
 
+        revise = by_id["P01-revise-spec"]
+        self.assertEqual((revise.actor, revise.surface), ("learner", None))
+        self.assertEqual(
+            tuple((variant.surface, variant.host, variant.language, variant.copy) for variant in revise.variants),
+            (("harness", "claude-code", "text", True), ("harness", "codex", "text", True), ("harness", "pi", "text", True)),
+        )
+        self.assertTrue(all("Revise only .codearbiter/specs/academy-feature.md" in variant.command for variant in revise.variants))
+        self.assertTrue(all("Do not derive a plan" in variant.command for variant in revise.variants))
+        self.assertTrue(all("[paste the concrete finding here]" in variant.command for variant in revise.variants))
+        self.assertFalse(any(variant.command.startswith("!") for variant in revise.variants))
+
         for action_id in ("P01-read-spec", "P01-proceed"):
             action = by_id[action_id]
             with self.subTest(action=action_id):
@@ -473,7 +485,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.6" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.9" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
     def test_p05_prerequisite_routes_first_time_learners_to_rendered_f01(self) -> None:
@@ -885,7 +897,7 @@ class LessonActionTests(unittest.TestCase):
             )
 
     def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
-        """Catches public copies retaining an old release or private copies claiming the new one."""
+        """Catches release-bound commands retaining stale paths or missing a planned boundary."""
         root = Path(__file__).parents[1]
         for path in sorted((root / "academy" / "actions").glob("*.json")):
             document_id = path.stem
@@ -901,11 +913,16 @@ class LessonActionTests(unittest.TestCase):
                     expected_preview = (
                         "preview-0.8"
                         if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS
+                        else "preview-0.9"
+                        if document_id == P01_DOCUMENT_ID
                         else "preview-0.6"
                     )
                     self.assertIn(expected_preview, commands)
                     if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS:
                         self.assertNotIn("preview-0.6", commands)
+                    elif document_id == P01_DOCUMENT_ID:
+                        self.assertNotIn("preview-0.6", commands)
+                        self.assertNotIn("preview-0.7", commands)
                     else:
                         self.assertNotIn("preview-0.8", commands)
 
