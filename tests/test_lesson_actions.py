@@ -19,6 +19,7 @@ from academy_engine.lesson_actions import (
     validate_action_resource_href,
     validate_action_manifest,
 )
+from academy_engine.preview import load_preview_manifest
 
 
 DOCUMENT_ID = "F01-fork-clone-doctor"
@@ -56,6 +57,31 @@ F02_ACTION_IDS = (
     "F02-check",
     "F02-return-base",
     "F02-reset-retry",
+)
+F03_DOCUMENT_ID = "F03-work-the-board"
+PUBLIC_PREVIEW_0_7_DOCUMENT_IDS = frozenset(
+    {
+        "F01-fork-clone-doctor",
+        "F02-orient-to-state",
+        F03_DOCUMENT_ID,
+        "home",
+        "recovery",
+    }
+)
+F03_ACTION_IDS = (
+    "F03-prepare",
+    "F03-read-target-task",
+    "F03-start-task",
+    "F03-inspect-started-task",
+    "F03-complete-task",
+    "F03-inspect-final-diff",
+    "F03-stage-board",
+    "F03-review-commit-boundary",
+    "F03-run-commit-gate",
+    "F03-confirm-clean",
+    "F03-check",
+    "F03-reset-retry",
+    "F03-return-base",
 )
 P01_DOCUMENT_ID = "P01-feature-through-plan"
 P01_ACTION_IDS = (
@@ -670,6 +696,7 @@ class LessonActionTests(unittest.TestCase):
         """Catches a private lesson inventing an install path for Academy operations."""
         root = Path(__file__).parents[1]
         manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
+        release_display = load_preview_manifest(root).release.replace("preview-", "Preview ")
         by_id = {action.id: action for action in manifest.actions}
 
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -685,7 +712,7 @@ class LessonActionTests(unittest.TestCase):
                         action.evidence or "",
                     )
                 )
-                self.assertIn("Preview 0.6", contract)
+                self.assertIn(release_display, contract)
                 self.assertIn("not published", contract)
                 self.assertIn("future published release", contract)
                 self.assertNotIn("preview-0.5", contract.casefold())
@@ -856,8 +883,8 @@ class LessonActionTests(unittest.TestCase):
                 {"windows", "macos", "linux"},
             )
 
-    def test_all_action_command_variants_bind_to_preview_0_6(self) -> None:
-        """Catches any copied Academy command retaining a stale Preview 0.5 path."""
+    def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
+        """Catches public copies retaining an old release or private copies claiming the new one."""
         root = Path(__file__).parents[1]
         for path in sorted((root / "academy" / "actions").glob("*.json")):
             document_id = path.stem
@@ -870,7 +897,78 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
-                    self.assertIn("preview-0.6", commands)
+                    expected_preview = (
+                        "preview-0.7"
+                        if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS
+                        else "preview-0.6"
+                    )
+                    self.assertIn(expected_preview, commands)
+                    if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS:
+                        self.assertNotIn("preview-0.6", commands)
+                    else:
+                        self.assertNotIn("preview-0.7", commands)
+
+    def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
+        """Catches F03 losing its exact board-only route or Preview 0.7 learner commands."""
+        manifest = load_action_manifest(Path(__file__).parents[1], F03_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), F03_ACTION_IDS)
+        self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
+
+        for action_id in ("F03-prepare", "F03-check", "F03-reset-retry"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(
+                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
+                    (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
+                )
+                self.assertTrue(all("preview-0.7" in variant.command for variant in action.variants))
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        for action_id, command in (
+            ("F03-start-task", "task start academy.feature.0001"),
+            ("F03-complete-task", "task done academy.feature.0001"),
+            ("F03-run-commit-gate", "commit"),
+        ):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "agent")
+                self.assertEqual(
+                    tuple((variant.host, variant.command) for variant in action.variants),
+                    (
+                        ("claude-code", "/ca:" + command),
+                        ("codex", "$ca-" + command),
+                        ("pi", "/ca-" + command),
+                        ("pi", "/skill:ca-" + command),
+                    ),
+                )
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        check_copy = "\n".join(
+            part
+            for part in (
+                by_id["F03-check"].instruction,
+                by_id["F03-check"].expected_result,
+                by_id["F03-check"].recovery,
+                by_id["F03-check"].evidence or "",
+            )
+        )
+        self.assertIn("cannot prove the agent command ran", check_copy)
+        self.assertIn("cannot prove the learner observed the transient [~] state", check_copy)
+        self.assertNotIn("reconstruct an agent invocation", check_copy)
+
+        clean_copy = "\n".join(
+            part
+            for part in (
+                by_id["F03-confirm-clean"].instruction,
+                by_id["F03-confirm-clean"].expected_result,
+                by_id["F03-confirm-clean"].recovery,
+                by_id["F03-confirm-clean"].evidence or "",
+            )
+        )
+        self.assertIn("no non-ignored worktree state", clean_copy)
+        self.assertIn(".codearbiter/open-tasks.md.lock", clean_copy)
 
     def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)

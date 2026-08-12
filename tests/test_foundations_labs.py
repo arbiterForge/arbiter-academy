@@ -56,6 +56,7 @@ class AcademyRepository:
             "tests",
         ):
             shutil.copytree(SOURCE / name, self.root / name)
+        shutil.copyfile(SOURCE / ".gitignore", self.root / ".gitignore")
         shutil.copyfile(SOURCE / "pyproject.toml", self.root / "pyproject.toml")
         git(self.root, "init", "-b", "main")
         git(self.root, "config", "user.name", "Academy Learner")
@@ -331,6 +332,46 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        """F03 must teach the real board route with action cards, not prose fences."""
+        path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"
+        text = path.read_text(encoding="utf-8")
+        body = text.split("---", 2)[2]
+        headings = tuple(line[3:] for line in text.splitlines() if line.startswith("## "))
+        self.assertEqual(
+            headings,
+            (
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ),
+        )
+        action_ids = (
+            "F03-prepare", "F03-read-target-task", "F03-start-task",
+            "F03-inspect-started-task", "F03-complete-task", "F03-inspect-final-diff",
+            "F03-stage-board", "F03-review-commit-boundary", "F03-run-commit-gate",
+            "F03-confirm-clean", "F03-check", "F03-reset-retry", "F03-return-base",
+        )
+        for action_id in action_ids:
+            self.assertEqual(body.count("{{action:" + action_id + "}}"), 1, action_id)
+        lab = load_track(SOURCE, "foundations").labs[2]
+        self.assertEqual(lab.id, FOUNDATIONS[2])
+        self.assertEqual(lab.scenario_command, "{{action:F03-prepare}}")
+        self.assertEqual(lab.checkpoint_command, "{{action:F03-check}}")
+        self.assertEqual(
+            lab.host_commands,
+            {
+                "claude-code": "/ca:task start academy.feature.0001",
+                "codex": "$ca-task start academy.feature.0001",
+                "pi": "/ca-task start academy.feature.0001\n/skill:ca-task start academy.feature.0001",
+            },
+        )
+
     def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
         text = path.read_text(encoding="utf-8")
@@ -419,7 +460,12 @@ class FoundationsCurriculumTests(unittest.TestCase):
                     set(lab.host_commands), {"claude-code", "codex", "pi"}
                 )
                 self.assertIn("prepare", lab.scenario_command)
-                self.assertIn("arbiter-academy --repository", lab.checkpoint_command)
+                if lab.id == "F03-work-the-board":
+                    # F03 is action-backed: the manifest owns the platform-specific
+                    # installed-Academy command and the lesson front matter names it.
+                    self.assertEqual(lab.checkpoint_command, "{{action:F03-check}}")
+                else:
+                    self.assertIn("arbiter-academy --repository", lab.checkpoint_command)
                 self.assertTrue(lab.success_evidence)
                 self.assertIn("reset", lab.recovery)
 
@@ -465,7 +511,10 @@ class FoundationsCurriculumTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copytree(SOURCE / "academy", root / "academy")
-            path = root / "academy/tracks/foundations/F03-work-the-board.md"
+            # F03 is action-backed, so its host forms are intentionally supplied by
+            # its manifest. F04 remains the legacy guide that exercises the parser
+            # branch this mutation protects.
+            path = root / "academy/tracks/foundations/F04-fix-with-evidence.md"
             text = path.read_text(encoding="utf-8")
             duplicate = "\n### Codex\n\n```text\n$ca-doctor\n```\n"
             path.write_text(text.replace("\n## Do the work", duplicate + "\n## Do the work"), encoding="utf-8")
@@ -1157,6 +1206,93 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
 
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
                 self.assertTrue(result.passed, result.failed_predicates)
+
+    def test_f03_real_task_writer_lock_is_the_only_ignored_clean_sidecar(self) -> None:
+        """The pinned writer lock is valid evidence hygiene, not a broad ignore escape."""
+        fixture = self._prepared(FOUNDATIONS[2])
+        self.addCleanup(fixture.close)
+        run_task_writer(fixture, "start", "2026-08-01")
+        run_task_writer(fixture, "done", "2026-08-02")
+        board = fixture.root / ".codearbiter/open-tasks.md"
+        fixture.commit(
+            "complete governed task through the pinned writer",
+            str(board.relative_to(fixture.root)),
+            commit_date="2026-08-02T12:00:00-04:00",
+        )
+        sidecar = fixture.root / ".codearbiter/open-tasks.md.lock"
+        self.assertTrue(sidecar.is_file())
+        self.assertIn(
+            ".codearbiter/open-tasks.md.lock\n",
+            (fixture.root / ".gitignore").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            git(
+                fixture.root,
+                "check-ignore",
+                "-v",
+                "--",
+                str(sidecar.relative_to(fixture.root)),
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout,
+            "",
+        )
+        result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+        self.assertTrue(result.passed, result.failed_predicates)
+
+    def test_f03_rejects_an_arbitrary_untracked_file_after_real_task_writer_completion(self) -> None:
+        """F03 must reject nonignored dirt after the otherwise valid board commit."""
+        fixture = self._prepared(FOUNDATIONS[2])
+        self.addCleanup(fixture.close)
+        run_task_writer(fixture, "start", "2026-08-01")
+        run_task_writer(fixture, "done", "2026-08-02")
+        board = fixture.root / ".codearbiter/open-tasks.md"
+        fixture.commit(
+            "complete governed task through the pinned writer",
+            str(board.relative_to(fixture.root)),
+            commit_date="2026-08-02T12:00:00-04:00",
+        )
+        (fixture.root / "real-untracked.txt").write_text(
+            "must make Check fail\n", encoding="utf-8"
+        )
+        result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+        self.assertFalse(result.passed)
+
+    def test_f03_rejects_extra_commit_and_co_committed_path_after_valid_completion(
+        self,
+    ) -> None:
+        """The final board bytes alone cannot bypass F03's exact evidence boundary."""
+        for case in ("additional-commit", "co-committed-path"):
+            with self.subTest(case=case):
+                fixture = self._prepared(FOUNDATIONS[2])
+                self.addCleanup(fixture.close)
+                run_task_writer(fixture, "start", "2026-08-01")
+                run_task_writer(fixture, "done", "2026-08-02")
+                board = fixture.root / ".codearbiter/open-tasks.md"
+                if case == "additional-commit":
+                    fixture.commit(
+                        "complete governed task through the pinned writer",
+                        str(board.relative_to(fixture.root)),
+                        commit_date="2026-08-02T12:00:00-04:00",
+                    )
+                    fixture.commit("unrelated learner history", allow_empty=True)
+                else:
+                    note = fixture.root / "learner-notes.md"
+                    note.write_text("This must stay outside F03 evidence.\n", encoding="utf-8")
+                    fixture.commit(
+                        "complete governed task with unrelated note",
+                        str(board.relative_to(fixture.root)),
+                        str(note.relative_to(fixture.root)),
+                        commit_date="2026-08-02T12:00:00-04:00",
+                    )
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+                self.assertFalse(result.passed)
+                self.assertEqual(
+                    result.failed_predicates,
+                    ("canonical_board_transition",),
+                )
 
     def test_f04_requires_regression_commit_before_a_later_service_repair(self) -> None:
         regression = '''

@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "F03-work-the-board",
+  "actions": [
+    {
+      "id": "F03-prepare", "sequence": 1, "title": "Prepare a numbered board attempt", "actor": "learner", "surface": null,
+      "instruction": "From a clean main branch in the native terminal, run the installed Academy Prepare command for your operating system.",
+      "rationale": "Prepare records the queued board state on a numbered attempt while preserving main.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.7\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Academy creates and switches to academy/F03-work-the-board/ATTEMPT_NUMBER with academy.feature.0001 queued.",
+      "recovery": "If Prepare refuses, preserve its message and resolve only the named main-branch, clean-worktree, or prerequisite condition.",
+      "evidence": "The numbered branch fixes the board snapshot that Check will compare."
+    },
+    {
+      "id": "F03-read-target-task", "sequence": 2, "title": "Read the exact queued task", "actor": "learner", "surface": null,
+      "instruction": "Read the academy.feature.0001 line and its adjacent boundaries before changing the board. This lesson changes only that lifecycle.",
+      "rationale": "Reading the full task prevents a similarly named task or the listed feature work from becoming the evidence change.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Select-String -Path '.codearbiter/open-tasks.md' -Pattern 'academy.feature.0001' -Context 1,3","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"grep -n -A 3 -B 1 'academy.feature.0001' .codearbiter/open-tasks.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"grep -n -A 3 -B 1 'academy.feature.0001' .codearbiter/open-tasks.md","copy":true}
+      ],
+      "expected_result": "You can identify academy.feature.0001 as the single queued target and can leave every other task unchanged.",
+      "recovery": "If the target is absent or not queued, stop and preserve the attempt. Do not substitute another task.",
+      "evidence": "Your intended change is limited to one existing task line."
+    },
+    {
+      "id": "F03-start-task", "sequence": 3, "title": "Start the target through CodeArbiter", "actor": "agent", "surface": null,
+      "instruction": "In the active CodeArbiter harness, use the host-native task command to start academy.feature.0001. This is an agent command, never a shell command.",
+      "rationale": "The sanctioned transition writes the canonical started state instead of a hand-edited checkbox.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:task start academy.feature.0001","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-task start academy.feature.0001","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-task start academy.feature.0001","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-task start academy.feature.0001","copy":true}
+      ],
+      "expected_result": "The task writer changes only academy.feature.0001 to its canonical started state with a real started date.",
+      "recovery": "If the command blocks, preserve its message and inspect the exact target state. Do not imitate the transition by editing the board.",
+      "evidence": "The transient started state demonstrates the required lifecycle order."
+    },
+    {
+      "id": "F03-inspect-started-task", "sequence": 4, "title": "Inspect the transient started state", "actor": "learner", "surface": null,
+      "instruction": "Inspect the target immediately after Start. Confirm its marker is [~] and that its started date is present before continuing.",
+      "rationale": "The final done state is accepted only after the sanctioned start transition has occurred.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Select-String -Path '.codearbiter/open-tasks.md' -Pattern 'academy.feature.0001'","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"grep -n 'academy.feature.0001' .codearbiter/open-tasks.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"grep -n 'academy.feature.0001' .codearbiter/open-tasks.md","copy":true}
+      ],
+      "expected_result": "The target line is [~] with a started date while its description and every other task line remain unchanged.",
+      "recovery": "If the line is not canonical started form, stop and preserve the attempt rather than applying a manual repair.",
+      "evidence": "You observed the required intermediate lifecycle state before completion."
+    },
+    {
+      "id": "F03-complete-task", "sequence": 5, "title": "Complete the same task through CodeArbiter", "actor": "agent", "surface": null,
+      "instruction": "Use the host-native CodeArbiter task command to complete the same academy.feature.0001 target. Do not implement the feature named by the task.",
+      "rationale": "The governed done transition preserves the task wording and adds the canonical completion date.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:task done academy.feature.0001","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-task done academy.feature.0001","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-task done academy.feature.0001","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-task done academy.feature.0001","copy":true}
+      ],
+      "expected_result": "The target becomes [x] with canonical done YYYY-MM-DD text and no other board content changes.",
+      "recovery": "If completion blocks, preserve the attempt and the started state. Do not force a date or manually mark the task done.",
+      "evidence": "The final target line contains the task-writer-produced completion state."
+    },
+    {
+      "id": "F03-inspect-final-diff", "sequence": 6, "title": "Inspect the final board diff", "actor": "learner", "surface": null,
+      "instruction": "Review the unstaged board diff before staging. It must show only academy.feature.0001 moving through its canonical lifecycle.",
+      "rationale": "A focused diff catches unrelated task, prose, and fixture edits before they enter the evidence commit.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git diff -- .codearbiter/open-tasks.md","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git diff -- .codearbiter/open-tasks.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git diff -- .codearbiter/open-tasks.md","copy":true}
+      ],
+      "expected_result": "The diff changes only the target line from its prepared queued state to canonical done form.",
+      "recovery": "If another line changed, stop before staging and preserve the attempt for the appropriate retry path.",
+      "evidence": "The reviewed diff limits the future commit to the board lifecycle."
+    },
+    {
+      "id": "F03-stage-board", "sequence": 7, "title": "Stage only the board", "actor": "learner", "surface": null,
+      "instruction": "Stage only .codearbiter/open-tasks.md. Do not use a broad add command.",
+      "rationale": "The lesson requires one board-only governed commit.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- .codearbiter/open-tasks.md","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- .codearbiter/open-tasks.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- .codearbiter/open-tasks.md","copy":true}
+      ],
+      "expected_result": "The index contains only .codearbiter/open-tasks.md.",
+      "recovery": "If another path is staged, stop and preserve the state for review. Do not erase the attempt to make status look clean.",
+      "evidence": "The staged path is the single allowable evidence path."
+    },
+    {
+      "id": "F03-review-commit-boundary", "sequence": 8, "title": "Review the board-only commit boundary", "actor": "learner", "surface": null,
+      "instruction": "Ask the active harness to show the staged path list and staged diff without committing. Review the answer before authorizing the gate.",
+      "rationale": "Learner review keeps the governed commit bounded to the one canonical board transition.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/open-tasks.md and whether only academy.feature.0001 changes from queued to canonical done form.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/open-tasks.md and whether only academy.feature.0001 changes from queued to canonical done form.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/open-tasks.md and whether only academy.feature.0001 changes from queued to canonical done form.","copy":true}
+      ],
+      "expected_result": "The agent presents one staged board path and the exact target lifecycle diff for learner approval.",
+      "recovery": "If the path list or diff is broader, do not approve a commit. Preserve the attempt and recover from the reported boundary.",
+      "evidence": "The learner approved one bounded board change, not the whole worktree."
+    },
+    {
+      "id": "F03-run-commit-gate", "sequence": 9, "title": "Run the governed commit gate", "actor": "agent", "surface": null,
+      "instruction": "After learner approval, run the host-native CodeArbiter commit gate. Do not replace it with direct git commit.",
+      "rationale": "The gate records one board-only governed commit on the prepared attempt.", "resources": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "CodeArbiter creates one post-Prepare commit containing only .codearbiter/open-tasks.md.",
+      "recovery": "If the gate blocks, preserve its output and correct only the reported boundary. Do not bypass the gate or amend the attempt.",
+      "evidence": "The commit is durable evidence for the completed board lifecycle."
+    },
+    {
+      "id": "F03-confirm-clean", "sequence": 10, "title": "Confirm the attempt is clean", "actor": "learner", "surface": null,
+      "instruction": "Inspect short Git status after the governed commit and before Check. The Academy ignore rule treats .codearbiter/open-tasks.md.lock as the sole task-writer sidecar exception.",
+      "rationale": "Check evaluates the committed board lifecycle and the current worktree state together.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
+      ],
+      "expected_result": "Git prints no non-ignored worktree state. Academy intentionally ignores only .codearbiter/open-tasks.md.lock.",
+      "recovery": "If status shows non-ignored state, preserve it and do not run Check until you understand its source. Do not delete or reset an attempt branch.",
+      "evidence": "The worktree and index match the board-only commit apart from the sole ignored task-writer lock."
+    },
+    {
+      "id": "F03-check", "sequence": 11, "title": "Run the external Academy Check", "actor": "learner", "surface": null,
+      "instruction": "Run the installed Preview 0.7 Academy Check command from the numbered attempt after the board-only commit and clean-state review.",
+      "rationale": "Check compares the prepared board, completed board, commit boundary, and live worktree from outside the learner checkout.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.7\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Check reports checkpoint F03-work-the-board: passed and records progress only when the exact board transition and no non-ignored worktree state agree.",
+      "recovery": "If Check fails, preserve the attempt and read the failed predicate before using Reset for a distinct numbered retry.",
+      "evidence": "Check cannot prove the agent command ran and cannot prove the learner observed the transient [~] state. It proves only the committed board state, commit boundary, and non-ignored worktree state it can inspect."
+    },
+    {
+      "id": "F03-reset-retry", "sequence": 12, "title": "Preserve a failed attempt and retry", "actor": "learner", "surface": null,
+      "instruction": "Use Reset only when Check identifies a failed attempt that must remain available. Run the installed Preview 0.7 command from the native terminal.",
+      "rationale": "Reset retains the failed branch and creates a new numbered attempt instead of rewriting evidence.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.7\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.7/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Academy preserves the failed attempt and switches to a fresh academy/F03-work-the-board/ATTEMPT_NUMBER branch.",
+      "recovery": "If Reset stops, preserve its message and current branch. Do not force-push, force-reset, or delete the failed attempt.",
+      "evidence": "The original attempt remains available while the retry has a separate base."
+    },
+    {
+      "id": "F03-return-base", "sequence": 13, "title": "Return to main after success", "actor": "learner", "surface": null,
+      "instruction": "After Check passes, switch to main and leave the completed attempt branch intact.",
+      "rationale": "Returning to main ends the exercise without discarding the evidence-bearing branch.", "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "Git switches to main while the completed F03 attempt remains reachable.",
+      "recovery": "If Git refuses, preserve its message and current state. Do not force a branch switch or remove the attempt.",
+      "evidence": "The completed branch remains available for later verification."
+    }
+  ]
+}

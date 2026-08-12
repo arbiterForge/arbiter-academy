@@ -56,3 +56,11 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Options: treat every candidate bundle-digest change as published-payload drift; allow an ambiguous exception; distinguish the immutable published release payload from mutable candidate source payload.
 - SMARTS: Safety and Security keep installer digest checks fail-closed for the published tag and require a new preview for any released installer, release bundle, or public route change. Maintainability and Speed permit private non-routable source development without pretending its future wheel is already public. Reviewability and Testability bind Preview 0.6 to its reviewed tag commit, reject missing or retargeted tags, and prove a private candidate mutation remains outside the public manifest.
 - Chosen: a private source edit may change a candidate-only future wheel without release churn while it remains non-routable. A new preview is required before any change becomes part of the published release payload, installer bytes, or public lesson catalog.
+
+## SD-ACA-009 - Release F03 as the next coherent public slice - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether to wait for the private practitioner drafts or publish F03 once its guided action contract and clean-worktree Check are accepted.
+- Options: wait for the whole Foundation and Practitioner tracks; publish F03 with a fresh immutable preview while F04 and P01-P08 remain status-only; expose private drafts before their prerequisite closure is ready.
+- SMARTS: Safety and Security keep unfinished lessons non-routable and bind F03 to one exact board-only commit with no non-ignored worktree state. Reliability and Testability favor a separately verified action contract, causal board-boundary tests, and a fresh immutable release identity. Maintainability and Simplicity keep one release manifest authoritative for available, runnable, guided, and coming-next lessons. Availability and Speed give learners a complete F01 to F03 path now instead of withholding accepted training behind unrelated drafts.
+- Chosen: promote only F01, F02, and F03 in Preview 0.7 after exact-head review and hosted CI. F04 and P01-P08 remain explicit non-linking coming-next status until each has a complete guided contract and accepted prerequisite chain.

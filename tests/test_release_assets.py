@@ -22,9 +22,9 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 BUILDER = REPOSITORY / "scripts" / "build_release_assets.py"
-RELEASE = "preview-0.6"
+RELEASE = "preview-0.7"
 ARCHIVE = f"arbiter-academy-{RELEASE}.zip"
-EPOCH = 1_767_225_600
+EPOCH = 1_786_492_800
 EXPECTED_ASSETS = {
     "install.ps1",
     "install.ps1.sha256",
@@ -43,36 +43,36 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def immutable_release_tag_commit() -> str | None:
-    expected = _REVIEWED_IMMUTABLE_RELEASE_COMMITS.get(RELEASE)
-    if expected is None:
-        return None
+def immutable_release_tag_commit(release: str = RELEASE) -> str | None:
+    expected = _REVIEWED_IMMUTABLE_RELEASE_COMMITS.get(release)
     resolved = subprocess.run(
-        ["git", "rev-parse", "--verify", f"refs/tags/{RELEASE}^{{commit}}"],
+        ["git", "rev-parse", "--verify", f"refs/tags/{release}^{{commit}}"],
         cwd=REPOSITORY,
         text=True,
         capture_output=True,
         check=False,
     )
     if resolved.returncode:
-        raise AssertionError(f"missing reviewed immutable {RELEASE} tag: {resolved.stderr}")
+        if expected is None:
+            return None
+        raise AssertionError(f"missing reviewed immutable {release} tag: {resolved.stderr}")
     actual = resolved.stdout.strip()
-    if actual != expected:
+    if expected is not None and actual != expected:
         raise AssertionError(
-            f"reviewed immutable {RELEASE} tag resolves to {actual}, expected {expected}"
+            f"reviewed immutable {release} tag resolves to {actual}, expected {expected}"
         )
     return actual
 
 
-def immutable_release_tag_exists() -> bool:
-    return immutable_release_tag_commit() is not None
+def immutable_release_tag_exists(release: str = RELEASE) -> bool:
+    return immutable_release_tag_commit(release) is not None
 
 
-def extract_tagged_release(destination: Path) -> Path:
+def extract_tagged_release(destination: Path, release: str = RELEASE) -> Path:
     """Materialize the current immutable release source, never the mutable candidate."""
-    tag_sha = immutable_release_tag_commit()
+    tag_sha = immutable_release_tag_commit(release)
     if tag_sha is None:
-        raise AssertionError(f"{RELEASE} is not a reviewed immutable release")
+        raise AssertionError(f"{release} is not a reviewed immutable release")
     ancestry = subprocess.run(
         ["git", "merge-base", "--is-ancestor", tag_sha, "HEAD"],
         cwd=REPOSITORY,
@@ -81,7 +81,7 @@ def extract_tagged_release(destination: Path) -> Path:
         check=False,
     )
     if ancestry.returncode:
-        raise AssertionError(f"immutable {RELEASE} tag is not an ancestor of HEAD")
+        raise AssertionError(f"immutable {release} tag is not an ancestor of HEAD")
     archive = subprocess.run(
         ["git", "archive", "--format=tar", tag_sha],
         cwd=REPOSITORY,
@@ -90,7 +90,7 @@ def extract_tagged_release(destination: Path) -> Path:
     )
     if archive.returncode:
         raise AssertionError(
-            f"could not archive immutable {RELEASE} source: {archive.stderr.decode()}"
+                f"could not archive immutable {release} source: {archive.stderr.decode()}"
         )
     with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as bundle:
         # Python 3.11.4 backported the safe extraction-filter API. The archive is
@@ -102,9 +102,9 @@ def extract_tagged_release(destination: Path) -> Path:
     return destination
 
 
-def published_release_source(destination: Path) -> Path:
+def published_release_source(destination: Path, release: str = RELEASE) -> Path:
     """Use immutable bytes once published; otherwise test the fresh release candidate."""
-    return extract_tagged_release(destination) if immutable_release_tag_exists() else REPOSITORY
+    return extract_tagged_release(destination, release) if immutable_release_tag_exists(release) else REPOSITORY
 
 
 def posix_path(path: Path) -> str:
@@ -125,34 +125,56 @@ def release_builder_module() -> object:
 
 
 class ReleaseAssetBuilderTests(unittest.TestCase):
-    def test_current_immutable_tag_is_bound_to_its_reviewed_commit(self) -> None:
-        """A same-named branch or retargeted tag cannot stand in for Preview 0.6."""
+    def test_preview_zero_seven_is_the_only_current_candidate_identity(self) -> None:
+        """Catches release assets or package data retaining the superseded Preview 0.6 identity."""
+        self.assertEqual(RELEASE, "preview-0.7")
+        self.assertEqual(EPOCH, 1_786_492_800)
+        publication = REPOSITORY / "academy" / "publication"
+        self.assertFalse((publication / "preview-0.6.json").exists())
+        self.assertTrue((publication / "preview-0.7.json").is_file())
+        package = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn("academy/publication/preview-0.7.json", package)
+        self.assertNotIn("academy/publication/preview-0.6.json", package)
+
+    def test_fresh_preview_candidate_has_no_preexisting_immutable_tag_binding(self) -> None:
+        """A fresh preview builds from the reviewed candidate before its first immutable tag exists."""
+        self.assertIsNone(immutable_release_tag_commit(RELEASE))
+
+    def test_current_preview_uses_its_tag_as_soon_as_publication_creates_it(self) -> None:
+        """A published Preview 0.7 must stop selecting mutable candidate bytes."""
+        expected = "a" * 40
+        with patch("tests.test_release_assets.subprocess.run") as run:
+            run.return_value = subprocess.CompletedProcess([], 0, f"{expected}\n", "")
+            self.assertEqual(immutable_release_tag_commit(RELEASE), expected)
         self.assertEqual(
-            immutable_release_tag_commit(),
-            "db8e00d747d49039b3c225e8c0646806445c6346",
+            run.call_args.args[0],
+            ["git", "rev-parse", "--verify", "refs/tags/preview-0.7^{commit}"],
         )
 
     def test_immutable_tag_resolution_uses_the_tag_namespace(self) -> None:
-        """A branch named like the release never participates in release-source selection."""
-        expected = "db8e00d747d49039b3c225e8c0646806445c6346"
+        """A branch named like the old release never participates in historical verification."""
+        release = "preview-0.6"
+        expected = _REVIEWED_IMMUTABLE_RELEASE_COMMITS[release]
         with patch("tests.test_release_assets.subprocess.run") as run:
             run.return_value = subprocess.CompletedProcess([], 0, f"{expected}\n", "")
-            self.assertEqual(immutable_release_tag_commit(), expected)
+            self.assertEqual(immutable_release_tag_commit(release), expected)
         self.assertEqual(
             run.call_args.args[0],
             ["git", "rev-parse", "--verify", "refs/tags/preview-0.6^{commit}"],
         )
 
     def test_immutable_tag_resolution_rejects_missing_or_retargeted_tag(self) -> None:
-        """Published Preview 0.6 fails closed rather than accepting a replacement ref."""
+        """The recorded Preview 0.6 evidence fails closed instead of accepting a replacement ref."""
+        release = "preview-0.6"
         with self.subTest(case="missing"), patch("tests.test_release_assets.subprocess.run") as run:
             run.return_value = subprocess.CompletedProcess([], 1, "", "not found")
             with self.assertRaisesRegex(AssertionError, "missing reviewed immutable"):
-                immutable_release_tag_commit()
+                immutable_release_tag_commit(release)
         with self.subTest(case="retargeted"), patch("tests.test_release_assets.subprocess.run") as run:
             run.return_value = subprocess.CompletedProcess([], 0, "0" * 40 + "\n", "")
             with self.assertRaisesRegex(AssertionError, "resolves to"):
-                immutable_release_tag_commit()
+                immutable_release_tag_commit(release)
+
 
     def test_extract_tagged_release_uses_the_python_3_11_compatible_extraction_path(self) -> None:
         """The declared Python 3.11 floor includes releases before tar's data filter backport."""
@@ -171,22 +193,16 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
             patch(f"{__name__}.tarfile.open", return_value=archive),
             patch.object(sys, "version_info", (3, 11, 3)),
         ):
-            self.assertEqual(extract_tagged_release(destination), destination)
+            self.assertEqual(extract_tagged_release(destination, "preview-0.6"), destination)
         archive.extractall.assert_called_once_with(destination)
 
     def test_fresh_preview_uses_its_candidate_source_until_the_immutable_tag_exists(self) -> None:
         """A new public route still needs candidate bytes before its tag can be published."""
-        global RELEASE
-        previous_release = RELEASE
-        RELEASE = "preview-9.9"
-        try:
-            with tempfile.TemporaryDirectory() as temporary_directory:
-                self.assertEqual(
-                    published_release_source(Path(temporary_directory) / "source"),
-                    REPOSITORY,
-                )
-        finally:
-            RELEASE = previous_release
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            self.assertEqual(
+                published_release_source(Path(temporary_directory) / "source", "preview-9.9"),
+                REPOSITORY,
+            )
 
     def test_wheel_normalization_canonicalizes_backend_metadata_and_record(self) -> None:
         """Catches platform line endings leaking through a ZIP-only wheel normalization."""
@@ -325,7 +341,7 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
                 self.assertNotIn("install.ps1", "\n".join(names))
                 self.assertNotIn("install.sh", "\n".join(names))
                 for info in archive.infolist():
-                    self.assertEqual(info.date_time, (2026, 1, 1, 0, 0, 0), info.filename)
+                    self.assertEqual(info.date_time, (2026, 8, 12, 0, 0, 0), info.filename)
                     self.assertEqual((info.external_attr >> 16) & 0o777, 0o644, info.filename)
                 manifest_bytes = archive.read("bundle-manifest.json")
                 wheel_bytes = archive.read("wheelhouse/workshop_queue-0.1.0-py3-none-any.whl")
@@ -441,12 +457,14 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
 
 class InstallerSourceContractTests(unittest.TestCase):
     def test_published_release_source_remains_the_immutable_tag_when_private_content_changes(self) -> None:
-        """Private, nonroutable lesson work must not retarget Preview 0.6 installer evidence."""
-        if not immutable_release_tag_exists():
-            self.skipTest("the current preview has not been published yet")
+        """Private, nonroutable lesson work must not retarget published installer evidence."""
+        release = "preview-0.6"
+        epoch = 1_767_225_600
+        if not immutable_release_tag_exists(release):
+            self.skipTest("the recorded historical preview tag is unavailable")
         with tempfile.TemporaryDirectory() as temporary_directory:
             scratch = Path(temporary_directory)
-            release_source = extract_tagged_release(scratch / "release-source")
+            release_source = extract_tagged_release(scratch / "release-source", release)
             candidate = scratch / "candidate"
             shutil.copytree(REPOSITORY, candidate, ignore=shutil.ignore_patterns(".git", "__pycache__"))
             candidate_guide = candidate / "academy/tracks/practitioner/P01-feature-through-plan.md"
@@ -459,11 +477,7 @@ class InstallerSourceContractTests(unittest.TestCase):
                 candidate_guide.read_bytes(),
                 (release_source / "academy/tracks/practitioner/P01-feature-through-plan.md").read_bytes(),
             )
-            self.assertEqual(
-                (release_source / "academy/publication/preview-0.6.json").read_bytes(),
-                (REPOSITORY / "academy/publication/preview-0.6.json").read_bytes(),
-            )
-            manifest = json.loads((candidate / "academy/publication/preview-0.6.json").read_text(encoding="utf-8"))
+            manifest = json.loads((release_source / "academy/publication/preview-0.6.json").read_text(encoding="utf-8"))
             self.assertNotIn("P01-feature-through-plan", manifest["available_labs"])
 
             candidate_output = scratch / "candidate-assets"
@@ -477,9 +491,9 @@ class InstallerSourceContractTests(unittest.TestCase):
                     "--output",
                     str(candidate_output),
                     "--epoch",
-                    str(EPOCH),
+                    str(epoch),
                     "--release",
-                    RELEASE,
+                    release,
                 ],
                 cwd=candidate,
                 text=True,
@@ -501,9 +515,9 @@ class InstallerSourceContractTests(unittest.TestCase):
                     "--output",
                     str(release_output),
                     "--epoch",
-                    str(EPOCH),
+                    str(epoch),
                     "--release",
-                    RELEASE,
+                    release,
                 ],
                 cwd=release_source,
                 text=True,
@@ -1189,7 +1203,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "#!/bin/sh\n"
             "printf 'arg1=%s arg2=%s arg3=%s\\n' \"${1:-}\" \"${2:-}\" \"${3:-}\" >>\"$ATTACK_EVENT\"\n"
             "case \"${2:-}\" in\n"
-            "*/preview-0.6)\n"
+            "*/preview-0.7)\n"
             "  rm -f -- \"$2/.academy-install-owner\"\n"
             "  rmdir -- \"$2\"\n"
             "  ln -s -- \"$ATTACK_TARGET\" \"$2\"\n"
@@ -1246,7 +1260,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "$function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-TrustedReleaseRedirect' }, $true)\n"
             "if ($null -eq $function) { throw 'missing redirect validator' }\n"
             ". ([ScriptBlock]::Create($function.Extent.Text))\n"
-            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/file.zip'\n"
+            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/file.zip'\n"
             "$cdn = [Uri]'https://release-assets.githubusercontent.com/path?sig=x'\n"
             "$badPort = [Uri]'https://release-assets.githubusercontent.com:444/path?sig=x'\n"
             "$badHost = [Uri]'https://evil.example/path'\n"

@@ -2935,20 +2935,31 @@ def _semantic(context: _SemanticContext) -> bool:
             rf"- \[x\] {re.escape(task_id)} - (?P<body>.+?)  \(done (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)",
             new_line,
         )
-        commits = _path_commits(root, attempt.prepared, attempt.head, board)
-        commit_date = (
-            run_git(root, ["show", "-s", "--format=%as", commits[0]], check=False).stdout.strip()
-            if len(commits) == 1
-            else ""
+        learner_commits = tuple(
+            line
+            for line in run_git(
+                root,
+                ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
+                check=False,
+            ).stdout.splitlines()
+            if _SHA40.fullmatch(line)
         )
-        clean = run_git(
-            root, ["diff", "--no-ext-diff", "--quiet", attempt.head, "--", board], check=False
-        ).returncode == 0
+        exact_commit_boundary = bool(
+            learner_commits == (attempt.head,)
+            and _commit_paths(root, attempt.head) == (board,)
+        )
+        commit_date = run_git(
+            root, ["show", "-s", "--format=%as", attempt.head], check=False
+        ).stdout.strip()
+        clean = not run_git(
+            root, ["status", "--porcelain", "--untracked-files=all"], check=False
+        ).stdout
         return bool(
             old_match
             and new_match
             and old_match.group("body") == new_match.group("body")
             and new_match.group("date") == commit_date
+            and exact_commit_boundary
             and clean
         )
     if profile == "tdd_history":
