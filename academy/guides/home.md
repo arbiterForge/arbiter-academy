@@ -48,7 +48,7 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 **Coming next: F03 through P07.** These lessons are not public Academy routes yet. Each appears here only after its guided rewrite and acceptance evidence are complete.
 
-**Not yet scheduled.** P08 and the Power User lessons are not included in Preview 0.5.
+**Not yet scheduled.** P08 and the Power User lessons are not included in Preview 0.6.
 
 ## Get help
 

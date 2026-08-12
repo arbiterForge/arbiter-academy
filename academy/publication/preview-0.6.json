@@ -1,5 +1,5 @@
 {
-  "release": "preview-0.5",
+  "release": "preview-0.6",
   "lesson_contract_version": 1,
   "available_labs": [
     "F01-fork-clone-doctor",
@@ -32,9 +32,9 @@
     "Complete Academy Home setup steps 1-5 before starting F01."
   ],
   "known_limits": [
-    "F01 and F02 are the guided lessons published in Preview 0.5.",
+    "F01 and F02 are the guided lessons published in Preview 0.6.",
     "F03-F04 and P01-P07 are coming next after their guided rewrites are accepted.",
-    "P08 and the Power User track are not published in Preview 0.5.",
+    "P08 and the Power User track are not published in Preview 0.6.",
     "Graduation is unavailable until the complete 19-lab course is published."
   ],
   "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",

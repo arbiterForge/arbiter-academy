@@ -73,7 +73,7 @@ class LessonActionTests(unittest.TestCase):
                     )
                 )
                 self.assertNotIn("preview-0.4", published_text)
-                self.assertIn("preview-0.5", published_text)
+                self.assertIn("preview-0.6", published_text)
 
     def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)

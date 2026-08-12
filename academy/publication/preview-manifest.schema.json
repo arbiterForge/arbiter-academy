@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.5 publication manifest",
+  "title": "Arbiter Academy Preview 0.6 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.5"},
+    "release": {"const": "preview-0.6"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
@@ -73,9 +73,9 @@
       "maxItems": 4,
       "items": false,
       "prefixItems": [
-        {"const": "F01 and F02 are the guided lessons published in Preview 0.5."},
+        {"const": "F01 and F02 are the guided lessons published in Preview 0.6."},
         {"const": "F03-F04 and P01-P07 are coming next after their guided rewrites are accepted."},
-        {"const": "P08 and the Power User track are not published in Preview 0.5."},
+        {"const": "P08 and the Power User track are not published in Preview 0.6."},
         {"const": "Graduation is unavailable until the complete 19-lab course is published."}
       ]
     },

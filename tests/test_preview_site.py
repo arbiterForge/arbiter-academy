@@ -525,20 +525,20 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
-            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.ps1 | iex",
+            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.ps1 | iex",
             html,
         )
         self.assertIn(
-            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/install.sh | sh",
+            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/install.sh | sh",
             html,
         )
         for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
@@ -546,11 +546,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.5/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.6/install/install.sh"',
             html,
         )
         self.assertIn("validates the downloaded bundle", html)
@@ -595,7 +595,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.5.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.6.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -875,7 +875,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_stale_preview_0_4_artifact_mutations(self) -> None:
-        """Catches a stale Preview 0.4 identity substituted into Preview 0.5 output."""
+        """Catches a stale Preview 0.4 identity substituted into Preview 0.6 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -991,7 +991,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.5"',
+                '"release": "preview-0.6"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1102,8 +1102,8 @@ class PreviewSiteTests(unittest.TestCase):
         readme = (self.root / "README.md").read_text(encoding="utf-8")
         rendered_home = read_home(self.root, self.out)
         for surface, text, release in (
-            ("README", readme, "Preview 0.5"),
-            ("home", rendered_home, "Preview 0.5"),
+            ("README", readme, "Preview 0.6"),
+            ("home", rendered_home, "Preview 0.6"),
         ):
             with self.subTest(surface=surface):
                 normalized = " ".join(text.split())
@@ -1260,7 +1260,7 @@ class PreviewSiteTests(unittest.TestCase):
             build_preview_site(self.root, nonregular_output, release_sha="d" * 40)
 
     def test_static_checker_pins_each_reviewed_runtime_asset_digest(self) -> None:
-        """Catches any byte mutation in every runtime asset reviewed for Preview 0.5."""
+        """Catches any byte mutation in every runtime asset reviewed for Preview 0.6."""
         assets = (
             "assets/academy.css",
             "assets/academy.js",
@@ -1377,7 +1377,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.5">'
+        current = '<meta name="academy-release" content="preview-0.6">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2240,8 +2240,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.5.json",
-            academy / "publication" / "preview-0.5.json",
+            self.root / "academy" / "publication" / "preview-0.6.json",
+            academy / "publication" / "preview-0.6.json",
         )
         for track in ("foundations", "practitioner"):
             shutil.copytree(
