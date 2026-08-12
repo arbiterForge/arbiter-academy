@@ -26,26 +26,6 @@ LOCAL_P02_RESTORATION_LABS = (
     "P04-review-a-dependency",
     "P05-checkpoint-remediation",
 )
-UNPUBLISHED_LABS = (
-    "F04-fix-with-evidence",
-    "P01-feature-through-plan",
-    "P02-commit-review-pr",
-    "P03-record-an-adr",
-    "P04-review-a-dependency",
-    "P05-checkpoint-remediation",
-    "P06-context-drift-recovery",
-    "P07-threat-model",
-    "P08-repository-hygiene",
-    "U01-autonomous-sprint",
-    "U02-override-audit-metrics",
-    "U03-refactor-chore-release",
-    "U04-initialize-projects",
-    "U05-debug-spike-conflict",
-    "U06-preview-and-advanced-surfaces",
-    "U07-capstone",
-)
-
-
 class AcademyCliTrustTests(unittest.TestCase):
     def test_p02_record_requires_explicit_review_declaration_before_dispatch(self) -> None:
         """Catches the receipt helper being callable without the learner declaration."""
@@ -187,8 +167,13 @@ class AcademyCliTrustTests(unittest.TestCase):
 
     def test_unpublished_labs_never_reach_prepare_reset_or_check_dispatch(self) -> None:
         """Catches non-guided catalog lessons reaching the public command surface."""
-        release = load_preview_manifest(REPOSITORY).release
-        for lab_id in UNPUBLISHED_LABS:
+        manifest = load_preview_manifest(REPOSITORY)
+        release = manifest.release
+        catalog = Catalog.load(REPOSITORY / "academy" / "catalog.json")
+        unpublished_labs = tuple(
+            lab.id for lab in catalog.labs if lab.id not in set(manifest.available_labs)
+        )
+        for lab_id in unpublished_labs:
             for command, dispatch_name in (
                 ("prepare", "prepare_lab"),
                 ("reset", "reset_lab"),

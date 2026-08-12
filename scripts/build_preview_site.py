@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.7."""
+"""Build the fail-closed static public surface for Academy Preview 0.8."""
 
 from __future__ import annotations
 
@@ -51,9 +51,19 @@ _PUBLIC_ASSET_FILES = (
     Path("assets/logo.svg"),
 )
 
+# F04 is a causal proof with four distinct learner milestones. These labels are
+# deliberately sparse: they appear only when the learner crosses a proof boundary,
+# rather than becoming a generic eyebrow on every action card.
+_ACTION_MILESTONES = {
+    "F04-prepare": ("01", "Establish the baseline"),
+    "F04-start-fix": ("02", "Prove the defect is real"),
+    "F04-request-repair": ("03", "Repair one live boundary"),
+    "F04-check": ("04", "Verify and preserve"),
+}
+
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.7 pages into *out*.
+    """Render only the reviewed Preview 0.8 pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -480,13 +490,23 @@ def _execution_label(action: LessonAction, *, surface: str, host: str, operating
 def _render_action(action: LessonAction) -> str:
     """Render one validated action without interpreting any manifest prose as markup."""
     action_id = escape(action.id, quote=True)
-    blocks = [
+    blocks = []
+    if milestone := _ACTION_MILESTONES.get(action.id):
+        number, label = milestone
+        blocks.extend(
+            (
+                '<div class="lesson-milestone">',
+                f'<p><span>{number}</span>{escape(label)}</p>',
+                '</div>',
+            )
+        )
+    blocks.extend((
         f'<section class="lesson-action" data-action-id="{action_id}" '
         f'aria-labelledby="action-heading-{action_id}">',
         '<header class="lesson-action__header">',
         f'<h2 id="action-heading-{action_id}">{escape(action.title)}</h2>',
         "</header>",
-    ]
+    ))
     if not action.variants:
         assert action.surface is not None
         blocks.append(
@@ -779,7 +799,7 @@ def _render_pages(
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.7",
+            "Arbiter Academy Preview 0.8",
             templates["index"].substitute(
                 guide_content=(
                     "" if guides["home"] is None else str(guides["home"]["content"])
@@ -792,7 +812,7 @@ def _render_pages(
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.7",
+            "Recovery | Arbiter Academy Preview 0.8",
             templates["recovery"].substitute(
                 guide_content=(
                     ""
@@ -828,7 +848,7 @@ def _render_pages(
                 id=escape(next_lab, quote=True)
             )
         else:
-            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.7."
+            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.8."
         previous_link = ""
         if position:
             previous = lab_order[position - 1]
@@ -847,7 +867,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.7",
+            f"{lesson['title']} | Arbiter Academy Preview 0.8",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,

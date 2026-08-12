@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.7")
+                    self.assertEqual(release.release, "preview-0.8")
                     self.assertNotIn(lab.id, release.runnable_labs)
                     self.assertNotIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -331,9 +331,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 current_code = lab.id.partition("-")[0]
                 next_code = lab.next_lab.partition("-")[0]
                 with self.subTest(lab=lab.id, next_lab=lab.next_lab):
-                    self.assertIn(
-                        "Academy lesson appears on the course home only after its guided rewrite",
+                    self.assertRegex(
                         guide,
+                        r"guided Academy\s+lesson is published",
                     )
                     self.assertNotIn(f"Continue to {next_code} only after {current_code} passes", guide)
 

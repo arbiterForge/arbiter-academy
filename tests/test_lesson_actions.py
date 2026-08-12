@@ -59,11 +59,12 @@ F02_ACTION_IDS = (
     "F02-reset-retry",
 )
 F03_DOCUMENT_ID = "F03-work-the-board"
-PUBLIC_PREVIEW_0_7_DOCUMENT_IDS = frozenset(
+PUBLIC_PREVIEW_0_8_DOCUMENT_IDS = frozenset(
     {
         "F01-fork-clone-doctor",
         "F02-orient-to-state",
         F03_DOCUMENT_ID,
+        "F04-fix-with-evidence",
         "home",
         "recovery",
     }
@@ -898,18 +899,18 @@ class LessonActionTests(unittest.TestCase):
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
                     expected_preview = (
-                        "preview-0.7"
-                        if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS
+                        "preview-0.8"
+                        if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS
                         else "preview-0.6"
                     )
                     self.assertIn(expected_preview, commands)
-                    if document_id in PUBLIC_PREVIEW_0_7_DOCUMENT_IDS:
+                    if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS:
                         self.assertNotIn("preview-0.6", commands)
                     else:
-                        self.assertNotIn("preview-0.7", commands)
+                        self.assertNotIn("preview-0.8", commands)
 
     def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
-        """Catches F03 losing its exact board-only route or Preview 0.7 learner commands."""
+        """Catches F03 losing its exact board-only route or Preview 0.8 learner commands."""
         manifest = load_action_manifest(Path(__file__).parents[1], F03_DOCUMENT_ID)
 
         self.assertEqual(tuple(action.id for action in manifest.actions), F03_ACTION_IDS)
@@ -923,7 +924,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.7" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.8" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (

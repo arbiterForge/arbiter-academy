@@ -15,7 +15,7 @@ next_lab: P01-feature-through-plan
 
 ## Know before you begin
 
-Complete F03 when it is published, then start from a clean `main` branch in the same Academy clone.
+Complete F03 first, then start from a clean `main` branch in the same Academy clone.
 Keep two surfaces open at the clone root: a native terminal for Academy and shell commands, and your
 Claude Code, Codex, or Pi harness for messages to your agent and CodeArbiter commands.
 
@@ -52,6 +52,17 @@ keeps `main` untouched.
 
 ## Practice
 
+### The proof map
+
+| Moment | Durable evidence |
+|---|---|
+| Prepare | A clean, deliberately defective baseline on a numbered attempt branch. |
+| Prove red | One test-only commit that reaches `claim_ticket` and fails for the intended control characters. |
+| Repair green | One service-only commit that makes the unchanged regression pass. |
+| Check | An external reconstruction of the two snapshots, path boundaries, and clean worktree. |
+
+### Establish the red proof
+
 Open the governed fix lane before requesting any change. The copied command below belongs in your
 selected harness, not in a terminal.
 
@@ -81,6 +92,8 @@ the agent make the first governed commit.
 
 {{action:F04-prove-red-commit}}
 
+### Repair only the live boundary
+
 Now request the smallest reachable repair. It must reject characters below `U+0020` and `U+007F`
 at the existing claimant-label boundary, leave the committed regression unchanged, add no
 dependency, and retain ordinary-name behavior.
@@ -101,6 +114,12 @@ governed commit.
 {{action:F04-commit-repair}}
 
 {{action:F04-inspect-history}}
+
+### Verify independently and preserve the result
+
+Before Check, read the two commit summaries and confirm that `git status --short` prints nothing.
+If a path, commit boundary, or result differs from the lesson, preserve the attempt. It is evidence to
+inspect, not clutter to rewrite.
 
 ## Recognize success
 
