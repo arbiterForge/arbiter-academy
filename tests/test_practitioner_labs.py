@@ -341,6 +341,20 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     )
                     self.assertNotIn(f"Continue to {next_code} only after {current_code} passes", guide)
 
+    def test_promoted_practitioner_guides_describe_their_now_public_next_lessons(self) -> None:
+        """Catches public lesson prose retaining a former private-release boundary."""
+        p01 = (SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md").read_text(
+            encoding="utf-8"
+        )
+        p06 = (SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("P02 is public, guided, and runnable in this preview", p01)
+        self.assertNotIn("P02 is unavailable", p01)
+        self.assertIn("P07 is public, guided, and runnable in this preview", p06)
+        self.assertNotIn("P07 appears on the course home only after", p06)
+
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         """Catches a missing/reordered lab or a guide wired to the wrong governed surface."""
         track = load_track(SOURCE, "practitioner")

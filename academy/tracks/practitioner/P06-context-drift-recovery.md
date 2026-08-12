@@ -127,8 +127,8 @@ If Check did not pass, use Reset to create a preserved numbered retry.
 
 {{action:P06-reset-retry}}
 
-P07 appears on the course home only after its guided rewrite and acceptance evidence are complete.
-Do not use unpublished source exercises as a substitute for the accepted course.
+P07 is public, guided, and runnable in this preview. Continue with its published Academy lesson after
+you return to `main`; do not substitute unpublished source exercises for the accepted course.
 
 ## Understand the mechanism
 

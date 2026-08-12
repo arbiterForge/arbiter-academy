@@ -121,8 +121,8 @@ After Check passes, leave the completed branch intact and return to `main` with 
 
 {{action:P01-return-base}}
 
-P02 is not available in this preview. Continue only after its guided Academy lesson is published. Do not
-use unpublished source exercises as a substitute for the accepted course.
+P02 is public, guided, and runnable in this preview. Continue with its published Academy lesson after
+you return to `main`; do not substitute unpublished source exercises for the accepted course.
 
 If P01 needs another attempt, use the preserved retry action.
 
