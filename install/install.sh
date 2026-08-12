@@ -2,10 +2,10 @@
 set -eu
 umask 077
 
-RELEASE='preview-0.5'
-ARCHIVE_NAME='arbiter-academy-preview-0.5.zip'
-BUNDLE_SHA256='e80bd3fa6004670f3b26e68dfa001aae3d41ba0e197a9ae92aafe3d597044bb3'
-ASSET_URL='https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.5/arbiter-academy-preview-0.5.zip'
+RELEASE='preview-0.6'
+ARCHIVE_NAME='arbiter-academy-preview-0.6.zip'
+BUNDLE_SHA256='9cd72310db0ef8f62f4edcfcefcdf161732feeaa151f3e689e910f9fe765fc27'
+ASSET_URL='https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.6/arbiter-academy-preview-0.6.zip'
 BUNDLE_PATH=''
 
 die() {
@@ -32,7 +32,7 @@ else
 fi
 academy_root=$data_home/arbiter-academy
 install_root=$academy_root/$RELEASE
-case "$install_root" in "$academy_root"/preview-0.5) ;; *) die 'installer path escapes the user-owned Academy directory' ;; esac
+case "$install_root" in "$academy_root"/preview-0.6) ;; *) die 'installer path escapes the user-owned Academy directory' ;; esac
 [ ! -e "$academy_root" ] || { [ -d "$academy_root" ] && [ ! -L "$academy_root" ]; } \
     || die 'Academy tools directory must be a plain directory, not a symbolic link'
 [ ! -e "$install_root" ] || die "conflicting or unowned install path: $install_root"
@@ -49,8 +49,8 @@ marker_name=.academy-install-owner
 ownership_token=$(LC_ALL=C od -An -N32 -tx1 /dev/urandom | tr -d ' \n') \
     || die 'could not create an unpredictable installer ownership token'
 [ "${#ownership_token}" -eq 64 ] || die 'could not create an unpredictable installer ownership token'
-work_root=$academy_root/.preview-0.5-install-$$
-case "$work_root" in "$academy_root"/.preview-0.5-install-*) ;; *) die 'invalid installer work path' ;; esac
+work_root=$academy_root/.preview-0.6-install-$$
+case "$work_root" in "$academy_root"/.preview-0.6-install-*) ;; *) die 'invalid installer work path' ;; esac
 [ ! -e "$work_root" ] || die "conflicting installer work path: $work_root"
 mkdir -- "$work_root"
 work_marker=$work_root/$marker_name
