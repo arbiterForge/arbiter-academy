@@ -15,7 +15,7 @@ next_lab: P03-record-an-adr
 
 ## Know before you begin
 
-P02 is a public guided and runnable lesson in Preview 0.10. Its action cards use the installed Preview 0.10 verifier and the shared public lesson renderer.
+P02 is a public guided and runnable lesson in Preview 0.11. Its action cards use the installed Preview 0.11 verifier and the shared public lesson renderer.
 
 The receipt recorder currently requires descriptor-safe filesystem operations available on macOS or Linux. Native Windows cannot complete the receipt path yet; the Windows action variants document the boundary but are not a complete runnable route.
 

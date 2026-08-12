@@ -362,6 +362,13 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(Path(__file__).parents[1], P04_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P04_ACTION_IDS)
         by_id = {action.id: action for action in manifest.actions}
+        boundary = by_id["P04-read-boundary"]
+        self.assertEqual(
+            (boundary.actor, boundary.surface, boundary.variants),
+            ("learner", "browser", ()),
+        )
+        self.assertIn("website", boundary.instruction)
+        self.assertIn("Prepare, Check, and Reset", boundary.expected_result)
         for action_id in ("P04-prepare", "P04-check", "P04-reset-retry"):
             action = by_id[action_id]
             with self.subTest(action=action_id):
@@ -483,7 +490,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.10" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.11" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         return_base = by_id["P01-return-base"]
@@ -670,14 +677,14 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("does not authenticate", check_copy)
         self.assertIn("does not prove command chronology", check_copy)
 
-    def test_p05_installed_academy_actions_use_preview_0_10_locations(self) -> None:
+    def test_p05_installed_academy_actions_use_preview_0_11_locations(self) -> None:
         """Catches Prepare, Check, or Reset routing learners to the obsolete install."""
         manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
         by_id = {action.id: action for action in manifest.actions}
         expected_locations = {
-            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.10\Scripts\arbiter-academy.exe",
-            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy",
-            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy",
+            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.11\Scripts\arbiter-academy.exe",
+            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy",
+            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy",
         }
 
         for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
@@ -827,7 +834,9 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
-                    self.assertIn("preview-0.10", commands)
+                    public_documents = {"home", "recovery", *load_preview_manifest(root).guided_labs}
+                    expected_release = "preview-0.11" if document_id in public_documents else "preview-0.10"
+                    self.assertIn(expected_release, commands)
                     for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
                         self.assertNotIn(stale, commands)
 
@@ -846,7 +855,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.10" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.11" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (
@@ -1749,7 +1758,7 @@ class LessonActionTests(unittest.TestCase):
             self.assertIn("git ls-remote upstream", command)
         for action_id in ("P02-record-receipt", "P02-check", "P02-reset"):
             commands = tuple(variant.command for variant in by_id[action_id].variants)
-            self.assertTrue(all("preview-0.10" in command for command in commands))
+            self.assertTrue(all("preview-0.11" in command for command in commands))
             self.assertTrue(all("$academy" in command for command in commands))
             self.assertTrue(all(command.splitlines()[0].startswith("academy=") or command.splitlines()[0].startswith("$academy =") for command in commands))
         recorder = by_id["P02-record-receipt"]

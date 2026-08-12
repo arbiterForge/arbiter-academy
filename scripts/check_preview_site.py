@@ -105,10 +105,10 @@ _LABS = (
     "P01-feature-through-plan",
     "P02-commit-review-pr",
     "P03-record-an-adr",
-)
-_COMING_NEXT = (
     "P04-review-a-dependency",
     "P05-checkpoint-remediation",
+)
+_COMING_NEXT = (
     "P06-context-drift-recovery",
     "P07-threat-model",
     "P08-repository-hygiene",
@@ -121,9 +121,11 @@ _RUNNABLE_LINK_LABELS = (
     "P01 - Feature through a user-approved spec and derived plan",
     "P02: Review, commit, push, and record an offline-local receipt",
     "P03 - Record an accepted ADR",
+    "P04 - Review a dependency without installing it",
+    "P05 - Remediate a checkpoint finding",
 )
 _COMING_NEXT_ENTRIES = (
-    ("Practitioner: P04 through P08. Guided rewrites are in progress.", False),
+    ("Practitioner: P06 through P08. Guided rewrites are in progress.", False),
 )
 _PUBLIC_PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
@@ -133,9 +135,9 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04 and P01-P03 are the guided lessons published in Preview 0.10.",
-    "P04-P08 are coming next after their guided rewrites are accepted.",
-    "The Power User track is not published in Preview 0.10.",
+    "F01-F04 and P01-P05 are the guided lessons published in Preview 0.11.",
+    "P06-P08 are coming next after their guided rewrites are accepted.",
+    "The Power User track is not published in Preview 0.11.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -228,6 +230,20 @@ _EXPECTED_ACTION_IDS = {
         "P03-read-boundary", "P03-identity-boundary", "P03-prepare",
         "P03-inspect-decision-context", "P03-request-decision-analysis", "P03-run-adr",
         "P03-run-commit-gate", "P03-confirm-native-evidence", "P03-check", "P03-reset",
+    ),
+    Path("labs/P04-review-a-dependency/index.html"): (
+        "P04-prepare", "P04-read-boundary", "P04-read-candidate-set",
+        "P04-inspect-project-boundary", "P04-inspect-wheel-metadata", "P04-verify-wheel-hashes",
+        "P04-read-licenses", "P04-assess-provenance", "P04-compare-stdlib", "P04-draft-review",
+        "P04-review-draft", "P04-select-reject", "P04-stage-review", "P04-commit-review",
+        "P04-confirm-no-install", "P04-check", "P04-reset-retry",
+    ),
+    Path("labs/P05-checkpoint-remediation/index.html"): (
+        "P05-prerequisite", "P05-prepare", "P05-guard-attempt", "P05-read-prepared-boundary",
+        "P05-surface-finding", "P05-inspect-finding", "P05-record-finding",
+        "P05-verify-finding-commit", "P05-add-red-regression", "P05-observe-red",
+        "P05-commit-red", "P05-apply-green-repair", "P05-commit-green", "P05-record-receipt",
+        "P05-commit-receipt", "P05-confirm-clean", "P05-check", "P05-reset-retry",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -517,7 +533,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.10"
+        or data.get("release") != "preview-0.11"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -532,7 +548,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.10 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.11 provenance contract")
     return data["release"]
 
 
@@ -565,16 +581,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.10 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.11 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.10 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.11 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.10 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.11 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -587,13 +603,15 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             Path("labs/P01-feature-through-plan/index.html"),
             Path("labs/P02-commit-review-pr/index.html"),
             Path("labs/P03-record-an-adr/index.html"),
+            Path("labs/P04-review-a-dependency/index.html"),
+            Path("labs/P05-checkpoint-remediation/index.html"),
         }:
             expected_statuses = (_GUIDED_STATUS,)
         else:
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.10 contract: "
+                "generated publication status does not match the exact Preview 0.11 contract: "
                 f"{relative.as_posix()}"
             )
 

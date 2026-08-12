@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.10
+## Preview 0.11
 
-Preview 0.10 publishes seven guided labs:
+Preview 0.11 publishes nine guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -25,11 +25,15 @@ Preview 0.10 publishes seven guided labs:
   commits, origin-only push evidence, and an offline-local receipt.
 - **P03 is guided and runnable.** Its lesson records a learner-approved ADR and
   matching append-only decision-log entry with externally checked Git evidence.
-- **P04-P08 are coming next.** They are not public lesson routes until each
+- **P04 is guided and runnable.** Its lesson reviews a frozen offline dependency
+  candidate and records a bounded no-adoption decision with exact evidence.
+- **P05 is guided and runnable.** Its lesson turns a checkpoint finding into a
+  reviewable finding, RED regression, GREEN repair, and receipt history.
+- **P06-P08 are coming next.** They are not public lesson routes until each
   guided rewrite and its acceptance evidence are complete.
 
-The Power User track is outside Preview 0.10. Graduation is not available
-in Preview 0.10; it remains unavailable until the complete 19-lab course through
+The Power User track is outside Preview 0.11. Graduation is not available
+in Preview 0.11; it remains unavailable until the complete 19-lab course through
 U07 is published.
 
 ## Start the course
@@ -42,6 +46,8 @@ U07 is published.
 - [Continue to P01 - Feature through an approved specification](https://arbiterforge.github.io/arbiter-academy/labs/P01-feature-through-plan/)
 - [Continue to P02 - Review, commit, push, and record an offline-local receipt](https://arbiterforge.github.io/arbiter-academy/labs/P02-commit-review-pr/)
 - [Continue to P03 - Record an accepted ADR](https://arbiterforge.github.io/arbiter-academy/labs/P03-record-an-adr/)
+- [Continue to P04 - Review a dependency without adopting it](https://arbiterforge.github.io/arbiter-academy/labs/P04-review-a-dependency/)
+- [Continue to P05 - Remediate a checkpoint finding](https://arbiterforge.github.io/arbiter-academy/labs/P05-checkpoint-remediation/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

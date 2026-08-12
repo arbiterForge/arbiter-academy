@@ -15,7 +15,7 @@ next_lab: U01-autonomous-sprint
 
 ## Know before you begin
 
-P08 remains private and unavailable in Preview 0.10. Its source lesson does not create a public route.
+P08 remains private and unavailable in Preview 0.11. Its source lesson does not create a public route.
 
 Complete P07 and begin in the prepared Academy clone. The website is the primary lesson surface.
 Academy CLI is limited to Prepare, Check, and Reset. Use Git and the selected host for the work

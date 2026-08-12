@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.10 publication manifest",
+  "title": "Arbiter Academy Preview 0.11 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.10"},
+    "release": {"const": "preview-0.11"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 9,
+      "maxItems": 9,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -19,13 +19,15 @@
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
-        {"const": "P03-record-an-adr"}
+        {"const": "P03-record-an-adr"},
+        {"const": "P04-review-a-dependency"},
+        {"const": "P05-checkpoint-remediation"}
       ]
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 9,
+      "maxItems": 9,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -34,13 +36,15 @@
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
-        {"const": "P03-record-an-adr"}
+        {"const": "P03-record-an-adr"},
+        {"const": "P04-review-a-dependency"},
+        {"const": "P05-checkpoint-remediation"}
       ]
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 9,
+      "maxItems": 9,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -49,17 +53,17 @@
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
-        {"const": "P03-record-an-adr"}
+        {"const": "P03-record-an-adr"},
+        {"const": "P04-review-a-dependency"},
+        {"const": "P05-checkpoint-remediation"}
       ]
     },
     "coming_next": {
       "type": "array",
-      "minItems": 5,
-      "maxItems": 5,
+      "minItems": 3,
+      "maxItems": 3,
       "items": false,
       "prefixItems": [
-        {"const": "P04-review-a-dependency"},
-        {"const": "P05-checkpoint-remediation"},
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"},
         {"const": "P08-repository-hygiene"}
@@ -84,9 +88,9 @@
       "maxItems": 4,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04 and P01-P03 are the guided lessons published in Preview 0.10."},
-        {"const": "P04-P08 are coming next after their guided rewrites are accepted."},
-        {"const": "The Power User track is not published in Preview 0.10."},
+        {"const": "F01-F04 and P01-P05 are the guided lessons published in Preview 0.11."},
+        {"const": "P06-P08 are coming next after their guided rewrites are accepted."},
+        {"const": "The Power User track is not published in Preview 0.11."},
         {"const": "Graduation is unavailable until the complete 19-lab course is published."}
       ]
     },
