@@ -100,3 +100,18 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Chosen: the Home route fetches only the canonical immutable Preview 0.8 tag with Git,
   extracts the installer to a local temporary folder, and only then executes it. The
   release installer retains its own bounded redirect and bundle verification controls.
+
+## SD-ACA-014 - Supersede the Preview 0.8 checksum-bootstrap record - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether SD-ACA-012's initial checksum-download route remains an accurate
+  description after security review identified that the checksum and installer shared
+  one redirect path.
+- Options: rewrite the earlier append-only decision; leave an inaccurate final route;
+  retain SD-ACA-012 as historical context and explicitly supersede it with SD-ACA-013.
+- SMARTS: Security and Accuracy require the public route to describe the immutable tag
+  boundary actually used. Maintainability and Reviewability preserve the original audit
+  record and attach one unambiguous correction rather than silently editing history.
+- Chosen: SD-ACA-013 supersedes SD-ACA-012's chosen checksum-download route. Preview
+  0.8 fetches the canonical immutable Git tag, extracts the installer locally, and then
+  executes that local file; it does not download a checksum alongside the installer.
