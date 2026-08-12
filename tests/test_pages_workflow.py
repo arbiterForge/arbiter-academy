@@ -217,13 +217,18 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     setup = _named_step(job, "Select release-builder Python 3.12")
     if "ref: ${{ github.sha }}" not in checkout or "persist-credentials: false" not in checkout:
         raise AssertionError("Pages candidate checkout is not exact and credential-free")
-    if "fetch-depth: 0" not in checkout:
+    if not re.search(r"(?m)^          fetch-depth: 0$", checkout):
         raise AssertionError("release ancestry validation requires the complete Pages candidate history")
-    if 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"' not in shell:
+    executable_lines = [
+        line.strip()
+        for line in shell.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    release_tag_fetch = 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"'
+    ancestry_check = 'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then'
+    if release_tag_fetch not in executable_lines:
         raise AssertionError("release source is not fetched after its immutable tag resolves")
-    if shell.index('git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"') > shell.index(
-        'git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"'
-    ):
+    if executable_lines.index(release_tag_fetch) > executable_lines.index(ancestry_check):
         raise AssertionError("release source must be fetched before shallow Pages ancestry validation")
     if 'git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"' not in shell:
         raise AssertionError("release reproduction does not use an exact detached tag source")
@@ -1235,6 +1240,25 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "wrong-release-checkout": self.pages_workflow.replace(
                 release_job,
                 release_job.replace("ref: ${{ github.sha }}", "ref: main", 1),
+                1,
+            ),
+            "shallow-release-history-comment": self.pages_workflow.replace(
+                release_job,
+                release_job.replace(
+                    "fetch-depth: 0",
+                    "fetch-depth: 1 # fetch-depth: 0",
+                    1,
+                ),
+                1,
+            ),
+            "late-release-tag-fetch-comment": self.pages_workflow.replace(
+                'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"',
+                '# git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"',
+                1,
+            ).replace(
+                'release_source="$RUNNER_TEMP/academy-release-source"',
+                'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"\n'
+                '          release_source="$RUNNER_TEMP/academy-release-source"',
                 1,
             ),
             "wrong-release-python": self.pages_workflow.replace(
