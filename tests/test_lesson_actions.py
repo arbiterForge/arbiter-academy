@@ -119,9 +119,82 @@ P03_CHOICES = (
     "Use stable text for Workshop Queue summaries.",
     "Use structured JSON for Workshop Queue summaries.",
 )
+P08_DOCUMENT_ID = "P08-repository-hygiene"
+P08_ACTION_IDS = (
+    "P08-prepare",
+    "P08-inventory-native",
+    "P08-inventory-harness-shell",
+    "P08-run-standup",
+    "P08-request-report-draft",
+    "P08-review-report",
+    "P08-stage-report",
+    "P08-review-commit-boundary",
+    "P08-run-commit-gate",
+    "P08-confirm-clean",
+    "P08-check",
+    "P08-return-base",
+    "P08-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_p08_manifest_binds_each_execution_surface_to_one_safe_command_form(self) -> None:
+        """Catches P08 losing the boundary between terminal, harness, and agent commands."""
+        root = Path(__file__).parents[1]
+        manifest = load_action_manifest(root, P08_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), P08_ACTION_IDS)
+        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 14)))
+        for action in manifest.actions:
+            with self.subTest(action=action.id):
+                self.assertTrue(action.instruction)
+                self.assertTrue(action.expected_result)
+                self.assertTrue(action.recovery)
+                self.assertIsNotNone(action.evidence)
+
+        actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(actions["P08-run-standup"].actor, "agent")
+        self.assertEqual(actions["P08-request-report-draft"].actor, "learner")
+        self.assertEqual(actions["P08-review-report"].surface, "active-harness")
+        stage_report = actions["P08-stage-report"]
+        self.assertEqual(stage_report.actor, "learner")
+        self.assertEqual(
+            tuple((variant.surface, variant.host, variant.command) for variant in stage_report.variants),
+            (
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
+            ),
+        )
+        self.assertEqual(
+            tuple(variant.operating_system for variant in stage_report.variants),
+            ("windows", "macos", "linux"),
+        )
+        self.assertLess(P08_ACTION_IDS.index("P08-review-report"), P08_ACTION_IDS.index("P08-stage-report"))
+        self.assertLess(P08_ACTION_IDS.index("P08-stage-report"), P08_ACTION_IDS.index("P08-review-commit-boundary"))
+        self.assertTrue(
+            all("git diff --cached" in variant.command for variant in actions["P08-review-commit-boundary"].variants)
+        )
+        self.assertTrue(any(variant.surface == "native-terminal" for variant in actions["P08-inventory-native"].variants))
+        self.assertTrue(
+            any(variant.surface == "harness" and variant.language == "sh" for variant in actions["P08-inventory-harness-shell"].variants)
+        )
+        self.assertTrue(
+            any(variant.surface == "harness" and variant.language == "text" for variant in actions["P08-request-report-draft"].variants)
+        )
+
+        for action in manifest.actions:
+            for variant in action.variants:
+                with self.subTest(action=action.id, variant=variant.id):
+                    if variant.surface == "native-terminal":
+                        self.assertFalse(variant.command.startswith("!"))
+                    if variant.surface == "harness" and variant.language in {"powershell", "sh"}:
+                        self.assertTrue(variant.command.startswith("!"))
+                        self.assertFalse(variant.command.startswith("!!"))
+                    if variant.language == "codearbiter":
+                        self.assertEqual(action.actor, "agent")
+                        self.assertFalse(variant.command.startswith("!"))
+
     def test_checked_in_p04_manifest_teaches_a_reviewed_no_install_rejection_path(self) -> None:
         """Catches P04 returning to vague dependency advice or an install-shaped command path."""
         manifest = load_action_manifest(Path(__file__).parents[1], P04_DOCUMENT_ID)

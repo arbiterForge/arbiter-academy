@@ -72,6 +72,28 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_p08_private_guide_renders_all_action_cards_with_their_execution_identity(self) -> None:
+        """Catches P08 action cards disappearing before the lesson is eligible for publication."""
+        manifest = load_action_manifest(self.root, "P08-repository-hygiene")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P08-repository-hygiene.md"),
+            "P08-repository-hygiene",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(document["referenced_actions"], tuple(action.id for action in manifest.actions))
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="P08-prepare"', html)
+        self.assertIn('data-action-id="P08-run-standup"', html)
+        self.assertIn('data-action-id="P08-request-report-draft"', html)
+        self.assertIn('data-action-id="P08-check"', html)
+        self.assertIn("You · Native terminal", html)
+        self.assertIn("You · Codex harness", html)
+        self.assertIn("Your agent · Codex harness", html)
+        self.assertIn("agent-owned CodeArbiter command", html)
+
     def test_private_p04_action_contract_does_not_create_a_public_lesson_page(self) -> None:
         """Catches a private guided draft leaking into the Preview site before publication approval."""
         manifest = load_action_manifest(self.root, "P04-review-a-dependency")

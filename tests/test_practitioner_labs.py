@@ -44,6 +44,41 @@ EXPECTED_HOST_ACTIONS = {
 
 
 class PractitionerCurriculumTests(unittest.TestCase):
+    def test_p08_uses_the_guided_lesson_contract_without_expanding_cleanup_authority(self) -> None:
+        """Catches a P08 rewrite that hides a runnable surface or treats Check as cleanup approval."""
+        guide = (SOURCE / "academy/tracks/practitioner/P08-repository-hygiene.md").read_text(encoding="utf-8")
+        manifest = load_action_manifest(SOURCE, "P08-repository-hygiene")
+        normalized_guide = " ".join(guide.split())
+        headings = tuple(line[3:] for line in guide.splitlines() if line.startswith("## "))
+        action_ids = tuple(action.id for action in manifest.actions)
+
+        self.assertEqual(
+            headings,
+            (
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ),
+        )
+        for action_id in action_ids:
+            with self.subTest(action=action_id):
+                self.assertEqual(guide.count("{{action:" + action_id + "}}"), 1)
+        self.assertIn("The website is the primary lesson surface.", guide)
+        self.assertIn("Academy CLI is limited to Prepare, Check, and Reset.", guide)
+        self.assertIn("Check does not prove that the agent ran standup", guide)
+        self.assertIn("A passing Check does not make a deletion safe", normalized_guide)
+        self.assertIn("The agent drafts the report; you review it", normalized_guide)
+        self.assertLess(guide.index("{{action:P08-review-report}}"), guide.index("{{action:P08-stage-report}}"))
+        self.assertLess(guide.index("{{action:P08-stage-report}}"), guide.index("{{action:P08-review-commit-boundary}}"))
+        for destructive in ("git worktree remove", "git branch -D", "git prune", "git gc", "git reset --hard"):
+            with self.subTest(destructive=destructive):
+                self.assertNotIn(destructive, guide)
+
     def test_loader_rejects_repository_local_post_p02_practitioner_scenarios(self) -> None:
         """Preserved P02 records make a repository-local later transition noncanonical."""
         for lab_id in POST_P02_PRACTITIONER:
@@ -105,6 +140,25 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 guide = (
                     SOURCE / f"academy/tracks/practitioner/{lab.id}.md"
                 ).read_text(encoding="utf-8")
+                if lab.id == "P08-repository-hygiene":
+                    actions = {action.id: action for action in load_action_manifest(SOURCE, lab.id).actions}
+                    self.assertEqual(
+                        tuple(actions),
+                        (
+                            "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell",
+                            "P08-run-standup", "P08-request-report-draft", "P08-review-report",
+                            "P08-stage-report", "P08-review-commit-boundary", "P08-run-commit-gate",
+                            "P08-confirm-clean", "P08-check", "P08-return-base", "P08-reset-retry",
+                        ),
+                    )
+                    for action_id, command in (
+                        ("P08-prepare", "prepare P08-repository-hygiene"),
+                        ("P08-check", "check P08-repository-hygiene"),
+                        ("P08-reset-retry", "reset P08-repository-hygiene"),
+                    ):
+                        with self.subTest(action=action_id):
+                            self.assertTrue(any(assignment in variant.command and command in variant.command for variant in actions[action_id].variants))
+                    continue
                 action_path = SOURCE / f"academy/actions/{lab.id}.json"
                 if action_path.is_file():
                     manifest = load_action_manifest(SOURCE, lab.id)

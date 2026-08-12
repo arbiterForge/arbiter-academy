@@ -11,113 +11,136 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P08-
 next_lab: U01-autonomous-sprint
 ---
 
-# P08 — Classify repository hygiene without destructive cleanup
+# P08: Classify repository hygiene without destructive cleanup
 
-## Why this mechanism matters
+## Know before you begin
 
-Repository cleanup decisions require independent proof of clean state, merge containment, and unique
-commit count. A remote `[gone]` marker or “merged” label is not enough. This exercise creates real
-refs and worktrees and stores their path-free identities outside the learner checkout, making
-deletion, omission, branch movement, or copied inventory detectable. The lab authorizes inspection,
-classification, and safe recommendations only—never destructive cleanup.
+Complete P07 and begin in the prepared Academy clone. The website is the primary lesson surface.
+Academy CLI is limited to Prepare, Check, and Reset. Use Git and the selected host for the work
+between those transitions.
 
-## Start the scenario
+Keep the repository root open in a native terminal and in your chosen harness. A native-terminal
+command is entered directly and has no `!`. A harness shell command begins with exactly one `!`.
+Harness text is a request you type to the agent, not a shell command. An agent-owned CodeArbiter
+command belongs to the harness and has no `!`. The action cards label each case.
 
-Run this from the learner checkout. Preserved P02 verifier records require the installed command for
-every later Practitioner transition, even though the original GitHub remotes are already restored.
-Prepare the live local-ref fixture:
+This lab authorizes observation, classification, a report draft, learner review, and a bounded
+commit. It never authorizes deleting a branch, removing a worktree, pruning metadata, rewriting
+history, or force operations.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository prepare P08-repository-hygiene
-```
+## What you will prove
 
-Preparation creates a clean merged branch, a dirty unmerged worktree, the current attempt branch,
-and an unmerged branch with unique commits. It does not provide a learner-visible precomputed list.
+You will preserve a closed inventory of the prepared live refs and worktrees. For each prepared ref,
+the report records its full ref name, object ID, worktree state, merge containment relative to
+`main`, unique commit count, classification, and recommendation. For each prepared worktree, it
+records the path-free prepared identity, branch binding, head binding, presence, dirtiness,
+classification, and recommendation.
 
-## Use your host
+The expected classifications are conservative. The current attempt, dirty unmerged state, and
+unmerged unique history remain `preserve`. The clean merged fixture is only
+`eligible-for-explicit-review`; it is not a deletion instruction. The agent drafts the report; you
+review it before the bounded commit gate runs.
 
-Invoke standup to inspect the live repository. Decline or stop before any destructive suggestion;
-this lab is classification-only.
+## Prepare safely
 
-### Claude Code
+{{action:P08-prepare}}
 
-```text
-/ca:standup
-```
+Preparation creates the numbered attempt, live fixture refs, and linked worktrees. It does not give
+you a precomputed inventory. Stay on the numbered attempt until Check passes or Reset preserves it
+for a retry.
 
-### Codex
+{{action:P08-inventory-native}}
 
-```text
-$ca-standup
-```
+{{action:P08-inventory-harness-shell}}
 
-### Pi (Feature Forge preview)
+The two inventory actions show the same Git evidence on different surfaces. Use one surface for the
+actual inventory. Do not merge partial output from memory or from a previous attempt.
 
-Pi is the supported Feature Forge preview and requires project trust. Its documented fallback is
-`/skill:ca-standup`.
+## Practice
 
-```text
-/ca-standup
-```
+{{action:P08-run-standup}}
 
-## Do the work
+Standup may organize the inspection, but it is not cleanup authority. Stop any cleanup proposal and
+keep all live refs and worktrees intact.
 
-Enumerate the complete live local ref and worktree sets from Git. For every relevant branch, record
-its full ref and object ID, whether its worktree is clean or dirty, whether its tip is contained in
-the selected base, and the exact count of commits unique to it. For each worktree, record the
-path-free prepared identity plus branch/HEAD binding and presence—not an absolute local path.
+{{action:P08-request-report-draft}}
 
-Write `.codearbiter/reports/academy/P08-hygiene.json` with the complete canonical snapshot and a
-classification/recommendation for every prepared identity. A clean merged branch with zero unique
-commits may be a future cleanup candidate; dirty, current-attempt, unmerged, or unique-history state
-must be preserved. Commit the report without moving or deleting any ref/worktree and without
-running prune, force, or cleanup commands.
+The report path is `.codearbiter/reports/academy/P08-hygiene.json`. The agent must derive it from the
+current live inventory, not copy a list from this page. It must include every prepared identity and
+must not include an absolute local path.
 
-## Hints
+{{action:P08-review-report}}
+
+Review all prepared identities before staging. Confirm that the merged-clean branch is classified as
+eligible only for an explicit future review, that dirty and unique state is preserved, and that the
+current attempt remains preserved. If the report is incomplete or stale, preserve the fixture and
+ask for a corrected draft. Do not compensate by changing Git state.
+
+{{action:P08-stage-report}}
+
+Stage the reviewed draft from a native terminal before inspecting the cached diff. This path-scoped
+step is required: the next action only reviews what is already in the Git index.
+
+{{action:P08-review-commit-boundary}}
+
+{{action:P08-run-commit-gate}}
+
+{{action:P08-confirm-clean}}
+
+## Recognize success
+
+The attempt has one post-Prepare evidence commit containing only
+`.codearbiter/reports/academy/P08-hygiene.json`. Its report is canonical JSON generated from the
+live fixture: five refs and three worktrees, with no local worktree path. The fixture itself stays
+present and correctly bound. A clean `git status --short` result is required before Check.
+
+## Check
+
+{{action:P08-check}}
+
+A pass contains `checkpoint P08-repository-hygiene: passed; progress: .academy/progress.json`.
+Check does not prove that the agent ran standup, read every terminal line, or made an independent
+human judgment about a future cleanup. It verifies the installed-authority fixture, the current live
+resources, the sole report commit, and the exact canonical report blob. A passing Check does not
+make a deletion safe or authorize cleanup.
+
+## Recover or continue
+
+If Check fails, preserve every ref and worktree and read the reported predicate. Never make the
+fixture look clean by deleting, pruning, rebasing, force-updating, or overwriting history. Use Reset
+only when you need a new numbered attempt; it preserves the failed attempt for inspection.
 
 ### Hint 1
 
-Start with the complete `for-each-ref` and `worktree list --porcelain` views. Classifying one branch
-before freezing the full live set makes omissions easy.
+Freeze the complete ref and worktree inventory before asking for a classification. A
+classification based on one branch at a time can omit a prepared identity.
 
 ### Hint 2
 
-Evaluate worktree dirtiness, merge-base ancestry, and `rev-list` uniqueness separately. A branch can
-be merged yet still unsafe to remove because its worktree is dirty or its identity moved.
+Treat merge containment, dirtiness, and unique commits as separate facts. A merged branch
+can still need preservation because its associated worktree is dirty.
 
 ### Hint 3
 
-Before committing, re-enumerate the live state and compare every external prepared identity. There
-must be no missing, extra, rebound, moved, or deleted ref/worktree.
+Review the report after the agent drafts it and before the commit gate. The learner owns the
+decision to accept the bounded evidence, even when the agent prepared the file.
 
-## Success evidence
+{{action:P08-return-base}}
 
-The committed snapshot exactly matches the externally recorded live refs and path-free worktree
-identities. Each classification is recomputed from current clean/dirty state, merge containment,
-and unique commits, and all prepared objects remain present and correctly bound. Omitted/extra
-items, stale or copied classifications, merge-only claims, deletion, pruning, force operations, or
-absolute local paths fail.
+{{action:P08-reset-retry}}
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository check P08-repository-hygiene
-```
+After a passing Check, return to `main` only when the worktree is clean and leave the completed
+attempt intact. U01 remains a source exercise until its own guided rewrite and acceptance evidence
+are complete. Do not treat it as the next public Academy lesson.
 
-## Recovery
+## Understand the mechanism
 
-If the inventory is incomplete, a classification is stale, or a worktree becomes dirty, preserve
-all refs/worktrees and reset through the scenario mechanism only:
+P08 records external identities outside the learner checkout, then compares the final report with
+the prepared live fixture. The report intentionally carries path-free worktree identities rather
+than local paths. That makes a copied inventory, a missing resource, a moved resource, a rebound
+branch, and a stale classification detectable.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository reset P08-repository-hygiene
-```
-
-Do not delete branches, remove worktrees, prune metadata, or force an operation to make the report
-look correct.
-
-## Next lab
-
-Continue to **U01 — Autonomous sprint** in the Power User track after P08 passes. Power User source
-guides are not authored by this Practitioner cell.
+The verifier is strict about the final state but narrow about the process. It can verify the exact
+report, commit boundary, and current prepared resources. It cannot observe every conversation or
+decide whether a future cleanup is appropriate. Preserve live state and require a separate explicit
+review before any cleanup decision.

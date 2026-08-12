@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "P08-repository-hygiene",
+  "actions": [
+    {
+      "id": "P08-prepare",
+      "sequence": 1,
+      "title": "Prepare the live hygiene fixture",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the installed Academy Prepare command from the clean learner checkout. Use the attempt number Academy prints; do not type a placeholder branch name.",
+      "rationale": "Prepare creates the externally recorded fixture and a numbered attempt without precomputing the learner report.",
+      "resources": [],
+      "variants": [
+        {"id":"prepare-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" prepare P08-repository-hygiene","copy":true}
+      ],
+      "expected_result": "Academy creates and switches to academy/P08-repository-hygiene/<attempt> and reports the prepared fixture.",
+      "recovery": "If Prepare refuses, preserve its message and return to the documented dirty-state or existing-attempt recovery before retrying.",
+      "evidence": "The numbered branch is the only branch where P08 evidence may be committed."
+    },
+    {
+      "id": "P08-inventory-native",
+      "sequence": 2,
+      "title": "Freeze a native-terminal inventory",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Record the complete local-head ref view and the porcelain worktree view before asking for a classification.",
+      "rationale": "A complete observation prevents a report from silently omitting a prepared ref or worktree.",
+      "resources": [],
+      "variants": [
+        {"id":"inventory-native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads\ngit worktree list --porcelain","copy":true},
+        {"id":"inventory-native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads\ngit worktree list --porcelain","copy":true},
+        {"id":"inventory-native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads\ngit worktree list --porcelain","copy":true}
+      ],
+      "expected_result": "Git prints every local branch ref with its object ID and every registered worktree with its branch or HEAD binding.",
+      "recovery": "If either command says this is not a repository, stop and return to the prepared learner checkout. Do not invent an inventory.",
+      "evidence": "The observed sets are the source for the draft report and later learner review."
+    },
+    {
+      "id": "P08-inventory-harness-shell",
+      "sequence": 3,
+      "title": "Inspect through a harness shell",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use this only when running the same Git inspection from the selected harness shell. The leading exclamation mark belongs only to the shell command.",
+      "rationale": "The harness shell is a distinct execution surface from a native terminal and from CodeArbiter commands.",
+      "resources": [],
+      "variants": [
+        {"id":"inventory-harness-claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads; git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads; git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads; git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"inventory-harness-pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true}
+      ],
+      "expected_result": "The harness returns the same complete ref and worktree inventory that a native-terminal command would return.",
+      "recovery": "If the harness cannot run its shell, use the native-terminal inventory action instead. Do not use a CodeArbiter command as a shell substitute.",
+      "evidence": "The leading exclamation mark identifies this as a harness shell command, not an agent command."
+    },
+    {
+      "id": "P08-run-standup",
+      "sequence": 4,
+      "title": "Ask the agent to classify, not clean up",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Run the agent-owned CodeArbiter standup command. Stop any proposed cleanup action and limit the result to inventory and classification advice.",
+      "rationale": "Standup can organize evidence but does not grant authority to discard live repository state.",
+      "resources": [],
+      "variants": [
+        {"id":"standup-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:standup","copy":true},
+        {"id":"standup-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-standup","copy":true},
+        {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true}
+      ],
+      "expected_result": "The agent presents repository state for review without deleting, pruning, or rewriting any ref or worktree.",
+      "recovery": "If the response proposes cleanup, stop it and return to the frozen Git inventory. Preserve the current state.",
+      "evidence": "The learner retains the inventory and the decision to accept or reject any later report draft."
+    },
+    {
+      "id": "P08-request-report-draft",
+      "sequence": 5,
+      "title": "Request a harness-text report draft",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Paste the text request into the active harness. It is a request to the agent, not a shell command and not a CodeArbiter command.",
+      "rationale": "The agent may draft the canonical report, while the learner remains responsible for reviewing its classifications and commit boundary.",
+      "resources": [],
+      "variants": [
+        {"id":"draft-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Draft .codearbiter/reports/academy/P08-hygiene.json from the current live P08 refs and worktrees. Preserve every live resource. Do not delete, prune, force, or rewrite anything. Wait for my review before staging or committing.","copy":true},
+        {"id":"draft-codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Draft .codearbiter/reports/academy/P08-hygiene.json from the current live P08 refs and worktrees. Preserve every live resource. Do not delete, prune, force, or rewrite anything. Wait for my review before staging or committing.","copy":true},
+        {"id":"draft-pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Draft .codearbiter/reports/academy/P08-hygiene.json from the current live P08 refs and worktrees. Preserve every live resource. Do not delete, prune, force, or rewrite anything. Wait for my review before staging or committing.","copy":true}
+      ],
+      "expected_result": "The agent creates a draft report without staging, committing, or changing the live fixture.",
+      "recovery": "If the agent changes state or drafts an incomplete report, preserve the attempt and request a corrected report from the current inventory.",
+      "evidence": "A reviewable draft exists at the exact P08 report path before the commit gate is considered."
+    },
+    {
+      "id": "P08-review-report",
+      "sequence": 6,
+      "title": "Review the agent draft",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Review the draft against the complete inventory. Confirm all five refs and three worktrees are present, path-free, correctly bound, and conservatively classified before authorizing a commit.",
+      "rationale": "A complete report is evidence of a learner-reviewed classification, not an agent decision delegated without inspection.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can identify each preserved resource and the one merged-clean item eligible only for explicit future review.",
+      "recovery": "If a fact is missing, stale, path-bearing, or classified as removable, reject the draft and preserve the fixture while requesting a correction.",
+      "evidence": "The learner has reviewed the exact report that may become the sole evidence commit."
+    },
+    {
+      "id": "P08-stage-report",
+      "sequence": 7,
+      "title": "Stage only the reviewed hygiene report",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the native-terminal command for your operating system. It stages only the reviewed report; do not use git add . or add any other path.",
+      "rationale": "The cached-diff review and commit gate require a precise, learner-controlled evidence boundary.",
+      "resources": [],
+      "variants": [
+        {"id":"stage-report-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- .codearbiter/reports/academy/P08-hygiene.json","copy":true},
+        {"id":"stage-report-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/P08-hygiene.json","copy":true},
+        {"id":"stage-report-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- .codearbiter/reports/academy/P08-hygiene.json","copy":true}
+      ],
+      "expected_result": "Git stages exactly .codearbiter/reports/academy/P08-hygiene.json and prints no output.",
+      "recovery": "If staging fails, preserve the draft and confirm the exact report path. If another path is already staged, stop before review and preserve that work for the applicable recovery path.",
+      "evidence": "The index now contains the one reviewed report that the cached diff must show."
+    },
+    {
+      "id": "P08-review-commit-boundary",
+      "sequence": 8,
+      "title": "Review the staged evidence boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After the reviewed report is staged, inspect the staged path list and diff. Continue only when the report is the sole staged file.",
+      "rationale": "P08 Check accepts one evidence commit containing only the canonical report.",
+      "resources": [],
+      "variants": [
+        {"id":"review-boundary-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git diff --cached --name-only\ngit diff --cached -- .codearbiter/reports/academy/P08-hygiene.json","copy":true},
+        {"id":"review-boundary-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git diff --cached --name-only\ngit diff --cached -- .codearbiter/reports/academy/P08-hygiene.json","copy":true},
+        {"id":"review-boundary-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git diff --cached --name-only\ngit diff --cached -- .codearbiter/reports/academy/P08-hygiene.json","copy":true}
+      ],
+      "expected_result": "The staged path list contains only .codearbiter/reports/academy/P08-hygiene.json and the diff matches the reviewed draft.",
+      "recovery": "If another path is staged, stop before the commit gate. Preserve the state and use the applicable recovery path instead of unstaging by guesswork.",
+      "evidence": "The learner has independently checked the exact evidence boundary."
+    },
+    {
+      "id": "P08-run-commit-gate",
+      "sequence": 9,
+      "title": "Run the agent-owned commit gate",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After learner review, run the CodeArbiter commit gate for the one staged P08 report. Do not add unrelated files or broaden the change.",
+      "rationale": "The governed commit preserves a precise evidence boundary for external verification.",
+      "resources": [],
+      "variants": [
+        {"id":"commit-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"commit-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"commit-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true}
+      ],
+      "expected_result": "The commit gate creates one report-only evidence commit on the numbered attempt.",
+      "recovery": "If the gate blocks, preserve its output and the live fixture. Correct only the reported evidence issue or use Reset for a new attempt.",
+      "evidence": "The post-Prepare commit changes only the canonical P08 report."
+    },
+    {
+      "id": "P08-confirm-clean",
+      "sequence": 10,
+      "title": "Confirm the primary worktree is clean",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Inspect the primary worktree after the report commit and before Check.",
+      "rationale": "A dirty primary worktree breaks the exact live state that P08 verifies.",
+      "resources": [],
+      "variants": [
+        {"id":"confirm-clean-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short","copy":true},
+        {"id":"confirm-clean-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
+        {"id":"confirm-clean-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
+      ],
+      "expected_result": "Git prints no output for the primary worktree.",
+      "recovery": "If Git prints a change, preserve it and do not run Check until you understand its source. Do not delete prepared worktrees to silence the result.",
+      "evidence": "The primary worktree is clean at the point Check observes it."
+    },
+    {
+      "id": "P08-check",
+      "sequence": 11,
+      "title": "Run the external checkpoint",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the installed Academy Check command from the numbered attempt after the report-only commit and clean-state review.",
+      "rationale": "Check independently compares the committed report with the externally recorded live fixture.",
+      "resources": [],
+      "variants": [
+        {"id":"check-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository check P08-repository-hygiene","copy":true},
+        {"id":"check-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" check P08-repository-hygiene","copy":true},
+        {"id":"check-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" check P08-repository-hygiene","copy":true}
+      ],
+      "expected_result": "Academy reports checkpoint P08-repository-hygiene: passed and records progress only when the exact fixture and report agree.",
+      "recovery": "If Check fails, preserve every resource and read the failed predicate. Use Reset only for a separately retained retry.",
+      "evidence": "A passing external verdict follows the exact report-only commit and live fixture verification."
+    },
+    {
+      "id": "P08-return-base",
+      "sequence": 12,
+      "title": "Return to main after a passing attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run this only after Check passes and the primary worktree is clean. Leave the completed attempt branch and linked worktrees intact.",
+      "rationale": "Returning to main ends active work without deleting the evidence-bearing attempt.",
+      "resources": [],
+      "variants": [
+        {"id":"return-base-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main","copy":true},
+        {"id":"return-base-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main","copy":true},
+        {"id":"return-base-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main","copy":true}
+      ],
+      "expected_result": "The primary checkout is on main while the completed P08 attempt remains available for verification.",
+      "recovery": "If Git refuses to switch, preserve the message and inspect the current state. Do not remove a worktree or force a branch change.",
+      "evidence": "The successful attempt remains intact after returning to main."
+    },
+    {
+      "id": "P08-reset-retry",
+      "sequence": 13,
+      "title": "Preserve a failed attempt and prepare a retry",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use Reset only after a failed attempt that you need to retain. It archives the attempt and prepares the next numbered one through installed Academy authority.",
+      "rationale": "A numbered retry preserves evidence instead of rewriting the failed state.",
+      "resources": [],
+      "variants": [
+        {"id":"reset-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository reset P08-repository-hygiene","copy":true},
+        {"id":"reset-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" reset P08-repository-hygiene","copy":true},
+        {"id":"reset-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" reset P08-repository-hygiene","copy":true}
+      ],
+      "expected_result": "Academy retains the failed P08 attempt and switches to a new numbered attempt with a fresh fixture.",
+      "recovery": "If Reset stops, preserve its message and return to the Recovery guidance. Do not manually remove refs or worktrees.",
+      "evidence": "The failed attempt remains available and the retry has a distinct numbered branch."
+    }
+  ]
+}
