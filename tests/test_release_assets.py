@@ -132,11 +132,11 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
         self.assertEqual(RELEASE, "preview-0.8")
         self.assertEqual(EPOCH, 1_786_579_200)
         publication = REPOSITORY / "academy" / "publication"
-        self.assertFalse((publication / "preview-0.6.json").exists())
+        self.assertFalse((publication / "preview-0.7.json").exists())
         self.assertTrue((publication / "preview-0.8.json").is_file())
         package = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn("academy/publication/preview-0.8.json", package)
-        self.assertNotIn("academy/publication/preview-0.6.json", package)
+        self.assertNotIn("academy/publication/preview-0.7.json", package)
 
     def test_unpublished_preview_candidate_has_no_preexisting_immutable_tag_binding(self) -> None:
         """A future preview builds from its reviewed candidate before its first tag exists."""

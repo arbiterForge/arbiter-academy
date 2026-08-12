@@ -24,6 +24,28 @@ test("Academy Home remains visually stable", async ({ page }, testInfo) => {
   await expectPageScreenshot(page, testInfo, "/index.html", "home");
 });
 
+test("Academy Home keeps the verify-first installer usable", async ({ page }, testInfo) => {
+  await page.goto("/index.html", { waitUntil: "networkidle" });
+  await stabilize(page);
+  const install = page.locator('[data-action-id="home-install"]');
+  await install.scrollIntoViewIfNeeded();
+  await expect(install).toBeInViewport();
+  await expect(install.locator(".command-copy").first()).toBeVisible();
+  const command = install.locator(".command-variant pre").first();
+  await expect
+    .poll(() => command.evaluate((node) => node.scrollWidth <= node.clientWidth))
+    .toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
+  await expect(page).toHaveScreenshot(`home-install-${testInfo.project.name}.png`, {
+    animations: "disabled",
+    caret: "hide",
+    fullPage: false,
+    scale: "css",
+  });
+});
+
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],

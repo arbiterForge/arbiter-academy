@@ -656,6 +656,12 @@ h1 + p {
 
 .command-shell pre {
   margin: 0;
+  overflow-x: clip;
+}
+
+.command-shell pre code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .command-copy {
@@ -876,16 +882,6 @@ h1 + p {
   .command-copy {
     border-inline-start: 1px solid var(--ca-line-strong);
     border-block-start: 0;
-  }
-
-  .command-shell pre {
-    overflow-x: clip;
-  }
-
-  .command-shell pre code {
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-    word-break: break-word;
   }
 
   .academy-content .table-shell {

@@ -24,9 +24,9 @@ The clone command creates a new `arbiter-academy` folder but leaves the Native t
 
 {{action:home-enter-clone}}
 
-## Install the reviewed Academy tools
+## Verify and install the Academy tools
 
-Change the Native terminal's current directory to the clone before installing. The fast installer stores the reviewed Academy tools outside the learner repository. The clone remains lesson input rather than part of the verifier.
+Change the Native terminal's current directory to the clone before installing. The verified installer stores the reviewed Academy tools outside the learner repository. The clone remains lesson input rather than part of the verifier.
 
 {{action:home-install}}
 

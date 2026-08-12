@@ -441,6 +441,11 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', f04)
         self.assertIn('data-action-id="F04-prepare"', f04)
         self.assertIn('data-action-id="F04-reset-retry"', f04)
+        self.assertRegex(
+            f04,
+            r"<h3 id=\"verify-independently-and-preserve-the-result\">"
+            r"Verify independently and preserve the result</h3>\s*<p>",
+        )
         self.assertIn("Coming next", index)
         self.assertIn(
             "<strong>Practitioner</strong>: P01 through P08. Guided rewrites are in progress.",
@@ -687,7 +692,7 @@ class PreviewSiteTests(unittest.TestCase):
             "What the Academy changes",
             "Create your practice fork",
             "Clone it to your computer",
-            "Install the reviewed Academy tools",
+            "Verify and install the Academy tools",
             "Run readiness checks",
             "Choose your first lesson",
             "Course status",
@@ -734,6 +739,9 @@ class PreviewSiteTests(unittest.TestCase):
             ),
         )
         install = actions["home-install"]
+        install_commands = {
+            variant.operating_system: variant.command for variant in install.variants
+        }
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
@@ -744,14 +752,45 @@ class PreviewSiteTests(unittest.TestCase):
             ),
         )
         self.assertNotIn("```", guide)
+        self.assertNotIn("fast installer", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
-            "irm https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.ps1 | iex",
+            "fetches the canonical immutable release tag with Git, extracts the installer locally, then executes that local file",
             html,
         )
+        self.assertNotIn("Invoke-WebRequest -Uri $releaseUrl/install.ps1", html)
+        self.assertNotIn("curl -fsSLo", html)
+        self.assertIn('git -C $source fetch --depth 1 origin "refs/tags/$releaseTag"', install_commands["windows"])
+        self.assertIn("FETCH_HEAD:install/install.ps1", install_commands["windows"])
+        self.assertIn("&amp; $installer", html)
         self.assertIn(
-            "curl -fsSL https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.8/install.sh | sh",
-            html,
+            'git -C "$workdir" fetch --depth 1 origin "refs/tags/$release_tag"',
+            install_commands["macos"],
+        )
+        self.assertIn('FETCH_HEAD:install/install.sh', install_commands["macos"])
+        self.assertTrue(
+            all(
+                "https://github.com/arbiterForge/arbiter-academy.git" in command
+                and "refs/tags/" in command
+                and "FETCH_HEAD:install/" in command
+                for command in install_commands.values()
+            )
+        )
+        self.assertTrue(
+            all(
+                'sh "$workdir/install.sh"' in install_commands[operating_system]
+                for operating_system in ("macos", "linux")
+            )
+        )
+        self.assertFalse(
+            any(" | iex" in command or " | sh" in command for command in install_commands.values())
+        )
+        self.assertFalse(
+            any(
+                token in command
+                for command in install_commands.values()
+                for token in ("Invoke-WebRequest", "curl ", "Get-FileHash", "shasum", "sha256sum")
+            )
         )
         for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
             self.assertIn(label, html)
@@ -765,8 +804,10 @@ class PreviewSiteTests(unittest.TestCase):
             'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.8/install/install.sh"',
             html,
         )
-        self.assertIn("validates the downloaded bundle", html)
-        self.assertIn("does not verify its own already-executing bytes", html)
+        self.assertIn(
+            "The immutable release tag binds the installer you run",
+            html,
+        )
         for host in ("Claude Code", "Codex", "Pi"):
             self.assertIn(host, html)
         self.assertIn("expected fresh-clone remote findings", html)
@@ -2221,6 +2262,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertRegex(command_rule.group("body"), r"\bmax-width:\s*100%\s*;")
 
         self.assertRegex(css, r"overflow-wrap:\s*anywhere")
+        self.assertNotIn("word-break: break-word", css)
         self.assertRegex(css, r"min-height:\s*2\.75rem")
         self.assertRegex(css, r":focus-visible\s*\{")
         self.assertRegex(css, r"\[hidden\]\s*\{\s*display:\s*none\s*!important")

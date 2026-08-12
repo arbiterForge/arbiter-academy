@@ -117,6 +117,10 @@ governed commit.
 
 ### Verify independently and preserve the result
 
+Before Check, read the two commit summaries and confirm that `git status --short` prints nothing.
+If a path, commit boundary, or result differs from the lesson, preserve the attempt. It is evidence to
+inspect, not clutter to rewrite.
+
 ## Recognize success
 
 Success is not a reassuring transcript. Git shows a clean worktree and exactly two learner commits

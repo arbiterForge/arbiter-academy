@@ -26,6 +26,13 @@ evidence, not signed credentials. The boundary and its limits are in
 
 - Runtime remains Python standard library only. A proposed package is blocked until
   provenance, license, and offline impact are reviewed.
+- SHA-256 is the only release-integrity primitive. Release installers verify the exact
+  bundle bytes before they install local tools; no remote script is piped into a shell.
+- The first-run bootstrap fetches only the canonical Academy release tag through Git's
+  HTTPS transport, then extracts the reviewed installer locally. The release
+  installer keeps TLS verification enabled and permits only the bounded
+  `github.com` to `release-assets.githubusercontent.com` HTTPS redirect chain on the
+  default port.
 - The release board item is local exercise evidence, not authority to publish.
 
 ## Commit secret scan

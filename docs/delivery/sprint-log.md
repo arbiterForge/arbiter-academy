@@ -72,3 +72,31 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Options: retain raw prose; make the operations TUI the primary lesson surface; publish a website-first structured lesson with terminal, harness, and CodeArbiter actions explicitly separated.
 - SMARTS: Safety and Security favor an isolated prepared attempt, a test-only commit before the repair, a service-only repair commit, and a Check that rejects broad or unreachable changes. Maintainability and Testability favor one manifest shared by the rendered guide and contract tests. Reviewability favors visible actor, surface, expected result, evidence, and recovery fields for every learner action. Simplicity and Speed keep the TUI limited to attempt lifecycle operations rather than a second instructional interface.
 - Chosen: author F04 as a website-first, structured twenty-one-action lesson; native terminal commands, harness prompts, and agent CodeArbiter commands are unambiguous, while the TUI remains limited to attempt lifecycle operations.
+
+## SD-ACA-012 - Make verified installer execution the sole beginner route - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether the public Academy entry page should keep a direct remote-script pipe for speed, present verification as optional reference material, or require checksum verification before every first-run installer execution.
+- Options: keep `irm | iex` and `curl | sh`; offer verification beside a fast default; download the immutable installer and its checksum, verify the bytes locally, then execute that local file.
+- SMARTS: Security and Safety favor binding first-run code to an immutable release checksum before execution. Reliability and Testability favor one explicit action sequence that fails before code runs on a mismatch. Maintainability and Simplicity favor the same action-card contract and recovery wording on all supported operating systems. Reviewability lets a newcomer inspect the exact versioned source and preserve a failing verification result.
+- Chosen: the Home installer action now downloads the Preview 0.8 installer and its checksum, verifies the downloaded bytes, and only then executes the local installer. Direct remote-script piping is not a beginner Academy command.
+
+## SD-ACA-013 - Bind beginner installer bootstrap to the immutable Git release tag - confidence: high
+
+- Date: 2026-08-12
+- Point: Whether the first-run route can trust an installer checksum fetched through the
+  same arbitrary redirect path as the installer, or must establish the existing
+  immutable release tag as its source boundary before execution.
+- Options: keep two generic HTTPS downloads; embed redirect-following shell clients in
+  every beginner command; fetch the canonical immutable source through Git and extract
+  the reviewed installer locally before execution.
+- SMARTS: Security and Safety reject a checksum that can be redirected with the payload.
+  Reliability keeps the familiar Git prerequisite and its standard TLS transport.
+  Maintainability and Simplicity reuse one tag-and-local-file shape on every platform
+  rather than duplicating an HTTP redirect validator in learner commands. Reviewability
+  and Testability retain an inspectable tagged source, a local extraction boundary, and
+  rendered action-card checks. The immutable release workflow supplies the tag
+  authority, while the installer independently verifies the released bundle.
+- Chosen: the Home route fetches only the canonical immutable Preview 0.8 tag with Git,
+  extracts the installer to a local temporary folder, and only then executes it. The
+  release installer retains its own bounded redirect and bundle verification controls.
