@@ -244,11 +244,14 @@ class LessonActionTests(unittest.TestCase):
         stage_report = actions["P08-stage-report"]
         self.assertEqual(stage_report.actor, "learner")
         self.assertEqual(
-            tuple((variant.surface, variant.host, variant.command) for variant in stage_report.variants),
+            tuple(
+                (variant.surface, variant.host, variant.command, variant.copy)
+                for variant in stage_report.variants
+            ),
             (
-                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
-                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
-                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json"),
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json", True),
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json", True),
+                ("native-terminal", "none", "git add -- .codearbiter/reports/academy/P08-hygiene.json", True),
             ),
         )
         self.assertEqual(
@@ -257,8 +260,56 @@ class LessonActionTests(unittest.TestCase):
         )
         self.assertLess(P08_ACTION_IDS.index("P08-review-report"), P08_ACTION_IDS.index("P08-stage-report"))
         self.assertLess(P08_ACTION_IDS.index("P08-stage-report"), P08_ACTION_IDS.index("P08-review-commit-boundary"))
-        self.assertTrue(
-            all("git diff --cached" in variant.command for variant in actions["P08-review-commit-boundary"].variants)
+        review_boundary = actions["P08-review-commit-boundary"]
+        self.assertEqual((review_boundary.actor, review_boundary.surface), ("learner", None))
+        self.assertEqual(
+            tuple(
+                (
+                    variant.surface,
+                    variant.operating_system,
+                    variant.host,
+                    variant.language,
+                    variant.command,
+                    variant.copy,
+                )
+                for variant in review_boundary.variants
+            ),
+            (
+                (
+                    "native-terminal",
+                    "windows",
+                    "none",
+                    "powershell",
+                    "git diff --cached --name-only\n"
+                    "git diff --cached -- .codearbiter/reports/academy/P08-hygiene.json",
+                    True,
+                ),
+                (
+                    "native-terminal",
+                    "macos",
+                    "none",
+                    "sh",
+                    "git diff --cached --name-only\n"
+                    "git diff --cached -- .codearbiter/reports/academy/P08-hygiene.json",
+                    True,
+                ),
+                (
+                    "native-terminal",
+                    "linux",
+                    "none",
+                    "sh",
+                    "git diff --cached --name-only\n"
+                    "git diff --cached -- .codearbiter/reports/academy/P08-hygiene.json",
+                    True,
+                ),
+            ),
+        )
+        self.assertFalse(
+            any(
+                verb in variant.command
+                for variant in review_boundary.variants
+                for verb in ("git add", "git commit", "git reset", "git restore", "git push")
+            )
         )
         self.assertTrue(any(variant.surface == "native-terminal" for variant in actions["P08-inventory-native"].variants))
         self.assertTrue(
@@ -304,7 +355,36 @@ class LessonActionTests(unittest.TestCase):
              ("pi", "codearbiter", '/skill:ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"')),
         )
         self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
-        self.assertEqual(by_id["P04-verify-wheel-hashes"].variants[1].command.split()[0:3], ["shasum", "-a", "256"])
+        checksum_variants = by_id["P04-verify-wheel-hashes"].variants
+        self.assertEqual(
+            tuple((variant.operating_system, variant.command) for variant in checksum_variants),
+            (
+                (
+                    "windows",
+                    "Get-FileHash -Algorithm SHA256 "
+                    "academy/candidates/P04-review-a-dependency/"
+                    "python_dateutil-2.9.0.post0-py2.py3-none-any.whl\n"
+                    "Get-FileHash -Algorithm SHA256 "
+                    "academy/candidates/P04-review-a-dependency/"
+                    "six-1.17.0-py2.py3-none-any.whl",
+                ),
+                (
+                    "macos",
+                    "shasum -a 256 "
+                    "academy/candidates/P04-review-a-dependency/"
+                    "python_dateutil-2.9.0.post0-py2.py3-none-any.whl "
+                    "academy/candidates/P04-review-a-dependency/"
+                    "six-1.17.0-py2.py3-none-any.whl",
+                ),
+                (
+                    "linux",
+                    "sha256sum academy/candidates/P04-review-a-dependency/"
+                    "python_dateutil-2.9.0.post0-py2.py3-none-any.whl "
+                    "academy/candidates/P04-review-a-dependency/"
+                    "six-1.17.0-py2.py3-none-any.whl",
+                ),
+            ),
+        )
         for action_id in ("P04-review-draft", "P04-select-reject"):
             action = by_id[action_id]
             with self.subTest(action=action_id):
