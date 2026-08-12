@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from academy_engine.checkpoints import evaluate_checkpoint
+from academy_engine.checkpoints import _f04_has_uncommitted_learner_changes, evaluate_checkpoint
 from academy_engine.curriculum import CurriculumError, _subsections, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
@@ -1459,6 +1459,34 @@ def complete_ticket'''
                     self.assertTrue(result.passed, result.failed_predicates)
                 else:
                     self.assertFalse(result.passed)
+
+    def test_f04_rejects_ignored_and_disguised_non_cache_worktree_dirt(self) -> None:
+        """Only exact exercised cache files may remain outside the two evidence commits."""
+        for case, relative, expected in (
+            ("ignored-note", "ignored-f04-note.txt", True),
+            (
+                "nested-disguised-cache",
+                "tests/__pycache__/test_service.cpython-311.pyc/payload.pyc",
+                True,
+            ),
+            ("exact-service-cache", "tests/__pycache__/test_service.cpython-311.pyc", False),
+        ):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                git(root, "init", "-b", "main")
+                git(root, "config", "user.name", "Academy Learner")
+                git(root, "config", "user.email", "learner@example.invalid")
+                (root / ".gitignore").write_text(
+                    "ignored-f04-note.txt\ntests/__pycache__/\n",
+                    encoding="utf-8",
+                )
+                git(root, "add", ".gitignore")
+                git(root, "commit", "-m", "baseline")
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b"not an allowed interpreter cache")
+
+                self.assertEqual(_f04_has_uncommitted_learner_changes(root), expected)
 
     def test_f04_rejects_unrelated_production_delta_beside_valid_guard(self) -> None:
         """Catches an F04 false green that compares only the repaired function AST."""

@@ -991,15 +991,19 @@ def _f04_has_uncommitted_learner_changes(root: Path) -> bool:
     status = run_git(
         root, ["status", "--porcelain", "--untracked-files=all"], check=False
     )
-    if status.returncode != 0:
-        return True
-    allowed_cache_prefixes = (
-        "tests/__pycache__/test_service.cpython-",
-        "workshop_queue/__pycache__/service.cpython-",
+    ignored = run_git(
+        root, ["ls-files", "--others", "--ignored", "--exclude-standard"], check=False
     )
-    for line in status.stdout.splitlines():
-        path = line[3:]
-        if path.endswith(".pyc") and path.startswith(allowed_cache_prefixes):
+    if status.returncode != 0 or ignored.returncode != 0:
+        return True
+    allowed_cache = re.compile(
+        r"(?:tests/__pycache__/test_service|workshop_queue/__pycache__/service)"
+        r"\.cpython-[0-9]+(?:\.opt-[12])?\.pyc"
+    )
+    paths = [line[3:] for line in status.stdout.splitlines()]
+    paths.extend(ignored.stdout.splitlines())
+    for path in paths:
+        if allowed_cache.fullmatch(path):
             continue
         return True
     return False
