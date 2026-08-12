@@ -331,7 +331,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             ),
         )
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.10\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.11\s*$")
         self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1786752000\s*$")
         self.assertNotIn("preview-0.7", release_job)
 
@@ -918,7 +918,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "release verification job with the exact six-asset inventory is missing",
         )
         release_job = release_jobs[0]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.10\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.11\s*$")
         self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
         self.assertIn(
             "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",
