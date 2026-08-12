@@ -185,12 +185,14 @@ _SCENARIO_COMMANDS = {
     lab_id: f"arbiter-academy --repository <learner-repository> prepare {lab_id}"
     for lab_id in _INSTALLED_PREPARE_LABS
 }
+_SCENARIO_COMMANDS["P06-context-drift-recovery"] = "{{action:P06-prepare}}"
 _SCENARIO_COMMANDS["F02-orient-to-state"] = (
     "arbiter-academy --repository . prepare F02-orient-to-state"
 )
 _CHECKPOINT_COMMANDS = {
     "F02-orient-to-state": "arbiter-academy --repository . check F02-orient-to-state"
 }
+_CHECKPOINT_COMMANDS["P06-context-drift-recovery"] = "{{action:P06-check}}"
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (
         "untouched",

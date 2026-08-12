@@ -135,6 +135,21 @@ P08_ACTION_IDS = (
     "P08-return-base",
     "P08-reset-retry",
 )
+P06_DOCUMENT_ID = "P06-context-drift-recovery"
+P06_ACTION_IDS = (
+    "P06-prepare",
+    "P06-inspect-evidence",
+    "P06-run-context-audit",
+    "P06-select-rescout",
+    "P06-apply-correction",
+    "P06-review-correction-boundary",
+    "P06-commit-correction",
+    "P06-write-handoff",
+    "P06-review-handoff-boundary",
+    "P06-commit-handoff",
+    "P06-check",
+    "P06-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
@@ -642,24 +657,66 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("Proposed to Accepted", acceptance.expected_result)
         self.assertIn("**Status:** proposed to **Status:** accepted", acceptance.expected_result)
 
-    def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
-        """Catches an active learner path routing to the stale Preview 0.4 release."""
+    def test_checked_in_p06_manifest_names_every_actor_surface_and_recovery_boundary(self) -> None:
+        """Catches private P06 guidance asking learners to infer execution surfaces."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P06_DOCUMENT_ID)
+        self.assertEqual(tuple(action.id for action in manifest.actions), P06_ACTION_IDS)
+        self.assertEqual(by_id["P06-run-context-audit"].actor, "agent")
+        self.assertEqual(by_id["P06-apply-correction"].actor, "agent")
+        self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
+        self.assertEqual(by_id["P06-review-correction-boundary"].surface, "active-harness")
+        self.assertEqual(by_id["P06-review-handoff-boundary"].surface, "active-harness")
+
+        audit = by_id["P06-run-context-audit"]
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in audit.variants),
+            (
+                ("claude-code", "/ca:context-check"),
+                ("codex", "$ca-context-check"),
+                ("pi", "/ca-context-check"),
+                ("pi", "/skill:ca-context-check"),
+            ),
+        )
+
+        inspection = by_id["P06-inspect-evidence"]
+        self.assertTrue(
+            all(
+                ".codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"
+                in variant.command
+                for variant in inspection.variants
+            )
+        )
+
+        for action in manifest.actions:
+            for variant in action.variants:
+                with self.subTest(action=action.id, variant=variant.id):
+                    self.assertTrue(variant.copy)
+                    if variant.language == "codearbiter":
+                        self.assertFalse(variant.command.startswith("!"))
+                    if variant.surface == "native-terminal":
+                        self.assertEqual(variant.host, "none")
+                        self.assertFalse(variant.command.startswith("!"))
+
+        for action_id in ("P06-prepare", "P06-check", "P06-reset-retry"):
+            self.assertEqual(
+                {variant.operating_system for variant in by_id[action_id].variants},
+                {"windows", "macos", "linux"},
+            )
+
+    def test_all_action_command_variants_bind_to_preview_0_6(self) -> None:
+        """Catches any copied Academy command retaining a stale Preview 0.5 path."""
         root = Path(__file__).parents[1]
-        for document_id in ("home", DOCUMENT_ID, F02_DOCUMENT_ID, "recovery"):
+        for path in sorted((root / "academy" / "actions").glob("*.json")):
+            document_id = path.stem
             with self.subTest(document_id=document_id):
                 manifest = load_action_manifest(root, document_id)
-                published_text = "\n".join(
-                    part
+                commands = "\n".join(
+                    variant.command
                     for action in manifest.actions
-                    for part in (
-                        *(resource.href for resource in action.resources),
-                        *(variant.command for variant in action.variants),
-                        action.expected_result,
-                        action.evidence or "",
-                    )
+                    for variant in action.variants
                 )
-                self.assertNotIn("preview-0.4", published_text)
-                self.assertIn("preview-0.6", published_text)
+                self.assertNotIn("preview-0.5", commands)
+                self.assertIn("preview-0.6", commands)
 
     def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)

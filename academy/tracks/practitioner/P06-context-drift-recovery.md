@@ -3,128 +3,126 @@ id: P06-context-drift-recovery
 track: practitioner
 order: 6
 title: Recover context drift without losing unrelated work
-outcome: Update stale CONTEXT.md through the documented recovery route while preserving the prepared docs/preserved-note.md bytes exactly.
+outcome: Repair one source-contradicted context claim through re-scout while preserving the prepared unrelated note byte-for-byte.
 prerequisites: P05-checkpoint-remediation
 estimated_minutes: 30
-scenario_command: arbiter-academy --repository <learner-repository> prepare P06-context-drift-recovery
-checkpoint_command: arbiter-academy --repository <learner-repository> check P06-context-drift-recovery
+scenario_command: {{action:P06-prepare}}
+checkpoint_command: {{action:P06-check}}
 next_lab: P07-threat-model
 ---
 
 # P06 - Recover context drift without losing unrelated work
 
-## Why this mechanism matters
+## Know before you begin
 
-Repository context is useful only while its claims still match the source and accepted decisions.
-P06 begins after P05 accepted ADR-0005, but the prepared context still cites ADR-0002 and says
-`Workshop Queue report output is JSON-only.` Its provenance still points to the older CLI object
-`042746e43698e5d2a6de4c536f1024f893aef805`, while the prepared CLI object is
-`5b41fb168a8b258cfae7eebc46e8b9ea7696ba56`. The prepared code proves that text is the default and JSON is optional.
-You will repair that bounded drift while proving an unrelated note survived.
+Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
+your worktree is clean: `git status --short` should print nothing. Keep a native terminal open at
+the clone root for Academy Prepare, Check, and Reset. Keep one CodeArbiter harness open at that
+same clone for inspection, the context audit, and the two governed commits.
 
-## Start the scenario
+This is a recovery lesson, not a cleanup lesson. The prepared scenario contains a stale
+`.codearbiter/CONTEXT.md`, a matching stale provenance record, and an unrelated
+`docs/preserved-note.md`. You will prove that the note survived byte-for-byte. Never delete,
+recreate, normalize, or “tidy” it.
 
-Run the installed Academy command from your learner checkout:
+Native-terminal commands are entered directly and never start with `!`. CodeArbiter commands and
+agent messages are entered in your selected harness and never start with `!`. Every action card
+names the actor and the surface so you do not have to infer where a command belongs.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository prepare P06-context-drift-recovery
-```
+## What you will prove
 
-Read `.codearbiter/CONTEXT.md`, `workshop_queue/cli.py`,
-`.codearbiter/.provenance/CONTEXT.json`, and the prepared `docs/preserved-note.md` Git object before
-editing. Record the prepared context, provenance, and note raw-byte SHA-256 values.
+The prepared context says `Workshop Queue report output is JSON-only.` The prepared source proves
+the opposite: stable text is the default and structured JSON is optional. The old lifecycle link
+also points to ADR-0002 even though P05 accepted ADR-0005. The provenance record names the older
+CLI object `042746e43698e5d2a6de4c536f1024f893aef805`; the prepared source object is
+`5b41fb168a8b258cfae7eebc46e8b9ea7696ba56`.
 
-## Use your host
+You will make exactly two ordered single-parent commits after Prepare. The first changes only the
+context and provenance record. The second introduces only a canonical recovery handoff. Academy
+Check independently compares those commits with the prepared baseline and verifies that the
+unrelated note has identical raw Git-object bytes before and after the repair.
 
-These are host routes to the context audit. The committed recovery record does not prove that any host command was invoked;
-it proves only the repository state and your declared route. For this
-contradicted claim, `re-scout` is the sole permitted recovery route.
+## Prepare safely
 
-### Claude Code
+{{action:P06-prepare}}
 
-```text
-/ca:context-check
-```
+`ATTEMPT_NUMBER` means the number Academy prints, such as `1`; do not type that word literally.
+Stay on the numbered branch until Check passes or Reset creates a preserved retry.
 
-### Codex
+{{action:P06-inspect-evidence}}
 
-```text
-$ca-context-check
-```
+## Practice
 
-### Pi (Feature Forge preview)
+{{action:P06-run-context-audit}}
 
-Pi requires project trust. Use the generated `/ca-context-check` alias shown below. If that alias is unavailable,
-use the host-native `/skill:ca-context-check` fallback.
+{{action:P06-select-rescout}}
 
-```text
-/ca-context-check
-```
+`re-scout` is the sole permitted recovery route because the prepared source directly contradicts
+the recorded claim. It refreshes this bounded evidence; it does not authorize an alternate route,
+a broad context rewrite, or a new baseline.
 
-## Do the work
+{{action:P06-apply-correction}}
 
-1. Read `.codearbiter/CONTEXT.md`, `workshop_queue/cli.py`, and the prepared
-   `docs/preserved-note.md` object.
-2. Identify `Workshop Queue report output is JSON-only.` as stale from the code evidence and notice
-   that accepted ADR-0005 replaced the older lifecycle decision.
-3. Run the host audit and select scoped `re-scout`. Replace the stale report line with exactly
-   `Workshop Queue report output defaults to stable text and supports structured JSON with --format json.`
-   Update the lifecycle link to ADR-0005 and update only the provenance record's sole source hash to the prepared CLI object ID.
-   Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.
-4. Recompute raw Git-object digests without editing the note, write the canonical v2 handoff at
-   `.codearbiter/reports/academy/P06-recovery.json`, and commit only the handoff. Record the prepared
-   commit, the immediately preceding recovery commit, exact repository-relative paths, route
-   `re-scout`, and before/after digests for context, provenance, and preserved note.
-5. Run the installed check:
+{{action:P06-review-correction-boundary}}
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository check P06-context-drift-recovery
-```
+{{action:P06-commit-correction}}
 
-## Hints
+{{action:P06-write-handoff}}
+
+{{action:P06-review-handoff-boundary}}
+
+{{action:P06-commit-handoff}}
+
+## Recognize success
+
+The first learner commit after Prepare changes exactly `.codearbiter/CONTEXT.md` and
+`.codearbiter/.provenance/CONTEXT.json`. The second changes exactly
+`.codearbiter/reports/academy/P06-recovery.json`. The corrected context states:
+`Workshop Queue report output defaults to stable text and supports structured JSON with --format json.`
+
+The handoff declares `re-scout`, identifies the prepared and correction commits, records the
+before/after SHA-256 values for context, provenance, and the preserved note, and has identical
+before/after note digests. Immediately before Check, `git status --short` prints nothing.
+
+## Check
+
+{{action:P06-check}}
+
+A pass contains `checkpoint P06-context-drift-recovery: passed; progress: .academy/progress.json`.
+Check proves the committed state, path boundaries, topology, raw-object digests, and preserved-note
+identity. It does not prove that the host command ran, that a particular agent made an edit, or why
+you selected the route. Those are honest workflow observations, not final-state claims.
+
+## Recover or continue
+
+If Check names a failed predicate, preserve the committed attempt and compare the failure with the
+matching action card. Do not amend, rebase, force-reset, or conceal an earlier attempt.
 
 ### Hint 1
 
-Compare the context's report statement with `report_parser.add_argument("--format", ...)` and
-`_write_report`; the tracked source is the contrary evidence.
+The stale claim is a source contradiction, not a date mismatch. Compare the report parser choices
+and default with the context statement before you choose a route.
 
 ### Hint 2
 
-Use `git show <prepared-commit>:<path>` when calculating before values. A filesystem read after an
-edit cannot reconstruct the prepared object.
+Before values come from the prepared Git objects. A filesystem hash read after an edit cannot prove
+what the prepared context, provenance, or note contained.
 
 ### Hint 3
 
-The correction commit has exactly two paths. The next commit has exactly one. Both note digests are
-the same because the note existed at prepare and remains byte-identical at HEAD.
+Keep the correction and handoff separate. The first commit has two paths; the second has one. The
+note’s two digests match because leaving an unrelated file untouched is the point of the exercise.
 
-## Success evidence
+{{action:P06-reset-retry}}
 
-The verifier requires a clean worktree and exactly two ordered, single-parent commits after prepare:
-first the exact stale-to-corrected context/provenance transition, then the canonical handoff alone.
-It recomputes every digest and proves prepared/head equality for the unrelated note. Equivalent
-commit subjects are accepted because messages are not invented evidence. Route evidence does not
-prove host invocation.
+After Check passes, leave the completed branch intact and return to `main` when you are ready. P07
+appears on the course home only after its guided rewrite and acceptance evidence are complete. Do
+not use unpublished source exercises as a substitute for the accepted course.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository check P06-context-drift-recovery
-```
+## Understand the mechanism
 
-## Recovery
-
-If the attempt is wrong, retain the failed branch and use only the installed reset route:
-
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository reset P06-context-drift-recovery
-```
-
-Reset archives rather than discards the attempt; the failed branch remains available for diagnosis,
-and preparation continues on a numbered retry.
-
-## Next lab
-
-Continue to **P07 - Threat-model the path-handling boundary** after P06 passes.
+Context becomes trustworthy when its claims can be traced to the source and decision that support
+them. A re-scout repairs a contradiction without pretending all repository context was freshly
+reviewed. The two commits separate the source-backed correction from the record that describes it;
+the external verifier then reconstructs both against the prepared baseline. Keeping unrelated work
+byte-identical makes recovery auditable instead of destructive.

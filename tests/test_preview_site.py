@@ -193,6 +193,27 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("only after its guided rewrite and acceptance evidence are complete", html)
         self.assertIn("Do not use unpublished source exercises", html)
 
+    def test_private_p06_guided_document_renders_copyable_actions_without_publishing_a_route(self) -> None:
+        """Catches P06 action cards losing their execution identity before public promotion."""
+        manifest = load_action_manifest(self.root, "P06-context-drift-recovery")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P06-context-drift-recovery.md"),
+            "P06-context-drift-recovery",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertIn('data-action-id="P06-run-context-audit"', html)
+        self.assertIn('data-copy-target="command-P06-prepare-windows"', html)
+        self.assertIn('data-copy-target="command-P06-check-linux"', html)
+        self.assertIn("CodeArbiter command", html)
+        self.assertIn("Check does not prove that the host command ran", html)
+
     def test_public_release_record_contains_provenance_availability_and_support_contract(self) -> None:
         """Catches release.json shrinking to commit-only metadata instead of public release truth."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)

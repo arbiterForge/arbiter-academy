@@ -88,8 +88,12 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 path = root / f"academy/tracks/practitioner/{lab_id}.md"
                 text = path.read_text(encoding="utf-8")
                 installed = (
-                    "scenario_command: arbiter-academy --repository "
-                    f"<learner-repository> prepare {lab_id}"
+                    f"scenario_command: {{{{action:{lab_id.partition('-')[0]}-prepare}}}}"
+                    if lab_id == "P06-context-drift-recovery"
+                    else (
+                        "scenario_command: arbiter-academy --repository "
+                        f"<learner-repository> prepare {lab_id}"
+                    )
                 )
                 local = f"scenario_command: python scripts/academy.py prepare {lab_id}"
                 self.assertIn(installed, text)
@@ -112,8 +116,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
         for lab in track.labs[2:]:
             with self.subTest(lab=lab.id):
                 expected_prepare = (
-                    "arbiter-academy --repository <learner-repository> prepare "
-                    + lab.id
+                    "{{action:P06-prepare}}"
+                    if lab.id == "P06-context-drift-recovery"
+                    else "arbiter-academy --repository <learner-repository> prepare " + lab.id
                 )
                 self.assertEqual(lab.scenario_command, expected_prepare)
                 if lab.id == "P05-checkpoint-remediation":
@@ -327,10 +332,12 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertIn(f"/ca:{action}", lab.host_commands["claude-code"])
                     self.assertIn(f"$ca-{action}", lab.host_commands["codex"])
                     self.assertIn(f"/ca-{action}", lab.host_commands["pi"])
-                self.assertEqual(
-                    lab.checkpoint_command,
-                    f"arbiter-academy --repository <learner-repository> check {lab.id}",
+                expected_check = (
+                    "{{action:P06-check}}"
+                    if lab.id == "P06-context-drift-recovery"
+                    else f"arbiter-academy --repository <learner-repository> check {lab.id}"
                 )
+                self.assertEqual(lab.checkpoint_command, expected_check)
                 self.assertTrue(lab.success_evidence)
                 self.assertIn("reset", lab.recovery.casefold())
 
@@ -563,7 +570,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 text = path.read_text(encoding="utf-8")
                 heading = f"### Hint {number}\n"
                 start = text.index(heading) + len(heading)
-                terminator = f"### Hint {number + 1}\n" if number < 3 else "## Success evidence\n"
+                terminator = (
+                    f"### Hint {number + 1}\n"
+                    if number < 3
+                    else "## Understand the mechanism\n"
+                )
                 end = text.index(terminator, start)
                 path.write_text(
                     text[:start]
@@ -831,6 +842,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
     def test_p06_guide_distinguishes_host_route_from_invocation_proof(self) -> None:
         """Catches route evidence being described as proof that a host command ran."""
         p06 = load_track(SOURCE, "practitioner").labs[5]
+        actions = load_action_manifest(SOURCE, "P06-context-drift-recovery")
         guide = (
             SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md"
         ).read_text(encoding="utf-8")
@@ -840,61 +852,94 @@ class PractitionerCurriculumTests(unittest.TestCase):
             {
                 "claude-code": "/ca:context-check",
                 "codex": "$ca-context-check",
-                "pi": "/ca-context-check",
+                "pi": "/ca-context-check\n/skill:ca-context-check",
             },
         )
-        pi_section = guide[guide.index("### Pi") : guide.index("## Do the work")]
-        self.assertIn(
-            "Use the generated `/ca-context-check` alias shown below.",
-            pi_section,
-        )
-        self.assertIn(
-            "host-native `/skill:ca-context-check` fallback.",
-            pi_section,
-        )
-        self.assertLess(
-            pi_section.index("generated `/ca-context-check` alias"),
-            pi_section.index("host-native `/skill:ca-context-check` fallback"),
+        audit = next(action for action in actions.actions if action.id == "P06-run-context-audit")
+        self.assertEqual(
+            tuple(variant.command for variant in audit.variants if variant.host == "pi"),
+            ("/ca-context-check", "/skill:ca-context-check"),
         )
         for required in (
             "Workshop Queue report output is JSON-only.",
             "042746e43698e5d2a6de4c536f1024f893aef805",
             "5b41fb168a8b258cfae7eebc46e8b9ea7696ba56",
-            "text is the default and JSON is optional",
+            "stable text is the default and structured JSON is optional",
             "Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
-            "update only the provenance record's sole source hash to the prepared CLI object ID",
-            "Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.",
-            "write the canonical v2 handoff",
-            "commit only the handoff",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
         self.assertIn("`re-scout` is the sole permitted recovery route", guide)
-        self.assertIn("does not prove that any host command was invoked", guide)
+        self.assertIn("does not prove that the host command ran", guide)
         self.assertNotIn("re-baseline", guide.casefold())
         self.assertNotIn("defer", guide.casefold())
 
-        ordered_work = (
-            "Read `.codearbiter/CONTEXT.md`",
-            "select scoped `re-scout`",
-            "Commit exactly `.codearbiter/CONTEXT.md` and `.codearbiter/.provenance/CONTEXT.json` together.",
-            "write the canonical v2 handoff",
-            "commit only the handoff",
-            "arbiter-academy --repository $learnerRepository check P06-context-drift-recovery",
+        self.assertEqual(
+            tuple(action.id for action in actions.actions),
+            (
+                "P06-prepare", "P06-inspect-evidence", "P06-run-context-audit",
+                "P06-select-rescout", "P06-apply-correction", "P06-review-correction-boundary",
+                "P06-commit-correction", "P06-write-handoff", "P06-review-handoff-boundary",
+                "P06-commit-handoff", "P06-check", "P06-reset-retry",
+            ),
         )
-        positions = [guide.index(marker) for marker in ordered_work]
+
+    def test_p06_is_a_complete_eight_heading_guided_document_without_raw_command_fences(self) -> None:
+        """Catches a private P06 rewrite regressing to prose-only or surface-ambiguous steps."""
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md"
+        ).read_text(encoding="utf-8")
+
+        headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        positions = [guide.index(heading) for heading in headings]
         self.assertEqual(positions, sorted(positions))
+        self.assertNotIn("```", guide)
+        for action_id in (
+            "P06-prepare",
+            "P06-inspect-evidence",
+            "P06-run-context-audit",
+            "P06-select-rescout",
+            "P06-apply-correction",
+            "P06-commit-correction",
+            "P06-write-handoff",
+            "P06-commit-handoff",
+            "P06-check",
+            "P06-reset-retry",
+        ):
+            with self.subTest(action_id=action_id):
+                self.assertIn(f"{{{{action:{action_id}}}}}", guide)
 
-    def test_p06_recovery_uses_archive_then_retry_without_destructive_commands(self) -> None:
-        """Catches retry guidance that discards or rewrites the failed attempt."""
-        recovery = load_track(SOURCE, "practitioner").labs[5].recovery
+    def test_p06_recovery_uses_the_guided_reset_action_without_destructive_commands(self) -> None:
+        """Catches P06 Reset regressing from a self-contained action card to raw prose."""
+        p06 = load_track(SOURCE, "practitioner").labs[5]
+        actions = load_action_manifest(SOURCE, "P06-context-drift-recovery")
+        reset = next(action for action in actions.actions if action.id == "P06-reset-retry")
 
-        self.assertIn(
-            "arbiter-academy --repository $learnerRepository reset P06-context-drift-recovery",
-            recovery,
+        self.assertEqual(p06.scenario_command, "{{action:P06-prepare}}")
+        self.assertEqual(p06.checkpoint_command, "{{action:P06-check}}")
+        self.assertIn("{{action:P06-reset-retry}}", p06.recovery)
+        self.assertEqual(
+            {variant.operating_system for variant in reset.variants},
+            {"windows", "macos", "linux"},
         )
-        self.assertIn("archives rather than discards the attempt", recovery)
-        self.assertIn("failed branch remains available for diagnosis", recovery)
+        for variant in reset.variants:
+            with self.subTest(variant=variant.id):
+                self.assertIn("preview-0.6", variant.command)
+                self.assertIn("reset P06-context-drift-recovery", variant.command)
+                self.assertNotIn("<learner-repository>", variant.command)
+
+        self.assertIn("archives the earlier attempt", reset.expected_result)
+        self.assertIn("archived branch remains reachable", reset.evidence or "")
+        recovery = "\n".join((p06.recovery, reset.recovery))
         for destructive in (
             "git reset --hard",
             "git rebase",
