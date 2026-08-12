@@ -13,9 +13,9 @@
       "rationale": "Prepare creates the externally recorded fixture and a numbered attempt without precomputing the learner report.",
       "resources": [],
       "variants": [
-        {"id":"prepare-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository prepare P08-repository-hygiene","copy":true},
-        {"id":"prepare-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" prepare P08-repository-hygiene","copy":true},
-        {"id":"prepare-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" prepare P08-repository-hygiene","copy":true}
+        {"id":"prepare-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy creates and switches to academy/P08-repository-hygiene/<attempt> and reports the prepared fixture.",
       "recovery": "If Prepare refuses, preserve its message and return to the documented dirty-state or existing-attempt recovery before retrying.",
@@ -75,7 +75,8 @@
       "variants": [
         {"id":"standup-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:standup","copy":true},
         {"id":"standup-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-standup","copy":true},
-        {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true}
+        {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-standup","copy":true}
       ],
       "expected_result": "The agent presents repository state for review without deleting, pruning, or rewriting any ref or worktree.",
       "recovery": "If the response proposes cleanup, stop it and return to the frozen Git inventory. Preserve the current state.",
@@ -161,7 +162,8 @@
       "variants": [
         {"id":"commit-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
         {"id":"commit-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
-        {"id":"commit-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true}
+        {"id":"commit-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
       "expected_result": "The commit gate creates one report-only evidence commit on the numbered attempt.",
       "recovery": "If the gate blocks, preserve its output and the live fixture. Correct only the reported evidence issue or use Reset for a new attempt.",
@@ -195,9 +197,9 @@
       "rationale": "Check independently compares the committed report with the externally recorded live fixture.",
       "resources": [],
       "variants": [
-        {"id":"check-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository check P08-repository-hygiene","copy":true},
-        {"id":"check-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" check P08-repository-hygiene","copy":true},
-        {"id":"check-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" check P08-repository-hygiene","copy":true}
+        {"id":"check-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P08-repository-hygiene","copy":true},
+        {"id":"check-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true},
+        {"id":"check-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy reports checkpoint P08-repository-hygiene: passed and records progress only when the exact fixture and report agree.",
       "recovery": "If Check fails, preserve every resource and read the failed predicate. Use Reset only for a separately retained retry.",
@@ -231,9 +233,9 @@
       "rationale": "A numbered retry preserves evidence instead of rewriting the failed state.",
       "resources": [],
       "variants": [
-        {"id":"reset-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$learnerRepository = (Resolve-Path -LiteralPath '.').Path\narbiter-academy --repository $learnerRepository reset P08-repository-hygiene","copy":true},
-        {"id":"reset-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" reset P08-repository-hygiene","copy":true},
-        {"id":"reset-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"arbiter-academy --repository \"$PWD\" reset P08-repository-hygiene","copy":true}
+        {"id":"reset-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P08-repository-hygiene","copy":true},
+        {"id":"reset-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true},
+        {"id":"reset-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy retains the failed P08 attempt and switches to a new numbered attempt with a fresh fixture.",
       "recovery": "If Reset stops, preserve its message and return to the Recovery guidance. Do not manually remove refs or worktrees.",

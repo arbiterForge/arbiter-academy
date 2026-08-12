@@ -56,6 +56,9 @@ for (const [lesson, name] of [
   ["P03-record-an-adr", "p03"],
   ["P04-review-a-dependency", "p04"],
   ["P05-checkpoint-remediation", "p05"],
+  ["P06-context-drift-recovery", "p06"],
+  ["P07-threat-model", "p07"],
+  ["P08-repository-hygiene", "p08"],
 ]) {
   test(`${lesson} keeps its first copyable action usable`, async ({ page }, testInfo) => {
     await page.goto(`/labs/${lesson}/index.html`, { waitUntil: "networkidle" });

@@ -15,7 +15,7 @@ next_lab: P06-context-drift-recovery
 
 ## Know before you begin
 
-P05 is a guided, runnable Academy lesson in Preview 0.11. Its shared action cards are the public course route.
+P05 is a guided, runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 P05 is the first Practitioner exercise that asks you to preserve a precise remediation history. It
 uses the Workshop Queue practice project that Academy prepares in your learner clone; it does not
@@ -145,9 +145,8 @@ The receipt is not a progress note. It is the last commit and its three IDs must
 RED, and GREEN descendants in that order. If you cannot name those four one-path commits, use Reset
 rather than trying to repair the history.
 
-P06 becomes available when its guided Academy lesson is published. Leave the completed P05 branch
-intact: the later recovery case is separate work, not a repair to fold into this remediation
-attempt.
+P06 is the next public guided Academy lesson. Leave the completed P05 branch intact: the
+later recovery case is separate work, not a repair to fold into this remediation attempt.
 
 ## Understand the mechanism
 

@@ -15,7 +15,7 @@ next_lab: P02-commit-review-pr
 
 ## Know before you begin
 
-P01 is the first Practitioner lesson in Preview 0.11. It starts from the F04 repair boundary and ends with one preserved feature attempt on a safe learner branch.
+P01 is the first Practitioner lesson in this preview. It starts from the F04 repair boundary and ends with one preserved feature attempt on a safe learner branch.
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
@@ -121,8 +121,8 @@ After Check passes, leave the completed branch intact and return to `main` with 
 
 {{action:P01-return-base}}
 
-P02 is not available in this preview. Continue only after its guided Academy lesson is published. Do not
-use unpublished source exercises as a substitute for the accepted course.
+P02 is public, guided, and runnable in this preview. Continue with its published Academy lesson after
+you return to `main`; do not substitute unpublished source exercises for the accepted course.
 
 If P01 needs another attempt, use the preserved retry action.
 

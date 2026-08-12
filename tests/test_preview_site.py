@@ -72,12 +72,12 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
-    def test_preview_zero_eleven_publishes_only_the_exact_nine_lab_boundary(self) -> None:
-        """Catches P04/P05 missing from Preview 0.11 or P06-P08 gaining routes."""
+    def test_preview_zero_twelve_publishes_the_complete_guided_practitioner_boundary(self) -> None:
+        """Catches P06-P08 missing after their accepted guided promotion."""
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
-        manifest_path = publication / "preview-0.11.json"
+        manifest_path = publication / "preview-0.12.json"
         self.assertTrue(manifest_path.is_file())
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         public_labs = [
@@ -90,13 +90,12 @@ class PreviewSiteTests(unittest.TestCase):
             "P03-record-an-adr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
-        ]
-        coming_next = [
             "P06-context-drift-recovery",
             "P07-threat-model",
             "P08-repository-hygiene",
         ]
-        self.assertEqual(manifest["release"], "preview-0.11")
+        coming_next: list[str] = []
+        self.assertEqual(manifest["release"], "preview-0.12")
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             self.assertEqual(manifest[field], public_labs, field)
         self.assertEqual(manifest["coming_next"], coming_next)
@@ -104,22 +103,47 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="7" * 40)
         for lab_id in public_labs:
             self.assertTrue((self.out / "labs" / lab_id / "index.html").is_file(), lab_id)
-        for lab_id in coming_next:
-            self.assertFalse((self.out / "labs" / lab_id / "index.html").exists(), lab_id)
         for lab_id, action_id in (
             ("P04-review-a-dependency", "P04-prepare"),
             ("P05-checkpoint-remediation", "P05-prepare"),
+            ("P06-context-drift-recovery", "P06-prepare"),
+            ("P07-threat-model", "P07-prepare"),
+            ("P08-repository-hygiene", "P08-prepare"),
         ):
             rendered = (self.out / "labs" / lab_id / "index.html").read_text(encoding="utf-8")
             self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', rendered)
             self.assertIn(f'data-action-id="{action_id}"', rendered)
         index = (self.out / "index.html").read_text(encoding="utf-8")
-        self.assertIn("<strong>Guided: F01 through F04 and P01 through P05.</strong>", index)
-        self.assertIn("<strong>Coming next: P06 through P08.</strong>", index)
-        self.assertIn(
-            "This release publishes F01 through F04 and P01 through P05 only",
-            index,
+        self.assertIn("<strong>Current release inventory.</strong>", index)
+        self.assertIn("Preview 0.12", index)
+        self.assertIn("P08-repository-hygiene", index)
+
+    def test_shared_release_chrome_derives_from_the_validated_preview_manifest(self) -> None:
+        """Catches a future preview leaving a title, footer, or unavailable-next label stale."""
+        source = self._copy_public_source("release-chrome")
+        current = source / "academy" / "publication" / "preview-0.12.json"
+        alternate = json.loads(current.read_text(encoding="utf-8"))
+        alternate["release"] = "preview-9.9"
+        (source / "academy" / "publication" / "preview-9.9.json").write_text(
+            json.dumps(alternate), encoding="utf-8"
         )
+        destination = self.out.parent / "release-chrome-output"
+
+        with patch("academy_engine.preview._RELEASE", "preview-9.9"):
+            build_preview_site(source, destination, release_sha="9" * 40)
+
+        home = (destination / "index.html").read_text(encoding="utf-8")
+        recovery = (destination / "recovery" / "index.html").read_text(encoding="utf-8")
+        p08 = (destination / "labs" / "P08-repository-hygiene" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        for page in (home, recovery, p08):
+            self.assertIn('meta name="academy-release" content="preview-9.9"', page)
+            self.assertIn("Preview 9.9", page)
+            self.assertNotIn("Preview 0.12", page)
+        self.assertIn("<title>Arbiter Academy Preview 9.9</title>", home)
+        self.assertIn("Preview 9.9 release</a>", home)
+        self.assertIn("U01 is not available in Arbiter Academy Preview 9.9.", p08)
 
     def test_f03_guided_document_renders_action_cards_before_promotion(self) -> None:
         """The F03 document is action-backed before Preview 0.8 makes it public."""
@@ -142,8 +166,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Native terminal · Windows", html)
         self.assertNotIn("{{action:", html)
 
-    def test_p07_guided_document_renders_action_cards_without_entering_the_public_catalog(self) -> None:
-        """Catches a future private P07 guide losing action rendering or leaking into Preview 0.8."""
+    def test_p07_guided_document_renders_action_cards_as_a_public_route(self) -> None:
+        """Catches the public P07 route losing its shared action-card contract."""
         manifest = load_action_manifest(self.root, "P07-threat-model")
         actions = {action.id: action for action in manifest.actions}
         document = preview_site._read_markdown_document(
@@ -162,10 +186,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Native terminal · Windows", html)
         self.assertIn('data-copy-target="command-P07-check-windows"', html)
         build_preview_site(self.root, self.out, release_sha="f" * 40)
-        self.assertFalse((self.out / "labs" / "P07-threat-model" / "index.html").exists())
+        self.assertTrue((self.out / "labs" / "P07-threat-model" / "index.html").is_file())
 
-    def test_p08_private_guide_renders_all_action_cards_with_their_execution_identity(self) -> None:
-        """Catches P08 action cards disappearing before the lesson is eligible for publication."""
+    def test_p08_public_guide_renders_all_action_cards_with_their_execution_identity(self) -> None:
+        """Catches P08 action cards disappearing from its public route."""
         manifest = load_action_manifest(self.root, "P08-repository-hygiene")
         document = preview_site._read_markdown_document(
             self.root,
@@ -185,6 +209,22 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Codex harness", html)
         self.assertIn("Your agent · Codex harness", html)
         self.assertIn("agent-owned CodeArbiter command", html)
+        for action_id, pi_fallback in (
+            ("P08-run-standup", "/skill:ca-standup"),
+            ("P08-run-commit-gate", "/skill:ca-commit"),
+        ):
+            with self.subTest(action=action_id):
+                action = next(action for action in manifest.actions if action.id == action_id)
+                rendered = preview_site._render_action(action)
+                self.assertIn(pi_fallback, rendered)
+                self.assertEqual(rendered.count('class="command-copy"'), 4)
+                self.assertIn(
+                    f'data-copy-target="command-{action_id}-pi-fallback"', rendered
+                )
+        build_preview_site(self.root, self.out, release_sha="8" * 40)
+        self.assertTrue(
+            (self.out / "labs" / "P08-repository-hygiene" / "index.html").is_file()
+        )
 
     def test_public_p04_action_contract_creates_a_public_lesson_page(self) -> None:
         """Catches a guided P04 lesson missing from the promoted Preview 0.11 route set."""
@@ -256,7 +296,7 @@ class PreviewSiteTests(unittest.TestCase):
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
             with self.subTest(action=action_id):
                 rendered = preview_site._render_action(actions[action_id])
-                self.assertIn("Preview 0.11", rendered)
+                self.assertIn("preview-0.12", rendered)
                 self.assertIn("command-variant", rendered)
                 self.assertIn("command-copy", rendered)
                 self.assertIn("<pre>", rendered)
@@ -301,8 +341,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("only after its guided rewrite and acceptance evidence are complete", html)
         self.assertIn("Do not use unpublished source exercises", html)
 
-    def test_private_p06_guided_document_renders_copyable_actions_without_publishing_a_route(self) -> None:
-        """Catches P06 action cards losing their execution identity before public promotion."""
+    def test_p06_public_guided_document_renders_copyable_actions(self) -> None:
+        """Catches the public P06 route losing its action-card execution identity."""
         manifest = load_action_manifest(self.root, "P06-context-drift-recovery")
         document = preview_site._read_markdown_document(
             self.root,
@@ -319,8 +359,29 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('data-action-id="P06-run-context-audit"', html)
         self.assertIn('data-copy-target="command-P06-prepare-windows"', html)
         self.assertIn('data-copy-target="command-P06-check-linux"', html)
+        self.assertIn('data-action-id="P06-return-base"', html)
         self.assertIn("CodeArbiter command", html)
         self.assertIn("Check does not prove that the host command ran", html)
+        headings = re.findall(
+            r"^## (.+)$",
+            (self.root / "academy/tracks/practitioner/P06-context-drift-recovery.md").read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        self.assertEqual(
+            headings,
+            [
+                "Know before you begin",
+                "What you will prove",
+                "Prepare safely",
+                "Practice",
+                "Recognize success",
+                "Check",
+                "Recover or continue",
+                "Understand the mechanism",
+            ],
+        )
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        self.assertTrue((self.out / "labs" / "P06-context-drift-recovery" / "index.html").is_file())
 
     def test_public_release_record_contains_provenance_availability_and_support_contract(self) -> None:
         """Catches release.json shrinking to commit-only metadata instead of public release truth."""
@@ -427,8 +488,8 @@ class PreviewSiteTests(unittest.TestCase):
         finally:
             base_cleanup(temporary)
 
-    def test_build_emits_the_nine_guided_routes_and_a_status_only_next_sequence(self) -> None:
-        """Catches unfinished lessons becoming routes or disappearing from the public release status."""
+    def test_build_emits_the_complete_guided_practitioner_route_sequence(self) -> None:
+        """Catches an accepted Practitioner lesson missing from the public release."""
         build_preview_site(self.root, self.out, release_sha="a" * 40)
 
         self.assertTrue((self.out / "labs" / "F01-fork-clone-doctor" / "index.html").is_file())
@@ -440,17 +501,12 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertTrue((self.out / "labs" / "P03-record-an-adr" / "index.html").is_file())
         self.assertTrue((self.out / "labs" / "P04-review-a-dependency" / "index.html").is_file())
         self.assertTrue((self.out / "labs" / "P05-checkpoint-remediation" / "index.html").is_file())
-        self.assertFalse((self.out / "labs" / "P06-context-drift-recovery" / "index.html").exists())
-        self.assertFalse((self.out / "labs" / "P07-threat-model" / "index.html").exists())
-        self.assertFalse((self.out / "labs" / "P08-repository-hygiene" / "index.html").exists())
+        self.assertTrue((self.out / "labs" / "P06-context-drift-recovery" / "index.html").is_file())
+        self.assertTrue((self.out / "labs" / "P07-threat-model" / "index.html").is_file())
+        self.assertTrue((self.out / "labs" / "P08-repository-hygiene" / "index.html").is_file())
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn('href="labs/P05-checkpoint-remediation/index.html"', index)
-        self.assertIn("coming-next", index)
-        self.assertIn("Coming next", index)
-        self.assertIn(
-            "<strong>Practitioner</strong>: P06 through P08. Guided rewrites are in progress.",
-            index,
-        )
+        self.assertNotIn("<strong>Practitioner</strong>: P06 through P08. Guided rewrites are in progress.", index)
 
     def test_public_site_publishes_f04_guidance_and_keeps_practitioner_status_only(self) -> None:
         """Catches accepted F04 staying hidden or an unaccepted Practitioner lesson becoming a public route."""
@@ -484,11 +540,7 @@ class PreviewSiteTests(unittest.TestCase):
             r"<h3 id=\"verify-independently-and-preserve-the-result\">"
             r"Verify independently and preserve the result</h3>\s*<p>",
         )
-        self.assertIn("Coming next", index)
-        self.assertIn(
-            "<strong>Practitioner</strong>: P06 through P08. Guided rewrites are in progress.",
-            index,
-        )
+        self.assertNotIn("<strong>Practitioner</strong>: P06 through P08. Guided rewrites are in progress.", index)
 
     def test_static_checker_describes_the_exact_empty_coming_next_boundary(self) -> None:
         """Catches diagnostics that still describe the former P06-P07 boundary."""
@@ -508,7 +560,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            r"^home coming-next entries do not match the exact Preview 0\.11 guided-rewrite sequence$",
+            r"^home coming-next entries do not match the exact Preview 0\.12 guided-rewrite sequence$",
         ):
             check_preview_site(self.out)
 
@@ -633,6 +685,16 @@ class PreviewSiteTests(unittest.TestCase):
             ("P05-checkpoint-remediation", "P05-prepare"): ("prepare", "P05-checkpoint-remediation"),
             ("P05-checkpoint-remediation", "P05-check"): ("check", "P05-checkpoint-remediation"),
             ("P05-checkpoint-remediation", "P05-reset-retry"): ("reset", "P05-checkpoint-remediation"),
+            ("P06-context-drift-recovery", "P06-prepare"): ("prepare", "P06-context-drift-recovery"),
+            ("P06-context-drift-recovery", "P06-write-handoff"): ("write-handoff", "P06-context-drift-recovery"),
+            ("P06-context-drift-recovery", "P06-check"): ("check", "P06-context-drift-recovery"),
+            ("P06-context-drift-recovery", "P06-reset-retry"): ("reset", "P06-context-drift-recovery"),
+            ("P07-threat-model", "P07-prepare"): ("prepare", "P07-threat-model"),
+            ("P07-threat-model", "P07-check"): ("check", "P07-threat-model"),
+            ("P07-threat-model", "P07-reset"): ("reset", "P07-threat-model"),
+            ("P08-repository-hygiene", "P08-prepare"): ("prepare", "P08-repository-hygiene"),
+            ("P08-repository-hygiene", "P08-check"): ("check", "P08-repository-hygiene"),
+            ("P08-repository-hygiene", "P08-reset-retry"): ("reset", "P08-repository-hygiene"),
         }
         academy_looking = re.compile(
             r'^\s*(?:&\s+\$academy|"\$academy"|arbiter-academy(?:\.exe)?\b)'
@@ -662,6 +724,7 @@ class PreviewSiteTests(unittest.TestCase):
                             match.group("arguments")
                             .replace("(Get-Location).Path", ".")
                             .replace("(Resolve-Path -LiteralPath '<learner-repository>').Path", ".")
+                            .replace("$learnerRepository", ".")
                             .replace('"$(cd \'<learner-repository>\' && pwd)"', ".")
                             .replace('"$PWD"', ".")
                             .replace("<lab-id>", "F01-fork-clone-doctor")
@@ -706,16 +769,16 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Each lesson appears here only after its guided rewrite", html)
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
-        self.assertIn("Power User lessons are not included", html)
+        self.assertIn("Power User lessons are not part of this release", html)
         self.assertIn("Doctor", html)
         self.assertIn(
             "A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.",
             html,
         )
         self.assertIn('href="recovery/index.html"', html)
-        self.assertIn("<strong>Guided: F01 through F04 and P01 through P05.</strong>", html)
-        self.assertIn("<strong>Coming next: P06 through P08.</strong>", html)
-        self.assertNotIn("<strong>Coming next: F04 and P01 through P08.</strong>", html)
+        self.assertIn("<strong>Current release inventory.</strong>", html)
+        self.assertIn("<strong>Course boundary.</strong>", html)
+        self.assertNotIn('class="coming-next"', html)
 
     def test_first_lesson_requires_host_setup_but_not_an_impossible_fresh_clone_doctor_pass(self) -> None:
         """Catches beginner onboarding that blocks F01 on the remote repair it is meant to teach."""
@@ -801,10 +864,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.11/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.11/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.11/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.11/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.12/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.12/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.12/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.12/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
@@ -853,11 +916,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.11/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.12/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.11/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.12/install/install.sh"',
             html,
         )
         self.assertIn(
@@ -870,9 +933,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("does not need to pass before F01", html)
         self.assertIn("F01 teaches the remote repair", html)
         for state in (
-            "<strong>Guided: F01 through F04 and P01 through P05.</strong>",
-            "<strong>Coming next: P06 through P08.</strong>",
-            "<strong>Not yet scheduled.</strong>",
+            "<strong>Current release inventory.</strong>",
+            "<strong>Course boundary.</strong>",
         ):
             self.assertIn(state, html)
 
@@ -904,7 +966,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.11.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.12.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -1045,6 +1107,9 @@ class PreviewSiteTests(unittest.TestCase):
             "P03-record-an-adr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
+            "P07-threat-model",
+            "P08-repository-hygiene",
         )
         expected_files = {
             "assets/academy.css",
@@ -1071,10 +1136,13 @@ class PreviewSiteTests(unittest.TestCase):
         expected_links = [f'labs/{lab_id}/index.html' for lab_id in expected_labs]
         actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
         self.assertEqual(actual_links, expected_links)
-        self.assertIn("Guided rewrites are in progress.", index)
-        self.assertIn("coming-next", index)
-        self.assertFalse((self.out / "labs" / "P08-repository-hygiene" / "index.html").exists())
-        self.assertNotIn("P08-repository-hygiene", index)
+        self.assertIn('<meta name="academy-release" content="preview-0.12">', index)
+        self.assertIn("Current release inventory.", index)
+        self.assertIn("Graduation is unavailable until the complete 19-lab course is published.", index)
+        self.assertNotIn("Preview 0.11", index)
+        self.assertNotIn("coming-next", index)
+        self.assertTrue((self.out / "labs" / "P08-repository-hygiene" / "index.html").is_file())
+        self.assertIn("P08-repository-hygiene", index)
 
     def test_build_cli_honors_output_and_release_sha(self) -> None:
         """Catches the release workflow arguments being ignored by the real script entry point."""
@@ -1190,8 +1258,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotEqual(rejected.returncode, 0)
         self.assertIn("broken internal link", rejected.stderr)
 
-    def test_static_checker_rejects_stale_preview_0_4_artifact_mutations(self) -> None:
-        """Catches a stale Preview 0.4 identity substituted into Preview 0.8 output."""
+    def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
+        """Catches stale release identity or a changed public inventory in Preview 0.12 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -1206,11 +1274,11 @@ class PreviewSiteTests(unittest.TestCase):
                 'href="recovery/index.html"',
             ),
             (
-                "coming-next scope drift",
+                "runnable P08 link removed",
                 "replace",
                 Path("index.html"),
-                "<strong>Practitioner</strong>: P06 through P08. Guided rewrites are in progress.",
-                "<strong>Practitioner</strong>: P01 through P06. Guided rewrites are in progress.",
+                'href="labs/P08-repository-hygiene/index.html"',
+                'href="labs/P05-checkpoint-remediation/index.html"',
             ),
             (
                 "F01 missing guided label",
@@ -1307,7 +1375,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.11"',
+                '"release": "preview-0.12"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1420,26 +1488,27 @@ class PreviewSiteTests(unittest.TestCase):
 
         readme = (self.root / "README.md").read_text(encoding="utf-8")
         rendered_home = read_home(self.root, self.out)
-        for surface, text, release in (
-            ("README", readme, "Preview 0.11"),
-            ("home", rendered_home, "Preview 0.11"),
-        ):
+        for surface, text in (("README", readme), ("home", rendered_home)):
             with self.subTest(surface=surface):
                 normalized = " ".join(text.split())
-                self.assertIn(f"Graduation is not available in {release}", normalized)
+                self.assertIn("Graduation is unavailable until", normalized)
+                self.assertIn("complete 19-lab course", normalized)
                 self.assertNotRegex(
                     text,
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
                 )
 
-    def test_readme_matches_the_preview_zero_eleven_public_lesson_boundary(self) -> None:
+    def test_readme_matches_the_preview_zero_twelve_public_lesson_boundary(self) -> None:
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("Preview 0.11 publishes nine guided labs:", readme)
+        self.assertIn("Preview 0.12 publishes twelve guided labs:", readme)
         for lab_id in (
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
+            "P07-threat-model",
+            "P08-repository-hygiene",
         ):
             with self.subTest(lab=lab_id):
                 self.assertIn(
@@ -1711,7 +1780,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.11">'
+        current = '<meta name="academy-release" content="preview-0.12">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2615,8 +2684,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.11.json",
-            academy / "publication" / "preview-0.11.json",
+            self.root / "academy" / "publication" / "preview-0.12.json",
+            academy / "publication" / "preview-0.12.json",
         )
         for track in ("foundations", "practitioner"):
             shutil.copytree(

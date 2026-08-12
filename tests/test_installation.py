@@ -421,11 +421,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.11.json"
+                        "share/arbiter-academy/academy/publication/preview-0.12.json"
                     )
                     for name in names
                 ),
-                "preview-0.11.json",
+                "preview-0.12.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]

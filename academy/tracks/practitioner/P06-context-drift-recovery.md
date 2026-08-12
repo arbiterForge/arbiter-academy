@@ -15,7 +15,7 @@ next_lab: P07-threat-model
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.11. Its action cards document an unreleased lesson and do not create a public course route.
+P06 is a public guided and runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
 your worktree is clean: `git status --short` should print nothing. Keep a native terminal open at
@@ -71,6 +71,11 @@ a broad context rewrite, or a new baseline.
 
 {{action:P06-write-handoff}}
 
+The helper writes one untracked candidate. It does not stage, commit, reset, run Check, contact a
+network service, or replace a report that already exists.
+
+{{action:P06-stage-handoff}}
+
 {{action:P06-review-handoff-boundary}}
 
 {{action:P06-commit-handoff}}
@@ -107,19 +112,23 @@ and default with the context statement before you choose a route.
 
 ### Hint 2
 
-Before values come from the prepared Git objects. A filesystem hash read after an edit cannot prove
-what the prepared context, provenance, or note contained.
+Before values come from prepared Git objects. A filesystem hash read after an edit cannot prove the
+earlier context, provenance, or note.
 
 ### Hint 3
 
-Keep the correction and handoff separate. The first commit has two paths; the second has one. The
-note’s two digests match because leaving an unrelated file untouched is the point of the exercise.
+Keep the correction and handoff separate: the first commit has two paths, the second has one.
+
+After Check passes, leave the completed branch intact and return to `main` with this native-terminal action.
+
+{{action:P06-return-base}}
+
+If Check did not pass, use Reset to create a preserved numbered retry.
 
 {{action:P06-reset-retry}}
 
-After Check passes, leave the completed branch intact and return to `main` when you are ready. P07
-appears on the course home only after its guided rewrite and acceptance evidence are complete. Do
-not use unpublished source exercises as a substitute for the accepted course.
+P07 is public, guided, and runnable in this preview. Continue with its published Academy lesson after
+you return to `main`; do not substitute unpublished source exercises for the accepted course.
 
 ## Understand the mechanism
 

@@ -22,6 +22,9 @@ from academy_engine.lesson_actions import (
 from academy_engine.preview import load_preview_manifest
 
 
+CURRENT_RELEASE = load_preview_manifest(Path(__file__).parents[1]).release
+
+
 DOCUMENT_ID = "F01-fork-clone-doctor"
 F01_ACTION_IDS = (
     "F01-prepare",
@@ -171,9 +174,11 @@ P06_ACTION_IDS = (
     "P06-review-correction-boundary",
     "P06-commit-correction",
     "P06-write-handoff",
+    "P06-stage-handoff",
     "P06-review-handoff-boundary",
     "P06-commit-handoff",
     "P06-check",
+    "P06-return-base",
     "P06-reset-retry",
 )
 P07_DOCUMENT_ID = "P07-threat-model"
@@ -345,6 +350,27 @@ class LessonActionTests(unittest.TestCase):
             any(variant.surface == "harness" and variant.language == "text" for variant in actions["P08-request-report-draft"].variants)
         )
 
+        for action_id, command in (
+            ("P08-run-standup", "standup"),
+            ("P08-run-commit-gate", "commit"),
+        ):
+            action = actions[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "agent")
+                self.assertEqual(
+                    tuple((variant.host, variant.command) for variant in action.variants),
+                    (
+                        ("claude-code", f"/ca:{command}"),
+                        ("codex", f"$ca-{command}"),
+                        ("pi", f"/ca-{command}"),
+                        ("pi", f"/skill:ca-{command}"),
+                    ),
+                )
+                self.assertTrue(all(variant.copy for variant in action.variants))
+                self.assertTrue(
+                    all(variant.language == "codearbiter" for variant in action.variants)
+                )
+
         for action in manifest.actions:
             for variant in action.variants:
                 with self.subTest(action=action.id, variant=variant.id):
@@ -356,6 +382,23 @@ class LessonActionTests(unittest.TestCase):
                     if variant.language == "codearbiter":
                         self.assertEqual(action.actor, "agent")
                         self.assertFalse(variant.command.startswith("!"))
+
+    def test_p08_installed_academy_actions_use_current_preview_locations(self) -> None:
+        """Catches P08 routing a first-time learner to a command absent from PATH."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P08_DOCUMENT_ID)
+        by_id = {action.id: action for action in manifest.actions}
+        expected_locations = {
+            "windows": rf"$env:LOCALAPPDATA\ArbiterAcademy\{CURRENT_RELEASE}\Scripts\arbiter-academy.exe",
+            "macos": f"${{XDG_DATA_HOME:-$HOME/.local/share}}/arbiter-academy/{CURRENT_RELEASE}/bin/arbiter-academy",
+            "linux": f"${{XDG_DATA_HOME:-$HOME/.local/share}}/arbiter-academy/{CURRENT_RELEASE}/bin/arbiter-academy",
+        }
+
+        for action_id in ("P08-prepare", "P08-check", "P08-reset-retry"):
+            variants = {variant.operating_system: variant for variant in by_id[action_id].variants}
+            for platform, location in expected_locations.items():
+                with self.subTest(action_id=action_id, platform=platform):
+                    self.assertIn(location, variants[platform].command)
+                    self.assertIn(CURRENT_RELEASE, variants[platform].command)
 
     def test_checked_in_p04_manifest_teaches_a_reviewed_no_install_rejection_path(self) -> None:
         """Catches P04 returning to vague dependency advice or an install-shaped command path."""
@@ -490,7 +533,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.11" in variant.command for variant in action.variants))
+                self.assertTrue(all(CURRENT_RELEASE in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         return_base = by_id["P01-return-base"]
@@ -677,14 +720,14 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("does not authenticate", check_copy)
         self.assertIn("does not prove command chronology", check_copy)
 
-    def test_p05_installed_academy_actions_use_preview_0_11_locations(self) -> None:
+    def test_p05_installed_academy_actions_use_current_preview_locations(self) -> None:
         """Catches Prepare, Check, or Reset routing learners to the obsolete install."""
         manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
         by_id = {action.id: action for action in manifest.actions}
         expected_locations = {
-            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.11\Scripts\arbiter-academy.exe",
-            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy",
-            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy",
+            "windows": rf"$env:LOCALAPPDATA\ArbiterAcademy\{CURRENT_RELEASE}\Scripts\arbiter-academy.exe",
+            "macos": f"${{XDG_DATA_HOME:-$HOME/.local/share}}/arbiter-academy/{CURRENT_RELEASE}/bin/arbiter-academy",
+            "linux": f"${{XDG_DATA_HOME:-$HOME/.local/share}}/arbiter-academy/{CURRENT_RELEASE}/bin/arbiter-academy",
         }
 
         for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
@@ -772,7 +815,7 @@ class LessonActionTests(unittest.TestCase):
                 self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
 
     def test_checked_in_p06_manifest_names_every_actor_surface_and_recovery_boundary(self) -> None:
-        """Catches private P06 guidance asking learners to infer execution surfaces."""
+        """Catches public P06 guidance asking learners to infer execution surfaces."""
         manifest = load_action_manifest(Path(__file__).parents[1], P06_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P06_ACTION_IDS)
         self.assertTrue(all(action.expected_result for action in manifest.actions))
@@ -780,6 +823,7 @@ class LessonActionTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(by_id["P06-run-context-audit"].actor, "agent")
         self.assertEqual(by_id["P06-apply-correction"].actor, "agent")
+        self.assertEqual(by_id["P06-write-handoff"].actor, "learner")
         self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
         self.assertEqual(by_id["P06-review-correction-boundary"].surface, "active-harness")
         self.assertEqual(by_id["P06-review-handoff-boundary"].surface, "active-harness")
@@ -814,11 +858,48 @@ class LessonActionTests(unittest.TestCase):
                         self.assertEqual(variant.host, "none")
                         self.assertFalse(variant.command.startswith("!"))
 
-        for action_id in ("P06-prepare", "P06-check", "P06-reset-retry"):
+        for action_id in ("P06-prepare", "P06-write-handoff", "P06-check", "P06-return-base", "P06-reset-retry"):
             self.assertEqual(
                 {variant.operating_system for variant in by_id[action_id].variants},
                 {"windows", "macos", "linux"},
             )
+
+        handoff = by_id["P06-write-handoff"]
+        self.assertTrue(
+            all(
+                variant.surface == "native-terminal"
+                and variant.host == "none"
+                and "write-handoff P06-context-drift-recovery" in variant.command
+                and not variant.command.startswith("!")
+                for variant in handoff.variants
+            )
+        )
+
+        stage_handoff = by_id["P06-stage-handoff"]
+        self.assertEqual(stage_handoff.actor, "learner")
+        self.assertEqual(
+            tuple(variant.command for variant in stage_handoff.variants),
+            (
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+                "git add -- .codearbiter/reports/academy/P06-recovery.json",
+            ),
+        )
+        self.assertTrue(
+            all(
+                variant.surface == "native-terminal"
+                and variant.host == "none"
+                and not variant.command.startswith("!")
+                for variant in stage_handoff.variants
+            )
+        )
+        self.assertIn("only .codearbiter/reports/academy/P06-recovery.json", stage_handoff.expected_result)
+        self.assertIn("use Reset", stage_handoff.recovery)
+        self.assertIn("second commit", stage_handoff.evidence or "")
+
+        return_base = by_id["P06-return-base"]
+        self.assertEqual(return_base.actor, "learner")
+        self.assertTrue(all("git switch main" in variant.command for variant in return_base.variants))
 
     def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
         """Catches release-bound commands retaining stale paths or missing a planned boundary."""
@@ -834,9 +915,7 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
-                    public_documents = {"home", "recovery", *load_preview_manifest(root).guided_labs}
-                    expected_release = "preview-0.11" if document_id in public_documents else "preview-0.10"
-                    self.assertIn(expected_release, commands)
+                    self.assertIn(load_preview_manifest(root).release, commands)
                     for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
                         self.assertNotIn(stale, commands)
 
@@ -855,7 +934,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.11" in variant.command for variant in action.variants))
+                self.assertTrue(all(CURRENT_RELEASE in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (
@@ -1758,7 +1837,7 @@ class LessonActionTests(unittest.TestCase):
             self.assertIn("git ls-remote upstream", command)
         for action_id in ("P02-record-receipt", "P02-check", "P02-reset"):
             commands = tuple(variant.command for variant in by_id[action_id].variants)
-            self.assertTrue(all("preview-0.11" in command for command in commands))
+            self.assertTrue(all(CURRENT_RELEASE in command for command in commands))
             self.assertTrue(all("$academy" in command for command in commands))
             self.assertTrue(all(command.splitlines()[0].startswith("academy=") or command.splitlines()[0].startswith("$academy =") for command in commands))
         recorder = by_id["P02-record-receipt"]

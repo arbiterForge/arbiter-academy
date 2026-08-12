@@ -20,6 +20,7 @@ from academy_engine.curriculum import CurriculumError, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.evidence import record_checkpoint
 from academy_engine.external_state import ExternalStateError, ExternalStateStore
+from academy_engine.p06_handoff import P06HandoffError, write_p06_handoff
 from academy_engine.progress import inspect_progress
 from academy_engine.preview import require_graduation_available, require_published_lab
 from academy_engine.receipt import ReceiptPrivacyError, export_catalog, graduate
@@ -83,6 +84,7 @@ def _parser() -> argparse.ArgumentParser:
             "export-catalog",
             "verify-track",
             "record",
+            "write-handoff",
         ),
     )
     parser.add_argument("lab_id", nargs="?")
@@ -107,13 +109,16 @@ def main(argv: list[str] | None = None) -> int:
     authoritative_exercise = (
         arguments.command in {"prepare", "reset", "record"}
         and arguments.lab_id in {"P02-commit-review-pr", "P08-repository-hygiene"}
+    ) or (
+        arguments.command == "write-handoff"
+        and arguments.lab_id == "P06-context-drift-recovery"
     )
     later_p02_reachable = (
         arguments.command in {"prepare", "reset"}
         and arguments.lab_id != "P02-commit-review-pr"
         and p02_state_reachable(arguments.lab_id)
     )
-    if (arguments.command in {"check", "graduate", "record"} or authoritative_exercise) and arguments.repository is None:
+    if (arguments.command in {"check", "graduate", "record", "write-handoff"} or authoritative_exercise) and arguments.repository is None:
         parser.error(f"{arguments.command} requires --repository TARGET")
     requested_repository = (
         arguments.repository.expanduser().resolve()
@@ -122,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         repository = repository_root(requested_repository)
-        if arguments.command in {"prepare", "reset", "check", "record"} and arguments.lab_id:
+        if arguments.command in {"prepare", "reset", "check", "record", "write-handoff"} and arguments.lab_id:
             require_published_lab(_verifier_publication_root(), arguments.lab_id)
         if arguments.command == "graduate":
             require_graduation_available(_verifier_publication_root())
@@ -213,6 +218,16 @@ def main(argv: list[str] | None = None) -> int:
                 f"{receipt_path}"
             )
             return 0
+        if arguments.command == "write-handoff":
+            if arguments.lab_id != "P06-context-drift-recovery":
+                parser.error("write-handoff is available only for P06-context-drift-recovery")
+            destination = write_p06_handoff(repository)
+            try:
+                handoff_path = destination.relative_to(repository).as_posix()
+            except ValueError as error:
+                raise VerifierTrustError("P06 handoff is invalid.") from error
+            print(f"Drafted P06 recovery handoff: {handoff_path}")
+            return 0
         if arguments.command == "update":
             print(update_academy(repository).render())
             return 0
@@ -258,6 +273,7 @@ def main(argv: list[str] | None = None) -> int:
         RemoteSafetyError,
         UpdateError,
         CheckpointError,
+        P06HandoffError,
         ReceiptPrivacyError,
         VerifierTrustError,
         ValueError,

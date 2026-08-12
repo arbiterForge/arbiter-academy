@@ -74,6 +74,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("The website is the primary lesson surface.", guide)
         self.assertIn("Academy CLI is limited to Prepare, Check, and Reset.", guide)
         self.assertIn("Check does not prove that the agent ran standup", guide)
+        self.assertIn(
+            "Check cannot prove personal understanding, agent invocation, or human review.",
+            guide,
+        )
         self.assertIn("A passing Check does not make a deletion safe", normalized_guide)
         self.assertIn("The agent drafts the report; you review it", normalized_guide)
         self.assertLess(guide.index("{{action:P08-review-report}}"), guide.index("{{action:P08-stage-report}}"))
@@ -165,7 +169,13 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         ("P08-reset-retry", "reset P08-repository-hygiene"),
                     ):
                         with self.subTest(action=action_id):
-                            self.assertTrue(any(assignment in variant.command and command in variant.command for variant in actions[action_id].variants))
+                            self.assertTrue(
+                                any(
+                                    "$academy" in variant.command
+                                    and command in variant.command
+                                    for variant in actions[action_id].variants
+                                )
+                            )
                     continue
                 if lab.id == "P07-threat-model":
                     manifest = load_action_manifest(SOURCE, lab.id)
@@ -187,7 +197,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                             self.assertTrue(all(variant.copy for variant in variants))
                             self.assertTrue(
                                 all(
-                                    "preview-0.10" in variant.command
+                                    load_preview_manifest(SOURCE).release in variant.command
                                     and f"{operation} {lab.id}" in variant.command
                                     and "!" not in variant.command
                                     for variant in variants
@@ -199,7 +209,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.11")
+                    self.assertEqual(release.release, "preview-0.12")
                     self.assertIn(lab.id, release.runnable_labs)
                     self.assertIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -222,8 +232,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                             action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
                             self.assertTrue(
                             all(
-                                ("preview-0.11" if lab.id in load_preview_manifest(SOURCE).guided_labs else "preview-0.10")
-                                in variant.command
+                                load_preview_manifest(SOURCE).release in variant.command
                                 for variant in action.variants
                             )
                             )
@@ -253,8 +262,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 )
                 self.assertNotIn("python scripts/academy.py reset", lab.recovery)
 
-    def test_post_p05_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
-        """Future lesson commands must not escape the published Academy boundary."""
+    def test_post_p02_transitions_are_available_only_after_their_guided_rewrites_are_accepted(self) -> None:
+        """Every promoted Practitioner transition must use installed verifier authority."""
         try:
             track = load_track(SOURCE, "practitioner")
         except CurriculumError as error:
@@ -264,15 +273,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
         guided = set(manifest.guided_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in guided),
-            (
-                "P03-record-an-adr",
-                "P04-review-a-dependency",
-                "P05-checkpoint-remediation",
-            ),
+            POST_P02_PRACTITIONER,
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in guided),
-            PRACTITIONER[5:],
+            (),
         )
 
         for lab in track.labs[2:]:
@@ -303,24 +308,15 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         ]
                     )
 
-                if lab.id in guided:
-                    self.assertEqual(exit_code, 0)
-                    validated.assert_called_once_with(SOURCE)
-                    authoritative.assert_called_once_with(SOURCE)
-                    transitioned.assert_called_once_with(
-                        SOURCE,
-                        lab.id,
-                        installed_authority=True,
-                    )
-                else:
-                    self.assertEqual(exit_code, 1)
-                    self.assertEqual(
-                        output.getvalue(),
-                        f"error: {lab.id} is not guided in Academy Preview {manifest.release.removeprefix('preview-')}\n",
-                    )
-                    validated.assert_not_called()
-                    authoritative.assert_not_called()
-                    transitioned.assert_not_called()
+                self.assertIn(lab.id, guided)
+                self.assertEqual(exit_code, 0)
+                validated.assert_called_once_with(SOURCE)
+                authoritative.assert_called_once_with(SOURCE)
+                transitioned.assert_called_once_with(
+                    SOURCE,
+                    lab.id,
+                    installed_authority=True,
+                )
 
     def test_published_lessons_do_not_direct_progression_to_unavailable_labs(self) -> None:
         manifest = load_preview_manifest(SOURCE)
@@ -344,6 +340,20 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         r"guided Academy\s+lesson is published",
                     )
                     self.assertNotIn(f"Continue to {next_code} only after {current_code} passes", guide)
+
+    def test_promoted_practitioner_guides_describe_their_now_public_next_lessons(self) -> None:
+        """Catches public lesson prose retaining a former private-release boundary."""
+        p01 = (SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md").read_text(
+            encoding="utf-8"
+        )
+        p06 = (SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("P02 is public, guided, and runnable in this preview", p01)
+        self.assertNotIn("P02 is unavailable", p01)
+        self.assertIn("P07 is public, guided, and runnable in this preview", p06)
+        self.assertNotIn("P07 appears on the course home only after", p06)
 
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         """Catches a missing/reordered lab or a guide wired to the wrong governed surface."""
@@ -464,7 +474,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-reset-retry",
             ),
         )
-        self.assertIn("P01 is the first Practitioner lesson in Preview 0.11.", guide)
+        self.assertIn("P01 is the first Practitioner lesson in this preview.", guide)
         self.assertIn("### If review finds a concrete correction", guide)
         self.assertRegex(
             guide,
@@ -748,7 +758,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
     def test_p04_cannot_be_public_before_p03_closes_its_prerequisite(self) -> None:
         """Catches P04 being promoted while its required P03 lesson remains absent."""
-        path = SOURCE / "academy/publication/preview-0.11.json"
+        path = SOURCE / "academy/publication/preview-0.12.json"
         candidate = json.loads(path.read_text(encoding="utf-8"))
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             candidate[field].remove("P03-record-an-adr")
@@ -780,7 +790,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "test-only RED", "code-only GREEN", "schema_version", "red_commit",
             "remediation_commit", "receipt last", "not evidence that either command was invoked",
             "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
-            "P06 becomes available when its guided Academy lesson is published",
+            "P06 is the next public guided Academy lesson",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
@@ -897,13 +907,13 @@ class PractitionerCurriculumTests(unittest.TestCase):
             (
                 "P06-prepare", "P06-inspect-evidence", "P06-run-context-audit",
                 "P06-select-rescout", "P06-apply-correction", "P06-review-correction-boundary",
-                "P06-commit-correction", "P06-write-handoff", "P06-review-handoff-boundary",
-                "P06-commit-handoff", "P06-check", "P06-reset-retry",
+                "P06-commit-correction", "P06-write-handoff", "P06-stage-handoff", "P06-review-handoff-boundary",
+                "P06-commit-handoff", "P06-check", "P06-return-base", "P06-reset-retry",
             ),
         )
 
     def test_p06_is_a_complete_eight_heading_guided_document_without_raw_command_fences(self) -> None:
-        """Catches a private P06 rewrite regressing to prose-only or surface-ambiguous steps."""
+        """Catches a public P06 rewrite regressing to prose-only or surface-ambiguous steps."""
         guide = (
             SOURCE / "academy/tracks/practitioner/P06-context-drift-recovery.md"
         ).read_text(encoding="utf-8")
@@ -929,8 +939,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "P06-apply-correction",
             "P06-commit-correction",
             "P06-write-handoff",
+            "P06-stage-handoff",
             "P06-commit-handoff",
             "P06-check",
+            "P06-return-base",
             "P06-reset-retry",
         ):
             with self.subTest(action_id=action_id):
@@ -951,7 +963,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         for variant in reset.variants:
             with self.subTest(variant=variant.id):
-                self.assertIn("preview-0.10", variant.command)
+                self.assertIn(load_preview_manifest(SOURCE).release, variant.command)
                 self.assertIn("reset P06-context-drift-recovery", variant.command)
                 self.assertNotIn("<learner-repository>", variant.command)
 
@@ -1112,7 +1124,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertNotIn("proves that `$ca-threat-model`", guide)
         self.assertNotIn("native Academy", guide)
 
-    def test_p07_is_a_private_action_backed_threat_model_lesson(self) -> None:
+    def test_p07_is_a_public_action_backed_threat_model_lesson(self) -> None:
         """Catches P07 returning to raw commands or claiming Check proves live process."""
         guide = (SOURCE / "academy/tracks/practitioner/P07-threat-model.md").read_text(encoding="utf-8")
         manifest = load_action_manifest(SOURCE, "P07-threat-model")
@@ -1143,7 +1155,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "strict UTF-8 with LF line endings", "S, T, R, I, D, E order",
             "Academy Target-SHA256/identity binding", "does not prove that a host command was invoked",
             "does not prove that the agent drafted first", "does not prove that you reviewed",
-            "Neither clearance outcome authorizes a P07 code change", "P07 remains private",
+            "Neither clearance outcome authorizes a P07 code change", "public guided and runnable Academy lesson",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, normalized)
@@ -1335,9 +1347,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())
 
-    def test_private_practitioner_drafts_name_their_preview_boundary_without_command_claims(self) -> None:
-        """Catches an unpublished draft being mistaken for the current public lesson set."""
-        release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
+    def test_promoted_practitioner_lessons_name_their_public_boundary(self) -> None:
+        """Catches a public P06-P08 lesson retaining private-draft status copy."""
         for document_id in (
             "P06-context-drift-recovery",
             "P07-threat-model",
@@ -1347,12 +1358,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 guide = (
                     SOURCE / f"academy/tracks/practitioner/{document_id}.md"
                 ).read_text(encoding="utf-8")
-                self.assertIn(
-                    f"unavailable in {release_display}",
-                    guide,
-                )
-                self.assertNotIn(document_id, load_preview_manifest(SOURCE).guided_labs)
-                self.assertNotIn(document_id, load_preview_manifest(SOURCE).runnable_labs)
+                self.assertIn("public guided and runnable Academy lesson in this preview", guide)
+                self.assertIn(document_id, load_preview_manifest(SOURCE).guided_labs)
+                self.assertIn(document_id, load_preview_manifest(SOURCE).runnable_labs)
 
     def test_p02_uses_the_rendered_reset_action_and_records_the_stage_work_design_step(self) -> None:
         """Catches a private draft teaching a raw reset path or omitting the staging design step."""

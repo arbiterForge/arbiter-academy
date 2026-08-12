@@ -1,4 +1,4 @@
-"""Build the fail-closed static public surface for Academy Preview 0.11."""
+"""Build the fail-closed static public surface for the configured Academy preview."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ _ACTION_MILESTONES = {
 
 
 def build_preview_site(root: Path, out: Path, *, release_sha: str | None = None) -> None:
-    """Render only the reviewed Preview 0.11 pages into *out*.
+    """Render only the reviewed configured-preview pages into *out*.
 
     All inputs are validated before any page is written so a missing lesson
     cannot leave a partial public site behind.
@@ -759,6 +759,8 @@ def _render_pages(
     templates: dict[str, Template],
     commit: str,
 ) -> dict[Path, str]:
+    release_label = _release_label(manifest.release)
+    graduation_notice = manifest.known_limits[-1]
     available_labs = "\n".join(
         '<li><a href="labs/{id}/index.html">{heading}</a><p>{outcome}</p></li>'.format(
             id=escape(lab_id, quote=True),
@@ -799,7 +801,7 @@ def _render_pages(
     pages: dict[Path, str] = {
         Path("index.html"): _page(
             templates,
-            "Arbiter Academy Preview 0.11",
+            f"Arbiter Academy {release_label}",
             templates["index"].substitute(
                 guide_content=(
                     "" if guides["home"] is None else str(guides["home"]["content"])
@@ -807,12 +809,15 @@ def _render_pages(
                 available_labs=available_labs,
                 coming_next_section=coming_next_section,
                 discussion_url=escape(manifest.discussion_url, quote=True),
+                release_label=escape(release_label),
+                graduation_notice=escape(graduation_notice),
             ),
             root_prefix="",
+            release=manifest.release,
         ),
         Path("recovery/index.html"): _page(
             templates,
-            "Recovery | Arbiter Academy Preview 0.11",
+            f"Recovery | Arbiter Academy {release_label}",
             templates["recovery"].substitute(
                 guide_content=(
                     ""
@@ -821,6 +826,7 @@ def _render_pages(
                 )
             ),
             root_prefix="../",
+            release=manifest.release,
         ),
         Path("release.json"): json.dumps(
             {
@@ -848,7 +854,7 @@ def _render_pages(
                 id=escape(next_lab, quote=True)
             )
         else:
-            next_step = f"{escape(_lab_code(next_lab))} is not available in Academy Preview 0.11."
+            next_step = f"{escape(_lab_code(next_lab))} is not available in Arbiter Academy {escape(release_label)}."
         previous_link = ""
         if position:
             previous = lab_order[position - 1]
@@ -867,7 +873,7 @@ def _render_pages(
         track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
-            f"{lesson['title']} | Arbiter Academy Preview 0.11",
+            f"{lesson['title']} | Arbiter Academy {release_label}",
             templates["lab"].substitute(
                 lab_id=escape(lab_id),
                 track=track_label,
@@ -887,6 +893,7 @@ def _render_pages(
                 next_link=next_link,
             ),
             root_prefix="../../",
+            release=manifest.release,
         )
     return pages
 
@@ -897,7 +904,9 @@ def _page(
     body: str,
     *,
     root_prefix: str,
+    release: str,
 ) -> str:
+    release_label = _release_label(release)
     return templates["base"].substitute(
         title=escape(title),
         body=body,
@@ -907,7 +916,17 @@ def _page(
         script_url=f"{root_prefix}assets/academy.js",
         favicon_url=f"{root_prefix}assets/favicon.svg",
         logo_url=f"{root_prefix}assets/logo.svg",
+        release=escape(release),
+        release_label=escape(release_label),
     )
+
+
+def _release_label(release: str) -> str:
+    """Render the human release label from the validated immutable release ID."""
+    prefix = "preview-"
+    if not release.startswith(prefix):
+        raise ValueError("preview manifest release must begin with preview-")
+    return f"Preview {release.removeprefix(prefix)}"
 
 
 def _lab_code(lab_id: str) -> str:
