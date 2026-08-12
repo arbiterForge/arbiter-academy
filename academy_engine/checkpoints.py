@@ -164,7 +164,7 @@ _PROFILES = {
     "stride_model": ("model", "target", "target_blob", "target_sha256"),
     "hygiene_snapshot": ("snapshot",),
     "p08_authenticated": (),
-    "sprint_decisions": ("spec", "plan", "sprint_log"),
+    "sprint_decisions": ("spec", "plan", "sprint_log", "brief", "deliverable"),
     "override_audit_metrics": ("overrides", "audit", "metrics"),
     "refactor_chore_release": ("code", "test", "chore", "tag_prefix"),
     "initialized_fixture": ("workspace", "report"),
@@ -186,7 +186,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json", "source": "workshop_queue/cli.py", "preserved_path": "docs/preserved-note.md", "provenance": ".codearbiter/.provenance/CONTEXT.json"}),
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
-    "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md"}),
+    "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "tag_prefix": "academy-v"}),
     "U04-initialize-projects": ("initialized_secondary_fixture", "initialized_fixture", {"workspace": ".academy/workspaces/U04-secondary", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
@@ -2573,6 +2573,104 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     )
 
 
+_U01_BRIEF = {
+    "schema_version": 1,
+    "lab_id": "U01-autonomous-sprint",
+    "deliverable": "docs/academy-sprint-summary.md",
+    "title": "Operate a bounded autonomous sprint",
+    "required_topics": (
+        "approval boundary",
+        "SMARTS decision trail",
+        "hard-gate stop",
+    ),
+}
+
+
+def _u01_sections(text: str, title: str, headings: tuple[str, ...]) -> dict[str, str] | None:
+    if not text.startswith(f"# {title}\n"):
+        return None
+    matches = list(re.finditer(r"(?m)^## (?P<heading>[^\n]+)\n", text))
+    if tuple(match.group("heading") for match in matches) != headings:
+        return None
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[match.end():end].strip()
+        if not body:
+            return None
+        sections[match.group("heading")] = body
+    return sections
+
+
+def _u01_sprint_decisions(context: _SemanticContext) -> bool:
+    data, root, attempt = context.predicate.data, context.root, context.attempt
+    paths = {key: str(data[key]) for key in ("spec", "plan", "sprint_log", "brief", "deliverable")}
+    brief = _json(root, attempt.prepared, paths["brief"])
+    if brief is None or brief != {**_U01_BRIEF, "required_topics": list(_U01_BRIEF["required_topics"])}:
+        return False
+    baseline_log = _git_blob(root, attempt.prepared, paths["sprint_log"])
+    final_log = _git_blob(root, attempt.head, paths["sprint_log"])
+    spec = _text(root, attempt.head, paths["spec"])
+    plan = _text(root, attempt.head, paths["plan"])
+    deliverable = _text(root, attempt.head, paths["deliverable"])
+    if (
+        baseline_log is None
+        or final_log is None
+        or not final_log.startswith(baseline_log)
+        or len(final_log) <= len(baseline_log)
+        or spec is None
+        or plan is None
+        or deliverable is None
+        or any(_git_blob(root, attempt.prepared, paths[key]) is not None for key in ("spec", "plan", "deliverable"))
+    ):
+        return False
+    commits = tuple(
+        line
+        for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines()
+        if _SHA40.fullmatch(line)
+    )
+    expected_paths = {paths["spec"], paths["plan"], paths["sprint_log"], paths["deliverable"]}
+    clean = not run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False).stdout
+    spec_sections = _u01_sections(spec, "Academy sprint: operator guide", ("Problem", "Scope", "Acceptance criteria", "Open questions"))
+    plan_sections = _u01_sections(plan, "Academy sprint plan", ("Acceptance criteria ledger", "Tasks", "MVP slice"))
+    deliverable_sections = _u01_sections(deliverable, str(brief["title"]), ("Approval boundary", "SMARTS decision trail", "Hard-gate stop"))
+    if spec_sections is None or plan_sections is None or deliverable_sections is None:
+        return False
+    scope = spec_sections["Scope"].casefold()
+    required_scope = paths["deliverable"].casefold()
+    topics = tuple(str(item) for item in brief["required_topics"])
+    suffix = final_log[len(baseline_log):].decode("utf-8", "surrogateescape")
+    return bool(
+        commits == (attempt.head,)
+        and set(_commit_paths(root, attempt.head)) == expected_paths
+        and clean
+        and required_scope in scope
+        and all(
+            token in scope
+            for token in (
+                "does not change",
+                "does not push",
+                "product code",
+                "tests",
+                "dependencies",
+                "remote",
+                "network",
+            )
+        )
+        and scope.count("push") == 1
+        and "none." == spec_sections["Open questions"].casefold()
+        and all(topic.casefold() in deliverable.casefold() for topic in topics)
+        and all(token in plan_sections["Acceptance criteria ledger"] for token in ("AC-01", "AC-02"))
+        and paths["deliverable"] in plan_sections["Tasks"]
+        and plan_sections["MVP slice"].strip() == "T-01"
+        and "academy-sprint" in suffix
+        and "**SMARTS:**" in suffix
+        and "**Chosen:**" in suffix
+        and re.search(r"(?i)confidence:\s*(?:high|low)", suffix) is not None
+        and "intent:" in suffix
+    )
+
+
 def _live_hygiene_inventory(
     root: Path, attempt: _Attempt
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -3040,8 +3138,7 @@ def _semantic(context: _SemanticContext) -> bool:
         except (OSError, TypeError, ValueError):
             return False
     if profile == "sprint_decisions":
-        # Task 9 supplies the governed sprint approval/decision predicate and fixture.
-        return False
+        return _u01_sprint_decisions(context)
     if profile == "override_audit_metrics":
         overrides, audit, metrics = (str(data[key]) for key in ("overrides", "audit", "metrics"))
         override_text = _changed_document(context, overrides)

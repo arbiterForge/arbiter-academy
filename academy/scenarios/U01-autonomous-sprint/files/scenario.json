@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"U01-autonomous-sprint","operation":"autonomous_sprint","target":"academy-sprint","starting_condition":"approval-required"}
+{"schema_version":1,"lab_id":"U01-autonomous-sprint","operation":"autonomous_sprint","target":"academy-sprint","starting_condition":"approval-required","deliverable":"docs/academy-sprint-summary.md","title":"Operate a bounded autonomous sprint","required_topics":["approval boundary","SMARTS decision trail","hard-gate stop"]}
