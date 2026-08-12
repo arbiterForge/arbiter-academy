@@ -341,7 +341,7 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
                 self.assertNotIn("install.ps1", "\n".join(names))
                 self.assertNotIn("install.sh", "\n".join(names))
                 for info in archive.infolist():
-                    self.assertEqual(info.date_time, (2026, 1, 1, 0, 0, 0), info.filename)
+                    self.assertEqual(info.date_time, (2026, 8, 12, 0, 0, 0), info.filename)
                     self.assertEqual((info.external_attr >> 16) & 0o777, 0o644, info.filename)
                 manifest_bytes = archive.read("bundle-manifest.json")
                 wheel_bytes = archive.read("wheelhouse/workshop_queue-0.1.0-py3-none-any.whl")

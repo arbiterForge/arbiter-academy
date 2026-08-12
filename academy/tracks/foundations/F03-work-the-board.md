@@ -86,8 +86,7 @@ belongs in the commit.
 
 {{action:F03-return-base}}
 
-After a passing Check, return to `main` and continue to F04. Keep every completed or failed attempt
-branch intact for later verification.
+After a passing Check, return to `main`. The next Academy lesson appears on the course home only after its guided rewrite. Keep every completed or failed attempt branch intact for later verification.
 
 ## Understand the mechanism
 

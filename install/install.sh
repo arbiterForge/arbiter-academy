@@ -4,7 +4,7 @@ umask 077
 
 RELEASE='preview-0.7'
 ARCHIVE_NAME='arbiter-academy-preview-0.7.zip'
-BUNDLE_SHA256='8fac1d4da772f0126d2cb1ce4b10fd5d8e1e10336be9b254dd4968a2de442785'
+BUNDLE_SHA256='0bd04286f92707a3ebc987c6d0b085201806be0e98ec51feb5ae96d161a33f97'
 ASSET_URL='https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.7/arbiter-academy-preview-0.7.zip'
 BUNDLE_PATH=''
 

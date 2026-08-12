@@ -1416,7 +1416,7 @@ class WorkshopQueueCliTests:
 
     def test_generic_one_commit_answers_without_remotes_do_not_pass(self):
         source = Path(__file__).resolve().parents[1]
-        with tempfile.TemporaryDirectory() as directory:
+        with RetryingTemporaryDirectory() as directory:
             root = Path(directory) / "repo"
             root.mkdir()
             shutil.copytree(source / "academy", root / "academy")
