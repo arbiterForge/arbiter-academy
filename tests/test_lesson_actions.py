@@ -128,7 +128,7 @@ P05_ACTION_IDS = (
     "P05-check",
     "P05-reset-retry",
 )
-P03_ACTION_DOCUMENT_ID = "P03-adr-decision-log"
+P03_ACTION_DOCUMENT_ID = "P03-record-an-adr"
 P03_ACTION_IDS = (
     "P03-read-boundary",
     "P03-identity-boundary",
@@ -483,7 +483,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.9" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.10" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         return_base = by_id["P01-return-base"]
@@ -670,14 +670,14 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("does not authenticate", check_copy)
         self.assertIn("does not prove command chronology", check_copy)
 
-    def test_p05_installed_academy_actions_use_preview_0_6_locations(self) -> None:
+    def test_p05_installed_academy_actions_use_preview_0_10_locations(self) -> None:
         """Catches Prepare, Check, or Reset routing learners to the obsolete install."""
         manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
         by_id = {action.id: action for action in manifest.actions}
         expected_locations = {
-            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.6\Scripts\arbiter-academy.exe",
-            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy",
-            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy",
+            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.10\Scripts\arbiter-academy.exe",
+            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy",
+            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy",
         }
 
         for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
@@ -706,8 +706,12 @@ class LessonActionTests(unittest.TestCase):
         """Catches P03 drifting from its renderer-backed decision and evidence contract."""
         root = Path(__file__).parents[1]
         self.assertTrue(
-            (root / "academy/actions/P03-adr-decision-log.json").is_file(),
-            "P03 must expose its one explicitly named action manifest",
+            (root / "academy/actions/P03-record-an-adr.json").is_file(),
+            "P03 must expose its canonical public action manifest",
+        )
+        self.assertEqual(
+            [path.name for path in sorted((root / "academy/actions").glob("P03*.json"))],
+            ["P03-record-an-adr.json"],
         )
         manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
         by_id = {action.id: action for action in manifest.actions}
@@ -823,21 +827,9 @@ class LessonActionTests(unittest.TestCase):
                 )
                 self.assertNotIn("preview-0.5", commands)
                 if "preview-" in commands:
-                    expected_preview = (
-                        "preview-0.9"
-                        if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS
-                        else "preview-0.9"
-                        if document_id == P01_DOCUMENT_ID
-                        else "preview-0.6"
-                    )
-                    self.assertIn(expected_preview, commands)
-                    if document_id in PUBLIC_PREVIEW_0_8_DOCUMENT_IDS:
-                        self.assertNotIn("preview-0.6", commands)
-                    elif document_id == P01_DOCUMENT_ID:
-                        self.assertNotIn("preview-0.6", commands)
-                        self.assertNotIn("preview-0.7", commands)
-                    else:
-                        self.assertNotIn("preview-0.9", commands)
+                    self.assertIn("preview-0.10", commands)
+                    for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
+                        self.assertNotIn(stale, commands)
 
     def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
         """Catches F03 losing its exact board-only route or Preview 0.8 learner commands."""
@@ -854,7 +846,7 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all("preview-0.9" in variant.command for variant in action.variants))
+                self.assertTrue(all("preview-0.10" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (
@@ -1723,7 +1715,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["actions"]["maxItems"], 64)
         self.assertEqual(schema["$defs"]["variant"]["properties"]["command"]["maxLength"], 8192)
 
-    def test_private_p02_manifest_binds_the_offline_receipt_workflow(self) -> None:
+    def test_public_p02_manifest_binds_the_offline_receipt_workflow(self) -> None:
         """Catches an action rewrite that loses the local-only recorder boundary."""
         manifest = load_action_manifest(Path(__file__).parents[1], P02_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P02_ACTION_IDS)
@@ -1757,7 +1749,7 @@ class LessonActionTests(unittest.TestCase):
             self.assertIn("git ls-remote upstream", command)
         for action_id in ("P02-record-receipt", "P02-check", "P02-reset"):
             commands = tuple(variant.command for variant in by_id[action_id].variants)
-            self.assertTrue(all("preview-0.6" in command for command in commands))
+            self.assertTrue(all("preview-0.10" in command for command in commands))
             self.assertTrue(all("$academy" in command for command in commands))
             self.assertTrue(all(command.splitlines()[0].startswith("academy=") or command.splitlines()[0].startswith("$academy =") for command in commands))
         recorder = by_id["P02-record-receipt"]

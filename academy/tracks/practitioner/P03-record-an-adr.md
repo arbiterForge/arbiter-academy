@@ -15,7 +15,7 @@ next_lab: P04-review-a-dependency
 
 ## Know before you begin
 
-P03 uses the shared Markdown-plus-action-manifest renderer. It remains source-only until a promoted installed Academy release lists it as both guided and runnable; Preview 0.9 (`preview-0.9`) does not expose P03 Prepare, Check, or Reset. The immutable scenario and checkpoint ID stays `P03-record-an-adr`, and its action contract is `P03-adr-decision-log.json`.
+P03 is a public guided and runnable lesson in Preview 0.10 (`preview-0.10`). It uses the shared Markdown-plus-action-manifest renderer and the installed Preview 0.10 Prepare, Check, and Reset commands. The immutable scenario, checkpoint, and action contract ID stay `P03-record-an-adr`.
 
 Keep a native terminal at the clone root and one CodeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native CodeArbiter commands and harness requests never begin with `!` either.
 
@@ -35,7 +35,7 @@ The two allowed learner choices are stable text and structured JSON. The committ
 
 {{action:P03-prepare}}
 
-Do not invent an attempt number, branch, or source-checkout substitute before P03 is promoted.
+Do not invent an attempt number, branch, or source-checkout substitute; use the installed Preview 0.10 action.
 
 ## Practice the decision
 
@@ -66,6 +66,8 @@ Check proves only final-state evidence: a clean worktree; 1–2 linear commits; 
 If evidence is wrong or Check names a failed predicate, preserve the attempt. Do not amend, rebase, overwrite ADR-0003, rewrite the log prefix, or manufacture a generic governance event.
 
 {{action:P03-reset}}
+
+Continue only when the next guided Academy lesson is published; P04 remains a private, non-routable coming-next lesson in Preview 0.10.
 
 ### Hint 1
 

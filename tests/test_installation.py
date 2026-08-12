@@ -421,11 +421,21 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.9.json"
+                        "share/arbiter-academy/academy/publication/preview-0.10.json"
                     )
                     for name in names
                 ),
-                "preview-0.9.json",
+                "preview-0.10.json",
+            )
+            action_sources = {
+                name.rsplit("/", 1)[-1]
+                for name in names
+                if "/share/arbiter-academy/academy/actions/" in name
+                and name.endswith(".json")
+            }
+            self.assertEqual(
+                {name for name in action_sources if name.startswith("P03")},
+                {"P03-record-an-adr.json"},
             )
             self.assertEqual(
                 sum(
