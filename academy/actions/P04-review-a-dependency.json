@@ -51,11 +51,11 @@
       "title": "Read the no-install boundary",
       "actor": "learner",
       "surface": "browser",
-      "instruction": "Read this lesson before asking an agent to review the proposal. This beginner path teaches rejection only.",
+      "instruction": "Use the website as the primary lesson surface before asking an agent to review the proposal. This beginner path teaches rejection only.",
       "rationale": "Review is evidence about a proposal, not permission to change project state.",
       "resources": [],
       "variants": [],
-      "expected_result": "You can state that this lesson does not add a dependency declaration, environment lock, or Academy wrapper.",
+      "expected_result": "You can state that Academy CLI only handles Prepare, Check, and Reset and that this lesson does not add a dependency declaration, environment lock, or Academy wrapper.",
       "recovery": "If you expected package adoption, stop and return to the course boundary.",
       "evidence": "No repository evidence has been created yet."
     },

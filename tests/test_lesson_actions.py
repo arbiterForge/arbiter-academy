@@ -362,6 +362,13 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(Path(__file__).parents[1], P04_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P04_ACTION_IDS)
         by_id = {action.id: action for action in manifest.actions}
+        boundary = by_id["P04-read-boundary"]
+        self.assertEqual(
+            (boundary.actor, boundary.surface, boundary.variants),
+            ("learner", "browser", ()),
+        )
+        self.assertIn("website", boundary.instruction)
+        self.assertIn("Prepare, Check, and Reset", boundary.expected_result)
         for action_id in ("P04-prepare", "P04-check", "P04-reset-retry"):
             action = by_id[action_id]
             with self.subTest(action=action_id):

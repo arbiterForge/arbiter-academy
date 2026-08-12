@@ -183,6 +183,23 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches a private guided draft leaking into the Preview site before publication approval."""
         manifest = load_action_manifest(self.root, "P04-review-a-dependency")
         self.assertEqual(manifest.document_id, "P04-review-a-dependency")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P04-review-a-dependency.md"),
+            "P04-review-a-dependency",
+            require_h1=True,
+        )
+        html = str(document["content"])
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="P04-draft-review"', html)
+        self.assertIn('data-action-id="P04-check"', html)
+        self.assertIn('data-copy-target="command-P04-prepare-windows"', html)
+        self.assertIn("Your agent · Codex harness", html)
+        self.assertIn("You · Native terminal · Windows", html)
         build_preview_site(self.root, self.out, release_sha="a" * 40)
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertFalse((self.out / "labs" / "P04-review-a-dependency" / "index.html").exists())

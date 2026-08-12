@@ -16,7 +16,7 @@ from academy_engine.cli import main
 from academy_engine import curriculum
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
 from academy_engine.lesson_actions import load_action_manifest
-from academy_engine.preview import load_preview_manifest
+from academy_engine.preview import load_preview_manifest, validate_preview_manifest
 from academy_engine.scenario import PreparedLab
 
 
@@ -729,12 +729,28 @@ class PractitionerCurriculumTests(unittest.TestCase):
             tuple(action.id for action in manifest.actions),
         )
         self.assertEqual(len(manifest.actions), 17)
+        self.assertIn("The website is the primary lesson surface.", guide)
+        self.assertIn("Academy CLI only handles Prepare, Check, and Reset.", guide)
         self.assertIn("bounded `datetime.strptime`", guide)
         self.assertIn("Decision: reject", guide)
         self.assertIn("does not prove that you ran a host command", guide)
         self.assertIn("does not authenticate your review or selection", guide)
         self.assertNotIn("pip install", guide)
         self.assertNotIn("P04-review-a-dependency", set(load_preview_manifest(SOURCE).guided_labs))
+
+    def test_p04_cannot_be_public_before_p03_closes_its_prerequisite(self) -> None:
+        """Catches P04 being promoted while its required P03 lesson remains absent."""
+        path = SOURCE / "academy/publication/preview-0.9.json"
+        candidate = json.loads(path.read_text(encoding="utf-8"))
+        for field in ("available_labs", "runnable_labs", "guided_labs"):
+            candidate[field].append("P04-review-a-dependency")
+        candidate["coming_next"].remove("P04-review-a-dependency")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"missing prerequisite\(s\) for P04-review-a-dependency: P03-record-an-adr",
+        ):
+            validate_preview_manifest(SOURCE, candidate)
 
 
     def test_p05_freezes_remediation_evidence_matrix_and_receipt_guidance(self) -> None:

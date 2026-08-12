@@ -19,6 +19,8 @@ This is private authoring material. It is unavailable in Preview 0.10. Its actio
 
 Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one CodeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. CodeArbiter commands and agent messages belong in the harness and never begin with `!`.
 
+The website is the primary lesson surface. Academy CLI only handles Prepare, Check, and Reset. It does not replace these guided decisions.
+
 This is a review lesson, not a package-adoption lesson. The candidate set is committed offline evidence. It is not a live package-registry lookup, and its maintenance and vulnerability statements are a frozen 2026-07-31 snapshot rather than current registry or CVE truth.
 
 Its policy is `review-only-never-install`. The report still records **Known vulnerabilities** and
