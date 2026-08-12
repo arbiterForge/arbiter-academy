@@ -93,7 +93,12 @@ def extract_tagged_release(destination: Path) -> Path:
             f"could not archive immutable {RELEASE} source: {archive.stderr.decode()}"
         )
     with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as bundle:
-        bundle.extractall(destination, filter="data")
+        # Python 3.11.4 backported the safe extraction-filter API. The archive is
+        # produced locally by `git archive` from the verified immutable commit.
+        if sys.version_info >= (3, 11, 4):
+            bundle.extractall(destination, filter="data")
+        else:
+            bundle.extractall(destination)
     return destination
 
 
@@ -148,6 +153,26 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
             run.return_value = subprocess.CompletedProcess([], 0, "0" * 40 + "\n", "")
             with self.assertRaisesRegex(AssertionError, "resolves to"):
                 immutable_release_tag_commit()
+
+    def test_extract_tagged_release_uses_the_python_3_11_compatible_extraction_path(self) -> None:
+        """The declared Python 3.11 floor includes releases before tar's data filter backport."""
+        archive = unittest.mock.MagicMock()
+        archive.__enter__.return_value = archive
+        destination = Path("release-source")
+        with (
+            patch("tests.test_release_assets.immutable_release_tag_commit", return_value="a" * 40),
+            patch(
+                "tests.test_release_assets.subprocess.run",
+                side_effect=(
+                    subprocess.CompletedProcess([], 0, "", ""),
+                    subprocess.CompletedProcess([], 0, b"archive", b""),
+                ),
+            ),
+            patch("tests.test_release_assets.tarfile.open", return_value=archive),
+            patch("tests.test_release_assets.sys.version_info", (3, 11, 3)),
+        ):
+            self.assertEqual(extract_tagged_release(destination), destination)
+        archive.extractall.assert_called_once_with(destination)
 
     def test_fresh_preview_uses_its_candidate_source_until_the_immutable_tag_exists(self) -> None:
         """A new public route still needs candidate bytes before its tag can be published."""
