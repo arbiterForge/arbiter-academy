@@ -196,14 +196,21 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error("record is available only for P02-commit-review-pr")
             if not arguments.review_declared_cleared:
                 parser.error("record requires --review-declared-cleared")
-            base = run_git(repository, ["rev-parse", "main"]).stdout.strip()
+            try:
+                base = run_git(repository, ["rev-parse", "main"]).stdout.strip()
+            except GitCommandError as error:
+                raise VerifierTrustError("P02 exercise state is invalid.") from error
             store = open_existing_p02_store(repository, base=base)
             if store is None:
                 raise VerifierTrustError("P02 exercise state is invalid.")
             destination = record_p02_receipt(repository, store)
+            try:
+                receipt_path = destination.relative_to(repository).as_posix()
+            except ValueError as error:
+                raise VerifierTrustError("P02 exercise state is invalid.") from error
             print(
                 "Recorded learner-declared offline-local review receipt: "
-                f"{destination.relative_to(repository).as_posix()}"
+                f"{receipt_path}"
             )
             return 0
         if arguments.command == "update":

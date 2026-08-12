@@ -61,6 +61,101 @@ class AcademyCliTrustTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 2)
         record.assert_not_called()
 
+    def test_p02_record_maps_a_missing_main_to_the_stable_state_error(self) -> None:
+        """Catches raw Git failure output leaking from the P02 recording boundary."""
+        outside = Path("C:/private/learner-repository")
+        output, errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch("academy_engine.cli.require_published_lab"), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
+            "academy_engine.cli.run_git",
+            side_effect=GitCommandError(f"fatal: ambiguous argument 'main': {outside}"),
+        ), patch("academy_engine.cli.open_existing_p02_store") as opened, patch(
+            "academy_engine.cli.record_p02_receipt"
+        ) as record, redirect_stdout(output), redirect_stderr(errors):
+            exit_code = main(
+                [
+                    "--repository",
+                    str(REPOSITORY),
+                    "record",
+                    "P02-commit-review-pr",
+                    "--review-declared-cleared",
+                ]
+            )
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(errors.getvalue(), "error: P02 exercise state is invalid.\n")
+        self.assertNotIn(str(outside), errors.getvalue())
+        opened.assert_not_called()
+        record.assert_not_called()
+
+    def test_p02_record_maps_an_outside_receipt_destination_to_the_stable_state_error(self) -> None:
+        """Catches the receipt formatter leaking an outside path through relative_to."""
+        outside = Path("C:/private/P02-pr-receipt.json")
+        output, errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch("academy_engine.cli.require_published_lab"), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
+            "academy_engine.cli.run_git", return_value=SimpleNamespace(stdout="a" * 40)
+        ), patch(
+            "academy_engine.cli.open_existing_p02_store", return_value=object()
+        ), patch(
+            "academy_engine.cli.record_p02_receipt", return_value=outside
+        ), redirect_stdout(output), redirect_stderr(errors):
+            exit_code = main(
+                [
+                    "--repository",
+                    str(REPOSITORY),
+                    "record",
+                    "P02-commit-review-pr",
+                    "--review-declared-cleared",
+                ]
+            )
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(errors.getvalue(), "error: P02 exercise state is invalid.\n")
+        self.assertNotIn(str(outside), errors.getvalue())
+
+    def test_p02_record_reports_the_canonical_receipt_path_on_success(self) -> None:
+        """Catches a successful P02 receipt reporting anything but its learner-visible path."""
+        destination = REPOSITORY / ".codearbiter/reports/academy/P02-pr-receipt.json"
+        output, errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch("academy_engine.cli.require_published_lab"), patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
+            "academy_engine.cli.run_git", return_value=SimpleNamespace(stdout="a" * 40)
+        ), patch(
+            "academy_engine.cli.open_existing_p02_store", return_value=object()
+        ), patch(
+            "academy_engine.cli.record_p02_receipt", return_value=destination
+        ):
+            with redirect_stdout(output), redirect_stderr(errors):
+                exit_code = main(
+                    [
+                        "--repository",
+                        str(REPOSITORY),
+                        "record",
+                        "P02-commit-review-pr",
+                        "--review-declared-cleared",
+                    ]
+                )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(errors.getvalue(), "")
+        self.assertEqual(
+            output.getvalue(),
+            "Recorded learner-declared offline-local review receipt: "
+            ".codearbiter/reports/academy/P02-pr-receipt.json\n",
+        )
+
     def test_publication_gate_uses_verifier_data_not_the_learner_repository(self) -> None:
         """Catches installed verification reading release policy from learner input."""
         with tempfile.TemporaryDirectory() as temporary_directory:
