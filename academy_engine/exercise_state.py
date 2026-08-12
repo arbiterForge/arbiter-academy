@@ -787,7 +787,7 @@ def _parse_p02_receipt(value: object, *, object_format: str) -> dict[str, Any]:
             if not isinstance(data[key], str) or oid.fullmatch(data[key]) is None:
                 raise ValueError
         commits = data["commits"]
-        if not isinstance(commits, list) or not commits or any(not isinstance(item, str) or oid.fullmatch(item) is None for item in commits):
+        if not isinstance(commits, list) or len(commits) != 1 or any(not isinstance(item, str) or oid.fullmatch(item) is None for item in commits):
             raise ValueError
         if _exact_keys(data["review"], frozenset({"status"}))["status"] != "cleared":
             raise ValueError
@@ -3223,13 +3223,13 @@ def validate_p02_checkpoint(repository: Path, store: ExternalStateStore, attempt
         if data["pushed_tip"] != live.origin_tip or work != live.origin_tip:
             return False
         commits = _git(repository, ["rev-list", "--reverse", f"{attempt.prepared_commit}..{work}"], code="exercise-evidence-mismatch").splitlines()
-        if commits != data["commits"] or not commits:
+        if commits != data["commits"] or len(commits) != 1:
             return False
-        for commit in commits:
-            parents = _git(repository, ["show", "-s", "--format=%P", commit]).split()
-            paths = _git(repository, ["diff-tree", "--no-commit-id", "--name-only", "-r", commit]).splitlines()
-            if len(parents) != 1 or any(path not in _PATCH_PATHS for path in paths):
-                return False
+        commit = commits[0]
+        parents = _git(repository, ["show", "-s", "--format=%P", commit]).split()
+        paths = _git(repository, ["diff-tree", "--no-commit-id", "--name-only", "-r", commit]).splitlines()
+        if parents != [attempt.prepared_commit] or sorted(paths) != sorted(_PATCH_PATHS):
+            return False
         changed = _git(repository, ["diff", "--name-only", attempt.prepared_commit, work]).splitlines()
         if sorted(changed) != sorted(_PATCH_PATHS) or not _exact_patch_result(
             repository, attempt.prepared_commit, work
@@ -3258,6 +3258,140 @@ def validate_p02_checkpoint(repository: Path, store: ExternalStateStore, attempt
         return committed == data
     except (ExerciseStateError, GitCommandError, OSError, KeyError, TypeError, ValueError):
         return False
+
+
+def _write_new_contained_receipt(
+    repository: Path,
+    relative_destination: Path,
+    encoded: bytes,
+) -> Path:
+    """Create a receipt through pinned directory descriptors, never a checked path."""
+    if os.name != "posix" or not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise OSError("descriptor-safe receipt creation is unavailable on this platform")
+    if relative_destination.is_absolute() or relative_destination.name != "P02-pr-receipt.json":
+        raise PathBoundaryError("receipt destination is invalid")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptors: list[int] = []
+    receipt_descriptor: int | None = None
+    try:
+        current = os.open(str(repository), directory_flags)
+        descriptors.append(current)
+        for component in relative_destination.parent.parts:
+            if component in {"", "."}:
+                continue
+            try:
+                child = os.open(component, directory_flags, dir_fd=current)
+            except FileNotFoundError:
+                os.mkdir(component, 0o700, dir_fd=current)
+                child = os.open(component, directory_flags, dir_fd=current)
+            descriptors.append(child)
+            current = child
+        receipt_descriptor = os.open(
+            relative_destination.name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=current,
+        )
+        with os.fdopen(receipt_descriptor, "wb") as stream:
+            receipt_descriptor = None
+            stream.write(encoded)
+    finally:
+        if receipt_descriptor is not None:
+            os.close(receipt_descriptor)
+        while descriptors:
+            os.close(descriptors.pop())
+    return repository / relative_destination
+
+
+def record_p02_receipt(repository: Path, store: ExternalStateStore) -> Path:
+    """Record the learner-declared, offline-local P02 receipt without staging it.
+
+    This is intentionally a formatter for already-proven local state.  It never
+    changes Git state, remotes, or the verifier sidecar.
+    """
+    repository = Path(repository).resolve()
+    receipt_relative = Path(".codearbiter/reports/academy/P02-pr-receipt.json")
+    try:
+        receipt_path = ensure_within(repository, receipt_relative)
+    except PathBoundaryError as error:
+        raise _fail("exercise-evidence-mismatch", error) from error
+    if receipt_path.exists() or receipt_path.is_symlink():
+        raise _fail("exercise-evidence-mismatch")
+    if _git(repository, ["status", "--porcelain", "--untracked-files=all"]):
+        raise _fail("exercise-evidence-mismatch")
+    object_format = _object_format(repository)
+    current_branch = _git(repository, ["symbolic-ref", "--quiet", "--short", "HEAD"]).strip()
+    current_head = _git(repository, ["rev-parse", "HEAD"]).strip()
+    with _locked_store(store) as locked:
+        record = _latest(locked, object_format)
+        if record is None or record["phase"] != "active":
+            raise _fail("exercise-evidence-mismatch")
+        attempt = P02AttemptIdentity(
+            int(record["attempt"]),
+            str(record["attempt_branch"]),
+            str(record["prepared_commit"]),
+            current_head,
+        )
+    if current_branch != attempt.branch:
+        raise _fail("exercise-evidence-mismatch")
+    live = verify_p02(repository, store, attempt)
+    if live.origin_tip != current_head or not live.upstream_unchanged:
+        raise _fail("exercise-evidence-mismatch")
+    commits = _git(
+        repository,
+        ["rev-list", "--reverse", f"{attempt.prepared_commit}..{current_head}"],
+        code="exercise-evidence-mismatch",
+    ).splitlines()
+    if len(commits) != 1:
+        raise _fail("exercise-evidence-mismatch")
+    commit = commits[0]
+    parents = _git(
+        repository, ["show", "-s", "--format=%P", commit], code="exercise-evidence-mismatch"
+    ).split()
+    paths = _git(
+        repository,
+        ["diff-tree", "--no-commit-id", "--name-only", "-r", commit],
+        code="exercise-evidence-mismatch",
+    ).splitlines()
+    if parents != [attempt.prepared_commit] or sorted(paths) != sorted(_PATCH_PATHS):
+        raise _fail("exercise-evidence-mismatch")
+    changed = _git(
+        repository,
+        ["diff", "--name-only", attempt.prepared_commit, current_head],
+        code="exercise-evidence-mismatch",
+    ).splitlines()
+    if sorted(changed) != sorted(_PATCH_PATHS) or not _exact_patch_result(
+        repository, attempt.prepared_commit, current_head
+    ):
+        raise _fail("exercise-evidence-mismatch")
+    payload = {
+        "schema_version": 1,
+        "mode": "offline-local",
+        "lab_id": _LAB,
+        "attempt": attempt.attempt,
+        "branch": attempt.branch,
+        "prepared_commit": attempt.prepared_commit,
+        "work_head": current_head,
+        "pushed_tip": current_head,
+        "commits": commits,
+        "review": {"status": "cleared"},
+        "repositories": {
+            "origin": {"repository_id": live.origin_repository_id, "role": "learner"},
+            "upstream": {"repository_id": live.upstream_repository_id, "role": "official"},
+        },
+        "pr_reference": f"local-pr:{current_head[:12]}",
+    }
+    try:
+        _parse_p02_receipt(payload, object_format=object_format)
+        encoded = json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode("utf-8") + b"\n"
+        receipt_path = _write_new_contained_receipt(
+            repository, receipt_relative, encoded
+        )
+    except (OSError, PathBoundaryError, ValueError) as error:
+        raise _fail("exercise-evidence-mismatch", error) from error
+    return receipt_path
 
 
 def _exact_patch_result(repository: Path, prepared: str, work: str) -> bool:

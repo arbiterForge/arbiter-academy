@@ -1,0 +1,599 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "P04-review-a-dependency",
+  "actions": [
+    {
+      "id": "P04-prepare",
+      "sequence": 1,
+      "title": "Prepare the numbered dependency-review attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In a native terminal at the Academy clone root, run Prepare from clean main.",
+      "rationale": "Prepare records a repeatable baseline.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
+          "copy": true
+        }
+      ],
+      "expected_result": "Academy prints academy/P04-review-a-dependency/ATTEMPT_NUMBER and switches to that branch.",
+      "recovery": "Preserve an error and resolve only its named condition before retrying.",
+      "evidence": "The branch binds later evidence to one prepared project state."
+    },
+    {
+      "id": "P04-read-boundary",
+      "sequence": 2,
+      "title": "Read the no-install boundary",
+      "actor": "learner",
+      "surface": "browser",
+      "instruction": "Read this lesson before asking an agent to review the proposal. This beginner path teaches rejection only.",
+      "rationale": "Review is evidence about a proposal, not permission to change project state.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can state that this lesson does not add a dependency declaration, environment lock, or Academy wrapper.",
+      "recovery": "If you expected package adoption, stop and return to the course boundary.",
+      "evidence": "No repository evidence has been created yet."
+    },
+    {
+      "id": "P04-read-candidate-set",
+      "sequence": 3,
+      "title": "Read the frozen candidate set",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Read the committed candidate set in the native terminal. It is offline evidence, not a live registry query.",
+      "rationale": "The review must name exact candidate bytes.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-Content -Raw -LiteralPath 'academy/candidates/P04-review-a-dependency/candidate-set.json'",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "cat academy/candidates/P04-review-a-dependency/candidate-set.json",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "cat academy/candidates/P04-review-a-dependency/candidate-set.json",
+          "copy": true
+        }
+      ],
+      "expected_result": "It identifies python-dateutil 2.9.0.post0, its six closure, digests, and review-only-never-install policy.",
+      "recovery": "If the file is absent or differs, stop. Do not fetch or substitute it.",
+      "evidence": "The review begins from committed candidate evidence."
+    },
+    {
+      "id": "P04-inspect-project-boundary",
+      "sequence": 4,
+      "title": "Confirm the project has not changed",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Inspect status in the native terminal before review evidence is written.",
+      "rationale": "Review must precede dependency-surface changes.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git status --short",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short",
+          "copy": true
+        }
+      ],
+      "expected_result": "Git prints nothing.",
+      "recovery": "If Git prints a path, preserve it outside this attempt or use Reset. Do not hide it in history.",
+      "evidence": "The prepared baseline remains intact."
+    },
+    {
+      "id": "P04-inspect-wheel-metadata",
+      "sequence": 5,
+      "title": "Inspect the supplied wheel metadata",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "List each prepared wheel. This reads archives only; it does not install or import either package.",
+      "rationale": "Metadata is evidence about a supplied archive, not a live registry.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "python -m zipfile -l academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl\npython -m zipfile -l academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "python3 -m zipfile -l academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl\npython3 -m zipfile -l academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "python3 -m zipfile -l academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl\npython3 -m zipfile -l academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        }
+      ],
+      "expected_result": "Each archive lists metadata and license payload without changing the environment.",
+      "recovery": "If Python cannot read an archive, preserve the error and Reset. Do not download a replacement.",
+      "evidence": "The report can cite artifact-local metadata."
+    },
+    {
+      "id": "P04-verify-wheel-hashes",
+      "sequence": 6,
+      "title": "Recompute the wheel digests",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Hash both supplied wheels and compare them with candidate-set.json.",
+      "rationale": "A name and version are insufficient; the review binds to bytes.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-FileHash -Algorithm SHA256 academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl\nGet-FileHash -Algorithm SHA256 academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "shasum -a 256 academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "sha256sum academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl academy/candidates/P04-review-a-dependency/six-1.17.0-py2.py3-none-any.whl",
+          "copy": true
+        }
+      ],
+      "expected_result": "The SHA-256 values match the frozen candidate set exactly.",
+      "recovery": "If either digest differs, stop and Reset.",
+      "evidence": "The report can bind its candidate and closure statements to archive bytes."
+    },
+    {
+      "id": "P04-read-licenses",
+      "sequence": 7,
+      "title": "Read the bundled license evidence",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Read the two wheel-derived licenses and Apache text. Do not invent a NOTICE or patent payload.",
+      "rationale": "License claims need named local source material.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-Content -Raw academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0.LICENSE\nGet-Content -Raw academy/candidates/P04-review-a-dependency/six-1.17.0.LICENSE\nGet-Content -Raw academy/candidates/P04-review-a-dependency/Apache-2.0.txt",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "cat academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0.LICENSE academy/candidates/P04-review-a-dependency/six-1.17.0.LICENSE academy/candidates/P04-review-a-dependency/Apache-2.0.txt",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "cat academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0.LICENSE academy/candidates/P04-review-a-dependency/six-1.17.0.LICENSE academy/candidates/P04-review-a-dependency/Apache-2.0.txt",
+          "copy": true
+        }
+      ],
+      "expected_result": "You can name both wheel-derived licenses and Apache text; the prepared set has no NOTICE payload.",
+      "recovery": "If a named file is absent, stop. Do not add a replacement.",
+      "evidence": "The report distinguishes observed terms from unobserved ones."
+    },
+    {
+      "id": "P04-assess-provenance",
+      "sequence": 8,
+      "title": "Assess frozen provenance limits",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Ask the active agent to explain candidate provenance and supply-chain signals, then compare its answer with the files you read. Treat maintenance and vulnerability statements as the frozen 2026-07-31 snapshot, never live registry or CVE truth.",
+      "rationale": "The learner reviews the time boundary, not an agent summary.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can distinguish archive evidence from time-bounded maintenance and vulnerability observations.",
+      "recovery": "Do not add a live claim without inspectable source evidence.",
+      "evidence": "Your decision remains limited to supplied evidence and its review date."
+    },
+    {
+      "id": "P04-compare-stdlib",
+      "sequence": 9,
+      "title": "Compare the bounded standard-library alternative",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Ask the agent to compare finite-format datetime.strptime parsing with the two-wheel closure across every SMARTS lens. Require length limits, explicit formats, deterministic defaults, and fail-closed trailing content.",
+      "rationale": "The capability need is smaller than the package surface.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can explain why bounded datetime.strptime is sufficient for this finite-format exercise.",
+      "recovery": "If requirements broaden beyond finite formats, stop and record a separate decision.",
+      "evidence": "The rejection is a capability comparison, not an unsupported safety assertion."
+    },
+    {
+      "id": "P04-draft-review",
+      "sequence": 10,
+      "title": "Let the agent draft the review",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After inspecting the frozen evidence, ask the active agent to invoke the host-native dependency review lane. The agent drafts the report; it does not install, change dependency files, or choose for you.",
+      "rationale": "The host lane structures the report while the learner retains the decision.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "copy": true
+        },
+      {
+        "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+        "command": "/ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "copy": true
+        }
+      ],
+      "expected_result": "The agent drafts .codearbiter/reports/academy/P04-dependency-review.md with candidate, closure, license, provenance, supply-chain, compatibility, alternatives, and SMARTS evidence.",
+      "recovery": "If the agent changes dependency state, stop and Reset.",
+      "evidence": "The draft names the sole report later committed."
+    },
+    {
+      "id": "P04-review-draft",
+      "sequence": 11,
+      "title": "Review the drafted evidence",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Read the draft with the active agent and compare it with the candidate-set, hashes, and licenses. Confirm it labels the 2026-07-31 snapshot and not live registry or CVE truth.",
+      "rationale": "A formatted report is not a learner decision.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can identify candidate, closure, no-install policy, bounded alternative, and SMARTS comparison.",
+      "recovery": "Ask the agent to correct any claim unsupported by prepared files before you choose.",
+      "evidence": "The final report reflects reviewed local evidence."
+    },
+    {
+      "id": "P04-select-reject",
+      "sequence": 12,
+      "title": "Select the rejection decision",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Tell the agent you select the rejection path: bounded datetime.strptime for finite formats and Decision: reject. Do not ask the agent to select for you.",
+      "rationale": "The learner owns the tradeoff; the agent records it.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The report says the bounded standard-library alternative is selected and ends with Decision: reject.",
+      "recovery": "If the formats are not finite and bounded, stop. That is a new requirement decision.",
+      "evidence": "The report preserves the decision and rationale, but not an authenticated account of who chose it."
+    },
+    {
+      "id": "P04-stage-review",
+      "sequence": 13,
+      "title": "Stage only the review report",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Stage the report in the native terminal and inspect the staged path list before asking the agent to commit it.",
+      "rationale": "The rejection path commits only evidence.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git add -- .codearbiter/reports/academy/P04-dependency-review.md\ngit diff --cached --name-only",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git add -- .codearbiter/reports/academy/P04-dependency-review.md\ngit diff --cached --name-only",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git add -- .codearbiter/reports/academy/P04-dependency-review.md\ngit diff --cached --name-only",
+          "copy": true
+        }
+      ],
+      "expected_result": "The staged path list contains exactly .codearbiter/reports/academy/P04-dependency-review.md.",
+      "recovery": "If another path appears, preserve it and unstage only that unrelated path.",
+      "evidence": "The pending commit boundary makes the no-install decision inspectable."
+    },
+    {
+      "id": "P04-commit-review",
+      "sequence": 14,
+      "title": "Let the agent commit the review evidence",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After you approve the one staged path, ask the active agent to invoke the host-native commit gate. This is a harness command, not a shell command.",
+      "rationale": "The governed commit records review without changing the dependency surface.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:commit",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-commit",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+        "command": "/ca-commit",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-commit",
+          "copy": true
+        }
+      ],
+      "expected_result": "One descendant commit changes only .codearbiter/reports/academy/P04-dependency-review.md.",
+      "recovery": "If the gate blocks, preserve its finding and resolve the report boundary. Do not use a raw commit.",
+      "evidence": "Check can recompute the report and commit-path boundary."
+    },
+    {
+      "id": "P04-confirm-no-install",
+      "sequence": 15,
+      "title": "Confirm the dependency surface stayed untouched",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Inspect the final commit and worktree in the native terminal before Check. The review report is the only new committed path.",
+      "rationale": "A rejection leaves application dependency state unchanged.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git show --name-only --format= HEAD\ngit status --short",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git show --name-only --format= HEAD\ngit status --short",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git show --name-only --format= HEAD\ngit status --short",
+          "copy": true
+        }
+      ],
+      "expected_result": "The final commit names only the review report, Git is clean, and pyproject.toml, requirements.lock, and the Academy approval wrapper remain unchanged or absent.",
+      "recovery": "If another path is committed or uncommitted, preserve the attempt and Reset. Do not rewrite it to look clean.",
+      "evidence": "The final state separates review evidence from adoption."
+    },
+    {
+      "id": "P04-check",
+      "sequence": 16,
+      "title": "Run external Academy Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run installed Academy Check from the prepared clone in the native terminal.",
+      "rationale": "Check recomputes facts without trusting a transcript.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
+          "copy": true
+        }
+      ],
+      "expected_result": "Check reports a passed P04 checkpoint and records progress only after valid evidence.",
+      "recovery": "If Check fails, preserve the attempt and read its named predicate before Reset.",
+      "evidence": "Check proves candidate binding, report structure, unchanged dependency surfaces, commit ancestry, and clean state. It does not prove that you ran a host command, and it does not authenticate your review or selection."
+    },
+    {
+      "id": "P04-reset-retry",
+      "sequence": 17,
+      "title": "Preserve and reset a failed attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use Reset only for a new attempt or when Check directs recovery. It preserves failed evidence before restoring the prepared baseline.",
+      "rationale": "Failed reviews are evidence and must not be erased.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
+          "copy": true
+        }
+      ],
+      "expected_result": "Academy preserves the numbered attempt and prints the next safe start.",
+      "recovery": "If Reset refuses, preserve its output. Never force-reset, rebase, or delete evidence.",
+      "evidence": "The prior attempt remains inspectable."
+    }
+  ]
+}

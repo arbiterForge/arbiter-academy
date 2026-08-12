@@ -13,6 +13,7 @@ from academy_engine.checkpoints import CheckpointError, evaluate_checkpoint
 from academy_engine.command import (
     GitCommandError,
     repository_root,
+    run_git,
     validate_repository_git_config,
 )
 from academy_engine.curriculum import CurriculumError, verify_track
@@ -29,6 +30,7 @@ from academy_engine.scenario import (
     prepare_lab,
     reset_lab,
 )
+from academy_engine.exercise_state import open_existing_p02_store, record_p02_receipt
 from academy_engine.update import UpdateError, update_academy
 
 
@@ -80,9 +82,15 @@ def _parser() -> argparse.ArgumentParser:
             "graduate",
             "export-catalog",
             "verify-track",
+            "record",
         ),
     )
     parser.add_argument("lab_id", nargs="?")
+    parser.add_argument(
+        "--review-declared-cleared",
+        action="store_true",
+        help="record only the learner-declared offline-local P02 review receipt",
+    )
     parser.add_argument(
         "--matrix",
         action="store_true",
@@ -94,8 +102,10 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     arguments = parser.parse_args(argv)
+    if arguments.command == "record" and not arguments.review_declared_cleared:
+        parser.error("record requires --review-declared-cleared")
     authoritative_exercise = (
-        arguments.command in {"prepare", "reset"}
+        arguments.command in {"prepare", "reset", "record"}
         and arguments.lab_id in {"P02-commit-review-pr", "P08-repository-hygiene"}
     )
     later_p02_reachable = (
@@ -103,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         and arguments.lab_id != "P02-commit-review-pr"
         and p02_state_reachable(arguments.lab_id)
     )
-    if (arguments.command in {"check", "graduate"} or authoritative_exercise) and arguments.repository is None:
+    if (arguments.command in {"check", "graduate", "record"} or authoritative_exercise) and arguments.repository is None:
         parser.error(f"{arguments.command} requires --repository TARGET")
     requested_repository = (
         arguments.repository.expanduser().resolve()
@@ -112,13 +122,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         repository = repository_root(requested_repository)
-        if arguments.command in {"prepare", "reset", "check"} and arguments.lab_id:
+        if arguments.command in {"prepare", "reset", "check", "record"} and arguments.lab_id:
             require_published_lab(_verifier_publication_root(), arguments.lab_id)
         if arguments.command == "graduate":
             require_graduation_available(_verifier_publication_root())
         installed_authority = False
         if (
-            arguments.command in {"check", "graduate"}
+            arguments.command in {"check", "graduate", "record"}
             or authoritative_exercise
             or (later_p02_reachable and arguments.repository is not None)
         ):
@@ -180,6 +190,28 @@ def main(argv: list[str] | None = None) -> int:
             if identities[0] is not None:
                 print(f"Origin repository ID: {identities[0]}")
                 print(f"Upstream repository ID: {identities[1]}")
+            return 0
+        if arguments.command == "record":
+            if arguments.lab_id != "P02-commit-review-pr":
+                parser.error("record is available only for P02-commit-review-pr")
+            if not arguments.review_declared_cleared:
+                parser.error("record requires --review-declared-cleared")
+            try:
+                base = run_git(repository, ["rev-parse", "main"]).stdout.strip()
+            except GitCommandError as error:
+                raise VerifierTrustError("P02 exercise state is invalid.") from error
+            store = open_existing_p02_store(repository, base=base)
+            if store is None:
+                raise VerifierTrustError("P02 exercise state is invalid.")
+            destination = record_p02_receipt(repository, store)
+            try:
+                receipt_path = destination.relative_to(repository).as_posix()
+            except ValueError as error:
+                raise VerifierTrustError("P02 exercise state is invalid.") from error
+            print(
+                "Recorded learner-declared offline-local review receipt: "
+                f"{receipt_path}"
+            )
             return 0
         if arguments.command == "update":
             print(update_academy(repository).render())

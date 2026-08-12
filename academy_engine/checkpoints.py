@@ -550,6 +550,13 @@ def _changed(root: Path, base: str, head: str, path: str) -> bool:
     ).returncode == 1
 
 
+def _repository_oid_pattern(root: Path) -> re.Pattern[str] | None:
+    result = run_git(root, ["rev-parse", "--show-object-format"], check=False)
+    if result.returncode:
+        return None
+    return {"sha1": _SHA40, "sha256": _SHA256}.get(result.stdout.strip().lower())
+
+
 def _path_commits(root: Path, start: str, head: str, *paths: str) -> tuple[str, ...]:
     result = run_git(
         root,
@@ -741,6 +748,9 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
         return False
     if not validate_p05_fixture(root, attempt.prepared):
         return False
+    oid_pattern = _repository_oid_pattern(root)
+    if oid_pattern is None:
+        return False
     raw = _git_blob(root, attempt.head, report_path)
     if raw is None or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n"):
         return False
@@ -760,9 +770,9 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
     ):
         return False
     finding, red, remediation = report["finding_commit"], report["red_commit"], report["remediation_commit"]
-    if not all(isinstance(value, str) and _SHA40.fullmatch(value) for value in (finding, red, remediation)):
+    if not all(isinstance(value, str) and oid_pattern.fullmatch(value) for value in (finding, red, remediation)):
         return False
-    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
+    commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if oid_pattern.fullmatch(line))
     if commits != (finding, red, remediation, attempt.head):
         return False
     parent = attempt.prepared

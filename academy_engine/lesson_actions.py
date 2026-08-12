@@ -56,8 +56,12 @@ _RESOURCE_LIMIT = 4
 _RESOURCE_LABEL_LIMIT = 160
 _RESOURCE_HREF_LIMIT = 2048
 _ACTION_RESOURCE_HREF = re.compile(
+    r"(?:"
     r"https://github\.com/arbiterForge/arbiter-academy"
     r"(?:/(?!\.{1,2}(?:/|$))[A-Za-z0-9._~!$&'()*+,;=:@-]+)*"
+    r"|https://arbiterforge\.github\.io/arbiter-academy/labs/"
+    r"[A-Za-z0-9][A-Za-z0-9-]{0,95}/"
+    r")"
 )
 
 
@@ -173,7 +177,7 @@ def _require_command(value: object) -> str:
 
 
 def validate_action_resource_href(value: object) -> str:
-    """Return one exact Academy GitHub resource URL or fail closed."""
+    """Return one exact Academy source or rendered-lesson URL or fail closed."""
     if not isinstance(value, str) or not value.strip():
         raise ValueError("action resource href must not be empty")
     if len(value) > _RESOURCE_HREF_LIMIT:
@@ -182,7 +186,7 @@ def validate_action_resource_href(value: object) -> str:
         )
     if _ACTION_RESOURCE_HREF.fullmatch(value) is None:
         raise ValueError(
-            "action resource href must be an exact Academy GitHub HTTPS resource"
+            "action resource href must be an exact Academy HTTPS resource"
         )
     return value
 

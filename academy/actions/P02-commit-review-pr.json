@@ -1,0 +1,608 @@
+{
+    "schema_version": 1,
+    "lesson_contract_version": 1,
+    "document_id": "P02-commit-review-pr",
+    "actions": [
+        {
+            "id": "P02-read-boundary",
+            "sequence": 1,
+            "title": "Read the offline boundary",
+            "actor": "learner",
+            "surface": "browser",
+            "instruction": "Read this lesson before running a command. The exercise uses local bare repositories and never creates a hosted pull request. The private receipt recorder currently requires macOS or Linux; native Windows is not a complete P02 route.",
+            "rationale": "The learner must distinguish local proof from a hosted collaboration workflow.",
+            "resources": [],
+            "variants": [],
+            "expected_result": "You can state that this is an offline-local rehearsal and that native Windows cannot complete this private draft.",
+            "recovery": "If you expected a GitHub pull request or hosted CI, stop here and reread the boundary.",
+            "evidence": "No repository state changes yet."
+        },
+        {
+            "id": "P02-prepare",
+            "sequence": 2,
+            "title": "Prepare the numbered local attempt",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "In a native terminal outside the checkout, run Prepare with the absolute learner repository path. Record the printed branch and prepared commit before entering the checkout.",
+            "rationale": "Prepare establishes the verifier-owned local topology before learner work begins.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Academy prints an academy/P02-commit-review-pr/ATTEMPT branch, prepared commit, and two logical repository IDs.",
+            "recovery": "Preserve any error. Do not run Prepare inside the learner checkout or guess an attempt number.",
+            "evidence": "The printed identity binds later guards to this attempt."
+        },
+        {
+            "id": "P02-enter-and-guard",
+            "sequence": 3,
+            "title": "Enter and guard the prepared checkout",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Enter the learner checkout in the native terminal. Compare the printed branch and prepared commit to the live checkout, then inspect status and remotes.",
+            "rationale": "The guard prevents review or commit work in the wrong repository or attempt.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "Set-Location -LiteralPath '<learner-repository>'\ngit branch --show-current\ngit rev-parse HEAD\ngit status --short\ngit remote -v",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "cd '<learner-repository>'\ngit branch --show-current\ngit rev-parse HEAD\ngit status --short\ngit remote -v",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "cd '<learner-repository>'\ngit branch --show-current\ngit rev-parse HEAD\ngit status --short\ngit remote -v",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The branch and HEAD match Prepare, status is clean, and origin and upstream use local exercise routes.",
+            "recovery": "If any value differs, preserve the output and Reset instead of changing remotes by hand.",
+            "evidence": "You confirmed the target before generating work evidence."
+        },
+        {
+            "id": "P02-inspect-change",
+            "sequence": 4,
+            "title": "Inspect the prepared exercise change",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Inspect the two prepared paths and read the scenario before staging them. Do not stage a third path.",
+            "rationale": "The work range is intentionally limited to the two Workshop Queue paths.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "git diff -- tests/test_cli.py workshop_queue/cli.py\nGet-Content -Raw -LiteralPath training_scenarios/P02-commit-review-pr.json",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git diff -- tests/test_cli.py workshop_queue/cli.py\ncat training_scenarios/P02-commit-review-pr.json",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git diff -- tests/test_cli.py workshop_queue/cli.py\ncat training_scenarios/P02-commit-review-pr.json",
+                    "copy": true
+                }
+            ],
+            "expected_result": "You can describe the intended two-path patch before staging it.",
+            "recovery": "If another path is modified, preserve it outside this attempt before continuing.",
+            "evidence": "The work boundary is visible before the agent reviews it."
+        },
+        {
+            "id": "P02-stage-work",
+            "sequence": 5,
+            "title": "Stage exactly the reviewed work boundary",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "In the native terminal, stage exactly the two Workshop Queue paths and inspect the staged path list before asking the active agent to review.",
+            "rationale": "The agent reviews and commits the explicit two-path work boundary, never an inferred working-tree change.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "git add -- tests/test_cli.py workshop_queue/cli.py\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- tests/test_cli.py workshop_queue/cli.py\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- tests/test_cli.py workshop_queue/cli.py\ngit diff --cached --name-only",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The staged path list contains exactly tests/test_cli.py and workshop_queue/cli.py.",
+            "recovery": "If another path appears, preserve it and unstage only that unrelated path before continuing.",
+            "evidence": "The review boundary is explicit before the active agent sees it."
+        },
+        {
+            "id": "P02-request-review",
+            "sequence": 6,
+            "title": "Declare the review boundary",
+            "actor": "learner",
+            "surface": "active-harness",
+            "instruction": "Tell the active agent to inspect only the staged tests/test_cli.py and workshop_queue/cli.py change. Decide whether its findings are cleared before asking for a commit.",
+            "rationale": "The learner owns the review decision; Academy does not authenticate it as human approval.",
+            "resources": [],
+            "variants": [],
+            "expected_result": "You have a bounded review request and a conscious cleared or not-cleared decision.",
+            "recovery": "If findings remain, correct only the exercise change and review again. Do not declare it cleared early.",
+            "evidence": "The later receipt records only your cleared declaration."
+        },
+        {
+            "id": "P02-run-review",
+            "sequence": 7,
+            "title": "Let the agent run the review gate",
+            "actor": "agent",
+            "surface": null,
+            "instruction": "Use the host-native CodeArbiter review command after the learner asks for the bounded review. This is a harness command, never a shell command.",
+            "rationale": "The review gate produces the agent-side review result without the learner imitating a terminal command.",
+            "resources": [],
+            "variants": [
+        {
+          "id": "claude-code",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "codearbiter",
+          "command": "/ca:review",
+                    "copy": true
+                },
+                {
+                    "id": "codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "codearbiter",
+                    "command": "$ca-review",
+                    "copy": true
+                },
+        {
+          "id": "pi-direct",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/ca-review",
+                    "copy": true
+                },
+                {
+                    "id": "pi-fallback",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/skill:ca-review",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The active agent reports the review result for the staged work boundary.",
+            "recovery": "If the review gate blocks, preserve the finding and resolve it before the work commit.",
+            "evidence": "The learner has inspected the review result but Check cannot authenticate who reviewed."
+        },
+    {
+      "id": "P02-run-work-commit",
+            "sequence": 8,
+            "title": "Let the agent commit the reviewed work",
+            "actor": "agent",
+            "surface": null,
+            "instruction": "After the learner approves the exact two staged paths and clears the review, invoke the host-native CodeArbiter commit gate.",
+            "rationale": "The work commit remains separate from the later receipt-only commit.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "claude-code",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "codearbiter",
+          "command": "/ca:commit",
+                    "copy": true
+                },
+                {
+                    "id": "codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "codearbiter",
+                    "command": "$ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-direct",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+          "command": "/ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-fallback",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/skill:ca-commit",
+                    "copy": true
+                }
+            ],
+            "expected_result": "One new commit changes only tests/test_cli.py and workshop_queue/cli.py.",
+            "recovery": "If the gate blocks, preserve its finding. Do not substitute git commit or amend another attempt.",
+            "evidence": "The local work range starts after the prepared commit."
+        },
+        {
+            "id": "P02-prove-and-push",
+            "sequence": 9,
+            "title": "Prove the work range and push only origin",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "In the native terminal, inspect the nonempty one-commit range, push its head to origin, then compare both local bare remotes. Never push upstream.",
+            "rationale": "The receipt binds the exact work head only after the learner origin contains it.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$branch = git branch --show-current\n$workHead = git rev-parse HEAD\ngit log --oneline \"HEAD~1..$workHead\"\ngit push origin \"HEAD:refs/heads/$branch\"\ngit ls-remote origin \"refs/heads/$branch\"\ngit ls-remote upstream \"refs/heads/$branch\"",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "branch=$(git branch --show-current)\ngit log --oneline HEAD~1..HEAD\ngit push origin \"HEAD:refs/heads/$branch\"\ngit ls-remote origin \"refs/heads/$branch\"\ngit ls-remote upstream \"refs/heads/$branch\"",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "branch=$(git branch --show-current)\ngit log --oneline HEAD~1..HEAD\ngit push origin \"HEAD:refs/heads/$branch\"\ngit ls-remote origin \"refs/heads/$branch\"\ngit ls-remote upstream \"refs/heads/$branch\"",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Origin reports the attempt work head and upstream reports no attempt ref.",
+            "recovery": "If origin differs or upstream has the ref, stop and preserve the evidence. Do not force-push or edit the remotes.",
+            "evidence": "The receipt will bind the origin-only local push proof."
+        },
+        {
+            "id": "P02-record-receipt",
+            "sequence": 10,
+            "title": "Record the declared local receipt",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "After deciding the review is cleared, run the installed helper in the native terminal. It writes one untracked canonical receipt and does not stage, commit, or push it.",
+            "rationale": "The helper formats only recomputable local facts plus the learner declaration.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path record P02-commit-review-pr --review-declared-cleared",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Only .codearbiter/reports/academy/P02-pr-receipt.json appears as untracked work.",
+            "recovery": "If it refuses, preserve the message and use Reset. Do not hand-write a replacement receipt.",
+            "evidence": "The output says it recorded a learner-declared offline-local review receipt."
+        },
+    {
+      "id": "P02-stage-receipt",
+      "sequence": 11,
+            "title": "Stage only the receipt",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Stage the one canonical receipt path and inspect the staged path list before asking the agent to commit it.",
+            "rationale": "The final commit may contain only the receipt.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "git add -- .codearbiter/reports/academy/P02-pr-receipt.json\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- .codearbiter/reports/academy/P02-pr-receipt.json\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- .codearbiter/reports/academy/P02-pr-receipt.json\ngit diff --cached --name-only",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The staged path list contains exactly .codearbiter/reports/academy/P02-pr-receipt.json.",
+            "recovery": "If another path appears, preserve it and unstage only that unrelated path before continuing.",
+            "evidence": "The receipt commitment boundary is explicit."
+        },
+    {
+      "id": "P02-run-receipt-commit",
+      "sequence": 12,
+            "title": "Let the agent commit the receipt",
+            "actor": "agent",
+            "surface": null,
+            "instruction": "After the learner approves the one staged receipt path, invoke the host-native CodeArbiter commit gate for the receipt-only commit.",
+            "rationale": "A separate commit distinguishes reviewed work from the declaration about it.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "claude-code",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "codearbiter",
+                    "command": "/ca:commit",
+                    "copy": true
+                },
+                {
+                    "id": "codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "codearbiter",
+                    "command": "$ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-direct",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-fallback",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/skill:ca-commit",
+                    "copy": true
+                }
+            ],
+            "expected_result": "A later commit changes only the receipt path.",
+            "recovery": "If the gate blocks, preserve the finding. Do not amend the work commit or commit a second path.",
+            "evidence": "Check expects the receipt commit to have the work head as its sole parent."
+        },
+    {
+      "id": "P02-confirm-clean",
+      "sequence": 13,
+            "title": "Confirm the attempt is clean",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Inspect status in the native terminal before Check. A clean worktree means the receipt is committed rather than merely present.",
+            "rationale": "Check accepts committed evidence, not an uncommitted local file.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "git status --short",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git status --short",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git status --short",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Git prints nothing.",
+            "recovery": "If Git prints a path, preserve the committed attempt and resolve only the uncommitted path. Do not reset completed evidence.",
+            "evidence": "The checkout matches the receipt commit."
+        },
+    {
+      "id": "P02-check",
+      "sequence": 14,
+            "title": "Run external Academy Check",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Run the installed Check command from the native terminal. It recomputes the offline-local evidence and records progress only after passing.",
+            "rationale": "External verification separates accepted Git facts from the learner's local narration.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Check reports a passed P02 checkpoint.",
+            "recovery": "If Check fails, preserve the clean committed attempt and use the named failed predicate to decide whether to Reset.",
+            "evidence": "Check proves the local graph and receipt structure, not hosted review facts."
+        },
+    {
+      "id": "P02-reset",
+      "sequence": 15,
+            "title": "Preserve and reset an attempt",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Use Reset only for a retry or when directed by a failure message. It archives the current attempt before restoring the original topology.",
+            "rationale": "Preservation-first recovery keeps failed evidence inspectable.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Academy preserves the current attempt and restores original remotes when the sidecar topology matches.",
+            "recovery": "If Reset refuses, preserve its output and do not force-reset, edit remotes, or delete refs.",
+            "evidence": "The prior attempt remains reachable for inspection."
+        }
+    ]
+}

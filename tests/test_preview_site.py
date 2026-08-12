@@ -72,6 +72,110 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_p07_guided_document_renders_action_cards_without_entering_the_public_catalog(self) -> None:
+        """Catches a future private P07 guide losing action rendering or leaking into Preview 0.6."""
+        manifest = load_action_manifest(self.root, "P07-threat-model")
+        actions = {action.id: action for action in manifest.actions}
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P07-threat-model.md"),
+            "P07-threat-model",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(tuple(document["referenced_actions"]), tuple(actions))
+        self.assertEqual(html.count('class="lesson-action"'), len(actions))
+        self.assertIn('data-action-id="P07-request-draft"', html)
+        self.assertIn('data-action-id="P07-check"', html)
+        self.assertIn("Your agent · Codex harness · All operating systems", html)
+        self.assertIn("You · Native terminal · Windows", html)
+        self.assertIn('data-copy-target="command-P07-check-windows"', html)
+        build_preview_site(self.root, self.out, release_sha="f" * 40)
+        self.assertFalse((self.out / "labs" / "P07-threat-model" / "index.html").exists())
+
+    def test_p08_private_guide_renders_all_action_cards_with_their_execution_identity(self) -> None:
+        """Catches P08 action cards disappearing before the lesson is eligible for publication."""
+        manifest = load_action_manifest(self.root, "P08-repository-hygiene")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P08-repository-hygiene.md"),
+            "P08-repository-hygiene",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(document["referenced_actions"], tuple(action.id for action in manifest.actions))
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="P08-prepare"', html)
+        self.assertIn('data-action-id="P08-run-standup"', html)
+        self.assertIn('data-action-id="P08-request-report-draft"', html)
+        self.assertIn('data-action-id="P08-check"', html)
+        self.assertIn("You · Native terminal", html)
+        self.assertIn("You · Codex harness", html)
+        self.assertIn("Your agent · Codex harness", html)
+        self.assertIn("agent-owned CodeArbiter command", html)
+
+    def test_private_p04_action_contract_does_not_create_a_public_lesson_page(self) -> None:
+        """Catches a private guided draft leaking into the Preview site before publication approval."""
+        manifest = load_action_manifest(self.root, "P04-review-a-dependency")
+        self.assertEqual(manifest.document_id, "P04-review-a-dependency")
+        build_preview_site(self.root, self.out, release_sha="a" * 40)
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertFalse((self.out / "labs" / "P04-review-a-dependency" / "index.html").exists())
+        self.assertNotIn('href="labs/P04-review-a-dependency/index.html"', index)
+
+    def test_p01_renders_its_action_backed_review_and_evidence_boundaries(self) -> None:
+        """Catches an unpublished P01 guide losing its action cards before release promotion."""
+        manifest = load_action_manifest(self.root, "P01-feature-through-plan")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P01-feature-through-plan.md"),
+            "P01-feature-through-plan",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        for action_id in (
+            "P01-solo-review",
+            "P01-discussion-review",
+            "P01-proceed",
+            "P01-check",
+        ):
+            with self.subTest(action=action_id):
+                self.assertIn(f'data-action-id="{action_id}"', html)
+        self.assertIn("Arbiter Academy GitHub Discussion", html)
+        self.assertIn('class="command-copy"', html)
+    def test_private_p03_renders_choice_copy_and_future_operations_without_false_commands(self) -> None:
+        """Catches rendered P03 cards giving the agent the choice or learners fake release commands."""
+        manifest = load_action_manifest(self.root, "P03-adr-decision-log")
+        actions = {action.id: action for action in manifest.actions}
+
+        self.assertIn("P03-make-choice", actions)
+        choice = preview_site._render_action(actions["P03-make-choice"])
+        for expected in (
+            "Use stable text for Workshop Queue summaries.",
+            "Use structured JSON for Workshop Queue summaries.",
+        ):
+            self.assertEqual(choice.count(expected), 3)
+        self.assertEqual(choice.count('class="command-copy"'), 6)
+        self.assertIn("You · Codex harness · All operating systems", choice)
+
+        for action_id in ("P03-prepare", "P03-check", "P03-reset"):
+            with self.subTest(action=action_id):
+                rendered = preview_site._render_action(actions[action_id])
+                self.assertIn("Academy · Academy console · All operating systems", rendered)
+                self.assertIn("Preview 0.6", rendered)
+                self.assertNotIn("command-variant", rendered)
+                self.assertNotIn("command-copy", rendered)
+                self.assertNotIn("<pre>", rendered)
+                self.assertNotIn("preview-0.5", rendered.casefold())
+
     def test_f01_renders_the_complete_evidence_and_recovery_contract(self) -> None:
         manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
         actions = {action.id: action for action in manifest.actions}
@@ -110,6 +214,27 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('href="../../index.html">Academy Home setup steps 1-5</a> before Prepare.', html)
         self.assertIn("only after its guided rewrite and acceptance evidence are complete", html)
         self.assertIn("Do not use unpublished source exercises", html)
+
+    def test_private_p06_guided_document_renders_copyable_actions_without_publishing_a_route(self) -> None:
+        """Catches P06 action cards losing their execution identity before public promotion."""
+        manifest = load_action_manifest(self.root, "P06-context-drift-recovery")
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P06-context-drift-recovery.md"),
+            "P06-context-drift-recovery",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertIn('data-action-id="P06-run-context-audit"', html)
+        self.assertIn('data-copy-target="command-P06-prepare-windows"', html)
+        self.assertIn('data-copy-target="command-P06-check-linux"', html)
+        self.assertIn("CodeArbiter command", html)
+        self.assertIn("Check does not prove that the host command ran", html)
 
     def test_public_release_record_contains_provenance_availability_and_support_contract(self) -> None:
         """Catches release.json shrinking to commit-only metadata instead of public release truth."""
@@ -1028,7 +1153,7 @@ class PreviewSiteTests(unittest.TestCase):
                 ):
                     check_preview_site(destination)
 
-    def test_static_checker_allows_only_repository_scoped_action_resources(self) -> None:
+    def test_static_checker_allows_only_academy_scoped_action_resources(self) -> None:
         """Catches a rendered action resource escaping the runtime URL contract."""
         root = Path(self.temporary_directory.name) / "resource-check"
         root.mkdir()
@@ -1038,6 +1163,7 @@ class PreviewSiteTests(unittest.TestCase):
             "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
             "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
             "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/",
         )
         for target in approved:
             with self.subTest(target=target):
@@ -1051,6 +1177,8 @@ class PreviewSiteTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/blob/main/%252e%252e/secret",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file?raw=1",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file%0a",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/?raw=1",
             "/recovery/",
         ):
             with self.subTest(target=target):
@@ -1513,6 +1641,34 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(document["heading"], "Fork and clone Doctor")
         self.assertIn('data-action-id="F01-prepare"', str(document["content"]))
 
+    def test_private_p05_guide_has_one_to_one_actions_and_renders_copyable_controls(self) -> None:
+        """P05 stays private but uses the same renderer contract as published lessons."""
+        root = Path(__file__).parents[1]
+        document = preview_site._read_markdown_document(
+            root,
+            Path("academy/tracks/practitioner/P05-checkpoint-remediation.md"),
+            "P05-checkpoint-remediation",
+            require_h1=True,
+        )
+        manifest = load_action_manifest(root, "P05-checkpoint-remediation")
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        content = str(document["content"])
+        self.assertIn('data-action-id="P05-prepare"', content)
+        self.assertIn('data-action-id="P05-check"', content)
+        self.assertIn('data-copy-target="command-P05-prepare-windows"', content)
+        self.assertIn('class="action-expected"', content)
+        self.assertIn('class="action-recovery"', content)
+        self.assertIn(
+            'href="https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/"',
+            content,
+        )
+        self.assertNotIn("github.com/arbiterForge/arbiter-academy/blob/main/academy/tracks", content)
+        self.assertNotIn("{{action:", content)
+
     def test_guided_documents_require_one_to_one_action_references(self) -> None:
         """Catches ambiguous, missing, duplicated, or prose-injected action bindings."""
         action = preview_site.LessonAction(
@@ -1687,7 +1843,7 @@ class PreviewSiteTests(unittest.TestCase):
                 expected_document_id="home",
             )
 
-    def test_f01_review_boundary_renders_the_active_harness_without_a_command(self) -> None:
+    def test_f01_review_boundary_renders_copyable_host_specific_review_prompts(self) -> None:
         manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
         action = next(
             action
@@ -1697,13 +1853,13 @@ class PreviewSiteTests(unittest.TestCase):
 
         rendered = preview_site._render_action(action)
 
-        self.assertIn(
-            "You \u00b7 Active CodeArbiter harness \u00b7 All operating systems",
-            rendered,
-        )
+        for host in ("Claude Code", "Codex", "Pi"):
+            with self.subTest(host=host):
+                self.assertIn(f"You \u00b7 {host} harness \u00b7 All operating systems", rendered)
         self.assertNotIn("Native terminal", rendered)
-        self.assertNotIn("command-variant", rendered)
-        self.assertNotIn("<pre>", rendered)
+        self.assertEqual(rendered.count('class="command-variant"'), 3)
+        self.assertEqual(rendered.count('class="command-copy"'), 3)
+        self.assertIn("Show the staged path list and staged diff. Do not commit.", rendered)
 
     def test_home_and_recovery_activate_only_with_complete_guide_action_pairs(self) -> None:
         """Catches partial or malformed guide publication and verifies real pair rendering."""

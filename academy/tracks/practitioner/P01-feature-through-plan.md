@@ -11,123 +11,113 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P01-
 next_lab: P02-commit-review-pr
 ---
 
-# P01 — Feature through a user-approved spec and derived plan
+# P01 - Feature through a user-approved spec and derived plan
 
-## Why this mechanism matters
+## Know before you begin
 
-A governed feature begins with agreement about observable behavior, not an implementation-shaped
-task list. Here the approval boundary is the specification. The implementation plan derives from
-that approved contract and must cover it, but codeArbiter does not define a separate plan-approval
-event for this lane. You still practice test-before-code; the bounded, one-final-commit Academy
-checkpoint verifies the final repository contract rather than reconstructing command execution order.
+This is private authoring material. It is unavailable in Preview 0.6. Its action cards document an unreleased lesson and do not create a public course route.
 
-## Start the scenario
+Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
+confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
+Academy Prepare, Check, and Reset. Keep one CodeArbiter harness open at that same clone for the
+feature workflow.
 
-From clean `main`, prepare the bounded Workshop Queue feature:
+This lesson has two honest review paths. In **Solo practice**, you review the drafted specification
+yourself, using the checklist below. In **Collaborative practice**, you ask for or use feedback in the
+Arbiter Academy GitHub Discussion, then relay that feedback to your agent. If feedback is not
+available, return to Solo practice. Neither path asks you to make up feedback or persist a marker
+that pretends to prove another person approved the work.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository prepare P01-feature-through-plan
-```
+Commands shown as native-terminal actions are entered directly and never begin with `!`. A shell
+command shown for a harness begins with exactly one `!`. CodeArbiter commands and agent messages are
+entered in the selected harness and never begin with `!`.
 
-Preparation creates the next numbered attempt branch and queues
-`academy.feature.0002 - Show unresolved tickets in the summary`. It does not approve a spec, derive
-a plan, start the task, or implement the summary.
+## What you will prove
 
-## Use your host
+You will preserve one feature attempt containing the exact specification, a plan derived from its
+acceptance criteria, the sanctioned transition of `academy.feature.0002`, a focused regression, and
+the bounded unresolved-ticket repair. The task is to report the exact total of `open` plus `claimed`
+tickets through the existing summary boundary.
 
-Invoke the feature lane for the exact staged request. Enabled repository state is required.
+The agent drafts the specification and stops. You choose a review path, then send a separate proceed
+instruction. Only then does the agent derive the plan, start the staged task, run the focused RED
+test, make the bounded repair, run GREEN verification, and invoke the governed commit gate.
 
-### Claude Code
+## Prepare safely
 
-```text
-/ca:feature "Show unresolved tickets in the Workshop Queue summary"
-/ca:task start academy.feature.0002
-```
+{{action:P01-prepare}}
 
-### Codex
+`ATTEMPT_NUMBER` means the number Academy prints, such as `1`; it is not text to type literally.
+Stay on that numbered branch for the whole attempt.
 
-```text
-$ca-feature "Show unresolved tickets in the Workshop Queue summary"
-$ca-task start academy.feature.0002
-```
+{{action:P01-draft-spec}}
 
-### Pi (Feature Forge preview)
+The feature command creates the draft and stops at the specification decision. It does not grant
+approval, derive a plan, start the task, or change production code.
 
-Pi is the supported Feature Forge preview and requires project trust. Its documented fallbacks are
-`/skill:ca-feature "Show unresolved tickets in the Workshop Queue summary"` and
-`/skill:ca-task start academy.feature.0002`.
+## Practice
 
-```text
-/ca-feature "Show unresolved tickets in the Workshop Queue summary"
-/ca-task start academy.feature.0002
-```
+{{action:P01-read-spec}}
 
-## Do the work
+Use exactly one review path before you continue.
 
-Inspect `.codearbiter/CONTEXT.md`, the queued task, and the current summary boundary. Author
-`.codearbiter/specs/academy-feature.md` so its acceptance criteria identify unresolved ticket
-states and the observable summary result. Pause for real user approval of that spec. Record only
-the approval representation the sanctioned feature lane supports; do not invent a plan approval or
-a generic approval event.
+{{action:P01-solo-review}}
 
-Derive `.codearbiter/plans/academy-feature.md` from the approved acceptance criteria. The plan must
-map every criterion to a concrete implementation or verification step. Then run the copyable task
-command for your host to move exactly `academy.feature.0002` from queued to in progress with its
-writer-produced start date.
+{{action:P01-discussion-review}}
 
-Add and run a focused summary test before touching production code. It must fail because unresolved
-tickets are absent from the summary, not because of syntax, import, or fixture errors. Then make
-only the bounded `open + claimed` assignment, run focused and full GREEN verification, and let the
-terminal commit gate create one final green commit containing the spec, derived plan, task-board
-transition, test, and production change. Do not create a RED commit, amend, or rebase.
+{{action:P01-proceed}}
 
-## Hints
+After you send the proceed instruction, let the agent execute the governed path it describes. Add and run a focused summary test before touching production code. The RED result must fail because unresolved tickets are absent, not because a file, import, or fixture is broken. The repair remains the exact `open + claimed` assignment. Do not create a RED commit, amend, or rebase.
+
+## Recognize success
+
+The attempt has one final green commit after Prepare. That commit contains exactly the feature
+specification, derived plan, canonical task-board transition, focused regression, and bounded
+production repair. The task has a writer-produced start date, and `git status --short` prints
+nothing before Check.
+
+The specification is the review boundary. The plan has authority because it maps each approved
+criterion to implementation and verification work. It is not a separate approval ceremony.
+
+## Check
+
+{{action:P01-check}}
+
+A pass contains `checkpoint P01-feature-through-plan: passed; progress: .academy/progress.json`.
+Check validates the final descendant commit, exact spec and plan shape, task transition, focused regression, bounded repair, and a clean worktree. It does not authenticate a human approval. It does not authenticate a GitHub Discussion response. It does not prove that you ran the test before production code or the order in which the agent ran RED and GREEN commands. Those are workflow practices you observe during the lesson, not claims made by this final-state verifier.
+
+## Recover or continue
+
+If the draft is wrong, review is incomplete, plan coverage is weak, the task transition is wrong, or
+Check fails, preserve the attempt. Read the named predicate and correct only that boundary in a new
+numbered attempt. Do not conceal evidence by amending or rebasing history.
 
 ### Hint 1
 
-Start from the staged task and existing report API. Phrase the spec in terms of which ticket states
-must be represented and what a caller can observe, not the private loop you expect to edit.
+Read the queued task and current report API before reviewing the draft. Describe visible ticket
+states and caller-visible output, not a private loop you expect to edit.
 
 ### Hint 2
 
-Build a coverage table from each approved acceptance criterion to a plan step and test. There is no
-second approval gate to fabricate; the plan's authority comes from its traceable derivation.
+For Solo practice, check that every acceptance criterion is observable, names the relevant ticket
+states, and can map to one plan step and one focused test. For Collaborative practice, compare the
+feedback with those same facts before relaying it.
 
 ### Hint 3
 
-Keep the retained regression exact and narrow. The installed Academy checkpoint parses it as data
-against a verifier-owned prepared/intended model; it does not run learner Python, prove chat
-approval, or prove which executable wrote byte-identical files.
+The final verifier recomputes data and repository shape. Keep the test narrow and inspect the final
+commit boundary; it cannot reconstruct chat, review, or command history.
 
-## Success evidence
+{{action:P01-reset-retry}}
 
-The selected attempt contains the approved spec, its coverage-valid derived plan, the canonical
-task-board transition, and one final green commit with the exact bounded test and production
-artifacts. The checkpoint reconstructs the regression's expected result from the frozen fixture and
-verifies the final AST/data contract. It does not prove that you ran the test before production code,
-observed a terminal RED/GREEN run, or created separate test and repair commits. Those are essential
-workflow instructions for the exercise; they are not durable claims made by a non-executing,
-one-final-commit verifier.
+After Check passes, leave the completed branch intact and return to `main` when you are ready. P02
+appears on the course home only after its guided rewrite and acceptance evidence are complete. Do not
+use unpublished source exercises as a substitute for the accepted course.
 
-```powershell
-arbiter-academy --repository <learner-repository> check P01-feature-through-plan
-```
+## Understand the mechanism
 
-The installed verifier recomputes bounded repository state; terminal transcripts and progress JSON
-are not outcome evidence.
-
-## Recovery
-
-If approval, plan coverage, task movement, or TDD ordering is wrong, preserve the attempt and reset:
-
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository reset P01-feature-through-plan
-```
-
-Do not amend or rebase a retry; preserve the attempt and let reset create the next one.
-
-## Next lab
-
-Continue to **P02 — Review, commit, push, and record an offline local PR receipt** after P01 passes.
+A feature contract begins with observable behavior. The specification tells the agent and reviewer
+what must be true; the plan traces that contract into work; the focused test protects the caller
+boundary; and the commit gate records only the verified final change. Academy Check then compares
+the prepared baseline, commit ancestry, required artifacts, and live worktree without trusting a
+transcript supplied by the learner checkout.

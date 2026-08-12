@@ -94,6 +94,22 @@ _GUIDED_SECTIONS = (
     "Recover or continue",
     "Understand the mechanism",
 )
+_P03_GUIDED_SECTIONS = (
+    "Know before you begin",
+    "What you will prove",
+    "Prepare safely",
+    "Practice the decision",
+    "Recognize success",
+    "Check",
+    "Recover or continue",
+    "Understand the mechanism",
+)
+_ACTION_DOCUMENT_IDS = {
+    # P03's verifier/scenario identifier is historical and immutable. Its action document name
+    # describes the learner-facing decision-log outcome without changing that identity.
+    "P03-record-an-adr": "P03-adr-decision-log",
+}
+_SAFE_ACTION_DOCUMENT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,95}")
 _HOST_HEADINGS = {
     "Claude Code": "claude-code",
     "Codex": "codex",
@@ -170,12 +186,14 @@ _SCENARIO_COMMANDS = {
     lab_id: f"arbiter-academy --repository <learner-repository> prepare {lab_id}"
     for lab_id in _INSTALLED_PREPARE_LABS
 }
+_SCENARIO_COMMANDS["P06-context-drift-recovery"] = "{{action:P06-prepare}}"
 _SCENARIO_COMMANDS["F02-orient-to-state"] = (
     "arbiter-academy --repository . prepare F02-orient-to-state"
 )
 _CHECKPOINT_COMMANDS = {
     "F02-orient-to-state": "arbiter-academy --repository . check F02-orient-to-state"
 }
+_CHECKPOINT_COMMANDS["P06-context-drift-recovery"] = "{{action:P06-check}}"
 _MATRIX_CASES = {
     "F01-fork-clone-doctor": (
         "untouched",
@@ -350,6 +368,24 @@ def _subsections(text: str, path: Path, label: str) -> dict[str, str]:
     return result
 
 
+def _guided_inline_hints(text: str, path: Path) -> dict[str, str]:
+    """Read the three inline progressive hints used inside a guided recovery section."""
+    matches = list(
+        re.finditer(
+            r"(?m)^\*\*Hint ([^.*\n]+)\.\*\*[^\S\r\n]*(.*?)(?=\n\s*\n|\Z)",
+            text,
+            re.DOTALL,
+        )
+    )
+    result: dict[str, str] = {}
+    for match in matches:
+        name = f"Hint {match.group(1).strip()}"
+        if name in result:
+            raise CurriculumError(f"{path.name} repeats guided progressive hint {name}.")
+        result[name] = match.group(2).strip()
+    return result
+
+
 def _one_command_block(text: str, label: str, path: Path) -> str:
     matches = re.findall(r"(?ms)^```(?:text|powershell)?\n(.+?)\n```$", text)
     if len(matches) != 1:
@@ -362,13 +398,19 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
-    action_path = path.parents[3] / "academy" / "actions" / f"{data['id']}.json"
+    action_document_id = _ACTION_DOCUMENT_IDS.get(data["id"], data["id"])
+    if _SAFE_ACTION_DOCUMENT_ID.fullmatch(action_document_id) is None:
+        raise CurriculumError(f"{path.name} maps to an unsafe action document ID.")
+    action_path = path.parents[3] / "academy" / "actions" / f"{action_document_id}.json"
     guided = action_path.is_file()
-    sections = _sections(
-        body, path, _GUIDED_SECTIONS if guided else _REQUIRED_SECTIONS
+    guided_sections = (
+        _P03_GUIDED_SECTIONS
+        if data["id"] == "P03-record-an-adr"
+        else _GUIDED_SECTIONS
     )
+    sections = _sections(body, path, guided_sections if guided else _REQUIRED_SECTIONS)
     if guided:
-        manifest = load_action_manifest(path.parents[3], data["id"])
+        manifest = load_action_manifest(path.parents[3], action_document_id)
         host_action = next(
             (
                 action
@@ -415,7 +457,15 @@ def _parse_lab(path: Path) -> CurriculumLab:
         if "project trust" not in hosts["Pi (Feature Forge preview)"].casefold():
             raise CurriculumError(f"{path.name} must state Pi's project-trust prerequisite.")
         hint_source = sections["Hints"]
-    hints = _subsections(hint_source, path, "hint")
+    if guided:
+        # F01/F02 are already action-backed guided lessons but retain the original
+        # level-three Hint headings. P07 uses inline progressive hints so the prose
+        # can stay within its eight-heading learner flow. Accept exactly one form.
+        hints = _guided_inline_hints(hint_source, path)
+        if not hints:
+            hints = _subsections(hint_source, path, "hint")
+    else:
+        hints = _subsections(hint_source, path, "hint")
     expected_hints = {"Hint 1", "Hint 2", "Hint 3"}
     if set(hints) != expected_hints:
         raise CurriculumError(f"{path.name} must provide exactly three progressive hints.")

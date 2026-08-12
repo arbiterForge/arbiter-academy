@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "P06-context-drift-recovery",
+  "actions": [
+    {
+      "id": "P06-prepare",
+      "sequence": 1,
+      "title": "Prepare one preserved recovery attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "At the root of your Academy clone on a clean main branch, run Prepare in a native terminal. Academy creates the numbered attempt and freezes the stale context, provenance record, and unrelated note before you inspect anything.",
+      "rationale": "A prepared commit gives Check a fixed before-state and keeps a failed recovery attempt inspectable.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P06-context-drift-recovery","copy":true}
+      ],
+      "expected_result": "Academy prints academy/P06-context-drift-recovery/ATTEMPT_NUMBER and leaves you on that numbered branch.",
+      "recovery": "If Prepare names a dirty worktree or branch condition, preserve the message and resolve only that condition. Do not reset, rebase, or delete an earlier attempt.",
+      "evidence": "The prepared commit is the trusted baseline for every later byte and history comparison."
+    },
+    {
+      "id": "P06-inspect-evidence",
+      "sequence": 2,
+      "title": "Have the agent expose the contradictory evidence",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "In your selected CodeArbiter harness, ask the agent to read the prepared context, provenance, preserved note, current CLI source, and ADR-0005 without editing. The agent must show why the context is stale before you select a recovery route.",
+      "rationale": "The correction is justified by a tracked source contradiction, not by guessing that documentation is old.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Read, do not edit, .codearbiter/CONTEXT.md, .codearbiter/.provenance/CONTEXT.json, docs/preserved-note.md, workshop_queue/cli.py, and .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md. Show the stale report claim, the source behavior that contradicts it, the recorded source object ID, the prepared source object ID, and the unrelated note boundary. Do not select a route, edit, stage, or commit.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Read, do not edit, .codearbiter/CONTEXT.md, .codearbiter/.provenance/CONTEXT.json, docs/preserved-note.md, workshop_queue/cli.py, and .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md. Show the stale report claim, the source behavior that contradicts it, the recorded source object ID, the prepared source object ID, and the unrelated note boundary. Do not select a route, edit, stage, or commit.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Read, do not edit, .codearbiter/CONTEXT.md, .codearbiter/.provenance/CONTEXT.json, docs/preserved-note.md, workshop_queue/cli.py, and .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md. Show the stale report claim, the source behavior that contradicts it, the recorded source object ID, the prepared source object ID, and the unrelated note boundary. Do not select a route, edit, stage, or commit.","copy":true}
+      ],
+      "expected_result": "You can see that stable text is the default, structured JSON is optional, ADR-0005 replaced the lifecycle reference, and docs/preserved-note.md is outside the repair.",
+      "recovery": "If any named evidence file is missing or differs from the prepared scenario, stop and preserve the attempt. Use Reset for a fresh prepared baseline; do not substitute evidence.",
+      "evidence": "This inspection supports your decision, but Check later verifies committed objects rather than an agent transcript."
+    },
+    {
+      "id": "P06-run-context-audit",
+      "sequence": 3,
+      "title": "Run the host context audit",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Run this CodeArbiter command in the selected harness. It is a CodeArbiter command, not a shell command, so it never begins with !. Read the finding before choosing the route.",
+      "rationale": "The host audit makes the available context-recovery routes visible before the scope is changed.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:context-check","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-context-check","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-context-check","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-context-check","copy":true}
+      ],
+      "expected_result": "The agent identifies the contradicted context claim and offers a scoped recovery decision instead of silently rewriting broad repository context.",
+      "recovery": "If the host reports an unrelated blocker, preserve its finding and resolve that blocker first. Do not claim the audit ran by writing a replacement receipt.",
+      "evidence": "The final handoff records your declared route; Check does not prove that the host command ran."
+    },
+    {
+      "id": "P06-select-rescout",
+      "sequence": 4,
+      "title": "Select the bounded re-scout decision",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Choose scoped re-scout because the prepared source contradicts the recorded claim and ADR-0005 superseded the older lifecycle reference. Do not choose an alternate route or a broader documentation rewrite.",
+      "rationale": "Re-scout refreshes one source-backed claim while preserving unrelated evidence and the prepared exercise boundary.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The next instruction is limited to the stale report statement, its lifecycle link, and the provenance entry that names the source.",
+      "recovery": "If you cannot explain the contradiction from the prepared files, return to the evidence inspection instead of making a route choice.",
+      "evidence": "The handoff later declares re-scout, but that declaration is not proof of a host invocation or of your reasoning process."
+    },
+    {
+      "id": "P06-apply-correction",
+      "sequence": 5,
+      "title": "Ask the agent for the exact two-file correction",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send the bounded correction instruction in the selected harness. The agent edits and stages only the two correction files, then stops for your review; it does not commit the handoff yet.",
+      "rationale": "Separating the correction from the handoff makes the two-commit topology reconstructable.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Apply only the P06 scoped re-scout correction. In .codearbiter/CONTEXT.md replace the stale report sentence with exactly: Workshop Queue report output defaults to stable text and supports structured JSON with --format json. Update the lifecycle reference from ADR-0002 to ADR-0005. In .codearbiter/.provenance/CONTEXT.json update only the sole source hash to 5b41fb168a8b258cfae7eebc46e8b9ea7696ba56. Do not edit docs/preserved-note.md, create the handoff, commit, or touch any other path. Stage exactly those two correction files and stop for my review.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Apply only the P06 scoped re-scout correction. In .codearbiter/CONTEXT.md replace the stale report sentence with exactly: Workshop Queue report output defaults to stable text and supports structured JSON with --format json. Update the lifecycle reference from ADR-0002 to ADR-0005. In .codearbiter/.provenance/CONTEXT.json update only the sole source hash to 5b41fb168a8b258cfae7eebc46e8b9ea7696ba56. Do not edit docs/preserved-note.md, create the handoff, commit, or touch any other path. Stage exactly those two correction files and stop for my review.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Apply only the P06 scoped re-scout correction. In .codearbiter/CONTEXT.md replace the stale report sentence with exactly: Workshop Queue report output defaults to stable text and supports structured JSON with --format json. Update the lifecycle reference from ADR-0002 to ADR-0005. In .codearbiter/.provenance/CONTEXT.json update only the sole source hash to 5b41fb168a8b258cfae7eebc46e8b9ea7696ba56. Do not edit docs/preserved-note.md, create the handoff, commit, or touch any other path. Stage exactly those two correction files and stop for my review.","copy":true}
+      ],
+      "expected_result": "The staged path list contains exactly .codearbiter/CONTEXT.md and .codearbiter/.provenance/CONTEXT.json.",
+      "recovery": "If any other path is staged or the note changed, stop. Preserve the attempt and use Reset rather than unstaging around an unclear correction.",
+      "evidence": "The first learner commit is allowed to contain only the corrected context and provenance objects."
+    },
+    {
+      "id": "P06-review-correction-boundary",
+      "sequence": 6,
+      "title": "Review the first commit boundary yourself",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Ask the active harness to show the staged path list and staged diff. Confirm that only the exact stale statement, lifecycle reference, and one provenance hash changed. Do not commit until the boundary is exact.",
+      "rationale": "A small staged review prevents a correct concept from becoming an oversized recovery commit.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can account for both staged paths and see no change to docs/preserved-note.md.",
+      "recovery": "If the review shows an unrelated change, keep the attempt as evidence and use Reset for a new numbered baseline. Do not amend or rebase committed work.",
+      "evidence": "Check reconstructs the committed path boundary; it does not authenticate that you personally viewed this review."
+    },
+    {
+      "id": "P06-commit-correction",
+      "sequence": 7,
+      "title": "Commit the correction through CodeArbiter",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After your staged-boundary review, run the CodeArbiter commit gate in the selected harness. This command never begins with !.",
+      "rationale": "The correction must become the first of exactly two linear commits after Prepare.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "The first descendant of Prepare contains exactly the two correction paths and leaves the worktree clean.",
+      "recovery": "If the commit gate blocks, preserve its finding and resolve the named issue without expanding the two-file correction scope.",
+      "evidence": "Check reads commit ancestry and changed paths, not a commit message chosen by a learner."
+    },
+    {
+      "id": "P06-write-handoff",
+      "sequence": 8,
+      "title": "Ask the agent for the digest-bound recovery handoff",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "In the selected harness, ask the agent to create only the canonical P06 handoff from committed Git objects. The agent stages that one file and stops; it does not alter the preserved note or make another correction.",
+      "rationale": "The second commit records the evidence needed to reconstruct the repair without turning the report into an unverified activity transcript.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Create only .codearbiter/reports/academy/P06-recovery.json from committed Git objects. Use canonical compact UTF-8 JSON with schema_version 2; the prepared commit; the immediately preceding correction commit; recovery_route re-scout; the exact context, provenance, source, and preserved-note paths; the stale claim; and raw Git-blob SHA-256 before/after values. The preserved-note digests must match. Do not edit docs/preserved-note.md or any correction file. Stage only the handoff and stop for my review.","copy":true}
+      ],
+      "expected_result": "The staged path list contains only .codearbiter/reports/academy/P06-recovery.json, whose route is re-scout and whose preserved-note before and after digests are identical.",
+      "recovery": "If any digest cannot be tied to a committed object or any extra path is staged, stop and use Reset for a fresh attempt. Do not rewrite the correction commit.",
+      "evidence": "The handoff declares the chosen route and computed object evidence; Check recomputes those values independently."
+    },
+    {
+      "id": "P06-review-handoff-boundary",
+      "sequence": 9,
+      "title": "Review the handoff as the second commit",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Ask the active harness to show the staged handoff and path list. Confirm that it is the only staged file, names re-scout, identifies the prepared and correction commits, and preserves identical note digests.",
+      "rationale": "The handoff is evidence about the repair, so its own commit must stay separate from the correction it describes.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The staged boundary contains one canonical report and no recreated or edited preserved note.",
+      "recovery": "If the handoff mixes another path or claims a different route, stop and use Reset. Do not amend the first correction commit.",
+      "evidence": "Check verifies the report shape, digests, and commit order; it cannot prove who generated the JSON."
+    },
+    {
+      "id": "P06-commit-handoff",
+      "sequence": 10,
+      "title": "Commit the handoff through CodeArbiter",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After your handoff review, run the CodeArbiter commit gate in the selected harness. This is the second and final learner commit for P06.",
+      "rationale": "A dedicated evidence commit preserves the ordered distinction between correction and recovery record.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "There are exactly two ordered single-parent commits after Prepare, and git status --short prints nothing.",
+      "recovery": "If the commit gate blocks, preserve its finding and correct only the named report condition in a new numbered attempt; do not amend history.",
+      "evidence": "The verifier requires the second commit to introduce only the handoff."
+    },
+    {
+      "id": "P06-check",
+      "sequence": 11,
+      "title": "Run the external Academy Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "From the Academy clone root, run Check in a native terminal after the second commit leaves the worktree clean.",
+      "rationale": "The installed verifier evaluates the attempt from outside the learner flow and recomputes the evidence from Git objects.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P06-context-drift-recovery","copy":true}
+      ],
+      "expected_result": "Check prints checkpoint P06-context-drift-recovery: passed; progress: .academy/progress.json.",
+      "recovery": "If Check fails, preserve the committed attempt and read the failed predicate. Use Reset for a fresh numbered attempt instead of rewriting committed evidence.",
+      "evidence": "A pass verifies the frozen baseline, exact two-commit topology, object bytes, provenance repair, handoff, and clean worktree."
+    },
+    {
+      "id": "P06-reset-retry",
+      "sequence": 12,
+      "title": "Create a preserved numbered retry",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use Reset only when the attempt needs a new baseline. Run it in a native terminal at the Academy clone root; it archives the earlier branch before preparing the next number.",
+      "rationale": "A retained failed attempt is evidence you can inspect, not debris to erase.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P06-context-drift-recovery","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P06-context-drift-recovery","copy":true}
+      ],
+      "expected_result": "Academy archives the earlier attempt and prints the next academy/P06-context-drift-recovery/ATTEMPT_NUMBER branch.",
+      "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named repository condition; never force-reset, rebase, or delete the prior attempt.",
+      "evidence": "The archived branch remains reachable while the new attempt starts from the canonical prepared scenario."
+    }
+  ]
+}
