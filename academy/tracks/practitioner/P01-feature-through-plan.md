@@ -65,9 +65,13 @@ Use exactly one review path before you continue.
 
 {{action:P01-discussion-review}}
 
-If the draft needs a correction, use the revision action. It sends a bounded request and returns you to the same review choice. It does not begin planning or implementation.
+### If review finds a concrete correction
+
+Use the revision action. It sends a bounded request and returns you to the same review choice. It does not begin planning or implementation.
 
 {{action:P01-revise-spec}}
+
+### When the draft is acceptable
 
 {{action:P01-proceed}}
 

@@ -456,7 +456,14 @@ class PractitionerCurriculumTests(unittest.TestCase):
             ),
         )
         self.assertIn("This lesson is planned for Preview 0.9.", guide)
-        self.assertIn("If the draft needs a correction, use the revision action", guide)
+        self.assertIn("### If review finds a concrete correction", guide)
+        self.assertRegex(
+            guide,
+            r"### If review finds a concrete correction[\s\S]*?"
+            r"\{\{action:P01-revise-spec\}\}[\s\S]*?"
+            r"### When the draft is acceptable[\s\S]*?"
+            r"\{\{action:P01-proceed\}\}",
+        )
         self.assertIn("do not derive a plan", actions["P01-revise-spec"].instruction.casefold())
         self.assertEqual(actions["P01-draft-spec"].actor, "agent")
         self.assertEqual(actions["P01-revise-spec"].actor, "learner")
