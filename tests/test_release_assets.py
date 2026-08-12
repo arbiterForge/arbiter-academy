@@ -45,8 +45,6 @@ def sha256(path: Path) -> str:
 
 def immutable_release_tag_commit(release: str = RELEASE) -> str | None:
     expected = _REVIEWED_IMMUTABLE_RELEASE_COMMITS.get(release)
-    if expected is None:
-        return None
     resolved = subprocess.run(
         ["git", "rev-parse", "--verify", f"refs/tags/{release}^{{commit}}"],
         cwd=REPOSITORY,
@@ -55,9 +53,11 @@ def immutable_release_tag_commit(release: str = RELEASE) -> str | None:
         check=False,
     )
     if resolved.returncode:
+        if expected is None:
+            return None
         raise AssertionError(f"missing reviewed immutable {release} tag: {resolved.stderr}")
     actual = resolved.stdout.strip()
-    if actual != expected:
+    if expected is not None and actual != expected:
         raise AssertionError(
             f"reviewed immutable {release} tag resolves to {actual}, expected {expected}"
         )
@@ -139,6 +139,17 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
     def test_fresh_preview_candidate_has_no_preexisting_immutable_tag_binding(self) -> None:
         """A fresh preview builds from the reviewed candidate before its first immutable tag exists."""
         self.assertIsNone(immutable_release_tag_commit(RELEASE))
+
+    def test_current_preview_uses_its_tag_as_soon_as_publication_creates_it(self) -> None:
+        """A published Preview 0.7 must stop selecting mutable candidate bytes."""
+        expected = "a" * 40
+        with patch("tests.test_release_assets.subprocess.run") as run:
+            run.return_value = subprocess.CompletedProcess([], 0, f"{expected}\n", "")
+            self.assertEqual(immutable_release_tag_commit(RELEASE), expected)
+        self.assertEqual(
+            run.call_args.args[0],
+            ["git", "rev-parse", "--verify", "refs/tags/preview-0.7^{commit}"],
+        )
 
     def test_immutable_tag_resolution_uses_the_tag_namespace(self) -> None:
         """A branch named like the old release never participates in historical verification."""
