@@ -72,6 +72,28 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_p07_guided_document_renders_action_cards_without_entering_the_public_catalog(self) -> None:
+        """Catches a future private P07 guide losing action rendering or leaking into Preview 0.6."""
+        manifest = load_action_manifest(self.root, "P07-threat-model")
+        actions = {action.id: action for action in manifest.actions}
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/practitioner/P07-threat-model.md"),
+            "P07-threat-model",
+            require_h1=True,
+        )
+        html = str(document["content"])
+
+        self.assertEqual(tuple(document["referenced_actions"]), tuple(actions))
+        self.assertEqual(html.count('class="lesson-action"'), len(actions))
+        self.assertIn('data-action-id="P07-request-draft"', html)
+        self.assertIn('data-action-id="P07-check"', html)
+        self.assertIn("Your agent · Codex harness · All operating systems", html)
+        self.assertIn("You · Native terminal · Windows", html)
+        self.assertIn('data-copy-target="command-P07-check-windows"', html)
+        build_preview_site(self.root, self.out, release_sha="f" * 40)
+        self.assertFalse((self.out / "labs" / "P07-threat-model" / "index.html").exists())
+
     def test_p08_private_guide_renders_all_action_cards_with_their_execution_identity(self) -> None:
         """Catches P08 action cards disappearing before the lesson is eligible for publication."""
         manifest = load_action_manifest(self.root, "P08-repository-hygiene")

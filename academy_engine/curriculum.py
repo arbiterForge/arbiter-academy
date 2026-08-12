@@ -367,6 +367,24 @@ def _subsections(text: str, path: Path, label: str) -> dict[str, str]:
     return result
 
 
+def _guided_inline_hints(text: str, path: Path) -> dict[str, str]:
+    """Read the three inline progressive hints used inside a guided recovery section."""
+    matches = list(
+        re.finditer(
+            r"(?m)^\*\*Hint ([^.*\n]+)\.\*\*\s*(.*?)(?=\n\s*\n|\Z)",
+            text,
+            re.DOTALL,
+        )
+    )
+    result: dict[str, str] = {}
+    for match in matches:
+        name = f"Hint {match.group(1).strip()}"
+        if name in result:
+            raise CurriculumError(f"{path.name} repeats guided progressive hint {name}.")
+        result[name] = match.group(2).strip()
+    return result
+
+
 def _one_command_block(text: str, label: str, path: Path) -> str:
     matches = re.findall(r"(?ms)^```(?:text|powershell)?\n(.+?)\n```$", text)
     if len(matches) != 1:
@@ -436,7 +454,15 @@ def _parse_lab(path: Path) -> CurriculumLab:
         if "project trust" not in hosts["Pi (Feature Forge preview)"].casefold():
             raise CurriculumError(f"{path.name} must state Pi's project-trust prerequisite.")
         hint_source = sections["Hints"]
-    hints = _subsections(hint_source, path, "hint")
+    if guided:
+        # F01/F02 are already action-backed guided lessons but retain the original
+        # level-three Hint headings. P07 uses inline progressive hints so the prose
+        # can stay within its eight-heading learner flow. Accept exactly one form.
+        hints = _guided_inline_hints(hint_source, path)
+        if not hints:
+            hints = _subsections(hint_source, path, "hint")
+    else:
+        hints = _subsections(hint_source, path, "hint")
     expected_hints = {"Hint 1", "Hint 2", "Hint 3"}
     if set(hints) != expected_hints:
         raise CurriculumError(f"{path.name} must provide exactly three progressive hints.")

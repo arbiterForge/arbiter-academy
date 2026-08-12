@@ -150,6 +150,19 @@ P06_ACTION_IDS = (
     "P06-check",
     "P06-reset-retry",
 )
+P07_DOCUMENT_ID = "P07-threat-model"
+P07_ACTION_IDS = (
+    "P07-read-boundary",
+    "P07-prepare",
+    "P07-read-target",
+    "P07-request-draft",
+    "P07-review-model",
+    "P07-write-binding",
+    "P07-commit-report",
+    "P07-inspect-commit",
+    "P07-check",
+    "P07-reset",
+)
 
 P02_DOCUMENT_ID = "P02-commit-review-pr"
 P02_ACTION_IDS = (
@@ -162,6 +175,54 @@ P02_ACTION_IDS = (
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_private_p07_manifest_separates_threat_analysis_from_learner_review(self) -> None:
+        """Catches P07 losing its real target, surface, or verifier-limit boundaries."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P07_DOCUMENT_ID)
+        self.assertEqual(tuple(action.id for action in manifest.actions), P07_ACTION_IDS)
+        self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
+
+        self.assertEqual(by_id["P07-read-boundary"].actor, "learner")
+        self.assertEqual(by_id["P07-request-draft"].actor, "agent")
+        self.assertEqual(by_id["P07-review-model"].actor, "learner")
+        self.assertEqual(by_id["P07-write-binding"].actor, "learner")
+        self.assertEqual(by_id["P07-commit-report"].actor, "agent")
+        self.assertEqual(by_id["P07-inspect-commit"].actor, "learner")
+
+        for action_id in ("P07-prepare", "P07-read-target", "P07-inspect-commit", "P07-check", "P07-reset"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(
+                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
+                    (
+                        ("native-terminal", "windows", "none", True),
+                        ("native-terminal", "macos", "none", True),
+                        ("native-terminal", "linux", "none", True),
+                    ),
+                )
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        draft = by_id["P07-request-draft"]
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in draft.variants),
+            (
+                ("claude-code", '/ca:threat-model "academy_engine/paths.py archive-import containment boundary"'),
+                ("codex", '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
+                ("pi", '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
+                ("pi", '/skill:ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
+            ),
+        )
+        self.assertTrue(all(variant.language == "codearbiter" for variant in draft.variants))
+        self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
+
+        commit = by_id["P07-commit-report"]
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in commit.variants),
+            (("claude-code", "/ca:commit"), ("codex", "$ca-commit"), ("pi", "/ca-commit"), ("pi", "/skill:ca-commit")),
+        )
+        self.assertTrue(all(variant.language == "codearbiter" for variant in commit.variants))
+        self.assertFalse(any(variant.command.startswith("!") for variant in commit.variants))
+
     def test_p08_manifest_binds_each_execution_surface_to_one_safe_command_form(self) -> None:
         """Catches P08 losing the boundary between terminal, harness, and agent commands."""
         root = Path(__file__).parents[1]

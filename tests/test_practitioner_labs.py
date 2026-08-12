@@ -166,6 +166,33 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         with self.subTest(action=action_id):
                             self.assertTrue(any(assignment in variant.command and command in variant.command for variant in actions[action_id].variants))
                     continue
+                if lab.id == "P07-threat-model":
+                    manifest = load_action_manifest(SOURCE, lab.id)
+                    actions = {action.id: action for action in manifest.actions}
+                    self.assertNotIn("```", guide)
+                    for action_id, operation in (
+                        ("P07-prepare", "prepare"),
+                        ("P07-check", "check"),
+                        ("P07-reset", "reset"),
+                    ):
+                        with self.subTest(action=action_id):
+                            variants = actions[action_id].variants
+                            self.assertEqual(
+                                tuple(variant.operating_system for variant in variants),
+                                ("windows", "macos", "linux"),
+                            )
+                            self.assertTrue(all(variant.surface == "native-terminal" for variant in variants))
+                            self.assertTrue(all(variant.host == "none" for variant in variants))
+                            self.assertTrue(all(variant.copy for variant in variants))
+                            self.assertTrue(
+                                all(
+                                    "preview-0.6" in variant.command
+                                    and f"{operation} {lab.id}" in variant.command
+                                    and "!" not in variant.command
+                                    for variant in variants
+                                )
+                            )
+                    continue
                 action_path = SOURCE / f"academy/actions/{lab.id}.json"
                 if action_path.is_file():
                     manifest = load_action_manifest(SOURCE, lab.id)
@@ -482,14 +509,40 @@ class PractitionerCurriculumTests(unittest.TestCase):
             shutil.copytree(SOURCE / "academy", root / "academy")
             path = root / "academy/tracks/practitioner/P07-threat-model.md"
             text = path.read_text(encoding="utf-8")
-            start = text.index("## Success evidence")
-            end = text.index("## Recovery")
+            start = text.index("## Recognize success")
+            end = text.index("## Check")
             path.write_text(
-                text[:start] + "## Success evidence\n\n<!-- deliberately empty -->\n\n" + text[end:],
+                text[:start] + "## Recognize success\n\n<!-- deliberately empty -->\n\n" + text[end:],
                 encoding="utf-8",
             )
 
             with self.assertRaisesRegex(CurriculumError, "learner-visible content"):
+                load_track(root, "practitioner")
+
+    def test_loader_accepts_guided_inline_progressive_hints(self) -> None:
+        """Guided lessons keep their eight-heading flow while retaining three usable hints."""
+        track = load_track(SOURCE, "practitioner")
+        p07 = next(lab for lab in track.labs if lab.id == "P07-threat-model")
+
+        self.assertEqual(len(p07.hints), 3)
+        self.assertTrue(all(hint.strip() for hint in p07.hints))
+        self.assertNotIn("{{action:", p07.hints[2])
+
+    def test_loader_rejects_comment_only_guided_inline_hint(self) -> None:
+        """Inline hint labels cannot hide an empty learner experience behind comments."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(SOURCE / "academy", root / "academy")
+            path = root / "academy/tracks/practitioner/P07-threat-model.md"
+            text = path.read_text(encoding="utf-8")
+            start = text.index("**Hint 2.**") + len("**Hint 2.**")
+            end = text.index("**Hint 3.**", start)
+            path.write_text(
+                text[:start] + "\n<!-- no learner-visible hint -->\n\n" + text[end:],
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(CurriculumError, "learner-visible"):
                 load_track(root, "practitioner")
 
     def test_verify_track_matrix_binds_exact_structural_inventory(self) -> None:
@@ -937,7 +990,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             SOURCE / "academy/tracks/practitioner/P07-threat-model.md"
         ).read_text(encoding="utf-8")
 
-        self.assertEqual(p07.estimated_minutes, 30)
+        self.assertEqual(p07.estimated_minutes, 35)
         self.assertEqual(p07.prerequisites, ("P06-context-drift-recovery",))
         self.assertEqual(p07.next_lab, "P08-repository-hygiene")
         self.assertEqual(
@@ -950,38 +1003,74 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
                 ),
                 "pi": (
-                    '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
+                    '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"\n'
+                    '/skill:ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
                 ),
             },
         )
-        ordered_headings = (
-            "## Scope",
-            "## STRIDE findings",
-            "## Recommended controls before implementation",
-            "## Clearance",
+        native_sections = (
+            "Native sections are Scope, STRIDE findings",
+            "Clearance, in that order",
+            "S, T, R, I, D, E\norder",
             "## Academy Target-SHA256/identity binding",
         )
         self.assertTrue(
-            all(heading in guide for heading in ordered_headings),
-            "P07 guide must expose the complete ordered learner report template.",
+            all(section in guide for section in native_sections),
+            "P07 must teach the native report sections, STRIDE order, and separate binding.",
         )
-        positions = [guide.index(heading) for heading in ordered_headings]
+        positions = [guide.index(section) for section in native_sections]
         self.assertEqual(positions, sorted(positions))
+        normalized = " ".join(guide.split())
         for required in (
             "opt-in and read-only",
-            "The check cannot prove that a host command was invoked",
-            "Academy-Target-Prepared-Blob:",
-            "Academy-Target-Head-Blob:",
+            "It does not prove that a host command was invoked",
+            "prepared blob, head blob, and SHA-256 values",
             "CLEAR TO IMPLEMENT",
             "BLOCKED - resolve findings first",
-            "- Keep destination resolution under the selected repository root before creating or copying a file.",
-            "- Reject absolute, traversal, symlink, and Windows reparse-point ancestors in archive destinations.",
-            "- Fail closed on a different drive or an unrepresentable containment path before any write.",
+            "keep destination resolution under the selected repository root",
+            "Reject absolute, traversal, symlink, and Windows reparse-point ancestors",
+            "Fail closed on a different drive or an unrepresentable containment path",
         ):
             with self.subTest(required=required):
-                self.assertIn(required, guide)
+                self.assertIn(required, normalized)
         self.assertNotIn("proves that `$ca-threat-model`", guide)
         self.assertNotIn("native Academy", guide)
+
+    def test_p07_is_a_private_action_backed_threat_model_lesson(self) -> None:
+        """Catches P07 returning to raw commands or claiming Check proves live process."""
+        guide = (SOURCE / "academy/tracks/practitioner/P07-threat-model.md").read_text(encoding="utf-8")
+        manifest = load_action_manifest(SOURCE, "P07-threat-model")
+        lab = load_track(SOURCE, "practitioner").labs[6]
+
+        expected_headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        self.assertEqual(tuple(line for line in guide.splitlines() if line in expected_headings), expected_headings)
+        self.assertEqual(tuple(line for line in guide.splitlines() if line.startswith("## ")), expected_headings)
+        self.assertFalse(re.search(r"(?m)^#{3,} ", guide))
+        self.assertNotIn("```", guide)
+        self.assertEqual(
+            tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)),
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(lab.id, "P07-threat-model")
+        self.assertEqual(lab.host_commands["codex"], '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"')
+        normalized = " ".join(guide.split())
+        for required in (
+            "strict UTF-8 with LF line endings", "S, T, R, I, D, E order",
+            "Academy Target-SHA256/identity binding", "does not prove that a host command was invoked",
+            "does not prove that the agent drafted first", "does not prove that you reviewed",
+            "Neither clearance outcome authorizes a P07 code change", "P07 remains private",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, normalized)
 
     def test_p07_freezes_target_identity_descriptor_and_checkpoint(self) -> None:
         """Catches a P07 source contract that can silently rebind to changed target bytes."""
@@ -1037,18 +1126,21 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
     def test_p07_recovery_uses_archive_then_retry_without_destructive_commands(self) -> None:
         """Catches learner recovery copy that rewrites or discards the failed attempt."""
-        guide = (
-            SOURCE / "academy/tracks/practitioner/P07-threat-model.md"
-        ).read_text(encoding="utf-8")
-        recovery = guide[guide.index("## Recovery") : guide.index("## Next lab")]
-        normalized_recovery = " ".join(recovery.split())
+        manifest = load_action_manifest(SOURCE, "P07-threat-model")
+        reset = next(action for action in manifest.actions if action.id == "P07-reset")
+        recovery = " ".join((reset.instruction + " " + reset.recovery).split())
 
-        self.assertIn(
-            "arbiter-academy --repository $learnerRepository reset P07-threat-model",
-            recovery,
+        self.assertTrue(
+            all(
+                "reset P07-threat-model" in variant.command
+                and variant.surface == "native-terminal"
+                and variant.host == "none"
+                and "!" not in variant.command
+                for variant in reset.variants
+            )
         )
-        self.assertIn("archives the failed attempt", normalized_recovery)
-        self.assertIn("prepare an independent retry", normalized_recovery)
+        self.assertIn("archives the earlier attempt", recovery)
+        self.assertIn("retry", recovery)
         for destructive in (
             "git reset --hard",
             "git checkout",
