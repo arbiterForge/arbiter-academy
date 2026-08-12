@@ -199,27 +199,32 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         )
         return result.stdout.strip()
 
-    def _context(self, root: Path) -> _SemanticContext:
+    def _context(
+        self,
+        root: Path,
+        *,
+        prepared_brief: dict[str, object] | None = None,
+        extra_packet_path: bool = False,
+    ) -> _SemanticContext:
         (root / ".codearbiter").mkdir()
         (root / "training_scenarios").mkdir()
         (root / ".codearbiter/sprint-log.md").write_text(
             "# Sprint log — Academy fixture\n\nAppend-only.\n",
             encoding="utf-8",
         )
+        brief = prepared_brief if prepared_brief is not None else {
+            "schema_version": 1,
+            "lab_id": U01,
+            "deliverable": "docs/academy-sprint-summary.md",
+            "title": "Operate a bounded autonomous sprint",
+            "required_topics": [
+                "approval boundary",
+                "SMARTS decision trail",
+                "hard-gate stop",
+            ],
+        }
         (root / "training_scenarios/U01-sprint-brief.json").write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "lab_id": U01,
-                    "deliverable": "docs/academy-sprint-summary.md",
-                    "title": "Operate a bounded autonomous sprint",
-                    "required_topics": [
-                        "approval boundary",
-                        "SMARTS decision trail",
-                        "hard-gate stop",
-                    ],
-                }
-            )
+            json.dumps(brief)
             + "\n",
             encoding="utf-8",
         )
@@ -231,21 +236,28 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         prepared = self._git(root, "rev-parse", "HEAD")
         self._git(root, "switch", "-c", "academy/U01-autonomous-sprint/1")
 
-        head = self._commit_packet(root)
+        head = self._commit_packet(root, extra_packet_path=extra_packet_path)
         return _SemanticContext(
             root,
             _Attempt("academy/U01-autonomous-sprint/1", 1, prepared, prepared, head),
             Predicate("approved_sprint_decisions", "lab_semantics", self._predicate_data),
         )
 
-    def _commit_packet(self, root: Path) -> str:
+    def _commit_packet(
+        self,
+        root: Path,
+        *,
+        extra_packet_path: bool = False,
+        scope_suffix: str = "",
+    ) -> str:
         (root / ".codearbiter/specs").mkdir(exist_ok=True)
         (root / ".codearbiter/plans").mkdir(exist_ok=True)
         (root / "docs").mkdir(exist_ok=True)
         (root / ".codearbiter/specs/academy-sprint.md").write_text(
             "# Academy sprint: operator guide\n\n"
             "## Problem\nNew operators need a compact explanation of the bounded autonomous sprint.\n\n"
-            "## Scope\nCreate docs/academy-sprint-summary.md only; no product code, tests, dependencies, remote actions, or network changes.\n\n"
+            "## Scope\nThe allowed final commit contains docs/academy-sprint-summary.md. It does not push. It does not change product code, tests, dependencies, remotes, or network state."
+            f"{scope_suffix}\n\n"
             "## Acceptance criteria\n"
             "1. The guide names the human approval boundary.\n"
             "2. The guide distinguishes SMARTS decisions from hard-gate stops.\n\n"
@@ -281,14 +293,16 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
             "- **Chosen:** keep the bounded guide.\n",
             encoding="utf-8",
         )
-        self._git(
-            root,
-            "add",
+        paths = [
             ".codearbiter/specs/academy-sprint.md",
             ".codearbiter/plans/academy-sprint.md",
             ".codearbiter/sprint-log.md",
             "docs/academy-sprint-summary.md",
-        )
+        ]
+        if extra_packet_path:
+            (root / "README.md").write_text("out of scope\n", encoding="utf-8")
+            paths.append("README.md")
+        self._git(root, "add", *paths)
         self._git(root, "commit", "-m", "docs: record bounded Academy sprint")
         return self._git(root, "rev-parse", "HEAD")
 
@@ -341,34 +355,28 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
             self.assertFalse(_semantic(context))
 
     def test_sprint_decisions_rejects_a_brief_tampered_after_prepare(self) -> None:
-        """Catches a prepared contract changed after the learner starts the sprint."""
+        """Catches a prepared contract whose seal differs before the valid packet exists."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            context = self._context(root)
-            (root / "training_scenarios/U01-sprint-brief.json").write_text(
-                json.dumps({"tampered": True}) + "\n",
-                encoding="utf-8",
-            )
-            self._git(root, "add", "training_scenarios/U01-sprint-brief.json")
-            self._git(root, "commit", "-m", "tamper with prepared sprint brief")
-            head = self._git(root, "rev-parse", "HEAD")
-            context = _SemanticContext(
-                root,
-                _Attempt(context.attempt.branch, 1, context.attempt.prepared, context.attempt.base, head),
-                context.predicate,
-            )
+            context = self._context(root, prepared_brief={"tampered": True})
 
             self.assertFalse(_semantic(context))
 
     def test_sprint_decisions_rejects_an_unrelated_committed_path(self) -> None:
-        """Catches scope creep after a valid autonomous documentation sprint."""
+        """Catches scope creep in the sole otherwise-valid sprint packet commit."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = self._context(root, extra_packet_path=True)
+
+            self.assertFalse(_semantic(context))
+
+    def test_sprint_decisions_rejects_a_scope_that_authorizes_a_push(self) -> None:
+        """Catches a documentation-only sprint scope that still permits a remote side effect."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             context = self._context(root)
-            (root / "README.md").write_text("out of scope\n", encoding="utf-8")
-            self._git(root, "add", "README.md")
-            self._git(root, "commit", "-m", "docs: add unrelated note")
-            head = self._git(root, "rev-parse", "HEAD")
+            self._git(root, "reset", "--soft", "HEAD^")
+            head = self._commit_packet(root, scope_suffix=" Push the branch when finished.")
             context = _SemanticContext(
                 root,
                 _Attempt(context.attempt.branch, 1, context.attempt.prepared, context.attempt.base, head),

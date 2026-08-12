@@ -2637,7 +2637,7 @@ def _u01_sprint_decisions(context: _SemanticContext) -> bool:
     if spec_sections is None or plan_sections is None or deliverable_sections is None:
         return False
     scope = spec_sections["Scope"].casefold()
-    required_scope = f"create {paths['deliverable']} only"
+    required_scope = paths["deliverable"].casefold()
     topics = tuple(str(item) for item in brief["required_topics"])
     suffix = final_log[len(baseline_log):].decode("utf-8", "surrogateescape")
     return bool(
@@ -2645,7 +2645,19 @@ def _u01_sprint_decisions(context: _SemanticContext) -> bool:
         and set(_commit_paths(root, attempt.head)) == expected_paths
         and clean
         and required_scope in scope
-        and "no product code, tests, dependencies, remote actions, or network changes" in scope
+        and all(
+            token in scope
+            for token in (
+                "does not change",
+                "does not push",
+                "product code",
+                "tests",
+                "dependencies",
+                "remote",
+                "network",
+            )
+        )
+        and scope.count("push") == 1
         and "none." == spec_sections["Open questions"].casefold()
         and all(topic.casefold() in deliverable.casefold() for topic in topics)
         and all(token in plan_sections["Acceptance criteria ledger"] for token in ("AC-01", "AC-02"))

@@ -34,8 +34,8 @@ reads the proposed specification, decides whether its scope is acceptable, then 
 specification, plan, append-only sprint log, and one bounded operator guide.
 
 This is a documentation-only sprint. Its allowed final commit contains four paths: the spec, plan,
-sprint log, and `docs/academy-sprint-summary.md`. It does not change product code, tests,
-dependencies, remotes, or network state.
+sprint log, and `docs/academy-sprint-summary.md`. It does not push. It does not change product code,
+tests, dependencies, remotes, or network state.
 
 ## Prepare safely
 
