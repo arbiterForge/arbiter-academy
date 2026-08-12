@@ -332,6 +332,19 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(
+            tuple(line[3:] for line in text.splitlines() if line.startswith("## ")),
+            ("Know before you begin", "What you will prove", "Prepare safely", "Practice", "Recognize success", "Check", "Recover or continue", "Understand the mechanism"),
+        )
+        for action_id in (
+            "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix", "F04-request-regression", "F04-run-red-regression", "F04-inspect-test-boundary", "F04-stage-regression", "F04-review-regression-boundary", "F04-commit-regression", "F04-prove-red-commit", "F04-request-repair", "F04-prove-repair", "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary", "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry", "F04-return-base",
+        ):
+            self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
+        self.assertNotIn("```", text)
+
     def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         """F03 must teach the real board route with action cards, not prose fences."""
         path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"

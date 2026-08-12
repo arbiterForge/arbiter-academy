@@ -64,3 +64,11 @@ repository. It records real maintainership decisions. It is deliberately separat
 - Options: wait for the whole Foundation and Practitioner tracks; publish F03 with a fresh immutable preview while F04 and P01-P08 remain status-only; expose private drafts before their prerequisite closure is ready.
 - SMARTS: Safety and Security keep unfinished lessons non-routable and bind F03 to one exact board-only commit with no non-ignored worktree state. Reliability and Testability favor a separately verified action contract, causal board-boundary tests, and a fresh immutable release identity. Maintainability and Simplicity keep one release manifest authoritative for available, runnable, guided, and coming-next lessons. Availability and Speed give learners a complete F01 to F03 path now instead of withholding accepted training behind unrelated drafts.
 - Chosen: promote only F01, F02, and F03 in Preview 0.7 after exact-head review and hosted CI. F04 and P01-P08 remain explicit non-linking coming-next status until each has a complete guided contract and accepted prerequisite chain.
+
+## SD-ACA-004 - Encode F04 as an executable evidence sequence - confidence: high
+
+- Date: 2026-08-11
+- Point: Whether F04 should remain a prose walkthrough or use the Academy action contract to guide and verify a real red-to-green, two-commit fix.
+- Options: retain raw prose; make the operations TUI the primary lesson surface; publish a website-first structured lesson with terminal, harness, and CodeArbiter actions explicitly separated.
+- SMARTS: Safety and Security favor an isolated prepared attempt, a test-only commit before the repair, a service-only repair commit, and a Check that rejects broad or unreachable changes. Maintainability and Testability favor one manifest shared by the rendered guide and contract tests. Reviewability favors visible actor, surface, expected result, evidence, and recovery fields for every learner action. Simplicity and Speed keep the TUI limited to attempt lifecycle operations rather than a second instructional interface.
+- Chosen: author F04 as a website-first, structured twenty-one-action lesson; native terminal commands, harness prompts, and agent CodeArbiter commands are unambiguous, while the TUI remains limited to attempt lifecycle operations.
