@@ -133,14 +133,11 @@ P03_ACTION_IDS = (
     "P03-read-boundary",
     "P03-identity-boundary",
     "P03-prepare",
-    "P03-read-decision-context",
-    "P03-request-analysis",
-    "P03-make-choice",
-    "P03-author-adr",
-    "P03-inspect-proposed-adr",
-    "P03-accept-proposed-adr",
-    "P03-commit-accepted-decision",
-    "P03-inspect-committed-evidence",
+    "P03-inspect-decision-context",
+    "P03-request-decision-analysis",
+    "P03-run-adr",
+    "P03-run-commit-gate",
+    "P03-confirm-native-evidence",
     "P03-check",
     "P03-reset",
 )
@@ -705,159 +702,63 @@ class LessonActionTests(unittest.TestCase):
             with self.subTest(variant=variant.id):
                 self.assertIn(required_record, variant.command)
                 self.assertNotIn("workshop_queue/cli.py`..", variant.command)
-    def test_private_p03_manifest_has_one_ordered_action_for_each_lifecycle_boundary(self) -> None:
-        """Catches P03 collapsing learner choice, draft review, or acceptance into an agent step."""
+    def test_p03_guided_contract_uses_the_exact_ten_action_renderer_boundaries(self) -> None:
+        """Catches P03 drifting from its renderer-backed decision and evidence contract."""
         root = Path(__file__).parents[1]
         self.assertTrue(
             (root / "academy/actions/P03-adr-decision-log.json").is_file(),
             "P03 must expose its one explicitly named action manifest",
         )
         manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
+        by_id = {action.id: action for action in manifest.actions}
 
         self.assertEqual(tuple(action.id for action in manifest.actions), P03_ACTION_IDS)
-        self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
-
-    def test_private_p03_never_offers_unpublished_prepare_check_or_reset_commands(self) -> None:
-        """Catches a private lesson inventing an install path for Academy operations."""
-        root = Path(__file__).parents[1]
-        manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
-        release_display = load_preview_manifest(root).release.replace("preview-", "Preview ")
-        by_id = {action.id: action for action in manifest.actions}
-
-        for action_id in ("P03-prepare", "P03-check", "P03-reset"):
-            action = by_id[action_id]
-            with self.subTest(action=action_id):
-                self.assertEqual((action.actor, action.surface), ("academy", "academy-console"))
-                self.assertEqual(action.variants, ())
-                contract = " ".join(
-                    (
-                        action.instruction,
-                        action.expected_result,
-                        action.recovery,
-                        action.evidence or "",
+        for action in manifest.actions:
+            with self.subTest(action=action.id):
+                self.assertTrue(action.actor)
+                self.assertTrue(action.variants)
+                self.assertTrue(action.expected_result)
+                self.assertTrue(action.recovery)
+                self.assertTrue(action.evidence)
+                self.assertTrue(all(variant.copy for variant in action.variants))
+                self.assertTrue(all(variant.surface for variant in action.variants))
+                self.assertFalse(
+                    any(
+                        variant.surface == "native-terminal" and "!" in variant.command
+                        for variant in action.variants
                     )
                 )
-                self.assertIn(release_display, contract)
-                self.assertIn("not published", contract)
-                self.assertIn("future published release", contract)
-                self.assertNotIn("preview-0.5", contract.casefold())
 
-    def test_private_p03_gives_the_learner_two_copyable_exact_choice_actions(self) -> None:
-        """Catches an agent retaining authority to select or rewrite the architecture choice."""
-        manifest = load_action_manifest(Path(__file__).parents[1], P03_ACTION_DOCUMENT_ID)
-        by_id = {action.id: action for action in manifest.actions}
-
-        self.assertIn("P03-make-choice", by_id)
-        choice = by_id["P03-make-choice"]
+        choice = by_id["P03-request-decision-analysis"]
         self.assertEqual(choice.actor, "learner")
-        self.assertIsNone(choice.surface)
-        self.assertEqual({variant.host for variant in choice.variants}, {"claude-code", "codex", "pi"})
-        for host in ("claude-code", "codex", "pi"):
-            with self.subTest(host=host):
-                host_variants = tuple(
-                    variant for variant in choice.variants if variant.host == host
-                )
-                self.assertEqual(tuple(variant.command for variant in host_variants), P03_CHOICES)
-                self.assertTrue(
-                    all(
-                        variant.surface == "harness"
-                        and variant.language == "text"
-                        and variant.copy
-                        for variant in host_variants
-                    )
-                )
-        self.assertIn("learner-owned", choice.evidence or "")
-        self.assertIn("does not choose", choice.expected_result)
+        self.assertEqual(
+            tuple(
+                variant.command
+                for variant in choice.variants
+                if variant.command in P03_CHOICES
+            ),
+            P03_CHOICES * 3,
+        )
+        self.assertIn("learner chooses", choice.instruction.casefold())
+        self.assertIn("agent may analyze and draft", choice.instruction.casefold())
 
-    def test_private_p03_local_context_actions_reference_the_real_adr_0003_path(self) -> None:
-        """Catches source-only authoring copy pointing at a nonexistent governance artifact."""
-        root = Path(__file__).parents[1]
-        adr_path = ".codearbiter/decisions/0003-local-verifier-trust-boundary.md"
-        self.assertTrue((root / adr_path).is_file())
-        manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
-        by_id = {action.id: action for action in manifest.actions}
-
-        for action_id in ("P03-read-decision-context", "P03-request-analysis"):
-            with self.subTest(action=action_id):
-                commands = tuple(variant.command for variant in by_id[action_id].variants)
-                self.assertTrue(all(adr_path in command.replace("\\", "/") for command in commands))
-                self.assertTrue(
-                    all(".codearbiter/decisions/decision-log.md" in command.replace("\\", "/") for command in commands)
-                )
-                self.assertFalse(any("0003-academy-verifier-trust.md" in command for command in commands))
-
-    def test_private_p03_uses_proposed_review_accept_then_commit_lifecycle(self) -> None:
-        """Catches generic ca-adr being presented as accepted Check-compatible output."""
-        manifest = load_action_manifest(Path(__file__).parents[1], P03_ACTION_DOCUMENT_ID)
-        by_id = {action.id: action for action in manifest.actions}
-
-        for action_id, command in (
-            ("P03-author-adr", "adr"),
-            ("P03-commit-accepted-decision", "commit"),
+        for action_id, commands in (
+            (
+                "P03-run-adr",
+                (
+                    '/ca:adr "Choose the Workshop Queue summary-format boundary"',
+                    '$ca-adr "Choose the Workshop Queue summary-format boundary"',
+                    '/ca-adr "Choose the Workshop Queue summary-format boundary"',
+                    '/skill:ca-adr "Choose the Workshop Queue summary-format boundary"',
+                ),
+            ),
+            ("P03-run-commit-gate", ("/ca:commit", "$ca-commit", "/ca-commit", "/skill:ca-commit")),
         ):
             action = by_id[action_id]
             with self.subTest(action=action_id):
-                self.assertEqual(
-                    tuple((variant.host, variant.command) for variant in action.variants),
-                    (
-                        ("claude-code", f'/ca:{command}' + (' "Choose the Workshop Queue summary-format boundary"' if command == "adr" else "")),
-                        ("codex", f'$ca-{command}' + (' "Choose the Workshop Queue summary-format boundary"' if command == "adr" else "")),
-                        ("pi", f'/ca-{command}' + (' "Choose the Workshop Queue summary-format boundary"' if command == "adr" else "")),
-                        ("pi", f'/skill:ca-{command}' + (' "Choose the Workshop Queue summary-format boundary"' if command == "adr" else "")),
-                    ),
-                )
+                self.assertEqual(action.actor, "agent")
+                self.assertEqual(tuple(variant.command for variant in action.variants), commands)
                 self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
-                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
-
-        author = by_id["P03-author-adr"]
-        self.assertEqual(author.actor, "agent")
-        self.assertIn("proposed", author.expected_result.casefold())
-        self.assertIn("does not by itself", (author.evidence or "").casefold())
-
-        inspection = by_id["P03-inspect-proposed-adr"]
-        self.assertEqual(inspection.actor, "learner")
-        self.assertEqual(
-            tuple(variant.surface for variant in inspection.variants),
-            ("native-terminal", "native-terminal", "native-terminal"),
-        )
-        inspection_contract = " ".join(
-            (inspection.instruction, inspection.expected_result, inspection.evidence or "")
-        )
-        for required in (
-            ".codearbiter/decisions/0004-academy-lab.md",
-            "status: proposed",
-            "date:",
-            "title: Choose the Workshop Queue summary-format boundary",
-            "decided-by:",
-            "supersedes: none",
-            "governs: workshop_queue/cli.py",
-            "# ADR-0004 — Choose the Workshop Queue summary-format boundary",
-            "Status, Context, Decision, Alternatives considered, Consequences, Risks",
-            "## DECISION-0004 — ADR-0004 — Choose the Workshop Queue summary-format boundary",
-            "**Date:**, **Status:** proposed, **Supersedes:** none, **Decided by:**, **Decision category:** architecture, **Artifact-section-hash:** n/a",
-            "Variance summary, Decision, SMARTS rationale, Implementation implication",
-            "Status type: open-decision-closure",
-        ):
-            with self.subTest(required=required):
-                self.assertIn(required, inspection_contract)
-
-        acceptance = by_id["P03-accept-proposed-adr"]
-        self.assertEqual(acceptance.actor, "learner")
-        self.assertEqual(
-            tuple((variant.surface, variant.host, variant.language, variant.copy) for variant in acceptance.variants),
-            (
-                ("harness", "claude-code", "text", True),
-                ("harness", "codex", "text", True),
-                ("harness", "pi", "text", True),
-            ),
-        )
-        self.assertTrue(
-            all("I accept" in variant.command and "Do not commit yet" in variant.command for variant in acceptance.variants)
-        )
-        self.assertIn("explicit learner direction", acceptance.evidence or "")
-        self.assertIn("status: proposed to status: accepted", acceptance.expected_result)
-        self.assertIn("Proposed to Accepted", acceptance.expected_result)
-        self.assertIn("**Status:** proposed to **Status:** accepted", acceptance.expected_result)
 
     def test_checked_in_p06_manifest_names_every_actor_surface_and_recovery_boundary(self) -> None:
         """Catches private P06 guidance asking learners to infer execution surfaces."""

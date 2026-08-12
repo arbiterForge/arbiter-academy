@@ -205,8 +205,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
                         action = actions[action_id]
                         with self.subTest(action=action_id):
-                            self.assertEqual((action.actor, action.surface), ("academy", "academy-console"))
-                            self.assertEqual(action.variants, ())
+                            self.assertTrue(action.variants)
+                            self.assertTrue(all(variant.copy for variant in action.variants))
                     p03_copy = guide + json.dumps(
                         json.loads((SOURCE / "academy/actions/P03-adr-decision-log.json").read_text(encoding="utf-8"))
                     )
@@ -426,7 +426,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "## Understand the mechanism",
         )
         self.assertEqual(
-            tuple(line for line in guide.splitlines() if line in expected_headings),
+            tuple(line for line in guide.splitlines() if line.startswith("## ")),
             expected_headings,
         )
         self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
@@ -658,7 +658,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
             expected_headings,
         )
         manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
-        release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         lab = load_track(SOURCE, "practitioner").labs[2]
         self.assertNotIn("```", guide)
         self.assertEqual(
@@ -669,9 +668,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertEqual(lab.host_commands["codex"], '$ca-adr "Choose the Workshop Queue summary-format boundary"')
         normalized_guide = " ".join(guide.split())
         for required in (
-            "stable text", "structured JSON", "You choose", "does not prove that you personally chose",
-            "does not prove that a host command ran", "does not prove that anyone reviewed",
-            "P03-adr-decision-log.json", release_display, "proposed", "explicit learner acceptance",
+            "stable text", "structured JSON", "learner chooses", "clean worktree", "1–2 linear commits",
+            "only ADR/log paths", "ADR before log if split", "commit date/name", "artifact format/choice",
+            "append-only log prefix", "cannot prove human acceptance", "host command use", "reasoning quality",
+            "chronology", "independent review", "P03-adr-decision-log.json",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, normalized_guide)

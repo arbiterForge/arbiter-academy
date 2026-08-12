@@ -15,32 +15,17 @@ next_lab: P04-review-a-dependency
 
 ## Know before you begin
 
-P03 is a private, source-only guided lesson. The current public release is Preview 0.9: it publishes
-F01 through F04, lists P03 as `coming_next`, and does not permit P03 Prepare, Check, or Reset. There is no
-released P03 path to invoke. The Academy operation cards below are future published execution
-contracts, not commands for learners to run now. They become executable only after a later installed
-release lists P03 in both `runnable_labs` and `guided_labs`.
+P03 uses the shared Markdown-plus-action-manifest renderer. It remains source-only until a promoted installed Academy release lists it as both guided and runnable; Preview 0.9 (`preview-0.9`) does not expose P03 Prepare, Check, or Reset. The immutable scenario and checkpoint ID stays `P03-record-an-adr`, and its action contract is `P03-adr-decision-log.json`.
 
-Private maintainers may cold-read and locally test the authoring contract without representing that
-work as a learner attempt. In the future published flow, keep a native terminal at the clone root and
-one CodeArbiter harness open at that same clone. Native terminal commands go directly into the
-terminal and never begin with `!`. CodeArbiter commands and agent requests go into the selected
-harness and never begin with `!`.
+Keep a native terminal at the clone root and one CodeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native CodeArbiter commands and harness requests never begin with `!` either.
 
-Academy accepts a prepared author name only when it has 1–80 Unicode scalar values and follows its
-display-safe rules. No learner email is retained, rendered, or required. Academy captures `%an`,
-never echo a rejected name, and treats the prepared decision log as an append-only byte prefix.
-The action contract is named `P03-adr-decision-log.json`; that name does not change P03's immutable
-scenario and checkpoint ID, `P03-record-an-adr`.
+Academy accepts a prepared author name only when it has 1–80 Unicode scalar values. It captures `%an`, never echo a rejected name, and keeps no learner email. No learner email is retained, rendered, or required. The prepared decision log is an append-only byte prefix.
 
 ## What you will prove
 
-You will preserve an accepted ADR-0004 for one real architecture choice: whether the Workshop Queue
-summary uses stable text or structured JSON. Both choices are valid. You choose; the agent analyzes
-the consequences and records the option you accept.
+You will record ADR-0004 for the Workshop Queue summary-format boundary. The learner chooses and approves the ADR/log boundary. The agent may analyze and draft, but it cannot choose, replace, or broaden the decision.
 
-The final evidence is an accepted `.codearbiter/decisions/0004-academy-lab.md` plus a matching,
-later-or-co-committed append to `.codearbiter/decisions/decision-log.md`. You may use one commit or two linear commits; if there are two, the ADR comes before the log. ADR-0003 remains untouched.
+The two allowed learner choices are stable text and structured JSON. The committed evidence is an accepted `.codearbiter/decisions/0004-academy-lab.md` and a matching append to `.codearbiter/decisions/decision-log.md`; ADR-0003 remains untouched. The permitted history is one commit or two linear commits, with the ADR before the log when split.
 
 ## Prepare safely
 
@@ -50,102 +35,50 @@ later-or-co-committed append to `.codearbiter/decisions/decision-log.md`. You ma
 
 {{action:P03-prepare}}
 
-In a future published release, Academy will print the attempt number and own the prepared branch.
-Until that release exists, do not invent `ATTEMPT_NUMBER`, create a learner attempt manually, or use
-repository source as a substitute for the installed external verifier.
+Do not invent an attempt number, branch, or source-checkout substitute before P03 is promoted.
 
 ## Practice the decision
 
-{{action:P03-read-decision-context}}
+{{action:P03-inspect-decision-context}}
 
-{{action:P03-request-analysis}}
+{{action:P03-request-decision-analysis}}
 
-Read the comparison, then make the decision yourself. Stable text favors a durable, readable caller
-boundary. Structured JSON favors explicit automation and future schema evolution. Neither is the
-secret answer. The agent may analyze and draft; it may not select or replace your decision.
+Read the analysis, select one exact learner choice, then explicitly approve the ADR/log draft before the agent runs the ADR command. Review the draft against that choice, then explicitly approve its committed form before the agent runs the commit gate.
 
-{{action:P03-make-choice}}
+{{action:P03-run-adr}}
 
-{{action:P03-author-adr}}
-
-The generic `ca-adr` command starts the sanctioned lifecycle; it does not by itself produce accepted
-P03 Check evidence. The actual lifecycle first writes a learner-attributed proposed draft and a
-proposed append. This private contract then checks P03's exact fixed path and shape.
-
-{{action:P03-inspect-proposed-adr}}
-
-Only after the proposed ADR and log match your exact choice may you give explicit learner acceptance.
-Silence, a draft, a review, or a commit request is not acceptance.
-
-{{action:P03-accept-proposed-adr}}
-
-After explicit learner acceptance, inspect the status transition once more. The accepted ADR and log
-must preserve the proposed decision, attribution, consequences, risks, and append boundary before a
-commit is authorized.
-
-{{action:P03-commit-accepted-decision}}
-
-{{action:P03-inspect-committed-evidence}}
+{{action:P03-run-commit-gate}}
 
 ## Recognize success
 
-For future published execution, the completed attempt has accepted ADR-0004 and its matching
-decision-log entry on the prepared branch. The ADR records the exact learner-owned choice, immutable
-number/date/title, alternatives considered, consequences, and risks. The log has not rewritten its
-prepared prefix; it only adds the accepted DECISION-0004 suffix. The final worktree is clean.
+{{action:P03-confirm-native-evidence}}
+
+Success is an accepted ADR-0004 and matching decision-log append on the prepared branch. The record carries the learner-approved choice, attribution, alternatives, consequences, and risks; the worktree is clean.
 
 ## Check
 
 {{action:P03-check}}
 
-In the future published flow, Check will inspect the exact
-`.codearbiter/decisions/0004-academy-lab.md` path; front matter for `status`, `date`, `title`,
-`decided-by`, `supersedes: none`, and `governs: workshop_queue/cli.py`; ordered `Status`, `Context`,
-`Decision`, `Alternatives considered`, `Consequences`, and `Risks` headings; and the matching
-`## DECISION-0004 — ADR-0004 — Choose the Workshop Queue summary-format boundary` append. That log
-entry must carry `**Date:**`, `**Status:** accepted`, `**Supersedes:** none`, `**Decided by:**`,
-`**Decision category:** architecture`, and `**Artifact-section-hash:** n/a`, followed by ordered
-`Variance summary`, `Decision`, `SMARTS rationale`, and `Implementation implication` sections. Its
-variance must include `Status type: open-decision-closure`.
-
-The semantic verifier can also inspect the prepared baseline, final Git history, permitted one- or
-two-commit ordering, exact accepted choice, attribution, and clean worktree. It does not prove that
-you personally chose stable text or structured JSON. It does not prove that a host command ran. It
-does not prove that anyone reviewed the ADR or supplied explicit learner acceptance. Those are honest
-learner and team practices, not claims a final-state verifier can authenticate.
+Check proves only final-state evidence: a clean worktree; 1–2 linear commits; only ADR/log paths; ADR before log if split; commit date/name; artifact format/choice; and the append-only log prefix. It cannot prove human acceptance, host command use, reasoning quality, chronology, or independent review.
 
 ## Recover or continue
 
-During private authoring, a failed focused test means revise the source contract; it does not mean a
-learner ran Check. In future published execution, if the number is wrong, alternatives are shallow,
-the log prefix was rewritten, attribution differs, or Check names a failed predicate, preserve the
-attempt. Do not amend, rebase, overwrite ADR-0003, or manufacture a generic governance event.
-
-### Hint 1
-
-ADR-0003 is already occupied by the verifier-trust boundary. Reading it first tells you why this
-exercise must allocate ADR-0004 rather than renumbering or replacing existing history.
-
-### Hint 2
-
-Do not write "JSON is better" or "text is simpler" and stop. State what callers, automation,
-compatibility, and future schema changes gain or lose under the option you accept.
-
-### Hint 3
-
-Check derives committed facts. It can reject a mismatched or rewritten record, but cannot recover
-your private deliberation or prove a human approval. Keep those distinctions clear in the ADR.
+If evidence is wrong or Check names a failed predicate, preserve the attempt. Do not amend, rebase, overwrite ADR-0003, rewrite the log prefix, or manufacture a generic governance event.
 
 {{action:P03-reset}}
 
-No P03 learner Check can pass on Preview 0.9. After a future published Check actually passes, leave
-the completed branch intact. Continue to P04 only when its own guided rewrite is published; do not
-substitute unpublished source exercises for a released lesson.
+### Hint 1
+
+Read ADR-0003 before drafting. Its occupied number and verifier-trust boundary explain why this exercise allocates ADR-0004.
+
+### Hint 2
+
+The record needs consequences: explain what callers, automation, compatibility, and future schema evolution gain or lose under the learner-approved choice.
+
+### Hint 3
+
+Check reconstructs committed facts. It can reject mismatched or rewritten artifacts, but it cannot recover deliberation or prove human approval.
 
 ## Understand the mechanism
 
-An ADR makes a consequential choice durable: context explains why it mattered, alternatives expose
-the trade-off, the decision records the accepted path, and consequences keep future maintainers from
-rediscovering it blindly. The append-only decision log makes that lifecycle easy to find. Academy
-Check then reconstructs the committed boundary from Git rather than trusting a pasted transcript or
-a claim that somebody approved it.
+An ADR makes a consequential choice durable: context explains why it matters, alternatives preserve the trade-off, the decision records the approved boundary, and consequences guide future maintainers. The append-only log makes that lifecycle discoverable; Check reconstructs the committed boundary from Git rather than trusting a transcript.
