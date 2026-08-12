@@ -460,7 +460,12 @@ class FoundationsCurriculumTests(unittest.TestCase):
                     set(lab.host_commands), {"claude-code", "codex", "pi"}
                 )
                 self.assertIn("prepare", lab.scenario_command)
-                self.assertIn("arbiter-academy --repository", lab.checkpoint_command)
+                if lab.id == "F03-work-the-board":
+                    # F03 is action-backed: the manifest owns the platform-specific
+                    # installed-Academy command and the lesson front matter names it.
+                    self.assertEqual(lab.checkpoint_command, "{{action:F03-check}}")
+                else:
+                    self.assertIn("arbiter-academy --repository", lab.checkpoint_command)
                 self.assertTrue(lab.success_evidence)
                 self.assertIn("reset", lab.recovery)
 

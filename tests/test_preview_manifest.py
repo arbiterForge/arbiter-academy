@@ -242,9 +242,9 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_an_unavailable_future_lab(self) -> None:
         """Catches a future lab being relabeled as available in this release."""
         manifest = self.make_manifest(
-            available_labs=["F01-fork-clone-doctor", "F02-orient-to-state", "F04-fix-with-evidence"],
-            runnable_labs=["F01-fork-clone-doctor", "F02-orient-to-state", "F04-fix-with-evidence"],
-            coming_next=["F03-work-the-board", *COMING_NEXT[1:]],
+            available_labs=[*PREVIEW_0_7, "F04-fix-with-evidence"],
+            runnable_labs=[*PREVIEW_0_7, "F04-fix-with-evidence"],
+            coming_next=COMING_NEXT[1:],
         )
 
         with self.assertRaisesRegex(ValueError, "not eligible"):
