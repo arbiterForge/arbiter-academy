@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "P01-feature-through-plan",
+  "actions": [
+    {
+      "id": "P01-prepare",
+      "sequence": 1,
+      "title": "Prepare a numbered feature attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "From a clean main branch at your Academy clone root, run Prepare in a native terminal. Academy creates the numbered attempt branch before any feature work begins.",
+      "rationale": "The prepared branch preserves a fixed starting point for the specification, plan, repair, and final Check.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P01-feature-through-plan","copy":true}
+      ],
+      "expected_result": "Academy switches this clone to academy/P01-feature-through-plan/ATTEMPT_NUMBER and queues academy.feature.0002.",
+      "recovery": "If Prepare stops, preserve its message and resolve the named clean-worktree or branch condition. Do not force-reset main or delete another attempt.",
+      "evidence": "The numbered attempt branch records the baseline from which Check reconstructs the exercise."
+    },
+    {
+      "id": "P01-draft-spec",
+      "sequence": 2,
+      "title": "Ask CodeArbiter to draft the specification",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "In your selected CodeArbiter harness, send the copied host-native feature command. It is a CodeArbiter command, not a shell command, so it never begins with !. The agent drafts the specification and stops for your review.",
+      "rationale": "The feature lane makes the observable contract explicit before work is planned or implemented.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:feature \"Show unresolved tickets in the Workshop Queue summary\"","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-feature \"Show unresolved tickets in the Workshop Queue summary\"","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-feature \"Show unresolved tickets in the Workshop Queue summary\"","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-feature \"Show unresolved tickets in the Workshop Queue summary\"","copy":true}
+      ],
+      "expected_result": "The agent writes .codearbiter/specs/academy-feature.md and asks for review before deriving a plan, starting the task, or editing production code.",
+      "recovery": "If the feature lane reports that the repository or task is not ready, preserve its finding. Do not write a substitute specification or bypass its review stop.",
+      "evidence": "The draft is a tracked input to your review, not proof that anyone approved it."
+    },
+    {
+      "id": "P01-read-spec",
+      "sequence": 3,
+      "title": "Read the draft with its source boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Ask your active harness to show the drafted specification beside the queued task and current summary boundary. This is a request to your agent, not a shell command, so it never begins with !.",
+      "rationale": "Review is reliable only when the proposed outcome is compared with the task that authorized it and the existing caller-visible behavior.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Open .codearbiter/specs/academy-feature.md, the academy.feature.0002 task in .codearbiter/open-tasks.md, tests/test_cli.py, and workshop_queue/cli.py. Show the draft acceptance criteria next to the current summary behavior. Do not derive a plan, start the task, edit files, or commit.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Open .codearbiter/specs/academy-feature.md, the academy.feature.0002 task in .codearbiter/open-tasks.md, tests/test_cli.py, and workshop_queue/cli.py. Show the draft acceptance criteria next to the current summary behavior. Do not derive a plan, start the task, edit files, or commit.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Open .codearbiter/specs/academy-feature.md, the academy.feature.0002 task in .codearbiter/open-tasks.md, tests/test_cli.py, and workshop_queue/cli.py. Show the draft acceptance criteria next to the current summary behavior. Do not derive a plan, start the task, edit files, or commit.","copy":true}
+      ],
+      "expected_result": "You can see every drafted criterion, the queued task boundary, and that the existing JSON summary omits unresolved tickets.",
+      "recovery": "If a required source is missing or the task is no longer queued, stop. Preserve the attempt and use Reset for a new baseline rather than inventing a replacement.",
+      "evidence": "Your review compares the proposal to repository sources instead of a chat summary."
+    },
+    {
+      "id": "P01-solo-review",
+      "sequence": 4,
+      "title": "Review the specification yourself",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Choose Solo practice when you are the reviewer. Check that the draft names open and claimed ticket states, states that their exact total is caller-visible, avoids prescribing a private implementation loop, and can map each criterion to a plan step and focused test.",
+      "rationale": "Solo practice rehearses a concrete review decision without pretending that an external reviewer participated.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can either identify a concrete correction for the draft or explain why each criterion is observable and testable.",
+      "recovery": "If a criterion is vague or exceeds the task boundary, ask the agent to revise only the specification and return to this review. Do not continue to implementation.",
+      "evidence": "This is a learner review rehearsal. Check does not authenticate it."
+    },
+    {
+      "id": "P01-discussion-review",
+      "sequence": 5,
+      "title": "Request or relay collaborative feedback",
+      "actor": "learner",
+      "surface": "browser",
+      "instruction": "Choose Collaborative practice only when you can request or use actual feedback. Open the Arbiter Academy GitHub Discussion, describe the draft's observable contract, and relay real feedback to your agent before continuing. If no feedback arrives, use Solo practice instead.",
+      "rationale": "A discussion can add another perspective, but its absence must not cause invented feedback or an unverifiable claim.",
+      "resources": [{"label":"Arbiter Academy GitHub Discussion","href":"https://github.com/arbiterForge/arbiter-academy/discussions"}],
+      "variants": [],
+      "expected_result": "You either have real feedback to relay or have deliberately chosen the Solo practice path.",
+      "recovery": "If the discussion is unavailable or no response arrives, do not wait or fabricate one. Return to Solo practice and use its checklist.",
+      "evidence": "Discussion participation is external process context. Check does not authenticate a GitHub Discussion response."
+    },
+    {
+      "id": "P01-proceed",
+      "sequence": 6,
+      "title": "Give the separate proceed instruction",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only after you complete one review path, send this separate message in the selected harness. It tells the agent what to do next without claiming an authenticated approval.",
+      "rationale": "The deliberate second instruction keeps drafting and review distinct from planning and implementation.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"I completed the P01 review. Proceed with this feature: derive .codearbiter/plans/academy-feature.md from the specification, start academy.feature.0002 through the sanctioned task writer, add and run a focused failing summary regression before production code, make only the bounded open plus claimed repair, run focused and full GREEN verification, stage the exact final boundary, and invoke the CodeArbiter commit gate. Stop and report if a gate blocks. Do not write a marker that claims to prove review or approval.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"I completed the P01 review. Proceed with this feature: derive .codearbiter/plans/academy-feature.md from the specification, start academy.feature.0002 through the sanctioned task writer, add and run a focused failing summary regression before production code, make only the bounded open plus claimed repair, run focused and full GREEN verification, stage the exact final boundary, and invoke the CodeArbiter commit gate. Stop and report if a gate blocks. Do not write a marker that claims to prove review or approval.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"I completed the P01 review. Proceed with this feature: derive .codearbiter/plans/academy-feature.md from the specification, start academy.feature.0002 through the sanctioned task writer, add and run a focused failing summary regression before production code, make only the bounded open plus claimed repair, run focused and full GREEN verification, stage the exact final boundary, and invoke the CodeArbiter commit gate. Stop and report if a gate blocks. Do not write a marker that claims to prove review or approval.","copy":true}
+      ],
+      "expected_result": "The agent derives the plan, moves only academy.feature.0002 through the task writer, and follows the bounded test-first feature path.",
+      "recovery": "If the agent begins implementation before this message or a gate blocks, stop. Preserve the attempt and inspect the named boundary rather than writing an approval claim or direct Git commit.",
+      "evidence": "The final commit can prove repository artifacts, not the identity or process of the reviewer."
+    },
+    {
+      "id": "P01-check",
+      "sequence": 7,
+      "title": "Run the external Academy Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After the governed commit and a clean status, run the installed Academy Check in a native terminal. It reads the prepared baseline, final Git state, and live worktree from outside the learner flow.",
+      "rationale": "Check independently recomputes the final artifact and commit-boundary contract.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P01-feature-through-plan","copy":true}
+      ],
+      "expected_result": "Check prints checkpoint P01-feature-through-plan: passed; progress: .academy/progress.json.",
+      "recovery": "If Check fails, preserve the clean committed attempt and read the failed predicate. Use Reset for a new numbered attempt instead of rewriting committed evidence.",
+      "evidence": "Only a passing external Check records P01 progress."
+    },
+    {
+      "id": "P01-reset-retry",
+      "sequence": 8,
+      "title": "Create a preserved numbered retry",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use Reset only when P01 needs another attempt. Run it in a native terminal at the Academy clone root; it preserves the earlier attempt before creating the next number.",
+      "rationale": "Preserved retries leave review and implementation evidence inspectable instead of hiding it with a force reset or rebase.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P01-feature-through-plan","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P01-feature-through-plan","copy":true}
+      ],
+      "expected_result": "Academy archives the prior attempt and prints the next academy/P01-feature-through-plan/ATTEMPT_NUMBER branch.",
+      "recovery": "If Reset stops, preserve its message and current branch. Resolve only the named repository condition; never force-reset or delete the prior attempt.",
+      "evidence": "A retry starts from the clean lesson baseline while the earlier attempt remains reachable."
+    }
+  ]
+}

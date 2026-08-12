@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from academy_engine.cli import main
 from academy_engine.curriculum import CurriculumError, load_track, verify_track
+from academy_engine.lesson_actions import load_action_manifest
 from academy_engine.preview import load_preview_manifest
 from academy_engine.scenario import PreparedLab
 
@@ -31,7 +32,7 @@ PRACTITIONER = (
 )
 POST_P02_PRACTITIONER = PRACTITIONER[2:]
 EXPECTED_HOST_ACTIONS = {
-    PRACTITIONER[0]: ("feature", "task"),
+    PRACTITIONER[0]: ("feature",),
     PRACTITIONER[1]: ("review", "commit"),
     PRACTITIONER[2]: ("adr",),
     PRACTITIONER[3]: ("add-dep",),
@@ -237,26 +238,17 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         self.assertNotIn("scripts/academy.py reset", track.labs[1].recovery)
 
-    def test_p01_exposes_exact_feature_and_task_start_commands_for_each_host(self) -> None:
-        """Catches a guide that describes task movement without a copyable sanctioned command."""
+    def test_p01_exposes_exact_feature_commands_before_the_separate_proceed_instruction(self) -> None:
+        """Catches P01 beginning work without the host-native feature command."""
         p01 = load_track(SOURCE, "practitioner").labs[0]
 
         request = '"Show unresolved tickets in the Workshop Queue summary"'
         self.assertEqual(
             p01.host_commands,
             {
-                "claude-code": (
-                    f"/ca:feature {request}\n"
-                    "/ca:task start academy.feature.0002"
-                ),
-                "codex": (
-                    f"$ca-feature {request}\n"
-                    "$ca-task start academy.feature.0002"
-                ),
-                "pi": (
-                    f"/ca-feature {request}\n"
-                    "/ca-task start academy.feature.0002"
-                ),
+                "claude-code": f"/ca:feature {request}",
+                "codex": f"$ca-feature {request}",
+                "pi": f"/ca-feature {request}\n/skill:ca-feature {request}",
             },
         )
 
@@ -272,6 +264,55 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertNotIn("Immutable Git history places", guide)
         self.assertNotIn("a same-commit test/fix", guide)
         self.assertNotIn("manufacture the required history", guide)
+
+    def test_p01_is_an_action_backed_rehearsal_with_honest_review_boundaries(self) -> None:
+        """Catches P01 asking a learner to infer command surfaces or fabricate approval evidence."""
+        guide_path = SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
+        guide = guide_path.read_text(encoding="utf-8")
+        manifest = load_action_manifest(SOURCE, "P01-feature-through-plan")
+
+        expected_headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        self.assertEqual(
+            tuple(line for line in guide.splitlines() if line in expected_headings),
+            expected_headings,
+        )
+        self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
+        self.assertEqual(
+            tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)),
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertIn("Solo practice", guide)
+        self.assertIn("Arbiter Academy GitHub Discussion", guide)
+        self.assertIn("does not authenticate a human approval", guide)
+        self.assertIn("does not authenticate a GitHub Discussion response", guide)
+        self.assertNotIn("approval record", guide.casefold())
+
+        actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(
+            tuple(actions),
+            (
+                "P01-prepare",
+                "P01-draft-spec",
+                "P01-read-spec",
+                "P01-solo-review",
+                "P01-discussion-review",
+                "P01-proceed",
+                "P01-check",
+                "P01-reset-retry",
+            ),
+        )
+        self.assertEqual(actions["P01-draft-spec"].actor, "agent")
+        self.assertEqual(actions["P01-proceed"].actor, "learner")
+        self.assertEqual(actions["P01-check"].actor, "learner")
 
     def test_p02_teaches_exact_identity_ref_and_two_commit_receipt_workflow(self) -> None:
         guide = (

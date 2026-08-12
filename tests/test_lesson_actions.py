@@ -53,9 +53,90 @@ F02_ACTION_IDS = (
     "F02-return-base",
     "F02-reset-retry",
 )
+P01_DOCUMENT_ID = "P01-feature-through-plan"
+P01_ACTION_IDS = (
+    "P01-prepare",
+    "P01-draft-spec",
+    "P01-read-spec",
+    "P01-solo-review",
+    "P01-discussion-review",
+    "P01-proceed",
+    "P01-check",
+    "P01-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_checked_in_p01_manifest_separates_review_process_from_check_evidence(self) -> None:
+        """Catches P01 losing actor, surface, or copy identity before its future publication slice."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P01_DOCUMENT_ID)
+        self.assertEqual(tuple(action.id for action in manifest.actions), P01_ACTION_IDS)
+        by_id = {action.id: action for action in manifest.actions}
+
+        self.assertEqual(by_id["P01-draft-spec"].actor, "agent")
+        self.assertIsNone(by_id["P01-draft-spec"].surface)
+        self.assertEqual(
+            tuple(
+                (variant.host, variant.language, variant.command, variant.copy)
+                for variant in by_id["P01-draft-spec"].variants
+            ),
+            (
+                ("claude-code", "codearbiter", '/ca:feature "Show unresolved tickets in the Workshop Queue summary"', True),
+                ("codex", "codearbiter", '$ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
+                ("pi", "codearbiter", '/ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
+                ("pi", "codearbiter", '/skill:ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
+            ),
+        )
+        self.assertFalse(
+            any(variant.command.startswith("!") for variant in by_id["P01-draft-spec"].variants)
+        )
+
+        solo = by_id["P01-solo-review"]
+        self.assertEqual((solo.actor, solo.surface, solo.variants), ("learner", "active-harness", ()))
+        discussion = by_id["P01-discussion-review"]
+        self.assertEqual((discussion.actor, discussion.surface, discussion.variants), ("learner", "browser", ()))
+        self.assertEqual(
+            tuple((resource.label, resource.href) for resource in discussion.resources),
+            (("Arbiter Academy GitHub Discussion", "https://github.com/arbiterForge/arbiter-academy/discussions"),),
+        )
+
+        for action_id in ("P01-read-spec", "P01-proceed"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "learner")
+                self.assertIsNone(action.surface)
+                self.assertEqual(
+                    tuple(
+                        (variant.surface, variant.host, variant.language, variant.copy)
+                        for variant in action.variants
+                    ),
+                    (
+                        ("harness", "claude-code", "text", True),
+                        ("harness", "codex", "text", True),
+                        ("harness", "pi", "text", True),
+                    ),
+                )
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        for action_id in ("P01-prepare", "P01-check", "P01-reset-retry"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "learner")
+                self.assertIsNone(action.surface)
+                self.assertEqual(
+                    tuple(
+                        (variant.surface, variant.operating_system, variant.host, variant.copy)
+                        for variant in action.variants
+                    ),
+                    (
+                        ("native-terminal", "windows", "none", True),
+                        ("native-terminal", "macos", "none", True),
+                        ("native-terminal", "linux", "none", True),
+                    ),
+                )
+                self.assertTrue(all("preview-0.6" in variant.command for variant in action.variants))
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
     def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
         """Catches an active learner path routing to the stale Preview 0.4 release."""
         root = Path(__file__).parents[1]
