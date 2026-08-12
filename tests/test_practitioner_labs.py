@@ -105,6 +105,20 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 guide = (
                     SOURCE / f"academy/tracks/practitioner/{lab.id}.md"
                 ).read_text(encoding="utf-8")
+                action_path = SOURCE / f"academy/actions/{lab.id}.json"
+                if action_path.is_file():
+                    from academy_engine.lesson_actions import load_action_manifest
+
+                    manifest = load_action_manifest(SOURCE, lab.id)
+                    actions = {action.id: action for action in manifest.actions}
+                    for operation in ("prepare", "check", "reset-retry"):
+                        with self.subTest(lab=lab.id, operation=operation):
+                            action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
+                            self.assertTrue(
+                                all("preview-0.6" in variant.command for variant in action.variants)
+                            )
+                    self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
+                    continue
                 prepare_block = re.search(
                     rf"(?ms)^```powershell\n(?P<body>.*?prepare {re.escape(lab.id)}.*?)\n```$",
                     guide,
@@ -575,6 +589,38 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
         self.assertNotIn("pip install", guide)
+
+    def test_p04_is_a_private_action_backed_rejection_lesson(self) -> None:
+        """Catches P04 teaching an undeclared install path or asking a learner to infer roles."""
+        from academy_engine.lesson_actions import load_action_manifest
+
+        guide_path = SOURCE / "academy/tracks/practitioner/P04-review-a-dependency.md"
+        guide = guide_path.read_text(encoding="utf-8")
+        manifest = load_action_manifest(SOURCE, "P04-review-a-dependency")
+        headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        self.assertEqual(tuple(line for line in guide.splitlines() if line in headings), headings)
+        self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
+        self.assertEqual(
+            tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)),
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(len(manifest.actions), 17)
+        self.assertIn("bounded `datetime.strptime`", guide)
+        self.assertIn("Decision: reject", guide)
+        self.assertIn("does not prove that you ran a host command", guide)
+        self.assertIn("does not authenticate your review or selection", guide)
+        self.assertNotIn("pip install", guide)
+        self.assertNotIn("P04-review-a-dependency", set(load_preview_manifest(SOURCE).guided_labs))
+
 
     def test_p05_freezes_remediation_evidence_matrix_and_receipt_guidance(self) -> None:
         from academy_engine.curriculum import _MATRIX_CASES

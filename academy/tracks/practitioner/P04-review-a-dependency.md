@@ -2,8 +2,8 @@
 id: P04-review-a-dependency
 track: practitioner
 order: 4
-title: Review a real dependency before installation
-outcome: Make a complete SMARTS-backed accept or reject decision for python-dateutil 2.9.0.post0 before any installation or permitted manifest change.
+title: Review a dependency without installing it
+outcome: Review python-dateutil 2.9.0.post0 against frozen evidence, select the bounded standard-library alternative for finite legacy date formats, and preserve a no-install rejection record.
 prerequisites: P03-record-an-adr
 estimated_minutes: 35
 scenario_command: arbiter-academy --repository <learner-repository> prepare P04-review-a-dependency
@@ -11,153 +11,93 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P04-
 next_lab: P05-checkpoint-remediation
 ---
 
-# P04 — Review a real dependency before installation
+# P04 - Review a dependency without installing it
 
-## Why this mechanism matters
+## Know before you begin
 
-A package name is a proposal, not authorization to install. Dependency review must establish exact
-candidate identity, provenance, license, maintenance and supply-chain facts, compatibility, and
-alternatives before project state changes. The intended solution rejects this package for a narrow
-date-parsing need. An accepted equivalent is valid only with a complete reviewed runtime closure;
-the Academy candidate wrapper is evidence about one direct wheel, not that environment lock.
+Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one CodeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. CodeArbiter commands and agent messages belong in the harness and never begin with `!`.
 
-## Start the scenario
+This is a review lesson, not a package-adoption lesson. The candidate set is committed offline evidence. It is not a live package-registry lookup, and its maintenance and vulnerability statements are a frozen 2026-07-31 snapshot rather than current registry or CVE truth.
 
-Run this from the learner checkout. Preserved P02 verifier records require the installed command for
-every later Practitioner transition, even though the original GitHub remotes are already restored.
-Prepare the offline candidate review:
+Its policy is `review-only-never-install`. The report still records **Known vulnerabilities** and
+**Supply chain** as named review sections, but calls neither live truth. The prepared set has **No NOTICE** payload; no install during P04 means neither archive enters the exercise environment.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository prepare P04-review-a-dependency
-```
+## What you will prove
 
-The scenario requests `python-dateutil==2.9.0.post0` for legacy date input and supplies stable
-candidate metadata. Read the immutable offline set at
-`academy/candidates/P04-review-a-dependency/candidate-set.json`; its policy is
-`review-only-never-install`. It does not install, vendor, pre-approve, or add the package to project
-files.
+You will preserve one reviewed report for `python-dateutil==2.9.0.post0` and its `six` closure. The beginner path rejects the candidate because finite legacy date formats can use a bounded `datetime.strptime` parser: explicit formats, a length limit, deterministic timezone and default rules, and fail-closed trailing-content behavior.
 
-## Use your host
+The agent drafts the evidence. You inspect it, review the tradeoff, and select `Decision: reject`. The resulting commit contains only the review report. It does not change a dependency declaration, environment lock, or Academy approval wrapper. The existing checkpoint can still recognize its pre-existing equivalent acceptance topology, but that is not an instruction path in this lesson.
 
-Invoke the dependency-review lane before running any installer or editing a manifest.
+## Prepare safely
 
-### Claude Code
+{{action:P04-prepare}}
 
-```text
-/ca:add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
-```
+{{action:P04-read-boundary}}
 
-### Codex
+{{action:P04-read-candidate-set}}
 
-```text
-$ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
-```
+{{action:P04-inspect-project-boundary}}
 
-### Pi (Feature Forge preview)
+## Practice
 
-Pi is the supported Feature Forge preview and requires project trust. Its documented fallback is
-`/skill:ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"`.
+{{action:P04-inspect-wheel-metadata}}
 
-```text
-/ca-add-dep "python-dateutil==2.9.0.post0 for the legacy-date parser"
-```
+{{action:P04-verify-wheel-hashes}}
 
-## Do the work
+{{action:P04-read-licenses}}
 
-Review the exact candidate and prepared project digest. Record provenance, license, supply-chain
-signals, compatibility, the bounded stdlib alternative, rationale, all SMARTS lenses, and reviewer
-outcome in `.codearbiter/reports/academy/P04-dependency-review.md` before any other project change.
+{{action:P04-assess-provenance}}
 
-Use the native report labels exactly: `Academy-Schema-Version`, `Project-SHA256`, `Candidate`,
-`Candidate-Artifact`, `Candidate-SHA256`, `Closure-Requirement`, `Closure-Package`,
-`Closure-Artifact`, `Closure-SHA256`, and `Install-Policy`. The policy label is:
+{{action:P04-compare-stdlib}}
 
-```text
-Install-Policy: no-install-in-p04
-```
+{{action:P04-draft-review}}
 
-Then add these H2 sections in order: Candidate, Provenance, License, Maintenance, Known
-vulnerabilities, Supply chain, Compatibility, Alternatives, SMARTS, Decision. State that maintenance
-and vulnerability statements are the frozen **2026-07-31** review snapshot, not live registry truth.
-The supply-chain section records pure-Python universal wheels, no sdist, no resolver-selected
-artifact, and **no install during P04**. License evidence names the two wheel-derived LICENSE files
-and `Apache-2.0.txt`; there is **No NOTICE** or patent payload to invent.
+{{action:P04-review-draft}}
 
-Your SMARTS table compares the bounded standard-library parser with the two-wheel closure on every
-lens. The intended decision says `Decision: reject` after selecting the bounded stdlib parser. A
-valid accepting review must explain why the broader parsing surface is required and that external
-installation remains deferred.
+{{action:P04-select-reject}}
 
-For the intended rejection, choose the bounded stdlib parser and leave `pyproject.toml`,
-`requirements.lock`, and `.codearbiter/reports/academy/P04-approved-dependency.lock.json` absent or
-unchanged. Install nothing.
+{{action:P04-stage-review}}
 
-For the documented accepted equivalent, first complete an accepting review. Then, in one later
-governed commit, add exactly `python-dateutil==2.9.0.post0` to the learner attempt's
-`pyproject.toml`; add a complete `requirements.lock` containing exactly these two UTF-8,
-LF-terminated physical lines in this order; and add the separate Academy wrapper:
+{{action:P04-commit-review}}
 
-```text
-python-dateutil==2.9.0.post0 --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427 # artifact=python_dateutil-2.9.0.post0-py2.py3-none-any.whl
-six==1.17.0 --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 # artifact=six-1.17.0-py2.py3-none-any.whl
-```
+{{action:P04-confirm-no-install}}
 
-The `artifact=` comments are Academy verifier grammar while the hash options remain pip-compatible.
-Use no index directive, editable reference, environment marker, alternate hash, or extra package.
-The wrapper is exactly:
+## Recognize success
 
-```json
-{"schema_version":1,"name":"python-dateutil","version":"2.9.0.post0","artifact":"python_dateutil-2.9.0.post0-py2.py3-none-any.whl","sha256":"a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427","install_policy":"later-only-after-review"}
-```
+The final descendant commit changes only `.codearbiter/reports/academy/P04-dependency-review.md`. Its report names the candidate and closure archives, their SHA-256 values, wheel-derived licenses and Apache text, frozen review date, supply-chain limits, compatibility boundary, bounded alternative, every SMARTS lens, and `Install-Policy: no-install-in-p04`. The report ends with `Decision: reject`.
 
-Commit manifest, environment lock, and wrapper together only after review, in **one later governed
-commit**. Do not install a package in either variant; an external installation is separate future
-evidence and P04 never claims to prove whether an unrelated global installation occurred.
+`pyproject.toml` is unchanged. `requirements.lock` and `.codearbiter/reports/academy/P04-approved-dependency.lock.json` remain absent or unchanged. No package enters the exercise environment.
 
-## Hints
+The checker retains a pre-existing equivalent acceptance topology for regression coverage. That path
+is not taught here: it would require one later governed adoption boundary, complete closure evidence,
+and remains separate from external installation. This beginner lesson never edits that surface.
+
+## Check
+
+{{action:P04-check}}
+
+Check recomputes frozen candidate bytes, report grammar, prepared project digest, allowed commit paths, unchanged dependency surfaces, and clean worktree. It does not prove that you ran a host command, does not authenticate your review or selection, and cannot turn the frozen snapshot into live external truth.
+
+## Recover or continue
+
+If evidence is incomplete, unsupported, or Check fails, preserve the attempt and start a new numbered one. Do not erase failed evidence to make a later decision look cleaner.
 
 ### Hint 1
 
-Separate the requested capability from the proposed package. Test whether the Workshop Queue input
-formats can be handled by a bounded standard-library parser first.
+Read `candidate-set.json` before accepting an agent summary. A package name is not an artifact identity, and a candidate artifact is not installation permission.
 
 ### Hint 2
 
-Bind the review to the prepared project SHA-256 and exact candidate/version. Cover provenance,
-license, maintenance, supply-chain risk, compatibility, alternatives, and every SMARTS lens.
+Keep the requirement bounded: finite formats, a length limit, deterministic defaults, and a parser that fails closed. Broader requirements deserve their own decision.
 
 ### Hint 3
 
-If accepting, distinguish the two locks: `requirements.lock` covers the complete direct-plus-`six`
-runtime closure; the Academy JSON wrapper binds only the reviewed direct candidate wheel for later
-evidence. Neither authorizes an install in P04.
+The report records review evidence and selected rejection. Check can inspect final state; it cannot reconstruct who read the draft or when a host command ran.
 
-## Success evidence
+{{action:P04-reset-retry}}
 
-The intended path has a complete pre-install review rejecting the exact candidate and proves the
-manifest and both lock surfaces stayed unchanged. The equivalent path has an earlier accepting
-review and a later co-commit of the exact manifest entry, complete hash-pinned transitive
-environment lock, and separately labeled direct-candidate wrapper using reviewed artifact bytes.
-Pre-review edits, invented hashes, incomplete closure, or any installation fail.
+After Check passes, leave the completed branch intact and return to `main` when ready. P05 appears on the course home only after its guided rewrite and acceptance evidence are complete.
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository check P04-review-a-dependency
-```
+## Understand the mechanism
 
-## Recovery
-
-If any install or premature manifest/lock edit occurred, do not delete evidence to hide it. Preserve
-the attempt and reset:
-
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository reset P04-review-a-dependency
-```
-
-Begin the retry from clean prepared project state and review before changing anything.
-
-## Next lab
-
-Continue to **P05 — Remediate a checkpoint finding** after P04 passes.
+Dependency governance separates proposal, evidence, decision, and adoption. This lesson stops at a reviewed rejection because the bounded standard library parser meets the stated need with no new runtime closure. The stored report makes that tradeoff inspectable; it does not invent live facts, delegate the learner decision, or silently promote review evidence into installation authority.

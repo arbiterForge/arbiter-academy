@@ -72,6 +72,15 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_private_p04_action_contract_does_not_create_a_public_lesson_page(self) -> None:
+        """Catches a private guided draft leaking into the Preview site before publication approval."""
+        manifest = load_action_manifest(self.root, "P04-review-a-dependency")
+        self.assertEqual(manifest.document_id, "P04-review-a-dependency")
+        build_preview_site(self.root, self.out, release_sha="a" * 40)
+        index = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertFalse((self.out / "labs" / "P04-review-a-dependency" / "index.html").exists())
+        self.assertNotIn('href="labs/P04-review-a-dependency/index.html"', index)
+
     def test_p01_renders_its_action_backed_review_and_evidence_boundaries(self) -> None:
         """Catches an unpublished P01 guide losing its action cards before release promotion."""
         manifest = load_action_manifest(self.root, "P01-feature-through-plan")

@@ -68,6 +68,13 @@ P01_ACTION_IDS = (
     "P01-check",
     "P01-reset-retry",
 )
+P04_DOCUMENT_ID = "P04-review-a-dependency"
+P04_ACTION_IDS = (
+    "P04-prepare", "P04-read-boundary", "P04-read-candidate-set", "P04-inspect-project-boundary",
+    "P04-inspect-wheel-metadata", "P04-verify-wheel-hashes", "P04-read-licenses", "P04-assess-provenance",
+    "P04-compare-stdlib", "P04-draft-review", "P04-review-draft", "P04-select-reject",
+    "P04-stage-review", "P04-commit-review", "P04-confirm-no-install", "P04-check", "P04-reset-retry",
+)
 P05_DOCUMENT_ID = "P05-checkpoint-remediation"
 F01_DEPLOYED_LESSON = (
     "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/"
@@ -95,6 +102,41 @@ P05_ACTION_IDS = (
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_checked_in_p04_manifest_teaches_a_reviewed_no_install_rejection_path(self) -> None:
+        """Catches P04 returning to vague dependency advice or an install-shaped command path."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P04_DOCUMENT_ID)
+        self.assertEqual(tuple(action.id for action in manifest.actions), P04_ACTION_IDS)
+        by_id = {action.id: action for action in manifest.actions}
+        for action_id in ("P04-prepare", "P04-check", "P04-reset-retry"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "learner")
+                self.assertEqual(
+                    tuple((variant.surface, variant.operating_system, variant.host) for variant in action.variants),
+                    (("native-terminal", "windows", "none"), ("native-terminal", "macos", "none"), ("native-terminal", "linux", "none")),
+                )
+                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+        draft = by_id["P04-draft-review"]
+        self.assertEqual(draft.actor, "agent")
+        self.assertEqual(
+            tuple((variant.host, variant.language, variant.command) for variant in draft.variants),
+            (("claude-code", "codearbiter", '/ca:add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
+             ("codex", "codearbiter", '$ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
+             ("pi", "codearbiter", '/ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
+             ("pi", "codearbiter", '/skill:ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"')),
+        )
+        self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
+        self.assertEqual(by_id["P04-verify-wheel-hashes"].variants[1].command.split()[0:3], ["shasum", "-a", "256"])
+        for action_id in ("P04-review-draft", "P04-select-reject"):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual((action.actor, action.surface, action.variants), ("learner", "active-harness", ()))
+        self.assertEqual(by_id["P04-commit-review"].actor, "agent")
+        no_install = by_id["P04-confirm-no-install"]
+        self.assertIn("pyproject.toml", no_install.expected_result)
+        self.assertIn("requirements.lock", no_install.expected_result)
+        self.assertFalse(any(forbidden in variant.command for action in manifest.actions for variant in action.variants for forbidden in ("pip install", "pyproject.toml", "requirements.lock", "approved-dependency.lock")))
+
     def test_checked_in_p01_manifest_separates_review_process_from_check_evidence(self) -> None:
         """Catches P01 losing actor, surface, or copy identity before its future publication slice."""
         manifest = load_action_manifest(Path(__file__).parents[1], P01_DOCUMENT_ID)
