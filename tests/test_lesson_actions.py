@@ -151,6 +151,15 @@ P06_ACTION_IDS = (
     "P06-reset-retry",
 )
 
+P02_DOCUMENT_ID = "P02-commit-review-pr"
+P02_ACTION_IDS = (
+    "P02-read-boundary", "P02-prepare", "P02-enter-and-guard",
+    "P02-inspect-change", "P02-stage-work", "P02-request-review", "P02-run-review",
+    "P02-run-work-commit", "P02-prove-and-push", "P02-record-receipt",
+    "P02-stage-receipt", "P02-run-receipt-commit", "P02-confirm-clean",
+    "P02-check", "P02-reset",
+)
+
 
 class LessonActionTests(unittest.TestCase):
     def test_p08_manifest_binds_each_execution_surface_to_one_safe_command_form(self) -> None:
@@ -1534,3 +1543,53 @@ class LessonActionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_private_p02_manifest_binds_the_offline_receipt_workflow(self) -> None:
+        """Catches an action rewrite that loses the local-only recorder boundary."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P02_DOCUMENT_ID)
+        self.assertEqual(tuple(action.id for action in manifest.actions), P02_ACTION_IDS)
+        self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
+        by_id = {action.id: action for action in manifest.actions}
+        staged_work = by_id["P02-stage-work"]
+        self.assertEqual(staged_work.sequence, 5)
+        self.assertEqual(staged_work.actor, "learner")
+        self.assertEqual(
+            tuple(variant.surface for variant in staged_work.variants),
+            ("native-terminal", "native-terminal", "native-terminal"),
+        )
+        for variant in staged_work.variants:
+            self.assertIn(
+                "git add -- tests/test_cli.py workshop_queue/cli.py", variant.command
+            )
+            self.assertIn("git diff --cached --name-only", variant.command)
+        for action_id in ("P02-record-receipt", "P02-check", "P02-reset"):
+            commands = tuple(variant.command for variant in by_id[action_id].variants)
+            self.assertTrue(all("preview-0.6" in command for command in commands))
+            self.assertTrue(all("$academy" in command for command in commands))
+            self.assertTrue(all(command.splitlines()[0].startswith("academy=") or command.splitlines()[0].startswith("$academy =") for command in commands))
+        recorder = by_id["P02-record-receipt"]
+        commands = tuple(variant.command for variant in recorder.variants)
+        self.assertTrue(all("record P02-commit-review-pr --review-declared-cleared" in command for command in commands))
+        self.assertNotIn("git add", "\n".join(commands))
+        self.assertNotIn("git commit", "\n".join(commands))
+        self.assertNotIn("git push", "\n".join(commands))
+        for action_id, command in (
+            ("P02-run-review", "review"),
+            ("P02-run-work-commit", "commit"),
+            ("P02-run-receipt-commit", "commit"),
+        ):
+            self.assertEqual(
+                tuple(
+                    (variant.host, variant.command)
+                    for variant in by_id[action_id].variants
+                    if variant.language == "codearbiter"
+                ),
+                (
+                    ("claude-code", f"/ca:{command}"),
+                    ("codex", f"$ca-{command}"),
+                    ("pi", f"/ca-{command}"),
+                    ("pi", f"/skill:ca-{command}"),
+                ),
+            )
+

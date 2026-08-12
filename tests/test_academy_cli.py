@@ -48,6 +48,19 @@ UNPUBLISHED_LABS = (
 
 
 class AcademyCliTrustTests(unittest.TestCase):
+    def test_p02_record_requires_explicit_review_declaration_before_dispatch(self) -> None:
+        """Catches the receipt helper being callable without the learner declaration."""
+        with patch("academy_engine.cli.repository_root", return_value=REPOSITORY), patch(
+            "academy_engine.cli.require_published_lab"
+        ), patch("academy_engine.cli.record_p02_receipt") as record, redirect_stderr(StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main(
+                    ["--repository", str(REPOSITORY), "record", "P02-commit-review-pr"]
+                )
+
+        self.assertEqual(raised.exception.code, 2)
+        record.assert_not_called()
+
     def test_publication_gate_uses_verifier_data_not_the_learner_repository(self) -> None:
         """Catches installed verification reading release policy from learner input."""
         with tempfile.TemporaryDirectory() as temporary_directory:

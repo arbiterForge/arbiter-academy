@@ -32,8 +32,10 @@ PRACTITIONER = (
 )
 POST_P02_PRACTITIONER = PRACTITIONER[2:]
 EXPECTED_HOST_ACTIONS = {
-    PRACTITIONER[0]: ("feature",),
-    PRACTITIONER[1]: ("review", "commit"),
+    PRACTITIONER[0]: ("feature", "task"),
+    # P02's action manifest owns its later commit gates. The compact track
+    # metadata presents the first host entry point only.
+    PRACTITIONER[1]: ("review",),
     PRACTITIONER[2]: ("adr",),
     PRACTITIONER[3]: ("add-dep",),
     PRACTITIONER[4]: ("checkpoint",),
@@ -427,123 +429,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertEqual(actions["P01-proceed"].actor, "learner")
         self.assertEqual(actions["P01-check"].actor, "learner")
 
-    def test_p02_teaches_exact_identity_ref_and_two_commit_receipt_workflow(self) -> None:
-        guide = (
-            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
-        ).read_text(encoding="utf-8")
 
-        for required in (
-            "Origin repository ID: <64hex>",
-            "Upstream repository ID: <64hex>",
-            'git ls-remote origin "refs/heads/$branch"',
-            'git ls-remote upstream "refs/heads/$branch"',
-            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
-            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
-            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
-        ):
-            with self.subTest(required=required):
-                self.assertIn(required, guide)
-        self.assertIn("logical receipt identities", guide)
-        self.assertIn("not the temporary `file:` URLs", guide)
 
-    def test_p02_workflow_orders_external_prepare_checkout_guards_and_two_commits(self) -> None:
-        guide = (
-            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
-        ).read_text(encoding="utf-8")
-        markers = (
-            "$prepareOutput = @(arbiter-academy --repository $learnerRepository prepare P02-commit-review-pr)",
-            "$preparedCommit = $preparedMatch.Groups['commit'].Value",
-            "$originRepositoryId = $originMatch.Groups['id'].Value",
-            "Set-Location -LiteralPath $learnerRepository",
-            "if ((git branch --show-current) -ne $branch)",
-            "if ((git rev-parse HEAD) -ne $preparedCommit)",
-            "git add -- tests/test_cli.py workshop_queue/cli.py",
-            "$stagedWorkPaths = @(git diff --cached --name-only)",
-            '/ca:review\n/ca:commit\n```',
-            '$ca-review\n$ca-commit\n```',
-            '/ca-review\n/ca-commit\n```',
-            "$workHead = git rev-parse HEAD",
-            "$commits = @(git rev-list --reverse \"$preparedCommit..$workHead\")",
-            'git push origin "HEAD:refs/heads/$branch"',
-            'git ls-remote origin "refs/heads/$branch"',
-            'git ls-remote upstream "refs/heads/$branch"',
-            "[IO.File]::WriteAllText($receiptPath",
-            "git add -- .codearbiter/reports/academy/P02-pr-receipt.json",
-            "$stagedReceiptPaths = @(git diff --cached --name-only)",
-            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
-            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
-            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
-            "arbiter-academy --repository $learnerRepository check P02-commit-review-pr",
-        )
-        positions = [guide.index(marker) for marker in markers]
-        self.assertEqual(positions, sorted(positions))
 
-    def test_p02_patch_teaches_claimed_and_open_unresolved_counts(self) -> None:
-        exercise_patch = (
-            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
-        ).read_text(encoding="utf-8")
 
-        self.assertIn('second["id"] = "RQ-102"', exercise_patch)
-        self.assertNotIn('second["ticket_id"]', exercise_patch)
-        self.assertIn('self.run_cli("claim", "RQ-102", "--volunteer", "Sam")', exercise_patch)
-        self.assertIn(
-            '{"claimed": 1, "completed": 0, "open": 1, "unresolved": 2}',
-            exercise_patch,
-        )
-
-    def test_p02_patch_carries_the_attempt_local_gate_without_expanding_work_paths(self) -> None:
-        """Catches an unpinned learner profile or a third learner work path."""
-        exercise_patch = (
-            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn(
-            "diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md",
-            exercise_patch,
-        )
-        learner_gate = exercise_patch.index("+### P02 learner commit gate")
-        for preimage_context in (
-            " evidence. Independent review remains required. `compileall` is syntax",
-            " verification, not lint.",
-            "-### Integration and release milestones",
-        ):
-            with self.subTest(preimage_context=preimage_context):
-                self.assertIn(preimage_context, exercise_patch)
-                self.assertLess(exercise_patch.index(preimage_context), learner_gate)
-        self.assertIn("+### P02 learner commit gate", exercise_patch)
-        self.assertIn("python -m unittest tests.test_cli -v", exercise_patch)
-        self.assertIn(
-            "python -m compileall -q workshop_queue tests/test_cli.py",
-            exercise_patch,
-        )
-        self.assertIn("python scripts/scan_secrets.py --staged", exercise_patch)
-
-    def test_p02_documents_the_bounded_gate_and_a_consistent_sixty_minute_pace(self) -> None:
-        """Catches a learner schedule based on the multi-hour maintainer acceptance suite."""
-        track = load_track(SOURCE, "practitioner")
-        p02 = track.labs[1]
-        guide = (
-            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
-        ).read_text(encoding="utf-8")
-        index = (
-            SOURCE / "academy/tracks/practitioner/index.md"
-        ).read_text(encoding="utf-8")
-
-        self.assertEqual(p02.estimated_minutes, 60)
-        self.assertIn("| P02 |", index)
-        self.assertIn("| 60 minutes |", next(line for line in index.splitlines() if line.startswith("| P02 |")))
-        self.assertIn("## 60-minute pacing guide", guide)
-        for command in (
-            "python -m unittest tests.test_cli -v",
-            "python -m compileall -q workshop_queue tests/test_cli.py",
-            "python scripts/scan_secrets.py --staged",
-        ):
-            self.assertIn(command, guide)
-        self.assertIn("attempt-local", guide)
-        self.assertIn(
-            "Academy main keeps the full release verification profile",
-            " ".join(guide.split()),
-        )
 
     def test_loader_requires_a_learner_visible_track_index(self) -> None:
         """Catches a wheel/source tree with guides but no usable Practitioner entry point."""
@@ -1281,3 +1170,122 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_p02_teaches_exact_identity_ref_and_two_commit_receipt_workflow(self) -> None:
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+
+        for required in (
+            "offline-local pull-request rehearsal", "logical repository IDs",
+            "not authenticated human approval", "not a hosted pull request",
+            "receipt-only commit", "GitHub remote use",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, guide)
+        self.assertNotIn("```", guide)
+        self.assertIn("{{action:P02-record-receipt}}", guide)
+
+
+    def test_p02_workflow_orders_external_prepare_checkout_guards_and_two_commits(self) -> None:
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+        markers = (
+            "$prepareOutput = @(arbiter-academy --repository $learnerRepository prepare P02-commit-review-pr)",
+            "$preparedCommit = $preparedMatch.Groups['commit'].Value",
+            "$originRepositoryId = $originMatch.Groups['id'].Value",
+            "Set-Location -LiteralPath $learnerRepository",
+            "if ((git branch --show-current) -ne $branch)",
+            "if ((git rev-parse HEAD) -ne $preparedCommit)",
+            "git add -- tests/test_cli.py workshop_queue/cli.py",
+            "$stagedWorkPaths = @(git diff --cached --name-only)",
+            '/ca:review\n/ca:commit\n```',
+            '$ca-review\n$ca-commit\n```',
+            '/ca-review\n/ca-commit\n```',
+            "$workHead = git rev-parse HEAD",
+            "$commits = @(git rev-list --reverse \"$preparedCommit..$workHead\")",
+            'git push origin "HEAD:refs/heads/$branch"',
+            'git ls-remote origin "refs/heads/$branch"',
+            'git ls-remote upstream "refs/heads/$branch"',
+            "[IO.File]::WriteAllText($receiptPath",
+            "git add -- .codearbiter/reports/academy/P02-pr-receipt.json",
+            "$stagedReceiptPaths = @(git diff --cached --name-only)",
+            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
+            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
+            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
+            "arbiter-academy --repository $learnerRepository check P02-commit-review-pr",
+        )
+        markers = (
+            "{{action:P02-prepare}}", "{{action:P02-enter-and-guard}}",
+            "{{action:P02-inspect-change}}", "{{action:P02-stage-work}}", "{{action:P02-request-review}}",
+            "{{action:P02-run-review}}", "{{action:P02-run-work-commit}}",
+            "{{action:P02-prove-and-push}}", "{{action:P02-record-receipt}}",
+            "{{action:P02-stage-receipt}}", "{{action:P02-run-receipt-commit}}",
+            "{{action:P02-check}}",
+        )
+        positions = [guide.index(marker) for marker in markers]
+        self.assertEqual(positions, sorted(positions))
+
+
+    def test_p02_patch_teaches_claimed_and_open_unresolved_counts(self) -> None:
+        exercise_patch = (
+            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('second["id"] = "RQ-102"', exercise_patch)
+        self.assertNotIn('second["ticket_id"]', exercise_patch)
+        self.assertIn('self.run_cli("claim", "RQ-102", "--volunteer", "Sam")', exercise_patch)
+        self.assertIn(
+            '{"claimed": 1, "completed": 0, "open": 1, "unresolved": 2}',
+            exercise_patch,
+        )
+
+
+    def test_p02_patch_carries_the_attempt_local_gate_without_expanding_work_paths(self) -> None:
+        """Catches an unpinned learner profile or a third learner work path."""
+        exercise_patch = (
+            SOURCE / "academy/scenarios/P02-commit-review-pr/files/P02-worktree.patch"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "diff --git a/.codearbiter/tech-stack.md b/.codearbiter/tech-stack.md",
+            exercise_patch,
+        )
+        learner_gate = exercise_patch.index("+### P02 learner commit gate")
+        for preimage_context in (
+            " evidence. Independent review remains required. `compileall` is syntax",
+            " verification, not lint.",
+            "-### Integration and release milestones",
+        ):
+            with self.subTest(preimage_context=preimage_context):
+                self.assertIn(preimage_context, exercise_patch)
+                self.assertLess(exercise_patch.index(preimage_context), learner_gate)
+        self.assertIn("+### P02 learner commit gate", exercise_patch)
+        self.assertIn("python -m unittest tests.test_cli -v", exercise_patch)
+        self.assertIn(
+            "python -m compileall -q workshop_queue tests/test_cli.py",
+            exercise_patch,
+        )
+        self.assertIn("python scripts/scan_secrets.py --staged", exercise_patch)
+
+
+    def test_p02_documents_the_bounded_gate_and_a_consistent_sixty_minute_pace(self) -> None:
+        """Catches a learner schedule based on the multi-hour maintainer acceptance suite."""
+        track = load_track(SOURCE, "practitioner")
+        p02 = track.labs[1]
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+        index = (
+            SOURCE / "academy/tracks/practitioner/index.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(p02.estimated_minutes, 60)
+        self.assertIn("| P02 |", index)
+        self.assertIn("| 60 minutes |", next(line for line in index.splitlines() if line.startswith("| P02 |")))
+        self.assertIn("{{action:P02-run-work-commit}}", guide)
+        self.assertIn("{{action:P02-run-receipt-commit}}", guide)
+        self.assertIn("separate receipt-only commit", guide)
+

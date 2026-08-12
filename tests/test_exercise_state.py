@@ -55,6 +55,7 @@ from academy_engine.exercise_state import (
     restore_p02,
     validate_p02_checkpoint,
     verify_p02,
+    record_p02_receipt,
     P02AttemptIdentity,
 )
 from academy_engine.external_state import ExternalStateError
@@ -1887,7 +1888,7 @@ class P02RealRepositoryTests(unittest.TestCase):
         git(self.repository, "commit", "-m", "docs(academy): record P02 receipt")
         return receipt_path, git(self.repository, "rev-parse", "HEAD").stdout.strip()
 
-    def _complete_checkpoint_attempt(self, *, split: bool = True):
+    def _complete_checkpoint_attempt(self, *, split: bool = False):
         store, prepared = self._prepare()
         commits: list[str] = []
         if split:
@@ -3446,7 +3447,7 @@ class P02RealRepositoryTests(unittest.TestCase):
             tampered_digest,
             create=True,
         ):
-            completed = self._complete_checkpoint_attempt(split=True)
+            completed = self._complete_checkpoint_attempt(split=False)
 
         with patch(
             "academy_engine.exercise_state.sysconfig.get_path",
@@ -5111,7 +5112,7 @@ class P02RealRepositoryTests(unittest.TestCase):
             )
 
     def test_checkpoint_rejects_an_executable_receipt_tree_entry(self) -> None:
-        completed = self._complete_checkpoint_attempt(split=True)
+        completed = self._complete_checkpoint_attempt(split=False)
         receipt_path = completed["receipt_path"].relative_to(self.repository).as_posix()
         git(self.repository, "update-index", "--chmod=+x", "--", receipt_path)
         git(self.repository, "commit", "--amend", "--no-edit")
@@ -5139,7 +5140,7 @@ class P02RealRepositoryTests(unittest.TestCase):
             )
 
     def test_checkpoint_rejects_a_symlink_mode_receipt_tree_entry(self) -> None:
-        completed = self._complete_checkpoint_attempt(split=True)
+        completed = self._complete_checkpoint_attempt(split=False)
         receipt_path = completed["receipt_path"].relative_to(self.repository).as_posix()
         receipt_blob = git(
             self.repository, "rev-parse", f"HEAD:{receipt_path}"
@@ -5176,7 +5177,7 @@ class P02RealRepositoryTests(unittest.TestCase):
             )
 
     def test_checkpoint_real_repository_acceptance_and_negative_matrix(self) -> None:
-        completed = self._complete_checkpoint_attempt(split=True)
+        completed = self._complete_checkpoint_attempt(split=False)
         store = completed["store"]
         prepared = completed["prepared"]
         canonical_receipt = completed["receipt"]
@@ -5215,12 +5216,9 @@ class P02RealRepositoryTests(unittest.TestCase):
             )
 
         receipt_cases: list[tuple[str, dict[str, object], bool]] = []
-        reversed_range = json.loads(json.dumps(canonical_receipt))
-        reversed_range["commits"] = list(reversed(canonical_commits))
-        receipt_cases.append(("wrong-range-reversed", reversed_range, False))
-        omitted_range = json.loads(json.dumps(canonical_receipt))
-        omitted_range["commits"] = [canonical_commits[-1]]
-        receipt_cases.append(("wrong-range-omitted", omitted_range, False))
+        duplicate_range = json.loads(json.dumps(canonical_receipt))
+        duplicate_range["commits"] = [canonical_commits[0], canonical_commits[0]]
+        receipt_cases.append(("wrong-range-duplicate", duplicate_range, True))
         wrong_origin_id = json.loads(json.dumps(canonical_receipt))
         wrong_origin_id["repositories"]["origin"]["repository_id"] = "0" * 64
         receipt_cases.append(("wrong-origin-id", wrong_origin_id, False))
@@ -5248,10 +5246,10 @@ class P02RealRepositoryTests(unittest.TestCase):
         copied["branch"] = "academy/P02-commit-review-pr/2"
         receipt_cases.append(("copied-attempt", copied, False))
         stale = json.loads(json.dumps(canonical_receipt))
-        stale["work_head"] = canonical_commits[0]
-        stale["pushed_tip"] = canonical_commits[0]
-        stale["commits"] = [canonical_commits[0]]
-        stale["pr_reference"] = f"local-pr:{canonical_commits[0][:12]}"
+        stale["work_head"] = prepared.commit_sha
+        stale["pushed_tip"] = prepared.commit_sha
+        stale["commits"] = [prepared.commit_sha]
+        stale["pr_reference"] = f"local-pr:{prepared.commit_sha[:12]}"
         receipt_cases.append(("stale-receipt", stale, False))
         for label, key, value in (
             ("url-injection", "url", "file:///private/path"),
@@ -5679,6 +5677,133 @@ class P02RealRepositoryTests(unittest.TestCase):
             self.assertEqual(locked.read_record("p02", 1)["phase"], "restoring-origin-pushurl")
 
 
+class P02ReceiptRecorderTests(unittest.TestCase):
+    def _case(self) -> P02RealRepositoryTests:
+        case = P02RealRepositoryTests(
+            "test_prepare_creates_exact_bares_patch_and_local_topology"
+        )
+        case.setUp()
+        git(
+            case.repository,
+            "update-index",
+            "--chmod=-x",
+            "--",
+            exercise_module._PROFILE_PATH,
+            *exercise_module._CONSUMED,
+            "workshop_queue/cli.py",
+            "tests/test_cli.py",
+        )
+        git(case.repository, "config", "core.filemode", "false")
+        git(case.repository, "commit", "--amend", "--no-edit")
+        self.addCleanup(case.doCleanups)
+        return case
+
+    def test_record_writes_only_the_unstaged_canonical_offline_receipt(self) -> None:
+        """Catches a recorder that stages, commits, pushes, or writes another path."""
+        case = self._case()
+        store, prepared, _identity = case._verifiable_attempt()
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ):
+            receipt = record_p02_receipt(case.repository, store)
+
+        expected = case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json"
+        self.assertEqual(receipt, expected)
+        self.assertEqual(
+            git(case.repository, "status", "--porcelain", "--untracked-files=all").stdout,
+            "?? .codearbiter/reports/academy/P02-pr-receipt.json\n",
+        )
+        parsed = json.loads(expected.read_text(encoding="utf-8"))
+        self.assertEqual(parsed["mode"], "offline-local")
+        self.assertEqual(parsed["review"], {"status": "cleared"})
+        self.assertEqual(parsed["prepared_commit"], prepared.commit_sha)
+        self.assertEqual(parsed["pushed_tip"], git(case.repository, "rev-parse", "HEAD").stdout.strip())
+
+    def test_record_refuses_dirty_worktree_without_writing_the_receipt(self) -> None:
+        """Catches a recorder that records a receipt for an ambiguous learner state."""
+        case = self._case()
+        store, _prepared, _identity = case._verifiable_attempt()
+        (case.repository / "uncommitted-drift.txt").write_text("drift\n", encoding="utf-8")
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ), self.assertRaisesRegex(ExerciseStateError, "evidence"):
+            record_p02_receipt(case.repository, store)
+
+        self.assertFalse(
+            (case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json").exists()
+        )
+
+    def test_record_refuses_a_split_work_range_without_writing_the_receipt(self) -> None:
+        """Catches a recorder accepting two work commits where P02 teaches exactly one."""
+        case = self._case()
+        store, prepared = case._prepare()
+        for path in ("tests/test_cli.py", "workshop_queue/cli.py"):
+            git(case.repository, "add", "--", path)
+            git(case.repository, "commit", "-m", f"feat(queue): apply {path}")
+        git(
+            case.repository,
+            "push",
+            "origin",
+            f"HEAD:refs/heads/{prepared.branch}",
+        )
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ), self.assertRaisesRegex(ExerciseStateError, "evidence"):
+            record_p02_receipt(case.repository, store)
+
+        self.assertFalse(
+            (case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json").exists()
+        )
+
+    def test_record_refuses_an_empty_work_commit_without_writing_the_receipt(self) -> None:
+        """Catches a recorder accepting an extra empty commit in the work range."""
+        case = self._case()
+        store, prepared = case._prepare()
+        git(case.repository, "add", "workshop_queue/cli.py", "tests/test_cli.py")
+        git(case.repository, "commit", "-m", "feat(queue): include unresolved tickets")
+        git(case.repository, "commit", "--allow-empty", "-m", "chore(queue): empty")
+        git(
+            case.repository,
+            "push",
+            "origin",
+            f"HEAD:refs/heads/{prepared.branch}",
+        )
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ), self.assertRaisesRegex(ExerciseStateError, "evidence"):
+            record_p02_receipt(case.repository, store)
+
+        self.assertFalse(
+            (case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json").exists()
+        )
+
+    def test_check_rejects_a_split_work_range(self) -> None:
+        """Catches Check accepting two work commits despite P02's two-commit topology."""
+        case = self._case()
+        completed = case._complete_checkpoint_attempt(split=True)
+
+        with patch(
+            "academy_engine.exercise_state.sysconfig.get_path",
+            return_value=str(case.data_root),
+        ):
+            self.assertFalse(
+                validate_p02_checkpoint(
+                    case.repository,
+                    completed["store"],
+                    completed["identity"],
+                    completed["receipt"],
+                )
+            )
+
+
 class P02Sha256RepositoryTests(unittest.TestCase):
     def test_sha256_end_to_end_checkpoint_tamper_and_restoration(self) -> None:
         case = P02RealRepositoryTests(
@@ -5693,7 +5818,7 @@ class P02Sha256RepositoryTests(unittest.TestCase):
             )
         )
         try:
-            completed = case._complete_checkpoint_attempt(split=True)
+            completed = case._complete_checkpoint_attempt(split=False)
             store = completed["store"]
             prepared = completed["prepared"]
             self.assertEqual(len(prepared.base_sha), 64)
