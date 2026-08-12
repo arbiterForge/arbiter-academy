@@ -65,6 +65,44 @@ jobs:
         timeout-minutes: 75
         run: python scripts/run_test_shards.py --shard-index "${{ matrix.shard-index }}"
 
+  academy-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CA_VISUAL_RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out the exact Academy candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Node 22.19.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.19.0"
+          check-latest: false
+
+      - name: Install the pinned browser test package
+        run: npm ci --ignore-scripts
+
+      - name: Install Chromium for the visual contract
+        run: ./node_modules/.bin/playwright install --with-deps --only-shell chromium
+
+      - name: Run deterministic Academy browser visual regression
+        run: ./node_modules/.bin/playwright test
+
+      - name: Upload browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: academy-browser-artifacts-${{ github.run_id }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
   verify-candidate:
     needs: verify
     runs-on: ubuntu-latest
