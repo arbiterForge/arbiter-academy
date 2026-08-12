@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from datetime import datetime, timezone
 import hashlib
 import io
 import importlib.util
@@ -341,8 +342,11 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
                 )
                 self.assertNotIn("install.ps1", "\n".join(names))
                 self.assertNotIn("install.sh", "\n".join(names))
+                expected_timestamp = datetime.fromtimestamp(
+                    EPOCH, tz=timezone.utc
+                ).timetuple()[:6]
                 for info in archive.infolist():
-                    self.assertEqual(info.date_time, (2026, 8, 12, 0, 0, 0), info.filename)
+                    self.assertEqual(info.date_time, expected_timestamp, info.filename)
                     self.assertEqual((info.external_attr >> 16) & 0o777, 0o644, info.filename)
                 manifest_bytes = archive.read("bundle-manifest.json")
                 wheel_bytes = archive.read("wheelhouse/workshop_queue-0.1.0-py3-none-any.whl")
