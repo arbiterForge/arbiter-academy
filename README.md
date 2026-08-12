@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.10
+## Preview 0.11
 
-Preview 0.10 publishes seven guided labs:
+Preview 0.11 publishes seven guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -25,11 +25,11 @@ Preview 0.10 publishes seven guided labs:
   commits, origin-only push evidence, and an offline-local receipt.
 - **P03 is guided and runnable.** Its lesson records a learner-approved ADR and
   matching append-only decision-log entry with externally checked Git evidence.
-- **P04-P08 are coming next.** They are not public lesson routes until each
+- **P06-P08 are coming next.** They are not public lesson routes until each
   guided rewrite and its acceptance evidence are complete.
 
-The Power User track is outside Preview 0.10. Graduation is not available
-in Preview 0.10; it remains unavailable until the complete 19-lab course through
+The Power User track is outside Preview 0.11. Graduation is not available
+in Preview 0.11; it remains unavailable until the complete 19-lab course through
 U07 is published.
 
 ## Start the course

@@ -45,13 +45,13 @@
       "title": "Prepare the numbered P03 attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "P03 is public, guided, and runnable in Preview 0.10. Run the installed Preview 0.10 Prepare command outside the learner checkout; do not substitute source checkout behavior.",
+      "instruction": "P03 is public, guided, and runnable in Preview 0.11. Run the installed Preview 0.11 Prepare command outside the learner checkout; do not substitute source checkout behavior.",
       "rationale": "Prepare establishes the verifier-owned attempt baseline and branch before the learner creates evidence.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true}
+        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P03-record-an-adr", "copy": true},
+        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true},
+        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true}
       ],
       "expected_result": "Academy prints the prepared attempt branch and baseline without changing the decision artifacts yet.",
       "recovery": "If P03 is not guided in the installed release or Prepare fails, preserve the message and do not invent an attempt number or branch.",
@@ -158,16 +158,16 @@
     {
       "id": "P03-check",
       "sequence": 9,
-      "title": "Run installed Preview 0.10 Check",
+      "title": "Run installed Preview 0.11 Check",
       "actor": "learner",
       "surface": null,
-      "instruction": "P03 is public in Preview 0.10. Run the installed Preview 0.10 Check command from a native terminal.",
+      "instruction": "P03 is public in Preview 0.11. Run the installed Preview 0.11 Check command from a native terminal.",
       "rationale": "Check evaluates the committed evidence against the immutable P03 checkpoint rather than trusting a transcript.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path check P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true}
+        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path check P03-record-an-adr", "copy": true},
+        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true},
+        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true}
       ],
       "expected_result": "Check reports whether the prepared evidence satisfies the immutable P03 checkpoint.",
       "recovery": "If Check fails, preserve the predicate output and reset instead of amending, rebasing, or fabricating history.",
@@ -179,13 +179,13 @@
       "title": "Preserve the failed attempt and reset",
       "actor": "learner",
       "surface": null,
-      "instruction": "P03 Reset is public in Preview 0.10. Run the installed Preview 0.10 command from a native terminal only after preserving the failed evidence.",
+      "instruction": "P03 Reset is public in Preview 0.11. Run the installed Preview 0.11 command from a native terminal only after preserving the failed evidence.",
       "rationale": "Reset protects the failed attempt as evidence before restoring a new prepared baseline.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path reset P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true}
+        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path reset P03-record-an-adr", "copy": true},
+        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true},
+        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true}
       ],
       "expected_result": "Academy archives the failed attempt and restores a fresh prepared baseline.",
       "recovery": "If Reset is unavailable or fails, preserve the current attempt and do not delete the ADR, rewrite the log, or discard Git evidence.",

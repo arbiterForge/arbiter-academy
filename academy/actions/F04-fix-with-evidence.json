@@ -8,9 +8,9 @@
       "instruction": "From a clean main branch at your Academy clone root, run Prepare in a native terminal. The printed attempt number is evidence metadata, not text to type.",
       "rationale": "Prepare gives the intentionally defective service a separate, reviewable history.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F04-fix-with-evidence","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F04-fix-with-evidence","copy":true}
       ],
       "expected_result": "Academy switches this clone to academy/F04-fix-with-evidence/ATTEMPT_NUMBER.", "recovery": "If Prepare stops, preserve its message and resolve only the named clean-worktree, branch, or prerequisite condition. Do not force-reset main or delete an earlier attempt.", "evidence": "The numbered branch preserves the defective starting point."
     },
@@ -209,9 +209,9 @@
       "instruction": "Run Check from a native terminal. Academy reads the prepared baseline, commit order, retained source shapes, and clean current worktree without executing learner-authored code.",
       "rationale": "External verification makes the evidence independently reconstructable.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F04-fix-with-evidence","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F04-fix-with-evidence","copy":true}
       ],
       "expected_result": "Check prints checkpoint F04-fix-with-evidence: passed; progress: .academy/progress.json.", "recovery": "If Check fails, preserve the exact history and read its named predicate. Use Reset for a new numbered attempt instead of rewriting committed evidence.", "evidence": "Only a passing external Check records F04 progress."
     },
@@ -220,9 +220,9 @@
       "instruction": "Use this only after a failed Check or an irrecoverably wrong attempt. Run Reset in a native terminal at the Academy clone root.",
       "rationale": "Reset keeps the failed red-to-green history reachable and starts the same defect on the next unused branch number.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.10\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F04-fix-with-evidence","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.10/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.11\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F04-fix-with-evidence","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.11/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F04-fix-with-evidence","copy":true}
       ],
       "expected_result": "Academy archives the prior attempt and switches to the next academy/F04-fix-with-evidence/ATTEMPT_NUMBER branch.", "recovery": "If Reset stops, preserve its message and current branch. Never force-reset or delete the prior attempt.", "evidence": "The failed attempt remains reachable while the retry starts clean."
     },

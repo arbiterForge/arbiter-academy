@@ -79,6 +79,10 @@ class BrowserVisualContractTests(unittest.TestCase):
                 "p02-mobile.png",
                 "p03-desktop.png",
                 "p03-mobile.png",
+                "p04-desktop.png",
+                "p04-mobile.png",
+                "p05-desktop.png",
+                "p05-mobile.png",
             ],
         )
         baseline_root = ROOT / "tests" / "site" / "__screenshots__"

@@ -15,7 +15,7 @@ next_lab: P05-checkpoint-remediation
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.10. Its action cards document an unreleased lesson and do not create a public course route.
+P04 is a guided, runnable Academy lesson in Preview 0.11. Its shared action cards are the public course route.
 
 Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one CodeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. CodeArbiter commands and agent messages belong in the harness and never begin with `!`.
 
@@ -100,7 +100,7 @@ The report records review evidence and selected rejection. Check can inspect fin
 
 {{action:P04-reset-retry}}
 
-After Check passes, leave the completed branch intact and return to `main` when ready. P05 appears on the course home only after its guided rewrite and acceptance evidence are complete.
+After Check passes, leave the completed branch intact and return to `main` when ready. Continue to P05 when you are ready to practice a bounded checkpoint remediation.
 
 ## Understand the mechanism
 

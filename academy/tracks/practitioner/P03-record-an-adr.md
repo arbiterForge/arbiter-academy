@@ -15,7 +15,7 @@ next_lab: P04-review-a-dependency
 
 ## Know before you begin
 
-P03 is a public guided and runnable lesson in Preview 0.10 (`preview-0.10`). It uses the shared Markdown-plus-action-manifest renderer and the installed Preview 0.10 Prepare, Check, and Reset commands. The immutable scenario, checkpoint, and action contract ID stay `P03-record-an-adr`.
+P03 is a public guided and runnable lesson in Preview 0.11 (`preview-0.11`). It uses the shared Markdown-plus-action-manifest renderer and the installed Preview 0.11 Prepare, Check, and Reset commands. The immutable scenario, checkpoint, and action contract ID stay `P03-record-an-adr`.
 
 Keep a native terminal at the clone root and one CodeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native CodeArbiter commands and harness requests never begin with `!` either.
 
@@ -35,7 +35,7 @@ The two allowed learner choices are stable text and structured JSON. The committ
 
 {{action:P03-prepare}}
 
-Do not invent an attempt number, branch, or source-checkout substitute; use the installed Preview 0.10 action.
+Do not invent an attempt number, branch, or source-checkout substitute; use the installed Preview 0.11 action.
 
 ## Practice the decision
 
@@ -67,7 +67,7 @@ If evidence is wrong or Check names a failed predicate, preserve the attempt. Do
 
 {{action:P03-reset}}
 
-Continue only when the next guided Academy lesson is published; P04 remains a private, non-routable coming-next lesson in Preview 0.10.
+Continue to P04, the next public guided Academy lesson in Preview 0.11.
 
 ### Hint 1
 

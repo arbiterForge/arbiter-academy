@@ -15,7 +15,7 @@ next_lab: P08-repository-hygiene
 
 ## Know before you begin
 
-P07 remains private and unavailable in Preview 0.10 while the guided Practitioner sequence is completed. It is opt-in and read-only.
+P07 remains private and unavailable in Preview 0.11 while the guided Practitioner sequence is completed. It is opt-in and read-only.
 Start in the Academy clone that completed P06. Switch to `main`, then confirm `git status --short` has
 no output before Prepare.
 

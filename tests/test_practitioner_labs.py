@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.10")
+                    self.assertEqual(release.release, "preview-0.11")
                     self.assertIn(lab.id, release.runnable_labs)
                     self.assertIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -221,7 +221,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         with self.subTest(lab=lab.id, operation=operation):
                             action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
                             self.assertTrue(
-                                all("preview-0.10" in variant.command for variant in action.variants)
+                            all(
+                                ("preview-0.11" if lab.id in load_preview_manifest(SOURCE).guided_labs else "preview-0.10")
+                                in variant.command
+                                for variant in action.variants
+                            )
                             )
                     self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
                     continue
@@ -249,7 +253,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 )
                 self.assertNotIn("python scripts/academy.py reset", lab.recovery)
 
-    def test_post_p03_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
+    def test_post_p05_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
         """Future lesson commands must not escape the published Academy boundary."""
         try:
             track = load_track(SOURCE, "practitioner")
@@ -260,11 +264,15 @@ class PractitionerCurriculumTests(unittest.TestCase):
         guided = set(manifest.guided_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in guided),
-            ("P03-record-an-adr",),
+            (
+                "P03-record-an-adr",
+                "P04-review-a-dependency",
+                "P05-checkpoint-remediation",
+            ),
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in guided),
-            PRACTITIONER[3:],
+            PRACTITIONER[5:],
         )
 
         for lab in track.labs[2:]:
@@ -456,7 +464,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-reset-retry",
             ),
         )
-        self.assertIn("P01 is the first Practitioner lesson in Preview 0.10.", guide)
+        self.assertIn("P01 is the first Practitioner lesson in Preview 0.11.", guide)
         self.assertIn("### If review finds a concrete correction", guide)
         self.assertRegex(
             guide,
@@ -707,7 +715,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 self.assertIn(required, guide)
         self.assertNotIn("pip install", guide)
 
-    def test_p04_is_a_private_action_backed_rejection_lesson(self) -> None:
+    def test_p04_is_a_public_action_backed_rejection_lesson(self) -> None:
         """Catches P04 teaching an undeclared install path or asking a learner to infer roles."""
         guide_path = SOURCE / "academy/tracks/practitioner/P04-review-a-dependency.md"
         guide = guide_path.read_text(encoding="utf-8")
@@ -736,15 +744,14 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("does not prove that you ran a host command", guide)
         self.assertIn("does not authenticate your review or selection", guide)
         self.assertNotIn("pip install", guide)
-        self.assertNotIn("P04-review-a-dependency", set(load_preview_manifest(SOURCE).guided_labs))
+        self.assertIn("P04-review-a-dependency", set(load_preview_manifest(SOURCE).guided_labs))
 
     def test_p04_cannot_be_public_before_p03_closes_its_prerequisite(self) -> None:
         """Catches P04 being promoted while its required P03 lesson remains absent."""
-        path = SOURCE / "academy/publication/preview-0.9.json"
+        path = SOURCE / "academy/publication/preview-0.11.json"
         candidate = json.loads(path.read_text(encoding="utf-8"))
         for field in ("available_labs", "runnable_labs", "guided_labs"):
-            candidate[field].append("P04-review-a-dependency")
-        candidate["coming_next"].remove("P04-review-a-dependency")
+            candidate[field].remove("P03-record-an-adr")
 
         with self.assertRaisesRegex(
             ValueError,
@@ -773,8 +780,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "test-only RED", "code-only GREEN", "schema_version", "red_commit",
             "remediation_commit", "receipt last", "not evidence that either command was invoked",
             "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
-            "Continue to **P06",
-            "after P05 passes",
+            "P06 becomes available when its guided Academy lesson is published",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
@@ -1333,8 +1339,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
         """Catches an unpublished draft being mistaken for the current public lesson set."""
         release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         for document_id in (
-            "P04-review-a-dependency",
-            "P05-checkpoint-remediation",
             "P06-context-drift-recovery",
             "P07-threat-model",
             "P08-repository-hygiene",

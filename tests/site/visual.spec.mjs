@@ -54,6 +54,8 @@ for (const [lesson, name] of [
   ["P01-feature-through-plan", "p01"],
   ["P02-commit-review-pr", "p02"],
   ["P03-record-an-adr", "p03"],
+  ["P04-review-a-dependency", "p04"],
+  ["P05-checkpoint-remediation", "p05"],
 ]) {
   test(`${lesson} keeps its first copyable action usable`, async ({ page }, testInfo) => {
     await page.goto(`/labs/${lesson}/index.html`, { waitUntil: "networkidle" });
@@ -62,7 +64,14 @@ for (const [lesson, name] of [
     await copy.scrollIntoViewIfNeeded();
     await expect(copy).toBeVisible();
     await expect(copy).toBeInViewport();
-    await expect(page).toHaveScreenshot(`${name}-${testInfo.project.name}.png`, {
+    const visualTarget = ["p04", "p05"].includes(name)
+      ? page
+          .locator(".lesson-action")
+          .filter({ has: copy })
+          .locator(".command-variant")
+          .first()
+      : page;
+    await expect(visualTarget).toHaveScreenshot(`${name}-${testInfo.project.name}.png`, {
       animations: "disabled",
       caret: "hide",
       fullPage: false,
