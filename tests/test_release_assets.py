@@ -160,16 +160,16 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
         archive.__enter__.return_value = archive
         destination = Path("release-source")
         with (
-            patch("tests.test_release_assets.immutable_release_tag_commit", return_value="a" * 40),
+            patch(f"{__name__}.immutable_release_tag_commit", return_value="a" * 40),
             patch(
-                "tests.test_release_assets.subprocess.run",
+                f"{__name__}.subprocess.run",
                 side_effect=(
                     subprocess.CompletedProcess([], 0, "", ""),
                     subprocess.CompletedProcess([], 0, b"archive", b""),
                 ),
             ),
-            patch("tests.test_release_assets.tarfile.open", return_value=archive),
-            patch("tests.test_release_assets.sys.version_info", (3, 11, 3)),
+            patch(f"{__name__}.tarfile.open", return_value=archive),
+            patch.object(sys, "version_info", (3, 11, 3)),
         ):
             self.assertEqual(extract_tagged_release(destination), destination)
         archive.extractall.assert_called_once_with(destination)
