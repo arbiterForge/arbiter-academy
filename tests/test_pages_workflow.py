@@ -217,8 +217,14 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     setup = _named_step(job, "Select release-builder Python 3.12")
     if "ref: ${{ github.sha }}" not in checkout or "persist-credentials: false" not in checkout:
         raise AssertionError("Pages candidate checkout is not exact and credential-free")
+    if "fetch-depth: 0" not in checkout:
+        raise AssertionError("release ancestry validation requires the complete Pages candidate history")
     if 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"' not in shell:
         raise AssertionError("release source is not fetched after its immutable tag resolves")
+    if shell.index('git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"') > shell.index(
+        'git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"'
+    ):
+        raise AssertionError("release source must be fetched before shallow Pages ancestry validation")
     if 'git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"' not in shell:
         raise AssertionError("release reproduction does not use an exact detached tag source")
     if '--source "$GITHUB_WORKSPACE"' in shell:
