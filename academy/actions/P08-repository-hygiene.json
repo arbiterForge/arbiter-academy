@@ -75,7 +75,8 @@
       "variants": [
         {"id":"standup-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:standup","copy":true},
         {"id":"standup-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-standup","copy":true},
-        {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true}
+        {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-standup","copy":true}
       ],
       "expected_result": "The agent presents repository state for review without deleting, pruning, or rewriting any ref or worktree.",
       "recovery": "If the response proposes cleanup, stop it and return to the frozen Git inventory. Preserve the current state.",
@@ -161,7 +162,8 @@
       "variants": [
         {"id":"commit-claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
         {"id":"commit-codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
-        {"id":"commit-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true}
+        {"id":"commit-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
       "expected_result": "The commit gate creates one report-only evidence commit on the numbered attempt.",
       "recovery": "If the gate blocks, preserve its output and the live fixture. Correct only the reported evidence issue or use Reset for a new attempt.",

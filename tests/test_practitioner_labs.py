@@ -74,6 +74,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("The website is the primary lesson surface.", guide)
         self.assertIn("Academy CLI is limited to Prepare, Check, and Reset.", guide)
         self.assertIn("Check does not prove that the agent ran standup", guide)
+        self.assertIn(
+            "Check cannot prove personal understanding, agent invocation, or human review.",
+            guide,
+        )
         self.assertIn("A passing Check does not make a deletion safe", normalized_guide)
         self.assertIn("The agent drafts the report; you review it", normalized_guide)
         self.assertLess(guide.index("{{action:P08-review-report}}"), guide.index("{{action:P08-stage-report}}"))

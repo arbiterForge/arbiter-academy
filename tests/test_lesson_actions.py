@@ -347,6 +347,27 @@ class LessonActionTests(unittest.TestCase):
             any(variant.surface == "harness" and variant.language == "text" for variant in actions["P08-request-report-draft"].variants)
         )
 
+        for action_id, command in (
+            ("P08-run-standup", "standup"),
+            ("P08-run-commit-gate", "commit"),
+        ):
+            action = actions[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual(action.actor, "agent")
+                self.assertEqual(
+                    tuple((variant.host, variant.command) for variant in action.variants),
+                    (
+                        ("claude-code", f"/ca:{command}"),
+                        ("codex", f"$ca-{command}"),
+                        ("pi", f"/ca-{command}"),
+                        ("pi", f"/skill:ca-{command}"),
+                    ),
+                )
+                self.assertTrue(all(variant.copy for variant in action.variants))
+                self.assertTrue(
+                    all(variant.language == "codearbiter" for variant in action.variants)
+                )
+
         for action in manifest.actions:
             for variant in action.variants:
                 with self.subTest(action=action.id, variant=variant.id):

@@ -106,6 +106,9 @@ human judgment about a future cleanup. It verifies the installed-authority fixtu
 resources, the sole report commit, and the exact canonical report blob. A passing Check does not
 make a deletion safe or authorize cleanup.
 
+Check cannot prove personal understanding, agent invocation, or human review. It records only the
+installed verifier's state comparison; retain the terminal evidence and your review notes separately.
+
 ## Recover or continue
 
 If Check fails, preserve every ref and worktree and read the reported predicate. Never make the

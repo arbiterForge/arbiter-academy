@@ -185,6 +185,22 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Codex harness", html)
         self.assertIn("Your agent · Codex harness", html)
         self.assertIn("agent-owned CodeArbiter command", html)
+        for action_id, pi_fallback in (
+            ("P08-run-standup", "/skill:ca-standup"),
+            ("P08-run-commit-gate", "/skill:ca-commit"),
+        ):
+            with self.subTest(action=action_id):
+                action = next(action for action in manifest.actions if action.id == action_id)
+                rendered = preview_site._render_action(action)
+                self.assertIn(pi_fallback, rendered)
+                self.assertEqual(rendered.count('class="command-copy"'), 4)
+                self.assertIn(
+                    f'data-copy-target="command-{action_id}-pi-fallback"', rendered
+                )
+        build_preview_site(self.root, self.out, release_sha="8" * 40)
+        self.assertFalse(
+            (self.out / "labs" / "P08-repository-hygiene" / "index.html").exists()
+        )
 
     def test_public_p04_action_contract_creates_a_public_lesson_page(self) -> None:
         """Catches a guided P04 lesson missing from the promoted Preview 0.11 route set."""
