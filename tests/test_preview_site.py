@@ -72,6 +72,40 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
+    def test_preview_zero_seven_publishes_only_the_exact_three_lab_boundary(self) -> None:
+        """Catches F03 missing from Preview 0.7 or private lessons gaining routes."""
+        publication = self.root / "academy" / "publication"
+        self.assertFalse((publication / "preview-0.6.json").exists())
+        manifest_path = publication / "preview-0.7.json"
+        self.assertTrue(manifest_path.is_file())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        public_labs = [
+            "F01-fork-clone-doctor",
+            "F02-orient-to-state",
+            "F03-work-the-board",
+        ]
+        coming_next = [
+            "F04-fix-with-evidence",
+            "P01-feature-through-plan",
+            "P02-commit-review-pr",
+            "P03-record-an-adr",
+            "P04-review-a-dependency",
+            "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
+            "P07-threat-model",
+            "P08-repository-hygiene",
+        ]
+        self.assertEqual(manifest["release"], "preview-0.7")
+        for field in ("available_labs", "runnable_labs", "guided_labs"):
+            self.assertEqual(manifest[field], public_labs, field)
+        self.assertEqual(manifest["coming_next"], coming_next)
+
+        build_preview_site(self.root, self.out, release_sha="7" * 40)
+        for lab_id in public_labs:
+            self.assertTrue((self.out / "labs" / lab_id / "index.html").is_file(), lab_id)
+        for lab_id in coming_next:
+            self.assertFalse((self.out / "labs" / lab_id / "index.html").exists(), lab_id)
+
     def test_f03_guided_document_renders_action_cards_before_promotion(self) -> None:
         """The F03 document is action-backed before Preview 0.7 makes it public."""
         manifest = load_action_manifest(self.root, "F03-work-the-board")

@@ -27,6 +27,7 @@ test("Academy Home remains visually stable", async ({ page }, testInfo) => {
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],
+  ["F03-work-the-board", "f03"],
 ]) {
   test(`${lesson} keeps its first copyable action usable`, async ({ page }, testInfo) => {
     await page.goto(`/labs/${lesson}/index.html`, { waitUntil: "networkidle" });
