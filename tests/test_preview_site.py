@@ -277,7 +277,7 @@ class PreviewSiteTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            r"^home coming-next entries do not match the exact Preview 0\.5 guided-rewrite sequence$",
+            r"^home coming-next entries do not match the exact Preview 0\.6 guided-rewrite sequence$",
         ):
             check_preview_site(self.out)
 
