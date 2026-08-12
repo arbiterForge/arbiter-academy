@@ -820,12 +820,13 @@ class LessonActionTests(unittest.TestCase):
 
         context_links = by_id["F02-follow-context-links"]
         context_prompt = (
-            "Open, do not summarize, these files in order: .codearbiter/specs/ticket-assignment.md, "
+            "Open each file in order, then give this four-item orientation report: the queued task ID, "
+            "both ADR decisions, the verification command, and the local-only data boundary. Read these files "
+            "in order: .codearbiter/specs/ticket-assignment.md, "
             ".codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, "
             ".codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, "
             ".codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, "
-            "and .codearbiter/open-questions.md. Then report the queued task ID, both ADR decisions, "
-            "the verification command, and the local-only data boundary."
+            "and .codearbiter/open-questions.md."
         )
         self.assertIsNone(context_links.surface)
         self.assertEqual(
@@ -938,8 +939,20 @@ class LessonActionTests(unittest.TestCase):
         self.assertFalse(any(variant.command.startswith("!") for variant in commit.variants))
         self.assertEqual(by_id["F01-stage-report"].actor, "learner")
         self.assertEqual(by_id["F01-review-commit-boundary"].actor, "learner")
-        self.assertEqual(by_id["F01-review-commit-boundary"].surface, "active-harness")
-        self.assertFalse(by_id["F01-review-commit-boundary"].variants)
+        self.assertIsNone(by_id["F01-review-commit-boundary"].surface)
+        boundary_variants = by_id["F01-review-commit-boundary"].variants
+        self.assertEqual(
+            tuple((variant.host, variant.language, variant.surface, variant.copy) for variant in boundary_variants),
+            (("claude-code", "text", "harness", True), ("codex", "text", "harness", True), ("pi", "text", "harness", True)),
+        )
+        self.assertTrue(
+            all(
+                "Show the staged path list and staged diff. Do not commit." in variant.command
+                and ".codearbiter/reports/academy/F01-doctor.json" in variant.command
+                and not variant.command.startswith("!")
+                for variant in boundary_variants
+            )
+        )
 
     def test_checked_in_f01_shell_variants_name_surface_and_passthrough_exactly(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], DOCUMENT_ID)
@@ -1653,4 +1666,3 @@ if __name__ == "__main__":
                     ("pi", f"/skill:ca-{command}"),
                 ),
             )
-

@@ -1004,11 +1004,15 @@
       "sequence": 11,
       "title": "Review and approve the proposed boundary",
       "actor": "learner",
-      "surface": "active-harness",
+      "surface": null,
       "instruction": "Ask your agent to show the staged path and proposed CodeArbiter commit boundary. Confirm that only the F01 Doctor report is included, then supply any genuine approval the commit gate requests.",
       "rationale": "The learner approves what will become durable evidence; the agent owns the governed commit operation.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F01-doctor.json and whether the report is the Doctor evidence I prepared. Do not stage, unstage, or modify anything.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F01-doctor.json and whether the report is the Doctor evidence I prepared. Do not stage, unstage, or modify anything.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F01-doctor.json and whether the report is the Doctor evidence I prepared. Do not stage, unstage, or modify anything.","copy":true}
+      ],
       "expected_result": "The proposed boundary names only .codearbiter/reports/academy/F01-doctor.json, and any requested approval is an informed learner decision.",
       "recovery": "If another path appears, do not approve. Ask the agent to preserve and unstage the unrelated work, then review the boundary again.",
       "evidence": "Your approval applies only to the one-report commit."

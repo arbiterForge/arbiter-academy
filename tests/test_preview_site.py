@@ -1843,7 +1843,7 @@ class PreviewSiteTests(unittest.TestCase):
                 expected_document_id="home",
             )
 
-    def test_f01_review_boundary_renders_the_active_harness_without_a_command(self) -> None:
+    def test_f01_review_boundary_renders_copyable_host_specific_review_prompts(self) -> None:
         manifest = load_action_manifest(self.root, "F01-fork-clone-doctor")
         action = next(
             action
@@ -1853,13 +1853,13 @@ class PreviewSiteTests(unittest.TestCase):
 
         rendered = preview_site._render_action(action)
 
-        self.assertIn(
-            "You \u00b7 Active CodeArbiter harness \u00b7 All operating systems",
-            rendered,
-        )
+        for host in ("Claude Code", "Codex", "Pi"):
+            with self.subTest(host=host):
+                self.assertIn(f"You \u00b7 {host} harness \u00b7 All operating systems", rendered)
         self.assertNotIn("Native terminal", rendered)
-        self.assertNotIn("command-variant", rendered)
-        self.assertNotIn("<pre>", rendered)
+        self.assertEqual(rendered.count('class="command-variant"'), 3)
+        self.assertEqual(rendered.count('class="command-copy"'), 3)
+        self.assertIn("Show the staged path list and staged diff. Do not commit.", rendered)
 
     def test_home_and_recovery_activate_only_with_complete_guide_action_pairs(self) -> None:
         """Catches partial or malformed guide publication and verifies real pair rendering."""
