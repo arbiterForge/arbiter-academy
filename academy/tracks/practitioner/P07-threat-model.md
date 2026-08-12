@@ -45,6 +45,9 @@ clearance outcome authorizes a P07 code change. Both are advisory conclusions fr
 
 {{action:P07-read-target}}
 
+Preparation materializes the frozen scenario descriptor for this attempt. The installed verifier later recomputes
+the target identity from committed Git objects; it does not trust a copied value from the report.
+
 `ATTEMPT_NUMBER` is the number Academy prints, such as `1`; do not type it literally. Stay on the
 numbered P07 branch until Check or Reset tells you otherwise.
 
