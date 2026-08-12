@@ -331,9 +331,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 current_code = lab.id.partition("-")[0]
                 next_code = lab.next_lab.partition("-")[0]
                 with self.subTest(lab=lab.id, next_lab=lab.next_lab):
-                    self.assertIn(
-                        "Academy lesson appears on the course home only after its guided rewrite",
+                    self.assertRegex(
                         guide,
+                        r"guided Academy\s+lesson is published",
                     )
                     self.assertNotIn(f"Continue to {next_code} only after {current_code} passes", guide)
 
