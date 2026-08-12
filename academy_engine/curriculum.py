@@ -104,11 +104,6 @@ _P03_GUIDED_SECTIONS = (
     "Recover or continue",
     "Understand the mechanism",
 )
-_ACTION_DOCUMENT_IDS = {
-    # P03's verifier/scenario identifier is historical and immutable. Its action document name
-    # describes the learner-facing decision-log outcome without changing that identity.
-    "P03-record-an-adr": "P03-adr-decision-log",
-}
 _SAFE_ACTION_DOCUMENT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,95}")
 _HOST_HEADINGS = {
     "Claude Code": "claude-code",
@@ -400,7 +395,7 @@ def _one_command_block(text: str, label: str, path: Path) -> str:
 
 def _parse_lab(path: Path) -> CurriculumLab:
     data, body = _front_matter(path.read_text(encoding="utf-8"), path)
-    action_document_id = _ACTION_DOCUMENT_IDS.get(data["id"], data["id"])
+    action_document_id = data["id"]
     if _SAFE_ACTION_DOCUMENT_ID.fullmatch(action_document_id) is None:
         raise CurriculumError(f"{path.name} maps to an unsafe action document ID.")
     action_path = path.parents[3] / "academy" / "actions" / f"{action_document_id}.json"

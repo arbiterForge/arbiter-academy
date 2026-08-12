@@ -187,7 +187,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                             self.assertTrue(all(variant.copy for variant in variants))
                             self.assertTrue(
                                 all(
-                                    "preview-0.6" in variant.command
+                                    "preview-0.10" in variant.command
                                     and f"{operation} {lab.id}" in variant.command
                                     and "!" not in variant.command
                                     for variant in variants
@@ -195,20 +195,20 @@ class PractitionerCurriculumTests(unittest.TestCase):
                             )
                     continue
                 if lab.id == "P03-record-an-adr":
-                    manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
+                    manifest = load_action_manifest(SOURCE, "P03-record-an-adr")
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.9")
-                    self.assertNotIn(lab.id, release.runnable_labs)
-                    self.assertNotIn(lab.id, release.guided_labs)
+                    self.assertEqual(release.release, "preview-0.10")
+                    self.assertIn(lab.id, release.runnable_labs)
+                    self.assertIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
                         action = actions[action_id]
                         with self.subTest(action=action_id):
-                            self.assertEqual((action.actor, action.surface), ("academy", "academy-console"))
-                            self.assertEqual(action.variants, ())
+                            self.assertTrue(action.variants)
+                            self.assertTrue(all(variant.copy for variant in action.variants))
                     p03_copy = guide + json.dumps(
-                        json.loads((SOURCE / "academy/actions/P03-adr-decision-log.json").read_text(encoding="utf-8"))
+                        json.loads((SOURCE / "academy/actions/P03-record-an-adr.json").read_text(encoding="utf-8"))
                     )
                     self.assertIn(release.release.casefold(), p03_copy.casefold())
                     self.assertNotIn("preview-0.5", p03_copy.casefold())
@@ -221,7 +221,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         with self.subTest(lab=lab.id, operation=operation):
                             action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
                             self.assertTrue(
-                                all("preview-0.6" in variant.command for variant in action.variants)
+                                all("preview-0.10" in variant.command for variant in action.variants)
                             )
                     self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
                     continue
@@ -249,7 +249,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 )
                 self.assertNotIn("python scripts/academy.py reset", lab.recovery)
 
-    def test_post_p02_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
+    def test_post_p03_transitions_stay_nonpublic_until_their_guided_rewrites_are_accepted(self) -> None:
         """Future lesson commands must not escape the published Academy boundary."""
         try:
             track = load_track(SOURCE, "practitioner")
@@ -260,11 +260,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
         guided = set(manifest.guided_labs)
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id in guided),
-            (),
+            ("P03-record-an-adr",),
         )
         self.assertEqual(
             tuple(lab.id for lab in track.labs[2:] if lab.id not in guided),
-            PRACTITIONER[2:],
+            PRACTITIONER[3:],
         )
 
         for lab in track.labs[2:]:
@@ -426,7 +426,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             "## Understand the mechanism",
         )
         self.assertEqual(
-            tuple(line for line in guide.splitlines() if line in expected_headings),
+            tuple(line for line in guide.splitlines() if line.startswith("## ")),
             expected_headings,
         )
         self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
@@ -456,7 +456,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 "P01-reset-retry",
             ),
         )
-        self.assertIn("P01 is the first Practitioner lesson in Preview 0.9.", guide)
+        self.assertIn("P01 is the first Practitioner lesson in Preview 0.10.", guide)
         self.assertIn("### If review finds a concrete correction", guide)
         self.assertRegex(
             guide,
@@ -579,18 +579,26 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.assertRaisesRegex(CurriculumError, "learner-visible"):
                 load_track(root, "practitioner")
 
-    def test_loader_rejects_unsafe_mapped_action_id_before_action_path_probe(self) -> None:
-        """Mapped action document identifiers must not reach pathlib filesystem probing."""
-        path = SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
-        with (
-            patch.dict(
-                curriculum._ACTION_DOCUMENT_IDS,
-                {"P01-feature-through-plan": "../outside"},
-            ),
-            patch.object(Path, "is_file", side_effect=AssertionError("filesystem probe")),
-        ):
-            with self.assertRaisesRegex(CurriculumError, "safe action document ID"):
-                curriculum._parse_lab(path)
+    def test_loader_rejects_unsafe_canonical_action_id_before_action_path_probe(self) -> None:
+        """Canonical action document identifiers must not reach pathlib filesystem probing."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "academy/tracks/practitioner/P01-feature-through-plan.md"
+            path.parent.mkdir(parents=True)
+            source = (
+                SOURCE / "academy/tracks/practitioner/P01-feature-through-plan.md"
+            ).read_text(encoding="utf-8")
+            path.write_text(
+                source.replace("id: P01-feature-through-plan", "id: ../outside", 1),
+                encoding="utf-8",
+            )
+            with patch.object(
+                Path,
+                "is_file",
+                side_effect=AssertionError("filesystem probe"),
+            ):
+                with self.assertRaisesRegex(CurriculumError, "safe action document ID"):
+                    curriculum._parse_lab(path)
 
     def test_verify_track_matrix_binds_exact_structural_inventory(self) -> None:
         """Catches a missing scenario/checkpoint binding or matrix declaration."""
@@ -638,8 +646,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
 
-    def test_p03_is_a_private_action_backed_decision_lesson(self) -> None:
-        """Catches the P03 filename alias or learner-facing decision boundary drifting."""
+    def test_p03_is_a_public_action_backed_decision_lesson(self) -> None:
+        """Catches the canonical P03 action file or learner-facing decision boundary drifting."""
         guide_path = SOURCE / "academy/tracks/practitioner/P03-record-an-adr.md"
         guide = guide_path.read_text(encoding="utf-8")
 
@@ -657,8 +665,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             tuple(line for line in guide.splitlines() if line in expected_headings),
             expected_headings,
         )
-        manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
-        release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
+        manifest = load_action_manifest(SOURCE, "P03-record-an-adr")
         lab = load_track(SOURCE, "practitioner").labs[2]
         self.assertNotIn("```", guide)
         self.assertEqual(
@@ -669,9 +676,10 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertEqual(lab.host_commands["codex"], '$ca-adr "Choose the Workshop Queue summary-format boundary"')
         normalized_guide = " ".join(guide.split())
         for required in (
-            "stable text", "structured JSON", "You choose", "does not prove that you personally chose",
-            "does not prove that a host command ran", "does not prove that anyone reviewed",
-            "P03-adr-decision-log.json", release_display, "proposed", "explicit learner acceptance",
+            "stable text", "structured JSON", "learner chooses", "clean worktree", "1–2 linear commits",
+            "only ADR/log paths", "ADR before log if split", "commit date/name", "artifact format/choice",
+            "append-only log prefix", "cannot prove human acceptance", "host command use", "reasoning quality",
+            "chronology", "independent review", "P03-record-an-adr",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, normalized_guide)
@@ -921,7 +929,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         for variant in reset.variants:
             with self.subTest(variant=variant.id):
-                self.assertIn("preview-0.6", variant.command)
+                self.assertIn("preview-0.10", variant.command)
                 self.assertIn("reset P06-context-drift-recovery", variant.command)
                 self.assertNotIn("<learner-repository>", variant.command)
 
@@ -1309,19 +1317,22 @@ class PractitionerCurriculumTests(unittest.TestCase):
         """Catches an unpublished draft being mistaken for the current public lesson set."""
         release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         for document_id in (
-            "P02-commit-review-pr",
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
             "P06-context-drift-recovery",
+            "P07-threat-model",
+            "P08-repository-hygiene",
         ):
             with self.subTest(document_id=document_id):
                 guide = (
                     SOURCE / f"academy/tracks/practitioner/{document_id}.md"
                 ).read_text(encoding="utf-8")
                 self.assertIn(
-                    f"This is private authoring material. It is unavailable in {release_display}.",
+                    f"unavailable in {release_display}",
                     guide,
                 )
+                self.assertNotIn(document_id, load_preview_manifest(SOURCE).guided_labs)
+                self.assertNotIn(document_id, load_preview_manifest(SOURCE).runnable_labs)
 
     def test_p02_uses_the_rendered_reset_action_and_records_the_stage_work_design_step(self) -> None:
         """Catches a private draft teaching a raw reset path or omitting the staging design step."""
