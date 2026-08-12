@@ -118,6 +118,33 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Preview 0.12", index)
         self.assertIn("P08-repository-hygiene", index)
 
+    def test_shared_release_chrome_derives_from_the_validated_preview_manifest(self) -> None:
+        """Catches a future preview leaving a title, footer, or unavailable-next label stale."""
+        source = self._copy_public_source("release-chrome")
+        current = source / "academy" / "publication" / "preview-0.12.json"
+        alternate = json.loads(current.read_text(encoding="utf-8"))
+        alternate["release"] = "preview-9.9"
+        (source / "academy" / "publication" / "preview-9.9.json").write_text(
+            json.dumps(alternate), encoding="utf-8"
+        )
+        destination = self.out.parent / "release-chrome-output"
+
+        with patch("academy_engine.preview._RELEASE", "preview-9.9"):
+            build_preview_site(source, destination, release_sha="9" * 40)
+
+        home = (destination / "index.html").read_text(encoding="utf-8")
+        recovery = (destination / "recovery" / "index.html").read_text(encoding="utf-8")
+        p08 = (destination / "labs" / "P08-repository-hygiene" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        for page in (home, recovery, p08):
+            self.assertIn('meta name="academy-release" content="preview-9.9"', page)
+            self.assertIn("Preview 9.9", page)
+            self.assertNotIn("Preview 0.12", page)
+        self.assertIn("<title>Arbiter Academy Preview 9.9</title>", home)
+        self.assertIn("Preview 9.9 release</a>", home)
+        self.assertIn("U01 is not available in Arbiter Academy Preview 9.9.", p08)
+
     def test_f03_guided_document_renders_action_cards_before_promotion(self) -> None:
         """The F03 document is action-backed before Preview 0.8 makes it public."""
         manifest = load_action_manifest(self.root, "F03-work-the-board")
