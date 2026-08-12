@@ -199,7 +199,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.6")
+                    self.assertEqual(release.release, "preview-0.7")
                     self.assertNotIn(lab.id, release.runnable_labs)
                     self.assertNotIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -210,7 +210,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     p03_copy = guide + json.dumps(
                         json.loads((SOURCE / "academy/actions/P03-adr-decision-log.json").read_text(encoding="utf-8"))
                     )
-                    self.assertIn("preview-0.6", p03_copy.casefold())
+                    self.assertIn(release.release.casefold(), p03_copy.casefold())
                     self.assertNotIn("preview-0.5", p03_copy.casefold())
                     continue
                 action_path = SOURCE / f"academy/actions/{lab.id}.json"
