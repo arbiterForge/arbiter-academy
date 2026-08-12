@@ -371,7 +371,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
                 self.assertTrue(lab.success_evidence)
                 self.assertIn("reset", lab.recovery.casefold())
 
-        self.assertIn(
+        self.assertIn("{{action:P02-reset}}", track.labs[1].recovery)
+        self.assertNotIn(
             "arbiter-academy --repository $learnerRepository reset P02-commit-review-pr",
             track.labs[1].recovery,
         )
@@ -1292,6 +1293,48 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("checkpoints remain authoritative", result.stdout.casefold())
         self.assertNotIn("graduated", result.stdout.casefold())
 
+    def test_private_practitioner_drafts_name_their_preview_boundary_without_command_claims(self) -> None:
+        """Catches an unpublished draft being mistaken for a Preview 0.6 lesson."""
+        for document_id in (
+            "P01-feature-through-plan",
+            "P02-commit-review-pr",
+            "P04-review-a-dependency",
+            "P05-checkpoint-remediation",
+            "P06-context-drift-recovery",
+        ):
+            with self.subTest(document_id=document_id):
+                guide = (
+                    SOURCE / f"academy/tracks/practitioner/{document_id}.md"
+                ).read_text(encoding="utf-8")
+                self.assertIn(
+                    "This is private authoring material. It is unavailable in Preview 0.6.",
+                    guide,
+                )
+
+    def test_p02_uses_the_rendered_reset_action_and_records_the_stage_work_design_step(self) -> None:
+        """Catches a private draft teaching a raw reset path or omitting the staging design step."""
+        guide = (
+            SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
+        ).read_text(encoding="utf-8")
+        design = (
+            SOURCE / "docs/superpowers/specs/2026-08-11-p02-guided-lesson-design.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("{{action:P02-reset}}", guide)
+        self.assertNotIn(
+            "arbiter-academy --repository $learnerRepository reset P02-commit-review-pr",
+            guide,
+        )
+        self.assertIn("inspect and stage the prepared exercise change", design)
+
+    def test_p04_check_evidence_distinguishes_computation_from_human_authentication(self) -> None:
+        """Catches malformed Check copy that obscures its verification limit."""
+        manifest = load_action_manifest(SOURCE, "P04-review-a-dependency")
+        check = next(action for action in manifest.actions if action.id == "P04-check")
+
+        self.assertIn("and it does not authenticate your review or selection", check.evidence or "")
+        self.assertNotIn("or does not authenticate your review or selection", check.evidence or "")
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -1317,31 +1360,6 @@ if __name__ == "__main__":
         guide = (
             SOURCE / "academy/tracks/practitioner/P02-commit-review-pr.md"
         ).read_text(encoding="utf-8")
-        markers = (
-            "$prepareOutput = @(arbiter-academy --repository $learnerRepository prepare P02-commit-review-pr)",
-            "$preparedCommit = $preparedMatch.Groups['commit'].Value",
-            "$originRepositoryId = $originMatch.Groups['id'].Value",
-            "Set-Location -LiteralPath $learnerRepository",
-            "if ((git branch --show-current) -ne $branch)",
-            "if ((git rev-parse HEAD) -ne $preparedCommit)",
-            "git add -- tests/test_cli.py workshop_queue/cli.py",
-            "$stagedWorkPaths = @(git diff --cached --name-only)",
-            '/ca:review\n/ca:commit\n```',
-            '$ca-review\n$ca-commit\n```',
-            '/ca-review\n/ca-commit\n```',
-            "$workHead = git rev-parse HEAD",
-            "$commits = @(git rev-list --reverse \"$preparedCommit..$workHead\")",
-            'git push origin "HEAD:refs/heads/$branch"',
-            'git ls-remote origin "refs/heads/$branch"',
-            'git ls-remote upstream "refs/heads/$branch"',
-            "[IO.File]::WriteAllText($receiptPath",
-            "git add -- .codearbiter/reports/academy/P02-pr-receipt.json",
-            "$stagedReceiptPaths = @(git diff --cached --name-only)",
-            "### Claude Code receipt commit\n\n```text\n/ca:commit\n```",
-            "### Codex receipt commit\n\n```text\n$ca-commit\n```",
-            "### Pi receipt commit\n\n```text\n/ca-commit\n```",
-            "arbiter-academy --repository $learnerRepository check P02-commit-review-pr",
-        )
         markers = (
             "{{action:P02-prepare}}", "{{action:P02-enter-and-guard}}",
             "{{action:P02-inspect-change}}", "{{action:P02-stage-work}}", "{{action:P02-request-review}}",

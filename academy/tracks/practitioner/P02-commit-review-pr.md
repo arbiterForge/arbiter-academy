@@ -15,6 +15,8 @@ next_lab: P03-record-an-adr
 
 ## Know before you begin
 
+This is private authoring material. It is unavailable in Preview 0.6. Its action cards document an unreleased lesson and do not create a public course route.
+
 This is an offline-local pull-request rehearsal. Academy temporarily routes the checkout to two verifier-owned local bare repositories. It does not open GitHub, contact a hosted reviewer, run hosted CI, or prove that a person reviewed the change. The Browser explains the boundary; the native terminal and active CodeArbiter harness perform the lesson work.
 
 {{action:P02-read-boundary}}
@@ -67,7 +69,7 @@ Academy Check recomputes the prepared branch, remotes, exact patch, pushed work 
 
 ## Recover or continue
 
-If a guard, record, or Check step fails, preserve its output. The Reset action runs `arbiter-academy --repository $learnerRepository reset P02-commit-review-pr` only when the prepared topology still matches; it archives the attempt before restoring original remotes. Do not edit remotes, delete evidence, rebase, force-push, or manufacture a receipt.
+If a guard, record, or Check step fails, preserve its output. Use the rendered Reset action only when the prepared topology still matches; it archives the attempt before restoring original remotes. Do not edit remotes, delete evidence, rebase, force-push, or manufacture a receipt.
 
 {{action:P02-reset}}
 

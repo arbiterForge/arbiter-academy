@@ -33,7 +33,7 @@ will prove, Prepare safely, Practice, Recognize success, Check, Recover or
 continue, and Understand the mechanism.
 
 The ordered actions are: read the offline boundary; prepare; enter and guard
-the checkout; inspect the prepared exercise change; request and inspect the
+the checkout; inspect and stage the prepared exercise change; request and inspect the
 review boundary; have the active agent run the review and work-commit gates;
 prove the nonempty work range and origin-only push; record the receipt; inspect
 and stage that one receipt; have the agent commit it; prove the worktree is

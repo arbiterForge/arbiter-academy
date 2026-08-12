@@ -551,7 +551,7 @@
       ],
       "expected_result": "Check reports a passed P04 checkpoint and records progress only after valid evidence.",
       "recovery": "If Check fails, preserve the attempt and read its named predicate before Reset.",
-      "evidence": "Check proves candidate binding, report structure, unchanged dependency surfaces, commit ancestry, and clean state. It does not prove that you ran a host command or does not authenticate your review or selection."
+      "evidence": "Check proves candidate binding, report structure, unchanged dependency surfaces, commit ancestry, and clean state. It does not prove that you ran a host command, and it does not authenticate your review or selection."
     },
     {
       "id": "P04-reset-retry",
