@@ -15,7 +15,7 @@ next_lab: P08-repository-hygiene
 
 ## Know before you begin
 
-P07 remains private and unavailable in Preview 0.11 while the guided Practitioner sequence is completed. It is opt-in and read-only.
+P07 is a public guided and runnable Academy lesson in this preview. It is opt-in and read-only.
 Start in the Academy clone that completed P06. Switch to `main`, then confirm `git status --short` has
 no output before Prepare.
 
@@ -115,8 +115,8 @@ implement controls.
 
 {{action:P07-reset}}
 
-After Check passes, leave the completed branch intact. P08 becomes available only with its own guided
-release. Do not substitute unpublished source exercises for a released lesson.
+After Check passes, leave the completed branch intact and continue to P08. Do not substitute
+unpublished source exercises for a released lesson.
 
 ## Understand the mechanism
 

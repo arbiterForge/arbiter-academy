@@ -15,7 +15,7 @@ next_lab: P05-checkpoint-remediation
 
 ## Know before you begin
 
-P04 is a guided, runnable Academy lesson in Preview 0.11. Its shared action cards are the public course route.
+P04 is a guided, runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one CodeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. CodeArbiter commands and agent messages belong in the harness and never begin with `!`.
 

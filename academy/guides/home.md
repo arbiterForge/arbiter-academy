@@ -44,11 +44,9 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 ## Course status
 
-**Guided: F01 through F04 and P01 through P05.** Every user action, surface, expected result, and recovery path is explicit.
+**Current release inventory.** The runnable lesson catalog below is generated from the exact public release manifest. Every listed lesson has an explicit actor, surface, expected result, recovery path, and evidence boundary.
 
-**Coming next: P06 through P08.** These lessons are not public Academy routes yet. Each appears here only after its guided rewrite and acceptance evidence are complete.
-
-**Not yet scheduled.** The Power User lessons are not included in Preview 0.11.
+**Course boundary.** Power User lessons are not part of this release. Graduation remains unavailable until the complete 19-lab course is published.
 
 ## Get help
 

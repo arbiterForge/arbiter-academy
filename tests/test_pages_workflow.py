@@ -22,8 +22,8 @@ RELEASE_ASSETS = (
     "install.ps1.sha256",
     "install.sh",
     "install.sh.sha256",
-    "arbiter-academy-preview-0.11.zip",
-    "arbiter-academy-preview-0.11.zip.sha256",
+    "arbiter-academy-preview-0.12.zip",
+    "arbiter-academy-preview-0.12.zip.sha256",
 )
 
 NODE_SETUP_STEP = (
@@ -187,7 +187,7 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     job = _workflow_jobs(workflow).get("verify-release", "")
     shell = _literal_step_script(job, "Verify immutable Preview release assets")
     required = (
-        'git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"',
+        'if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then',
         'test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"',
         'asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"',
         'raise SystemExit("release asset inventory mismatch")',
@@ -225,11 +225,11 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
         if line.strip() and not line.lstrip().startswith("#")
     ]
     release_tag_fetch = 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"'
-    ancestry_check = 'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then'
+    exact_sha_check = 'if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then'
     if release_tag_fetch not in executable_lines:
         raise AssertionError("release source is not fetched after its immutable tag resolves")
-    if executable_lines.index(release_tag_fetch) > executable_lines.index(ancestry_check):
-        raise AssertionError("release source must be fetched before shallow Pages ancestry validation")
+    if executable_lines.index(release_tag_fetch) > executable_lines.index(exact_sha_check):
+        raise AssertionError("release source must be fetched before exact Pages/tag validation")
     if 'git -C "$GITHUB_WORKSPACE" worktree add --detach "$release_source" "$resolved_sha"' not in shell:
         raise AssertionError("release reproduction does not use an exact detached tag source")
     if '--source "$GITHUB_WORKSPACE"' in shell:
@@ -244,10 +244,10 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     if "||" in shell:
         raise AssertionError("release verification may not tolerate a failed command")
     if not re.search(
-        r'(?m)^if ! git -C "\$GITHUB_WORKSPACE" merge-base --is-ancestor "\$resolved_sha" "\$CANDIDATE_SHA"; then$',
+        r'(?m)^if \[\[ "\$resolved_sha" != "\$CANDIDATE_SHA" \]\]; then$',
         shell,
     ):
-        raise AssertionError("release tag must be an ancestor of the Pages candidate")
+        raise AssertionError("release tag must resolve to the exact Pages candidate")
     if '"$asset_api" --output "$asset_name"' not in shell:
         raise AssertionError("release download must consume the validated asset API URL")
     public_download = re.search(
@@ -262,7 +262,7 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     for manifest in (
         "install.ps1.sha256",
         "install.sh.sha256",
-        "arbiter-academy-preview-0.11.zip.sha256",
+        "arbiter-academy-preview-0.12.zip.sha256",
     ):
         if not re.search(
             rf"(?m)^sha256sum --check {re.escape(manifest)}$",
@@ -317,8 +317,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.build = _block(self.pages_workflow, "  build:", r"  [a-zA-Z0-9_-]+:")
         self.deploy = _block(self.pages_workflow, "  deploy:", r"  [a-zA-Z0-9_-]+:")
 
-    def test_pages_release_gate_targets_the_exact_preview_zero_ten_candidate(self) -> None:
-        """Catches Pages reproducing or accepting superseded Preview 0.7 release assets."""
+    def test_pages_release_gate_targets_the_exact_preview_zero_twelve_candidate(self) -> None:
+        """Catches Pages reproducing or accepting superseded preview release assets."""
         self.assertEqual(
             RELEASE_ASSETS,
             (
@@ -326,13 +326,13 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.ps1.sha256",
                 "install.sh",
                 "install.sh.sha256",
-                "arbiter-academy-preview-0.11.zip",
-                "arbiter-academy-preview-0.11.zip.sha256",
+                "arbiter-academy-preview-0.12.zip",
+                "arbiter-academy-preview-0.12.zip.sha256",
             ),
         )
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.11\s*$")
-        self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1786752000\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.12\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1786838400\s*$")
         self.assertNotIn("preview-0.7", release_job)
 
     def test_workflow_verifies_pull_requests_and_main_pushes(self) -> None:
@@ -904,7 +904,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             self.deploy,
         )
 
-    def test_release_asset_gate_resolves_preview_tag_to_exact_merge_and_checks_all_digests(self) -> None:
+    def test_release_asset_gate_resolves_preview_tag_to_exact_candidate_and_checks_all_digests(self) -> None:
         """Catches a release gate accepting a stale tag, missing asset, or unchecked bytes."""
         jobs = _workflow_jobs(self.pages_workflow)
         release_jobs = [
@@ -918,7 +918,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "release verification job with the exact six-asset inventory is missing",
         )
         release_job = release_jobs[0]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.11\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.12\s*$")
         self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
         self.assertIn(
             "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",
@@ -935,7 +935,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for checksum in (
             "install.ps1.sha256",
             "install.sh.sha256",
-            "arbiter-academy-preview-0.11.zip.sha256",
+            "arbiter-academy-preview-0.12.zip.sha256",
         ):
             with self.subTest(checksum=checksum):
                 self.assertRegex(
@@ -1001,7 +1001,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             setup,
         )
         self.assertRegex(setup, r'(?m)^          python-version: ["\']3\.12["\']\s*$')
-        self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1786752000\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1786838400\s*$")
         self.assertIn(
             'test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$CANDIDATE_SHA"',
             shell,
@@ -1026,16 +1026,16 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertLess(build, compare)
         self.assertLess(compare, verified)
 
-    def test_release_gate_allows_a_later_candidate_from_the_immutable_tag(self) -> None:
-        """Catches unpublished course work being blocked despite exact tagged-asset verification."""
+    def test_release_gate_requires_the_immutable_tag_to_match_the_pages_candidate(self) -> None:
+        """Catches Pages publishing later main content under an older immutable release identity."""
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
         shell = _literal_step_script(release_job, "Verify immutable Preview release assets")
 
         self.assertIn(
-            'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+            'if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then',
             shell,
         )
-        self.assertNotIn('test "$resolved_sha" = "$CANDIDATE_SHA"', shell)
+        self.assertNotIn('merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"', shell)
         self.assertNotIn('release_bound_paths=', shell)
         self.assertNotIn('release-bound files changed after the immutable tag.', shell)
         self.assertIn('python "$release_source/scripts/build_release_assets.py"', shell)
@@ -1056,7 +1056,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 (root / "release.json").write_text(
                     json.dumps(
                         {
-                            "tag_name": "preview-0.11",
+                            "tag_name": "preview-0.12",
                             "immutable": immutable,
                             "draft": False,
                             "published_at": "2026-08-10T12:00:00Z",
@@ -1068,15 +1068,15 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 checksums = {
                     "install.ps1.sha256": f"{'a' * 64}  install.ps1\n".encode(),
                     "install.sh.sha256": f"{'b' * 64}  install.sh\n".encode(),
-                    "arbiter-academy-preview-0.11.zip.sha256": (
-                        f"{'c' * 64}  arbiter-academy-preview-0.11.zip\n".encode()
+                    "arbiter-academy-preview-0.12.zip.sha256": (
+                        f"{'c' * 64}  arbiter-academy-preview-0.12.zip\n".encode()
                     ),
                 }
                 checksums.update(checksum_overrides or {})
                 for name, content in checksums.items():
                     (root / name).write_bytes(content)
                 environment = os.environ.copy()
-                environment["RELEASE_TAG"] = "preview-0.11"
+                environment["RELEASE_TAG"] = "preview-0.12"
                 environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                 return subprocess.run(
                     [sys.executable, "-c", validator],
@@ -1094,7 +1094,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "name": name,
                 "browser_download_url": (
                     f"https://github.com/arbiterForge/arbiter-academy/releases/download/"
-                    f"preview-0.11/{name}"
+                    f"preview-0.12/{name}"
                 ),
                 "state": "uploaded",
             }
@@ -1119,7 +1119,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 with tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     release = {
-                        "tag_name": "preview-0.11",
+                        "tag_name": "preview-0.12",
                         "immutable": True,
                         "draft": False,
                         "published_at": "2026-08-10T12:00:00Z",
@@ -1130,12 +1130,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                     for name, digest in (
                         ("install.ps1.sha256", "a"),
                         ("install.sh.sha256", "b"),
-                        ("arbiter-academy-preview-0.11.zip.sha256", "c"),
+                        ("arbiter-academy-preview-0.12.zip.sha256", "c"),
                     ):
                         target = name.removesuffix(".sha256")
                         (root / name).write_bytes(f"{digest * 64}  {target}\n".encode())
                     environment = os.environ.copy()
-                    environment["RELEASE_TAG"] = "preview-0.11"
+                    environment["RELEASE_TAG"] = "preview-0.12"
                     environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                     rejected = subprocess.run(
                         [sys.executable, "-c", validator], cwd=root, env=environment,
@@ -1146,8 +1146,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for mutation in (
             {"state": "new"},
             {"state": None},
-            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.11/install.ps1"},
-            {"browser_download_url": "https://evil.example/preview-0.11/install.ps1"},
+            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.12/install.ps1"},
+            {"browser_download_url": "https://evil.example/preview-0.12/install.ps1"},
         ):
             with self.subTest(asset_state=mutation):
                 assets = [dict(asset) for asset in valid_assets]
@@ -1173,8 +1173,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.sh.sha256": f"{'b' * 64}  other.sh\n".encode()
             },
             "uppercase": {
-                "arbiter-academy-preview-0.11.zip.sha256": (
-                    f"{'C' * 64}  arbiter-academy-preview-0.11.zip\n"
+                "arbiter-academy-preview-0.12.zip.sha256": (
+                    f"{'C' * 64}  arbiter-academy-preview-0.12.zip\n"
                 ).encode()
             },
             "single-space": {
@@ -1198,7 +1198,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         fail_open_job = release_job.replace("set -euo pipefail", "set +e", 1)
         mutations = {
             "sha-echo": self.pages_workflow.replace(
-                'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+                'if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then',
                 'echo "$resolved_sha $CANDIDATE_SHA"',
                 1,
             ),
@@ -1218,7 +1218,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 1,
             ),
             "sha-or-colon": self.pages_workflow.replace(
-                'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+                'if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then',
                 'if false; then',
                 1,
             ),

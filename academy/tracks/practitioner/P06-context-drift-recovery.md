@@ -15,7 +15,7 @@ next_lab: P07-threat-model
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.11 and has no public course route.
+P06 is a public guided and runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
 your worktree is clean: `git status --short` should print nothing. Keep a native terminal open at

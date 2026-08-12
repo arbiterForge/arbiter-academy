@@ -15,7 +15,7 @@ next_lab: U01-autonomous-sprint
 
 ## Know before you begin
 
-P08 remains private and unavailable in Preview 0.11. Its source lesson does not create a public route.
+P08 is a public guided and runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P07 and begin in the prepared Academy clone. The website is the primary lesson surface.
 Academy CLI is limited to Prepare, Check, and Reset. Use Git and the selected host for the work
@@ -135,8 +135,8 @@ decision to accept the bounded evidence, even when the agent prepared the file.
 {{action:P08-reset-retry}}
 
 After a passing Check, return to `main` only when the worktree is clean and leave the completed
-attempt intact. U01 remains a source exercise until its own guided rewrite and acceptance evidence
-are complete. Do not treat it as the next public Academy lesson.
+attempt intact. U01 remains a source exercise until its own guided Academy lesson is published.
+Do not treat it as the next public Academy lesson.
 
 ## Understand the mechanism
 
