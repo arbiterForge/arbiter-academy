@@ -317,7 +317,7 @@
                     "operating_system": "windows",
                     "host": "none",
                     "language": "powershell",
-                    "command": "$workHead = git rev-parse HEAD\ngit log --oneline \"HEAD~1..$workHead\"\ngit push origin \"HEAD:refs/heads/$(git branch --show-current)\"\ngit ls-remote origin \"refs/heads/$(git branch --show-current)\"\ngit ls-remote upstream \"refs/heads/$(git branch --show-current)\"",
+                    "command": "$branch = git branch --show-current\n$workHead = git rev-parse HEAD\ngit log --oneline \"HEAD~1..$workHead\"\ngit push origin \"HEAD:refs/heads/$branch\"\ngit ls-remote origin \"refs/heads/$branch\"\ngit ls-remote upstream \"refs/heads/$branch\"",
                     "copy": true
                 },
                 {

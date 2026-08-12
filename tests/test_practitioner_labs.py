@@ -194,18 +194,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
                                 )
                             )
                     continue
-                action_path = SOURCE / f"academy/actions/{lab.id}.json"
-                if action_path.is_file():
-                    manifest = load_action_manifest(SOURCE, lab.id)
-                    actions = {action.id: action for action in manifest.actions}
-                    for operation in ("prepare", "check", "reset-retry"):
-                        with self.subTest(lab=lab.id, operation=operation):
-                            action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
-                            self.assertTrue(
-                                all("preview-0.6" in variant.command for variant in action.variants)
-                            )
-                    self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
-                    continue
                 if lab.id == "P03-record-an-adr":
                     manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
                     actions = {action.id: action for action in manifest.actions}
@@ -224,6 +212,18 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     )
                     self.assertIn("preview-0.6", p03_copy.casefold())
                     self.assertNotIn("preview-0.5", p03_copy.casefold())
+                    continue
+                action_path = SOURCE / f"academy/actions/{lab.id}.json"
+                if action_path.is_file():
+                    manifest = load_action_manifest(SOURCE, lab.id)
+                    actions = {action.id: action for action in manifest.actions}
+                    for operation in ("prepare", "check", "reset-retry"):
+                        with self.subTest(lab=lab.id, operation=operation):
+                            action = actions[f"{lab.id.partition('-')[0]}-{operation}"]
+                            self.assertTrue(
+                                all("preview-0.6" in variant.command for variant in action.variants)
+                            )
+                    self.assertNotRegex(guide, r"(?m)^```(?:powershell|sh|text|bash|console)\s*$")
                     continue
                 prepare_block = re.search(
                     rf"(?ms)^```powershell\n(?P<body>.*?prepare {re.escape(lab.id)}.*?)\n```$",
@@ -687,8 +687,6 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
     def test_p04_is_a_private_action_backed_rejection_lesson(self) -> None:
         """Catches P04 teaching an undeclared install path or asking a learner to infer roles."""
-        from academy_engine.lesson_actions import load_action_manifest
-
         guide_path = SOURCE / "academy/tracks/practitioner/P04-review-a-dependency.md"
         guide = guide_path.read_text(encoding="utf-8")
         manifest = load_action_manifest(SOURCE, "P04-review-a-dependency")

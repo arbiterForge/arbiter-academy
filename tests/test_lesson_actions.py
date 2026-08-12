@@ -1694,11 +1694,6 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["actions"]["maxItems"], 64)
         self.assertEqual(schema["$defs"]["variant"]["properties"]["command"]["maxLength"], 8192)
 
-
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_private_p02_manifest_binds_the_offline_receipt_workflow(self) -> None:
         """Catches an action rewrite that loses the local-only recorder boundary."""
         manifest = load_action_manifest(Path(__file__).parents[1], P02_DOCUMENT_ID)
@@ -1717,6 +1712,17 @@ if __name__ == "__main__":
                 "git add -- tests/test_cli.py workshop_queue/cli.py", variant.command
             )
             self.assertIn("git diff --cached --name-only", variant.command)
+        pushed = {
+            variant.operating_system: variant.command
+            for variant in by_id["P02-prove-and-push"].variants
+        }
+        self.assertEqual(set(pushed), {"windows", "macos", "linux"})
+        self.assertTrue(pushed["windows"].startswith("$branch = git branch --show-current\n"))
+        for command in pushed.values():
+            self.assertEqual(command.count("git branch --show-current"), 1)
+            self.assertIn("git push origin", command)
+            self.assertIn("git ls-remote origin", command)
+            self.assertIn("git ls-remote upstream", command)
         for action_id in ("P02-record-receipt", "P02-check", "P02-reset"):
             commands = tuple(variant.command for variant in by_id[action_id].variants)
             self.assertTrue(all("preview-0.6" in command for command in commands))
@@ -1746,3 +1752,7 @@ if __name__ == "__main__":
                     ("pi", f"/skill:ca-{command}"),
                 ),
             )
+
+
+if __name__ == "__main__":
+    unittest.main()
