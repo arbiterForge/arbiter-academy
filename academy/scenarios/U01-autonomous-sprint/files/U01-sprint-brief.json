@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "lab_id": "U01-autonomous-sprint",
+  "deliverable": "docs/academy-sprint-summary.md",
+  "title": "Operate a bounded autonomous sprint",
+  "required_topics": [
+    "approval boundary",
+    "SMARTS decision trail",
+    "hard-gate stop"
+  ]
+}

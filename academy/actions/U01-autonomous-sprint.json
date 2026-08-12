@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "U01-autonomous-sprint",
+  "actions": [
+    {
+      "id": "U01-confirm-private-boundary",
+      "sequence": 1,
+      "title": "Confirm the private lesson boundary",
+      "actor": "learner",
+      "surface": "browser",
+      "instruction": "Read the Preview 0.12 release limits before using any command. U01 is a private source contract, so the installed Academy verifier does not prepare, reset, or Check it.",
+      "rationale": "The course must not make a partially verified lab look runnable simply because its source guide exists.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You know that no U01 attempt can be created through the public Preview 0.12 verifier.",
+      "recovery": "If you expected a runnable Academy lab, return to P08 or another published lesson. Do not bypass the publication boundary by editing release data.",
+      "evidence": "The Preview manifest excludes U01 from available, runnable, and guided labs."
+    },
+    {
+      "id": "U01-inspect-scenario",
+      "sequence": 2,
+      "title": "Inspect the prepared scenario only when it exists",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use one command surface to inspect the scenario file. A native terminal command has no !. A harness shell command begins with exactly one !. If the path is absent, stop: public Preview 0.12 cannot prepare this private scenario.",
+      "rationale": "The scenario declares the bounded target, approval-required starting condition, and the future operator-guide evidence without claiming that the current public toolchain installed it.",
+      "resources": [],
+      "variants": [
+        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-Content training_scenarios/U01-autonomous-sprint.json","copy":true},
+        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"cat training_scenarios/U01-autonomous-sprint.json","copy":true},
+        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"cat training_scenarios/U01-autonomous-sprint.json","copy":true},
+        {"id":"harness-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"! Get-Content training_scenarios/U01-autonomous-sprint.json","copy":true},
+        {"id":"harness-posix","surface":"harness","operating_system":"all","host":"claude-code","language":"sh","command":"! cat training_scenarios/U01-autonomous-sprint.json","copy":true}
+      ],
+      "expected_result": "A maintainer-prepared attempt shows autonomous_sprint, academy-sprint, approval-required, and docs/academy-sprint-summary.md. A public Preview 0.12 checkout normally reports that the file is absent.",
+      "recovery": "Do not create the scenario file by hand. Preserve the missing-path result and return to the private publication decision.",
+      "evidence": "When preparation is available, retain the scenario file, U01-sprint-brief.json, and its attempt branch name."
+    },
+    {
+      "id": "U01-prepare-attempt",
+      "sequence": 3,
+      "title": "Observe the unavailable Prepare boundary",
+      "actor": "academy",
+      "surface": null,
+      "instruction": "These are the installed Academy Prepare commands that a published U01 would use. Do not expect them to create an attempt in Preview 0.12. Run one only when you need to confirm the current public boundary.",
+      "rationale": "The TUI remains a setup and recovery helper. It must fail closed for a lesson that has not reached public acceptance.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true}
+      ],
+      "expected_result": "The command reports that U01 is not published or guided. It creates no numbered attempt and changes no repository state.",
+      "recovery": "Keep the error output if you are auditing the boundary. Do not substitute repository-local source execution for the installed public authority.",
+      "evidence": "The refusal and an unchanged git status show that the public verifier did not prepare U01."
+    },
+    {
+      "id": "U01-run-sprint",
+      "sequence": 4,
+      "title": "Use the host-native sprint command only on a private prepared attempt",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "On a maintainer-supplied private prepared attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. Do not run it against an ordinary checkout or use it to skip the sprint specification approval gate.",
+      "rationale": "An autonomous sprint may execute after its specification gate, but it cannot self-authorize the scope of an Academy exercise.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:sprint academy-sprint","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-sprint academy-sprint","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-sprint academy-sprint","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-sprint academy-sprint","copy":true}
+      ],
+      "expected_result": "The host enters its sprint specification gate and presents the proposed scope before autonomous work begins.",
+      "recovery": "If the host cannot find the sprint command, do not replace it with shell syntax. Confirm the supported host installation and private attempt first.",
+      "evidence": "Preserve the proposed specification, derived plan, operator guide, and appended sprint-log decision record. The future source Check validates repository facts, not host invocation."
+    },
+    {
+      "id": "U01-approve-or-decline-spec",
+      "sequence": 5,
+      "title": "Make the sprint specification decision",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Read the proposed specification before answering the host. Approve only the bounded academy-sprint operator guide with explicit acceptance criteria and no product-code, test, dependency, push, or network work. Decline or revise vague scope.",
+      "rationale": "The learner, not the autonomous process, owns the scope decision that permits later execution.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The host either records an explicit approved specification and proceeds, or stops with the requested revision still visible.",
+      "recovery": "If the proposal changes boundaries you did not intend, decline it. Preserve the proposal and begin a fresh private attempt only after the scenario owner corrects the training contract.",
+      "evidence": "The source Check inspects the prepared brief, final spec, plan, guide, append-only log, exact commit paths, and clean worktree. It does not verify the approval itself."
+    },
+    {
+      "id": "U01-inspect-artifacts",
+      "sequence": 6,
+      "title": "Inspect the governed artifact paths",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "On a private prepared attempt after the sprint has stopped or completed, inspect the four named artifact paths in a native terminal. This is an observation command, so it has no !.",
+      "rationale": "The verifier-owned evidence boundary is explicit before the lesson becomes publicly runnable.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-ChildItem .codearbiter/specs/academy-sprint.md, .codearbiter/plans/academy-sprint.md, .codearbiter/sprint-log.md, docs/academy-sprint-summary.md","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md","copy":true}
+      ],
+      "expected_result": "A completed private exercise exposes the spec, plan, append-only sprint log, and operator guide for review. Their presence alone is not a passing result.",
+      "recovery": "If any artifact is absent or the worktree is not the private prepared attempt, stop. Do not create substitute files to imitate evidence.",
+      "evidence": "Retain the paths and review result. The source predicate also requires their scope, one commit, preserved log prefix, and a clean worktree."
+    },
+    {
+      "id": "U01-check-status",
+      "sequence": 7,
+      "title": "Observe the unavailable Check boundary",
+      "actor": "academy",
+      "surface": null,
+      "instruction": "These are the installed Academy Check commands. In Preview 0.12 they refuse U01 because it is not published. The reviewed source profile is positive only for the bounded four-artifact packet described by this lesson.",
+      "rationale": "The installed release must fail closed until it carries the reviewed sprint-evidence contract.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true}
+      ],
+      "expected_result": "The command reports that U01 is not published. It cannot record progress until an installed release includes the accepted source predicate.",
+      "recovery": "Do not retry by editing progress data, release data, or sprint artifacts. Preserve the refusal and wait for an Academy release that includes U01.",
+      "evidence": "No public U01 progress record exists. The accepted source evidence is the bounded predicate and its adversarial tests."
+    },
+    {
+      "id": "U01-return-base",
+      "sequence": 8,
+      "title": "Return to main only after the private attempt is clean",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "On a clean private attempt, return to main from a native terminal. This is a direct shell command, so it has no !.",
+      "rationale": "Leaving evidence intact keeps an incomplete training run inspectable without treating it as public completion.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short\ngit switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short\ngit switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short\ngit switch main","copy":true}
+      ],
+      "expected_result": "git status --short prints nothing before main becomes the active branch.",
+      "recovery": "If status shows changes, stop and inspect them. Do not discard, amend, rebase, force-update, or delete the attempt branch to make it look clean.",
+      "evidence": "The numbered attempt remains reachable for later predicate design and review."
+    },
+    {
+      "id": "U01-reset-retry",
+      "sequence": 9,
+      "title": "Observe the unavailable Reset boundary",
+      "actor": "academy",
+      "surface": null,
+      "instruction": "These are the installed Academy Reset commands. They are documented so the future published lesson has an explicit recovery surface, but Preview 0.12 correctly refuses this private lab.",
+      "rationale": "Reset must preserve a failed attempt and create a numbered retry only after a public Academy release includes the accepted U01 verifier contract.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true}
+      ],
+      "expected_result": "The command reports that U01 is not published and preserves existing repository state.",
+      "recovery": "Do not simulate Reset with destructive Git commands. Wait for the public release that packages the U01 fixture and verifier.",
+      "evidence": "The public refusal leaves no new attempt branch and no altered progress record."
+    }
+  ]
+}
