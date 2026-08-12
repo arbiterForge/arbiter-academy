@@ -645,6 +645,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             expected_headings,
         )
         manifest = load_action_manifest(SOURCE, "P03-adr-decision-log")
+        release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         lab = load_track(SOURCE, "practitioner").labs[2]
         self.assertNotIn("```", guide)
         self.assertEqual(
@@ -657,7 +658,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         for required in (
             "stable text", "structured JSON", "You choose", "does not prove that you personally chose",
             "does not prove that a host command ran", "does not prove that anyone reviewed",
-            "P03-adr-decision-log.json", "Preview 0.6", "proposed", "explicit learner acceptance",
+            "P03-adr-decision-log.json", release_display, "proposed", "explicit learner acceptance",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, normalized_guide)
@@ -1292,7 +1293,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertNotIn("graduated", result.stdout.casefold())
 
     def test_private_practitioner_drafts_name_their_preview_boundary_without_command_claims(self) -> None:
-        """Catches an unpublished draft being mistaken for a Preview 0.6 lesson."""
+        """Catches an unpublished draft being mistaken for the current public lesson set."""
+        release_display = load_preview_manifest(SOURCE).release.replace("preview-", "Preview ")
         for document_id in (
             "P01-feature-through-plan",
             "P02-commit-review-pr",
@@ -1305,7 +1307,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     SOURCE / f"academy/tracks/practitioner/{document_id}.md"
                 ).read_text(encoding="utf-8")
                 self.assertIn(
-                    "This is private authoring material. It is unavailable in Preview 0.6.",
+                    f"This is private authoring material. It is unavailable in {release_display}.",
                     guide,
                 )
 

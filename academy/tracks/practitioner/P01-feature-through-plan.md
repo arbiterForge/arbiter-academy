@@ -15,7 +15,7 @@ next_lab: P02-commit-review-pr
 
 ## Know before you begin
 
-This is private authoring material. It is unavailable in Preview 0.6. Its action cards document an unreleased lesson and do not create a public course route.
+This is private authoring material. It is unavailable in Preview 0.7. Its action cards document an unreleased lesson and do not create a public course route.
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for

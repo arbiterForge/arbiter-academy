@@ -19,6 +19,7 @@ from academy_engine.lesson_actions import (
     validate_action_resource_href,
     validate_action_manifest,
 )
+from academy_engine.preview import load_preview_manifest
 
 
 DOCUMENT_ID = "F01-fork-clone-doctor"
@@ -695,6 +696,7 @@ class LessonActionTests(unittest.TestCase):
         """Catches a private lesson inventing an install path for Academy operations."""
         root = Path(__file__).parents[1]
         manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
+        release_display = load_preview_manifest(root).release.replace("preview-", "Preview ")
         by_id = {action.id: action for action in manifest.actions}
 
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -710,7 +712,7 @@ class LessonActionTests(unittest.TestCase):
                         action.evidence or "",
                     )
                 )
-                self.assertIn("Preview 0.6", contract)
+                self.assertIn(release_display, contract)
                 self.assertIn("not published", contract)
                 self.assertIn("future published release", contract)
                 self.assertNotIn("preview-0.5", contract.casefold())
