@@ -1055,7 +1055,7 @@ class PreviewSiteTests(unittest.TestCase):
                 ):
                     check_preview_site(destination)
 
-    def test_static_checker_allows_only_repository_scoped_action_resources(self) -> None:
+    def test_static_checker_allows_only_academy_scoped_action_resources(self) -> None:
         """Catches a rendered action resource escaping the runtime URL contract."""
         root = Path(self.temporary_directory.name) / "resource-check"
         root.mkdir()
@@ -1065,6 +1065,7 @@ class PreviewSiteTests(unittest.TestCase):
             "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
             "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
             "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/",
         )
         for target in approved:
             with self.subTest(target=target):
@@ -1078,6 +1079,8 @@ class PreviewSiteTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/blob/main/%252e%252e/secret",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file?raw=1",
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file%0a",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor",
+            "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/?raw=1",
             "/recovery/",
         ):
             with self.subTest(target=target):
@@ -1539,6 +1542,34 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(document["referenced_actions"], ("F01-prepare",))
         self.assertEqual(document["heading"], "Fork and clone Doctor")
         self.assertIn('data-action-id="F01-prepare"', str(document["content"]))
+
+    def test_private_p05_guide_has_one_to_one_actions_and_renders_copyable_controls(self) -> None:
+        """P05 stays private but uses the same renderer contract as published lessons."""
+        root = Path(__file__).parents[1]
+        document = preview_site._read_markdown_document(
+            root,
+            Path("academy/tracks/practitioner/P05-checkpoint-remediation.md"),
+            "P05-checkpoint-remediation",
+            require_h1=True,
+        )
+        manifest = load_action_manifest(root, "P05-checkpoint-remediation")
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        content = str(document["content"])
+        self.assertIn('data-action-id="P05-prepare"', content)
+        self.assertIn('data-action-id="P05-check"', content)
+        self.assertIn('data-copy-target="command-P05-prepare-windows"', content)
+        self.assertIn('class="action-expected"', content)
+        self.assertIn('class="action-recovery"', content)
+        self.assertIn(
+            'href="https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/"',
+            content,
+        )
+        self.assertNotIn("github.com/arbiterForge/arbiter-academy/blob/main/academy/tracks", content)
+        self.assertNotIn("{{action:", content)
 
     def test_guided_documents_require_one_to_one_action_references(self) -> None:
         """Catches ambiguous, missing, duplicated, or prose-injected action bindings."""

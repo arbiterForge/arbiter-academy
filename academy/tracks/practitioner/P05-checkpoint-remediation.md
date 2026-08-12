@@ -11,145 +11,147 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P05-
 next_lab: P06-context-drift-recovery
 ---
 
-# P05 — Remediate a checkpoint finding
+# P05 - Remediate a checkpoint finding
 
-## Why this mechanism matters
+## Know before you begin
 
-A remediation report is useful only when it points to a reproduced product defect, a test-only RED
-commit, and a later code-only GREEN commit. This scenario first gives Workshop Queue a genuine
-`blocked` state through its normal boundaries, then stages a summary defect that omits a blocked
-ticket from the unresolved count. Git ancestry, exact path roles, and an executable regression
-prevent an unrelated patch or synthetic JSON finding from passing as remediation.
+P05 is the first Practitioner exercise that asks you to preserve a precise remediation history. It
+uses the Workshop Queue practice project that Academy prepares in your learner clone; it does not
+ask you to experiment in your own production repository. Complete P04 first. If you need to learn
+how to make a GitHub fork, clone it locally, install Academy, or distinguish your terminal from
+your harness, use the prerequisite action below and return after F01.
 
-## Start the scenario
+Keep two places open: a native terminal at the learner clone for Academy and Git commands, and one
+CodeArbiter harness at the same clone for agent and CodeArbiter actions. A native-terminal command
+is entered directly and never starts with `!`. A shell command sent through a harness starts with
+exactly one `!`; this lesson does not ask you to type one. CodeArbiter commands and agent messages
+belong in the harness and never begin with `!`.
 
-Run this from the learner checkout. Preserved P02 verifier records require the installed command for
-every later Practitioner transition, even though the original GitHub remotes are already restored.
-Prepare the blocked-ticket fixture and staged summary defect:
+{{action:P05-prerequisite}}
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository prepare P05-checkpoint-remediation
-```
+## What you will prove
 
-Confirm the fixture can create and persist a blocked ticket independently of summary rendering.
-The defect is the unresolved count, not a renamed status string. The prepared fixture proves a
-persisted blocked ticket before it stages that summary defect.
+The prepared exercise can persist a terminal `blocked` ticket through its normal model and store,
+but its JSON report wrongly excludes that ticket from the `unresolved` count. You will preserve four
+linear commits after Academy Prepare:
 
-The same prepared commit records the governing architecture at
-`.codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md` and appends `DECISION-0005` to
-the decision log. ADR-0005 is accepted, attributed to `SUaDtL`, and forward-only supersedes
-`0002-explicit-ticket-state-machine`. Its complete graph permits `open` to `claimed`, `claimed` to
-`completed`, and `claimed` to terminal `blocked`. Block metadata is immutable, a blocked ticket has
-no completion metadata, and unresolved means every status other than completed.
+1. an exact finding-only report;
+2. a test-only RED regression that exposes the defect;
+3. a code-only GREEN repair that leaves the regression unchanged; and
+4. a canonical receipt that names the first three real commit IDs.
 
-Do not rewrite ADR-0002 or any earlier decision-log bytes. `.codearbiter/CONTEXT.md` deliberately
-still points to ADR-0002; that real stale reference is the starting condition for P06, not work to
-repair during P05.
+The repair is deliberately small: unresolved means every ticket that is not completed. P05 Check
+can reconstruct the fixture, commits, path roles, regression, repair, receipt, and clean worktree.
+It cannot prove who reviewed a result, whether a checkpoint command was run, or the chronology of
+commands that led to the final commits.
 
-## Use your host
+## Prepare safely
 
-Surface the finding through a checkpoint/review lane, then enter the fix lane for the confirmed
-defect.
+{{action:P05-prepare}}
 
-### Claude Code
+`ATTEMPT_NUMBER` is a value Academy prints, such as `1`; it is not text to type literally. Stay on
+that numbered branch. The prepared commit also adds ADR-0005 and its decision-log entry. Do not edit
+those decision records, and do not repair the deliberately stale `CONTEXT.md` reference: that is
+the starting condition for P06.
 
-```text
-/ca:checkpoint
-/ca:fix "Count blocked tickets as unresolved in the Workshop Queue summary"
-```
+{{action:P05-guard-attempt}}
 
-### Codex
+{{action:P05-read-prepared-boundary}}
 
-```text
-$ca-checkpoint
-$ca-fix "Count blocked tickets as unresolved in the Workshop Queue summary"
-```
+## Practice
 
-### Pi (Feature Forge preview)
+{{action:P05-surface-finding}}
 
-Pi is the supported Feature Forge preview and requires project trust. The documented fallbacks are
-`/skill:ca-checkpoint` and
-`/skill:ca-fix "Count blocked tickets as unresolved in the Workshop Queue summary"`.
+{{action:P05-inspect-finding}}
 
-```text
-/ca-checkpoint
-/ca-fix "Count blocked tickets as unresolved in the Workshop Queue summary"
-```
+{{action:P05-record-finding}}
 
-## Do the work
+{{action:P05-verify-finding-commit}}
 
-Exercise the real model/store/service path to show that a blocked ticket exists and is omitted from
-the unresolved summary count. Run the checkpoint or review surface and inspect the resulting finding.
-Commit the finding state so it identifies the real affected product/test boundary.
+{{action:P05-add-red-regression}}
 
-In a later **test-only RED** commit, add an executable regression that constructs the real blocked
-ticket and expects it in the unresolved count. Observe the meaningful RED result before repairing
-production code. In the next **code-only GREEN** commit, make the smallest summary repair and retain
-the RED test unchanged.
+{{action:P05-observe-red}}
 
-Write `.codearbiter/checkpoints/P05-academy.json` as the receipt last. It has
-`schema_version`, `finding_id`, `finding_commit`, `red_commit`, `remediation_commit`,
-`affected_paths`, and `status`.
-`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`: the first path belongs only to the test-only RED commit, and the second
-belongs only to the code-only GREEN commit. Do not substitute copied terminal output or a JSON-only
-invented finding; host commands are guidance, not evidence that either command was invoked.
+{{action:P05-commit-red}}
 
-Use this exact compact finding grammar in `.codearbiter/reports/academy/P05-finding.md`:
+{{action:P05-apply-green-repair}}
 
-```text
-# P05 Finding: blocked tickets omitted from unresolved summary
+{{action:P05-commit-green}}
 
-Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.
-Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.
-```
+{{action:P05-record-receipt}}
 
-It deliberately records only the reviewed defect and product/test boundary. Do not add host commands,
-raw terminal output, email addresses, absolute paths, tokens, or additional sections.
+{{action:P05-commit-receipt}}
 
-## Hints
+Do not add a fifth evidence commit. Do not amend, rebase, force-reset, or use copied terminal output
+as a substitute for the required repository evidence. The point is not a plausible story about a
+repair; it is a reviewable history that makes the defect, regression, repair, and final receipt
+separable.
+
+## Recognize success
+
+The completed attempt has exactly four descendant commits after Prepare and no pending worktree
+changes. The first changes only `.codearbiter/reports/academy/P05-finding.md`; the second changes
+only `tests/test_cli.py`; the third changes only `workshop_queue/cli.py`; and the fourth changes
+only `.codearbiter/checkpoints/P05-academy.json`.
+
+The finding says that blocked `RQ-105` is omitted from the unresolved summary. The RED action gives
+the agent the verifier's exact taught method; an equivalent replacement is not accepted. That test
+persists the fixture, reaches the real report, and fails because `unresolved` is wrong, not because
+the setup broke. The GREEN repair changes the unresolved predicate to every ticket that is not
+completed. Run the native-terminal action to generate the receipt last; its deterministic generator
+writes sorted keys, compact separators, ASCII escaping, and exactly one LF. The receipt contains
+`schema_version`, `finding_id`, `finding_commit`, `red_commit`, `remediation_commit`, and `status`.
+`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`. A copied host command is guidance, not evidence that either command was invoked.
+
+{{action:P05-confirm-clean}}
+
+## Check
+
+{{action:P05-check}}
+
+A pass contains `checkpoint P05-checkpoint-remediation: passed` and records progress in
+`.academy/progress.json`. Check independently verifies the prepared ADR, decision log, blocked
+ticket lifecycle, staged defect, exact four-commit topology, path roles, RED regression, GREEN
+repair, canonical receipt, and clean worktree. Check does not authenticate a checkpoint run or a
+human review, and it does not prove command chronology. Treat the commands and inspection steps as
+the practice you observe, not as claims that a final-state verifier can honestly make.
+
+## Recover or continue
+
+If the branch identity, finding boundary, RED result, code-only GREEN boundary, receipt shape, or
+Check result is wrong, preserve the attempt. Read the named failure and create a fresh numbered
+attempt rather than trying to make past commits look correct. A preserved failed attempt is useful
+evidence; a rewritten one teaches the wrong habit.
+
+{{action:P05-reset-retry}}
 
 ### Hint 1
 
-Create a blocked ticket through the normal domain and persistence interfaces, then query the summary.
-If blocked state itself does not work, you have not isolated the prepared summary defect.
+When a path boundary is unclear, read the latest commit's path list before doing more work. The
+finding is one report path; RED is one test path; GREEN is one production path; and the receipt is
+one checkpoint path.
 
 ### Hint 2
 
-Keep finding, RED, and GREEN commits distinct. Use `git diff-tree --name-only` on each commit and
-confirm that RED changes only `tests/test_cli.py` while GREEN changes only `workshop_queue/cli.py`.
+The prepared defect is already in `workshop_queue/cli.py`. The RED test must create the blocked
+ticket through the existing CLI boundary and show that `blocked` is `1` while `unresolved` is wrong.
+Do not create a second fixture or a second production change to make that assertion easier.
 
 ### Hint 3
 
-The final report must point backward to commits strictly ordered after prepare. Recompute each ID and
-path from Git immediately before committing the report last.
+The receipt is not a progress note. It is the last commit and its three IDs must be the real finding,
+RED, and GREEN descendants in that order. If you cannot name those four one-path commits, use Reset
+rather than trying to repair the history.
 
-## Success evidence
+Continue to **P06 — Recover context drift without losing unrelated work** after P05 passes. Leave
+the completed P05 branch intact: P06 is a separate recovery case, not a repair to fold into this
+remediation attempt.
 
-The selected history proves genuine blocked-state behavior, a later observed summary finding, a
-meaningfully failing regression, and a subsequent passing repair. The committed report names ordered
-in-attempt commits and the exact test-only RED and code-only GREEN path roles, and is itself later
-than the remediation. Same-commit, synthetic, pre-prepare, prose-only, or role-swapped evidence fails.
-The verifier also recomputes the prepared ADR-0005 bytes, attribution, forward supersession,
-DECISION-0005 append-only prefix, seven-path prepared commit, and terminal blocked-state code graph.
+## Understand the mechanism
 
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository check P05-checkpoint-remediation
-```
-
-## Recovery
-
-If IDs are out of range, commit path roles are wrong, or the report was committed too soon, preserve
-the attempt and reset:
-
-```powershell
-$learnerRepository = (Resolve-Path -LiteralPath '.').Path
-arbiter-academy --repository $learnerRepository reset P05-checkpoint-remediation
-```
-
-Do not edit identifiers in prose to disguise disconnected history.
-
-## Next lab
-
-Continue to **P06 — Recover from context drift without losing unrelated work** after P05 passes.
+Checkpoint remediation is a chain of independently inspectable facts. The prepared fixture creates
+a real domain state; the finding narrows the observed defect; a direct test records the caller
+expectation before code changes; the production change is isolated; and the receipt binds those
+commits into one checkable statement. This makes a later reviewer able to distinguish a real
+remediation from an invented report, a generic event, a broad patch, or a history assembled after
+the fact.

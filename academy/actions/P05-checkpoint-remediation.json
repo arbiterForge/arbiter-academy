@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "P05-checkpoint-remediation",
+  "actions": [
+    {
+      "id": "P05-prerequisite",
+      "sequence": 1,
+      "title": "Confirm the safe practice space",
+      "actor": "learner",
+      "surface": "browser",
+      "instruction": "P05 is a Practitioner lab. Complete P04 in your own fork and Academy clone first. If you have not yet forked, cloned, installed Academy, and practiced the terminal boundary, return to F01 before continuing. P05 changes only the prepared Workshop Queue exercise, never the Academy source clone.",
+      "rationale": "A known fork and clone keep the remediation attempt separate from the course source and give Academy a repository it can reset safely.",
+      "resources": [{"label":"F01 fork, clone, and Doctor guided lesson","href":"https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/"}],
+      "variants": [],
+      "expected_result": "You have a clean Academy learner clone, an installed Academy CLI from F01, and a CodeArbiter harness pointed at that clone.",
+      "recovery": "If you are unsure which repository is your fork or where Academy is installed, stop and repeat F01. Do not run P05 in an unfamiliar checkout.",
+      "evidence": "This is a prerequisite check by you. Academy Check does not authenticate how you created the fork or clone."
+    },
+    {
+      "id": "P05-prepare",
+      "sequence": 2,
+      "title": "Prepare the numbered remediation attempt",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "From the clean main branch at your Academy learner clone root, run Prepare in a native terminal. This command is entered directly in the terminal, so it never begins with !.",
+      "rationale": "Prepare creates the verifier-owned attempt branch and stages the real blocked-ticket summary defect before any learner work begins.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true}
+      ],
+      "expected_result": "Academy prints academy/P05-checkpoint-remediation/ATTEMPT_NUMBER and prepares a blocked ticket whose summary count is intentionally wrong.",
+      "recovery": "Preserve the exact error. Resolve only the named clean-worktree or branch condition; do not force-reset main or delete an earlier attempt.",
+      "evidence": "The printed attempt branch and prepared commit are the baseline that Check later reconstructs."
+    },
+    {
+      "id": "P05-guard-attempt",
+      "sequence": 3,
+      "title": "Verify the prepared branch before changing anything",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In the same native terminal, inspect the prepared branch, commit, and worktree. Compare the branch with the value Prepare printed. These are terminal commands, not harness commands, so do not add !.",
+      "rationale": "The four required commits count only when they descend from the prepared attempt, not from a look-alike local branch.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git branch --show-current\ngit rev-parse HEAD\ngit status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git branch --show-current\ngit rev-parse HEAD\ngit status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git branch --show-current\ngit rev-parse HEAD\ngit status --short","copy":true}
+      ],
+      "expected_result": "The branch begins academy/P05-checkpoint-remediation/, HEAD is the prepared commit, and status prints no changed paths.",
+      "recovery": "If any value differs, preserve the output and use Reset. Do not rename a branch, rewrite history, or manually copy prepared files.",
+      "evidence": "You confirmed the attempt identity before creating the finding, RED, GREEN, and receipt commits."
+    },
+    {
+      "id": "P05-read-prepared-boundary",
+      "sequence": 4,
+      "title": "Ask the agent to read the prepared boundary",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "In your active CodeArbiter harness, send the copied message. This is a request to the agent, not a shell command, so it never begins with !. The agent reads; it must not edit or commit in this step.",
+      "rationale": "The learner and agent need the domain, persistence, reporting, decision, and scenario boundaries before deciding what the finding proves.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Open .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md, .codearbiter/decisions/decision-log.md, training_scenarios/P05-checkpoint-remediation.json, tests/test_cli.py, workshop_queue/model.py, workshop_queue/service.py, and workshop_queue/cli.py. Show the prepared blocked-ticket behavior and the summary expression that omits it. Do not edit, stage, run a host command, or commit.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Open .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md, .codearbiter/decisions/decision-log.md, training_scenarios/P05-checkpoint-remediation.json, tests/test_cli.py, workshop_queue/model.py, workshop_queue/service.py, and workshop_queue/cli.py. Show the prepared blocked-ticket behavior and the summary expression that omits it. Do not edit, stage, run a host command, or commit.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Open .codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md, .codearbiter/decisions/decision-log.md, training_scenarios/P05-checkpoint-remediation.json, tests/test_cli.py, workshop_queue/model.py, workshop_queue/service.py, and workshop_queue/cli.py. Show the prepared blocked-ticket behavior and the summary expression that omits it. Do not edit, stage, run a host command, or commit.","copy":true}
+      ],
+      "expected_result": "The agent can identify that blocked tickets persist through the normal model and store, while the report's unresolved total counts only open and claimed tickets.",
+      "recovery": "If a required file is missing or the branch is not the prepared attempt, stop. Preserve the attempt and Reset instead of substituting a similar source file.",
+      "evidence": "This read establishes the repository boundary for your own inspection; it is not a verifier-authenticated review."
+    },
+    {
+      "id": "P05-surface-finding",
+      "sequence": 5,
+      "title": "Ask CodeArbiter to surface the checkpoint finding",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "In the selected harness, send the host-native checkpoint command. This is a CodeArbiter command, not a shell command, so it never begins with !.",
+      "rationale": "The checkpoint lane frames the observed product defect before the repair lane begins.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:checkpoint","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-checkpoint","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-checkpoint","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-checkpoint","copy":true}
+      ],
+      "expected_result": "The agent reports that the blocked Workshop Queue ticket is omitted from the unresolved summary and names the report/test boundary.",
+      "recovery": "If the checkpoint reports another problem or cannot run, preserve its output and correct the named prerequisite or use Reset. Do not invent a checkpoint transcript.",
+      "evidence": "The finding commit below, not a chat transcript, is the repository artifact Check can inspect."
+    },
+    {
+      "id": "P05-inspect-finding",
+      "sequence": 6,
+      "title": "Inspect the real defect before recording it",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Read the checkpoint result next to the prepared summary boundary. Confirm the claim is narrow: RQ-105 is blocked, its reason is venue-access clearance, and the unresolved count excludes it. Do not ask the agent to repair the code yet.",
+      "rationale": "A precise finding prevents a generic report or unrelated product change from masquerading as remediation.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can state the observed defect in one sentence and identify tests/test_cli.py plus workshop_queue/cli.py as the later test and code boundaries.",
+      "recovery": "If the result is not the prepared blocked-ticket defect, stop and Reset. Do not broaden the exercise to make a different finding fit.",
+      "evidence": "This is your inspection. Check does not authenticate a checkpoint run or a person's review."
+    },
+    {
+      "id": "P05-record-finding",
+      "sequence": 7,
+      "title": "Ask the agent to record only the finding",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness. It asks the agent to make the first of four commits and forbids the test or production repair in that commit.",
+      "rationale": "The verifier requires an exact, standalone finding commit before the RED regression and GREEN repair.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Create only .codearbiter/reports/academy/P05-finding.md with exactly these UTF-8 bytes, including the final newline:\n# P05 Finding: blocked tickets omitted from unresolved summary\n\nTicket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\nAffected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\nStage only that file, show its staged diff, and invoke the CodeArbiter commit gate. Do not edit tests or production code, create the receipt, amend, or rebase.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Create only .codearbiter/reports/academy/P05-finding.md with exactly these UTF-8 bytes, including the final newline:\n# P05 Finding: blocked tickets omitted from unresolved summary\n\nTicket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\nAffected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\nStage only that file, show its staged diff, and invoke the CodeArbiter commit gate. Do not edit tests or production code, create the receipt, amend, or rebase.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Create only .codearbiter/reports/academy/P05-finding.md with exactly these UTF-8 bytes, including the final newline:\n# P05 Finding: blocked tickets omitted from unresolved summary\n\nTicket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\nAffected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\nStage only that file, show its staged diff, and invoke the CodeArbiter commit gate. Do not edit tests or production code, create the receipt, amend, or rebase.","copy":true}
+      ],
+      "expected_result": "One new descendant commit changes only .codearbiter/reports/academy/P05-finding.md.",
+      "recovery": "If another path is staged or the content differs, stop before committing. Preserve the attempt and Reset rather than amending a malformed evidence history.",
+      "evidence": "The first descendant commit proves the finding was recorded before the regression and repair."
+    },
+    {
+      "id": "P05-verify-finding-commit",
+      "sequence": 8,
+      "title": "Verify the finding commit boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use a native terminal to inspect only the latest commit path list. These are direct terminal commands and never begin with !.",
+      "rationale": "A clean one-path commit gives the later history an unambiguous finding boundary.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git log -1 --format=%H\ngit diff-tree --no-commit-id --name-only -r HEAD","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git log -1 --format=%H\ngit diff-tree --no-commit-id --name-only -r HEAD","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git log -1 --format=%H\ngit diff-tree --no-commit-id --name-only -r HEAD","copy":true}
+      ],
+      "expected_result": "The path list contains exactly .codearbiter/reports/academy/P05-finding.md.",
+      "recovery": "If the commit contains another path, preserve the attempt and Reset. Do not rewrite the commit with amend or rebase.",
+      "evidence": "The commit ID is later written into the final receipt as finding_commit."
+    },
+    {
+      "id": "P05-add-red-regression",
+      "sequence": 9,
+      "title": "Ask the agent to add the test-only RED regression",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness. The agent must change only the test, run it, and stop at the meaningful failing assertion before any production edit.",
+      "rationale": "The lesson proves that the prepared report is wrong with a real persisted blocked ticket rather than a synthetic JSON assertion.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Change only tests/test_cli.py. The verifier does not accept an equivalent test. Insert this exact method in WorkshopQueueCliTests:\n    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n        tickets[0][\"id\"] = \"RQ-105\"\n        self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n        report = self.run_cli(\"report\", \"--format\", \"json\")\n        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n        self.assertEqual(block_result.returncode, 0, block_result.stderr)\n        self.assertEqual(report.returncode, 0, report.stderr)\n        parsed = json.loads(report.stdout)\n        self.assertEqual(parsed[\"blocked\"], 1)\n        self.assertEqual(parsed[\"unresolved\"], 1)\nRun only the exact focused test with python -m unittest tests.test_cli.WorkshopQueueCliTests.test_report_json_counts_blocked_ticket_as_unresolved -v and stop when it fails because unresolved is 0 instead of 1. Do not edit workshop_queue, stage, or commit yet.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Change only tests/test_cli.py. The verifier does not accept an equivalent test. Insert this exact method in WorkshopQueueCliTests:\n    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n        tickets[0][\"id\"] = \"RQ-105\"\n        self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n        report = self.run_cli(\"report\", \"--format\", \"json\")\n        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n        self.assertEqual(block_result.returncode, 0, block_result.stderr)\n        self.assertEqual(report.returncode, 0, report.stderr)\n        parsed = json.loads(report.stdout)\n        self.assertEqual(parsed[\"blocked\"], 1)\n        self.assertEqual(parsed[\"unresolved\"], 1)\nRun only the exact focused test with python -m unittest tests.test_cli.WorkshopQueueCliTests.test_report_json_counts_blocked_ticket_as_unresolved -v and stop when it fails because unresolved is 0 instead of 1. Do not edit workshop_queue, stage, or commit yet.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Change only tests/test_cli.py. The verifier does not accept an equivalent test. Insert this exact method in WorkshopQueueCliTests:\n    def test_report_json_counts_blocked_ticket_as_unresolved(self) -> None:\n        tickets = json.loads(self.fixture.read_text(encoding=\"utf-8\"))\n        tickets[0][\"id\"] = \"RQ-105\"\n        self.fixture.write_text(json.dumps(tickets), encoding=\"utf-8\")\n        claim_result = self.run_cli(\"claim\", \"RQ-105\", \"--volunteer\", \"Sam\")\n        block_result = self.run_cli(\"block\", \"RQ-105\", \"--reason\", \"Venue access is awaiting facilities clearance\")\n        report = self.run_cli(\"report\", \"--format\", \"json\")\n        self.assertEqual(claim_result.returncode, 0, claim_result.stderr)\n        self.assertEqual(block_result.returncode, 0, block_result.stderr)\n        self.assertEqual(report.returncode, 0, report.stderr)\n        parsed = json.loads(report.stdout)\n        self.assertEqual(parsed[\"blocked\"], 1)\n        self.assertEqual(parsed[\"unresolved\"], 1)\nRun only the exact focused test with python -m unittest tests.test_cli.WorkshopQueueCliTests.test_report_json_counts_blocked_ticket_as_unresolved -v and stop when it fails because unresolved is 0 instead of 1. Do not edit workshop_queue, stage, or commit yet.","copy":true}
+      ],
+      "expected_result": "Only tests/test_cli.py changes, and the focused test fails because the report says unresolved is 0 when the persisted blocked ticket makes it 1.",
+      "recovery": "If the test fails for an import, file, fixture, or command error, fix neither production nor unrelated setup. Preserve the output and Reset for a new attempt.",
+      "evidence": "The later RED commit contains only the unchanged regression method whose taught AST final Check requires exactly."
+    },
+    {
+      "id": "P05-observe-red",
+      "sequence": 10,
+      "title": "Recognize the meaningful RED result",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Read the focused test result. The important failure is the unresolved assertion after a successful claim, block, and report—not a syntax, import, fixture, or command failure.",
+      "rationale": "A failing test demonstrates the product defect before the repair changes the report expression.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The focused test reaches the JSON report and shows that blocked is 1 while unresolved is still counted incorrectly.",
+      "recovery": "If the test did not reach the unresolved assertion, do not continue to GREEN. Preserve the attempt and Reset instead of repairing a different problem.",
+      "evidence": "You observe this runtime result during the lesson. Final Check validates the committed test and repair, not command chronology."
+    },
+    {
+      "id": "P05-commit-red",
+      "sequence": 11,
+      "title": "Ask the agent to commit only the RED test",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness after you have observed the meaningful RED result.",
+      "rationale": "The test-only commit preserves the regression before the production repair can make it pass.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Stage only tests/test_cli.py. Show the staged path list and diff, confirm the file contains the unchanged failing blocked-ticket regression, then invoke the CodeArbiter commit gate. Do not edit workshop_queue, create the receipt, amend, or rebase.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Stage only tests/test_cli.py. Show the staged path list and diff, confirm the file contains the unchanged failing blocked-ticket regression, then invoke the CodeArbiter commit gate. Do not edit workshop_queue, create the receipt, amend, or rebase.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Stage only tests/test_cli.py. Show the staged path list and diff, confirm the file contains the unchanged failing blocked-ticket regression, then invoke the CodeArbiter commit gate. Do not edit workshop_queue, create the receipt, amend, or rebase.","copy":true}
+      ],
+      "expected_result": "A second descendant commit changes exactly tests/test_cli.py and retains the meaningful failing regression.",
+      "recovery": "If another file is staged or the test was changed after the observed RED result, preserve the attempt and Reset. Do not combine RED and GREEN into one commit.",
+      "evidence": "The final verifier requires this commit immediately after the finding and before the code-only repair."
+    },
+    {
+      "id": "P05-apply-green-repair",
+      "sequence": 12,
+      "title": "Ask the agent to make the code-only GREEN repair",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness. It permits the smallest report repair only after the committed RED test exists.",
+      "rationale": "The bounded repair changes the definition of unresolved from open plus claimed to every ticket that is not completed.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Change only workshop_queue/cli.py so the unresolved total is sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets). Do not change tests. Run the exact focused blocked-ticket test and stop after it passes. Do not stage or commit yet.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Change only workshop_queue/cli.py so the unresolved total is sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets). Do not change tests. Run the exact focused blocked-ticket test and stop after it passes. Do not stage or commit yet.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Change only workshop_queue/cli.py so the unresolved total is sum(ticket.status is not TicketStatus.COMPLETED for ticket in tickets). Do not change tests. Run the exact focused blocked-ticket test and stop after it passes. Do not stage or commit yet.","copy":true}
+      ],
+      "expected_result": "The focused regression now passes, tests/test_cli.py remains byte-for-byte unchanged from RED, and only workshop_queue/cli.py is modified.",
+      "recovery": "If the focused test remains red or another production path changes, stop. Preserve the result and Reset rather than broadening the repair.",
+      "evidence": "The later GREEN commit must be a one-path descendant whose inverse recreates the prepared defect."
+    },
+    {
+      "id": "P05-commit-green",
+      "sequence": 13,
+      "title": "Ask the agent to commit only the GREEN repair",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness after the focused test passes.",
+      "rationale": "A code-only GREEN commit lets Check prove that the repair followed and did not modify the regression.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Stage only workshop_queue/cli.py. Show the staged path list and diff, confirm tests/test_cli.py is unchanged from the RED commit, then invoke the CodeArbiter commit gate. Do not create the receipt, amend, or rebase.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Stage only workshop_queue/cli.py. Show the staged path list and diff, confirm tests/test_cli.py is unchanged from the RED commit, then invoke the CodeArbiter commit gate. Do not create the receipt, amend, or rebase.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Stage only workshop_queue/cli.py. Show the staged path list and diff, confirm tests/test_cli.py is unchanged from the RED commit, then invoke the CodeArbiter commit gate. Do not create the receipt, amend, or rebase.","copy":true}
+      ],
+      "expected_result": "A third descendant commit changes exactly workshop_queue/cli.py and the focused test remains green.",
+      "recovery": "If the staged boundary includes the test or another path, stop and Reset. Do not make the history look right by amending or rebasing it.",
+      "evidence": "The receipt records this exact commit as remediation_commit."
+    },
+    {
+      "id": "P05-record-receipt",
+      "sequence": 14,
+      "title": "Generate the exact receipt bytes last",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the complete command for your operating system in the native terminal only after the finding, RED, and GREEN commits exist. It reads the three real commit IDs from Git, writes deterministic verifier-owned bytes, stages only the receipt, and shows the staged diff. Do not hand-edit the JSON.",
+      "rationale": "The fixed generator sorts keys, uses compact separators and ASCII escaping, and appends exactly one LF so the final receipt matches Check byte for byte.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"@'\nimport json\nimport pathlib\nimport subprocess\n\ndef git(*arguments):\n    return subprocess.run([\"git\", *arguments], check=True, stdout=subprocess.PIPE, text=True).stdout\n\nif git(\"status\", \"--porcelain\", \"--untracked-files=all\"):\n    raise SystemExit(\"P05 receipt requires a clean worktree after GREEN\")\ncommits = git(\"rev-list\", \"--reverse\", \"HEAD~3..HEAD\").splitlines()\nif len(commits) != 3 or any(len(commit) != 40 for commit in commits):\n    raise SystemExit(\"P05 receipt requires exactly three commit IDs after Prepare\")\npayload = {\n    \"affected_paths\": [\"tests/test_cli.py\", \"workshop_queue/cli.py\"],\n    \"finding_commit\": commits[0],\n    \"finding_id\": \"ACADEMY-P05-BLOCKED-UNRESOLVED\",\n    \"red_commit\": commits[1],\n    \"remediation_commit\": commits[2],\n    \"schema_version\": 2,\n    \"status\": \"remediated\",\n}\nreceipt = pathlib.Path(\".codearbiter/checkpoints/P05-academy.json\")\nreceipt.parent.mkdir(parents=True, exist_ok=True)\nreceipt.write_bytes(json.dumps(payload, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True).encode(\"utf-8\") + b\"\\n\")\nsubprocess.run([\"git\", \"add\", \"--\", receipt.as_posix()], check=True)\nsubprocess.run([\"git\", \"diff\", \"--cached\", \"--\", receipt.as_posix()], check=True)\n'@ | python -","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"python3 - <<'PY'\nimport json\nimport pathlib\nimport subprocess\n\ndef git(*arguments):\n    return subprocess.run([\"git\", *arguments], check=True, stdout=subprocess.PIPE, text=True).stdout\n\nif git(\"status\", \"--porcelain\", \"--untracked-files=all\"):\n    raise SystemExit(\"P05 receipt requires a clean worktree after GREEN\")\ncommits = git(\"rev-list\", \"--reverse\", \"HEAD~3..HEAD\").splitlines()\nif len(commits) != 3 or any(len(commit) != 40 for commit in commits):\n    raise SystemExit(\"P05 receipt requires exactly three commit IDs after Prepare\")\npayload = {\n    \"affected_paths\": [\"tests/test_cli.py\", \"workshop_queue/cli.py\"],\n    \"finding_commit\": commits[0],\n    \"finding_id\": \"ACADEMY-P05-BLOCKED-UNRESOLVED\",\n    \"red_commit\": commits[1],\n    \"remediation_commit\": commits[2],\n    \"schema_version\": 2,\n    \"status\": \"remediated\",\n}\nreceipt = pathlib.Path(\".codearbiter/checkpoints/P05-academy.json\")\nreceipt.parent.mkdir(parents=True, exist_ok=True)\nreceipt.write_bytes(json.dumps(payload, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True).encode(\"utf-8\") + b\"\\n\")\nsubprocess.run([\"git\", \"add\", \"--\", receipt.as_posix()], check=True)\nsubprocess.run([\"git\", \"diff\", \"--cached\", \"--\", receipt.as_posix()], check=True)\nPY","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"python3 - <<'PY'\nimport json\nimport pathlib\nimport subprocess\n\ndef git(*arguments):\n    return subprocess.run([\"git\", *arguments], check=True, stdout=subprocess.PIPE, text=True).stdout\n\nif git(\"status\", \"--porcelain\", \"--untracked-files=all\"):\n    raise SystemExit(\"P05 receipt requires a clean worktree after GREEN\")\ncommits = git(\"rev-list\", \"--reverse\", \"HEAD~3..HEAD\").splitlines()\nif len(commits) != 3 or any(len(commit) != 40 for commit in commits):\n    raise SystemExit(\"P05 receipt requires exactly three commit IDs after Prepare\")\npayload = {\n    \"affected_paths\": [\"tests/test_cli.py\", \"workshop_queue/cli.py\"],\n    \"finding_commit\": commits[0],\n    \"finding_id\": \"ACADEMY-P05-BLOCKED-UNRESOLVED\",\n    \"red_commit\": commits[1],\n    \"remediation_commit\": commits[2],\n    \"schema_version\": 2,\n    \"status\": \"remediated\",\n}\nreceipt = pathlib.Path(\".codearbiter/checkpoints/P05-academy.json\")\nreceipt.parent.mkdir(parents=True, exist_ok=True)\nreceipt.write_bytes(json.dumps(payload, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True).encode(\"utf-8\") + b\"\\n\")\nsubprocess.run([\"git\", \"add\", \"--\", receipt.as_posix()], check=True)\nsubprocess.run([\"git\", \"diff\", \"--cached\", \"--\", receipt.as_posix()], check=True)\nPY","copy":true}
+      ],
+      "expected_result": "The command shows only .codearbiter/checkpoints/P05-academy.json staged; its compact sorted-key JSON names the real finding, RED, and GREEN commit IDs and ends in exactly one LF.",
+      "recovery": "If generation stops, an ID is missing, a path is extra, or GREEN is not clean, do not hand-write JSON or rewrite history. Preserve the attempt and Reset.",
+      "evidence": "Check accepts only a canonical receipt in the fourth and final descendant commit."
+    },
+    {
+      "id": "P05-commit-receipt",
+      "sequence": 15,
+      "title": "Ask the agent to commit the final receipt",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Send this message in the selected harness after reviewing the staged receipt.",
+      "rationale": "The receipt must be last so it can bind the already-committed finding, RED, and GREEN evidence.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Confirm the staged path list is exactly .codearbiter/checkpoints/P05-academy.json, then invoke the CodeArbiter commit gate. Do not add files, amend, rebase, or push.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Confirm the staged path list is exactly .codearbiter/checkpoints/P05-academy.json, then invoke the CodeArbiter commit gate. Do not add files, amend, rebase, or push.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Confirm the staged path list is exactly .codearbiter/checkpoints/P05-academy.json, then invoke the CodeArbiter commit gate. Do not add files, amend, rebase, or push.","copy":true}
+      ],
+      "expected_result": "The fourth and final descendant commit changes exactly .codearbiter/checkpoints/P05-academy.json.",
+      "recovery": "If the commit gate reports a boundary problem, preserve the attempt and use Reset. Never force a receipt into an earlier commit.",
+      "evidence": "The committed receipt is the only P05 artifact Academy Check reads as the final evidence binding."
+    },
+    {
+      "id": "P05-confirm-clean",
+      "sequence": 16,
+      "title": "Confirm the completed attempt is clean",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Before Check, inspect the worktree in a native terminal. This is a direct terminal command and never begins with !.",
+      "rationale": "P05 Check rejects uncommitted or unrelated state so the committed four-step history is the whole claim.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short --untracked-files=all","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short --untracked-files=all","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short --untracked-files=all","copy":true}
+      ],
+      "expected_result": "Git prints no changed or untracked paths.",
+      "recovery": "If status is not empty, do not delete evidence or add unrelated files to a P05 commit. Preserve the attempt and Reset.",
+      "evidence": "A clean worktree is a direct Check precondition."
+    },
+    {
+      "id": "P05-check",
+      "sequence": 17,
+      "title": "Run the external Academy Check",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run Check from the Academy learner clone root in a native terminal. This command is entered directly and never begins with !.",
+      "rationale": "Check independently reconstructs the prepared fixture, commit ancestry, exact path roles, regression, repair, receipt, and live worktree.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true}
+      ],
+      "expected_result": "Check prints checkpoint P05-checkpoint-remediation: passed and records progress in .academy/progress.json.",
+      "recovery": "If Check fails, preserve the committed attempt and read the failed predicate. Start a new numbered attempt with Reset instead of rewriting committed evidence.",
+      "evidence": "Check validates Git artifacts and the final worktree. It does not authenticate a checkpoint run or a human review, and it does not prove command chronology."
+    },
+    {
+      "id": "P05-reset-retry",
+      "sequence": 18,
+      "title": "Create a preserved numbered retry",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Use Reset only when P05 needs another attempt. Run it at the Academy learner clone root in a native terminal; the command never begins with !.",
+      "rationale": "Reset preserves the failed or incomplete attempt for inspection before creating the next numbered baseline.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.6\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true}
+      ],
+      "expected_result": "Academy preserves the earlier attempt and prints the next academy/P05-checkpoint-remediation/ATTEMPT_NUMBER branch.",
+      "recovery": "If Reset stops, preserve its message and resolve only the named repository condition. Never force-reset or delete a prior attempt.",
+      "evidence": "A new attempt begins from the clean fixture while the previous history remains inspectable."
+    }
+  ]
+}

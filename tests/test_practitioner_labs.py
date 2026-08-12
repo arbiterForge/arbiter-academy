@@ -36,7 +36,7 @@ EXPECTED_HOST_ACTIONS = {
     PRACTITIONER[1]: ("review", "commit"),
     PRACTITIONER[2]: ("adr",),
     PRACTITIONER[3]: ("add-dep",),
-    PRACTITIONER[4]: ("checkpoint", "fix"),
+    PRACTITIONER[4]: ("checkpoint",),
     PRACTITIONER[5]: ("context-check",),
     PRACTITIONER[6]: ("threat-model",),
     PRACTITIONER[7]: ("standup",),
@@ -81,6 +81,27 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     + lab.id
                 )
                 self.assertEqual(lab.scenario_command, expected_prepare)
+                if lab.id == "P05-checkpoint-remediation":
+                    manifest = load_action_manifest(SOURCE, lab.id)
+                    actions = {action.id: action for action in manifest.actions}
+                    for action_id, operation in (
+                        ("P05-prepare", "prepare"),
+                        ("P05-check", "check"),
+                        ("P05-reset-retry", "reset"),
+                    ):
+                        action = actions[action_id]
+                        self.assertEqual(action.actor, "learner")
+                        self.assertEqual(
+                            {variant.operating_system for variant in action.variants},
+                            {"windows", "macos", "linux"},
+                        )
+                        for variant in action.variants:
+                            with self.subTest(action=action_id, variant=variant.id):
+                                self.assertEqual(variant.surface, "native-terminal")
+                                self.assertFalse(variant.command.startswith("!"))
+                                self.assertIn(f"{operation} {lab.id}", variant.command)
+                                self.assertNotIn("python scripts/academy.py", variant.command)
+                    continue
                 guide = (
                     SOURCE / f"academy/tracks/practitioner/{lab.id}.md"
                 ).read_text(encoding="utf-8")
@@ -588,6 +609,28 @@ class PractitionerCurriculumTests(unittest.TestCase):
         ):
             with self.subTest(obsolete=obsolete):
                 self.assertNotIn(obsolete, guide)
+
+    def test_p05_guide_is_a_complete_private_guided_lesson(self) -> None:
+        """Catches P05 drifting back to prose-only, raw-command instruction."""
+        guide = (SOURCE / "academy/tracks/practitioner/P05-checkpoint-remediation.md").read_text(encoding="utf-8")
+        headings = (
+            "## Know before you begin",
+            "## What you will prove",
+            "## Prepare safely",
+            "## Practice",
+            "## Recognize success",
+            "## Check",
+            "## Recover or continue",
+            "## Understand the mechanism",
+        )
+        positions = [guide.index(heading) for heading in headings]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn("```", guide)
+        self.assertIn("{{action:P05-prepare}}", guide)
+        self.assertIn("{{action:P05-check}}", guide)
+        self.assertIn("{{action:P05-reset-retry}}", guide)
+        self.assertIn("Check does not authenticate a checkpoint run", guide)
+        self.assertIn("does not prove command chronology", guide)
 
     def test_p06_freezes_interrupted_lane_scenario_identity(self) -> None:
         """Catches P06 losing its interrupted-lane, provenance, or preservation boundary."""

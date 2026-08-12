@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
 
+from academy_engine.checkpoints import _p05_red_regression_is_exact, canonical_json
 from academy_engine.lesson_actions import (
+    ActionResource,
     CommandVariant,
     LessonAction,
     LessonActionManifest,
@@ -64,6 +68,30 @@ P01_ACTION_IDS = (
     "P01-check",
     "P01-reset-retry",
 )
+P05_DOCUMENT_ID = "P05-checkpoint-remediation"
+F01_DEPLOYED_LESSON = (
+    "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/"
+)
+P05_ACTION_IDS = (
+    "P05-prerequisite",
+    "P05-prepare",
+    "P05-guard-attempt",
+    "P05-read-prepared-boundary",
+    "P05-surface-finding",
+    "P05-inspect-finding",
+    "P05-record-finding",
+    "P05-verify-finding-commit",
+    "P05-add-red-regression",
+    "P05-observe-red",
+    "P05-commit-red",
+    "P05-apply-green-repair",
+    "P05-commit-green",
+    "P05-record-receipt",
+    "P05-commit-receipt",
+    "P05-confirm-clean",
+    "P05-check",
+    "P05-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
@@ -87,9 +115,7 @@ class LessonActionTests(unittest.TestCase):
                 ("pi", "codearbiter", '/skill:ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
             ),
         )
-        self.assertFalse(
-            any(variant.command.startswith("!") for variant in by_id["P01-draft-spec"].variants)
-        )
+        self.assertFalse(any(variant.command.startswith("!") for variant in by_id["P01-draft-spec"].variants))
 
         solo = by_id["P01-solo-review"]
         self.assertEqual((solo.actor, solo.surface, solo.variants), ("learner", "active-harness", ()))
@@ -106,15 +132,8 @@ class LessonActionTests(unittest.TestCase):
                 self.assertEqual(action.actor, "learner")
                 self.assertIsNone(action.surface)
                 self.assertEqual(
-                    tuple(
-                        (variant.surface, variant.host, variant.language, variant.copy)
-                        for variant in action.variants
-                    ),
-                    (
-                        ("harness", "claude-code", "text", True),
-                        ("harness", "codex", "text", True),
-                        ("harness", "pi", "text", True),
-                    ),
+                    tuple((variant.surface, variant.host, variant.language, variant.copy) for variant in action.variants),
+                    (("harness", "claude-code", "text", True), ("harness", "codex", "text", True), ("harness", "pi", "text", True)),
                 )
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
@@ -124,18 +143,217 @@ class LessonActionTests(unittest.TestCase):
                 self.assertEqual(action.actor, "learner")
                 self.assertIsNone(action.surface)
                 self.assertEqual(
-                    tuple(
-                        (variant.surface, variant.operating_system, variant.host, variant.copy)
-                        for variant in action.variants
-                    ),
-                    (
-                        ("native-terminal", "windows", "none", True),
-                        ("native-terminal", "macos", "none", True),
-                        ("native-terminal", "linux", "none", True),
-                    ),
+                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
+                    (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
                 self.assertTrue(all("preview-0.6" in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+    def test_p05_prerequisite_routes_first_time_learners_to_rendered_f01(self) -> None:
+        """Catches P05 exposing raw Markdown action tokens as runnable guidance."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+        prerequisite = manifest.actions[0]
+
+        self.assertEqual(
+            prerequisite.resources,
+            (
+                ActionResource(
+                    "F01 fork, clone, and Doctor guided lesson",
+                    F01_DEPLOYED_LESSON,
+                ),
+            ),
+        )
+        self.assertNotIn("/blob/", prerequisite.resources[0].href)
+        self.assertNotIn(".md", prerequisite.resources[0].href)
+
+    def test_p05_red_action_supplies_the_exact_verifier_accepted_regression(self) -> None:
+        """Catches a prose sketch that cannot pass the strict P05 RED verifier."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+        action = next(action for action in manifest.actions if action.id == "P05-add-red-regression")
+        marker = "Insert this exact method in WorkshopQueueCliTests:\n"
+        terminator = "\nRun only the exact focused test"
+
+        for variant in action.variants:
+            with self.subTest(variant=variant.id):
+                self.assertEqual(variant.surface, "harness")
+                self.assertEqual(variant.language, "text")
+                self.assertIn("does not accept an equivalent test", variant.command)
+                scaffold = variant.command.partition(marker)[2].partition(terminator)[0]
+                self.assertTrue(scaffold, "RED action must contain the executable method scaffold")
+                self.assertEqual(scaffold.count(".returncode"), 3)
+                self.assertTrue(
+                    _p05_red_regression_is_exact(
+                        ("class WorkshopQueueCliTests:\n" + scaffold + "\n").encode("utf-8")
+                    )
+                )
+
+    def test_p05_receipt_action_executes_a_canonical_byte_generator(self) -> None:
+        """Catches asking a learner or agent to invent verifier-sensitive JSON bytes."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+        action = next(action for action in manifest.actions if action.id == "P05-record-receipt")
+
+        self.assertEqual(action.actor, "learner")
+        self.assertEqual(
+            tuple(
+                (variant.id, variant.surface, variant.host, variant.language)
+                for variant in action.variants
+            ),
+            (
+                ("windows", "native-terminal", "none", "powershell"),
+                ("macos", "native-terminal", "none", "sh"),
+                ("linux", "native-terminal", "none", "sh"),
+            ),
+        )
+
+        scripts = []
+        for variant in action.variants:
+            if variant.id == "windows":
+                prefix, suffix = "@'\n", "\n'@ | python -"
+            else:
+                prefix, suffix = "python3 - <<'PY'\n", "\nPY"
+            self.assertTrue(variant.command.startswith(prefix))
+            self.assertTrue(variant.command.endswith(suffix))
+            scripts.append(variant.command[len(prefix) : -len(suffix)])
+        self.assertEqual(scripts[1:], scripts[:1] * 2)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+
+            def git(*arguments: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *arguments],
+                    cwd=repository,
+                    check=True,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+
+            git("init", "--quiet")
+            git("config", "user.name", "Academy Test")
+            git("config", "user.email", "academy-test@example.invalid")
+            for number in range(4):
+                (repository / "evidence.txt").write_text(f"{number}\n", encoding="utf-8")
+                git("add", "evidence.txt")
+                git("commit", "--quiet", "-m", f"evidence {number}")
+
+            commits = git("rev-list", "--reverse", "HEAD~3..HEAD").stdout.splitlines()
+            subprocess.run(
+                [sys.executable, "-c", scripts[0]],
+                cwd=repository,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            receipt = repository / ".codearbiter/checkpoints/P05-academy.json"
+            expected = {
+                "affected_paths": ["tests/test_cli.py", "workshop_queue/cli.py"],
+                "finding_commit": commits[0],
+                "finding_id": "ACADEMY-P05-BLOCKED-UNRESOLVED",
+                "red_commit": commits[1],
+                "remediation_commit": commits[2],
+                "schema_version": 2,
+                "status": "remediated",
+            }
+            self.assertEqual(
+                receipt.read_bytes(),
+                canonical_json(expected) + b"\n",
+            )
+
+    def test_checked_in_p05_manifest_encodes_the_complete_guided_remediation_lifecycle(self) -> None:
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), P05_ACTION_IDS)
+        self.assertTrue(all(action.expected_result for action in manifest.actions))
+        self.assertTrue(all(action.recovery for action in manifest.actions))
+
+        by_id = {action.id: action for action in manifest.actions}
+        self.assertEqual(by_id["P05-prerequisite"].surface, "browser")
+        self.assertEqual(by_id["P05-prerequisite"].actor, "learner")
+        self.assertTrue(by_id["P05-prerequisite"].resources)
+
+        checkpoint = by_id["P05-surface-finding"]
+        self.assertEqual(checkpoint.actor, "agent")
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in checkpoint.variants),
+            (
+                ("claude-code", "/ca:checkpoint"),
+                ("codex", "$ca-checkpoint"),
+                ("pi", "/ca-checkpoint"),
+                ("pi", "/skill:ca-checkpoint"),
+            ),
+        )
+        self.assertTrue(all(variant.language == "codearbiter" for variant in checkpoint.variants))
+        self.assertFalse(any(variant.command.startswith("!") for variant in checkpoint.variants))
+
+        for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "learner")
+            self.assertTrue(action.variants)
+            for variant in action.variants:
+                with self.subTest(action_id=action_id, variant=variant.id):
+                    self.assertEqual(variant.surface, "native-terminal")
+                    self.assertEqual(variant.host, "none")
+                    self.assertIn(variant.operating_system, {"windows", "macos", "linux"})
+                    self.assertTrue(variant.copy)
+                    self.assertFalse(variant.command.startswith("!"))
+
+        for action_id in (
+            "P05-read-prepared-boundary",
+            "P05-record-finding",
+            "P05-add-red-regression",
+            "P05-apply-green-repair",
+        ):
+            action = by_id[action_id]
+            self.assertEqual(action.actor, "agent")
+            self.assertTrue(action.variants)
+            for variant in action.variants:
+                with self.subTest(action_id=action_id, variant=variant.id):
+                    self.assertEqual(variant.surface, "harness")
+                    self.assertEqual(variant.language, "text")
+                    self.assertFalse(variant.command.startswith("!"))
+                    self.assertTrue(variant.copy)
+
+        check_copy = "\n".join(
+            part
+            for action in manifest.actions
+            for part in (action.instruction, action.expected_result, action.recovery, action.evidence or "")
+        )
+        self.assertIn("does not authenticate", check_copy)
+        self.assertIn("does not prove command chronology", check_copy)
+
+    def test_p05_installed_academy_actions_use_preview_0_6_locations(self) -> None:
+        """Catches Prepare, Check, or Reset routing learners to the obsolete install."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+        by_id = {action.id: action for action in manifest.actions}
+        expected_locations = {
+            "windows": r"$env:LOCALAPPDATA\ArbiterAcademy\preview-0.6\Scripts\arbiter-academy.exe",
+            "macos": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy",
+            "linux": "${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.6/bin/arbiter-academy",
+        }
+
+        for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
+            variants = {variant.id: variant for variant in by_id[action_id].variants}
+            for platform, location in expected_locations.items():
+                with self.subTest(action_id=action_id, platform=platform):
+                    self.assertIn(location, variants[platform].command)
+                    self.assertNotIn("preview-0.5", variants[platform].command)
+
+    def test_p05_finding_commit_action_requires_the_verifier_record_bytes(self) -> None:
+        """Catches ambiguous prose that cannot reproduce the verifier's three-line record."""
+        manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
+        action = next(action for action in manifest.actions if action.id == "P05-record-finding")
+        required_record = (
+            "# P05 Finding: blocked tickets omitted from unresolved summary\n"
+            "\n"
+            "Ticket `RQ-105` is blocked: `Venue access is awaiting facilities clearance`.\n"
+            "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
+        )
+
+        for variant in action.variants:
+            with self.subTest(variant=variant.id):
+                self.assertIn(required_record, variant.command)
+                self.assertNotIn("workshop_queue/cli.py`..", variant.command)
 
     def test_active_public_action_paths_bind_to_preview_0_5(self) -> None:
         """Catches an active learner path routing to the stale Preview 0.4 release."""
@@ -493,6 +711,7 @@ class LessonActionTests(unittest.TestCase):
                 "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.sh",
             )
         )
+        self.assertTrue(self.schema_string_accepts(href_schema, F01_DEPLOYED_LESSON))
         for href in (
             "https://example.com/arbiterForge/arbiter-academy",
             "https://github.com/arbiterForge/arbiter-academy?raw=1",
@@ -509,6 +728,7 @@ class LessonActionTests(unittest.TestCase):
         accepted = (
             "https://github.com/arbiterForge/arbiter-academy",
             "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.sh.sha256",
+            F01_DEPLOYED_LESSON,
         )
         for href in accepted:
             with self.subTest(href=href):
