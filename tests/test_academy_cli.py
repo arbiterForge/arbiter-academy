@@ -241,7 +241,7 @@ class AcademyCliTrustTests(unittest.TestCase):
     def test_installed_preview_refuses_private_u06_lifecycle_without_mutation(self) -> None:
         """U06 stays source-only until a reviewed release explicitly publishes it."""
         lab_id = "U06-preview-and-advanced-surfaces"
-        expected_error = "error: U06-preview-and-advanced-surfaces is not guided in Academy Preview 0.17\n"
+        expected_error = "error: U06-preview-and-advanced-surfaces is not guided in Academy Preview 0.18\n"
         with tempfile.TemporaryDirectory() as directory:
             learner = (Path(directory) / "learner").resolve()
             learner.mkdir()

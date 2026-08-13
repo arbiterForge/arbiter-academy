@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.17
+## Preview 0.18
 
-Preview 0.17 publishes sixteen guided labs:
+Preview 0.18 publishes seventeen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -47,8 +47,11 @@ Preview 0.17 publishes sixteen guided labs:
 - **U04 is guided and runnable.** Its lesson initializes separate greenfield
   and brownfield child projects, commits each through CodeArbiter, then writes
   a canonical parent binding report from their committed state.
+- **U05 is guided and runnable.** Its lesson records a real no-action debug
+  note, transfers only committed spike findings to the parent branch, then
+  deletes the disposable spike without merging it.
 
-U05-U07 remain unavailable in Preview 0.17 while their guided rewrites and
+U06-U07 remain unavailable in Preview 0.18 while their guided rewrites and
 acceptance boundaries are completed. Graduation is unavailable until the
 complete 19-lab course through U07 is published.
 
@@ -71,6 +74,7 @@ complete 19-lab course through U07 is published.
 - [Continue to U02 - Record a scoped override with local audit evidence](https://arbiterforge.github.io/arbiter-academy/labs/U02-override-audit-metrics/)
 - [Continue to U03 - Refactor, chore, and cut a local release](https://arbiterforge.github.io/arbiter-academy/labs/U03-refactor-chore-release/)
 - [Continue to U04 - Initialize a greenfield and a brownfield project](https://arbiterforge.github.io/arbiter-academy/labs/U04-initialize-projects/)
+- [Continue to U05 - Debug, spike, and stop for a real conflict](https://arbiterforge.github.io/arbiter-academy/labs/U05-debug-spike-conflict/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

@@ -1365,7 +1365,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
-        """Catches stale release identity or a changed public inventory in Preview 0.17 output."""
+        """Catches stale release identity or a changed public inventory in Preview 0.18 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -1604,11 +1604,11 @@ class PreviewSiteTests(unittest.TestCase):
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
                 )
 
-    def test_readme_matches_the_preview_zero_sixteen_public_lesson_boundary(self) -> None:
+    def test_readme_matches_the_preview_zero_seventeen_public_lesson_boundary(self) -> None:
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("Preview 0.17 publishes sixteen guided labs:", readme)
+        self.assertIn("Preview 0.18 publishes seventeen guided labs:", readme)
         for lab_id in (
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
@@ -1618,6 +1618,8 @@ class PreviewSiteTests(unittest.TestCase):
             "U01-autonomous-sprint",
             "U02-override-audit-metrics",
             "U03-refactor-chore-release",
+            "U04-initialize-projects",
+            "U05-debug-spike-conflict",
         ):
             with self.subTest(lab=lab_id):
                 self.assertIn(
@@ -2066,7 +2068,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
 
     def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U06 may render from source, but Preview 0.17 must not publish its route."""
+        """U06 may render from source, but Preview 0.18 must not publish its route."""
         lab_id = "U06-preview-and-advanced-surfaces"
         guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
         source = (self.root / guide_path).read_text(encoding="utf-8")
@@ -3272,7 +3274,7 @@ class PrivateU02PreviewContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("does not prove that a human approved", guide)
         self.assertIn("or that any hosted service", guide)
-        self.assertIn("U02 is a published Power User lesson in Preview 0.17", guide)
+        self.assertIn("U02 is a published Power User lesson in Preview 0.18", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
         self.assertIn("Prepare creates a numbered U02 branch", guide)

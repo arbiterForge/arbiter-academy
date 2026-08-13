@@ -301,7 +301,10 @@ def require_guided_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* has a reviewed guided lesson in the public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.guided_labs:
-        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.17")
+        raise ValueError(
+            f"{lab_id} is not guided in Academy Preview "
+            f"{manifest.release.removeprefix('preview-')}"
+        )
 
 
 def require_published_lab(root: Path, lab_id: str) -> None:
