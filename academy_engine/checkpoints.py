@@ -201,9 +201,9 @@ _PROFILES = {
     "debug_spike_conflict": ("spike", "board", "observation"),
     "preview_evidence": ("report",),
     "u06_preview_evidence": ("candidate", "report"),
-    "unavailable": (),
+    "feature_capstone": ("code", "test"),
 }
-_REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release"})
+_REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "feature_capstone"})
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F01-fork-clone-doctor": ("remote_and_doctor", "remote_doctor", {"artifact": ".codearbiter/reports/academy/F01-doctor.json"}),
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
@@ -223,7 +223,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md", "observation": "docs/U05-cache-key-observation.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
-    "U07-capstone": ("unavailable_until_accepted", "unavailable", {}),
+    "U07-capstone": ("feature_capstone_range", "feature_capstone", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
 
 
@@ -775,6 +775,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
                 "workshop_queue/service.py",
             }
         )
+    if contract.id == "U07-capstone":
+        expected_paths.add("tests/test_service.py")
     actual_paths = set(
         run_git(
             root,
@@ -813,6 +815,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         )
     if contract.id == "P05-checkpoint-remediation":
         return validate_p05_fixture(root, attempt.prepared)
+    if contract.id == "U07-capstone":
+        return validate_u07_fixture(root, attempt.prepared)
     return True
 
 
@@ -3230,14 +3234,11 @@ def _u04_initialized_projects(context: _SemanticContext) -> bool:
 
 def _u07_capstone(context: _SemanticContext) -> bool:
     """Verify the local U07 history without claiming a command or hosted event occurred."""
-    data = context.predicate.data
     root, attempt = context.root, context.attempt
-    paths = {
-        name: str(data[name])
-        for name in (
-            "spec_directory", "plan_directory", "adr_directory", "code", "test"
-        )
-    }
+    data = context.predicate.data
+    if set(data) != {"profile", "code", "test"}:
+        return False
+    paths = {name: str(data[name]) for name in ("code", "test")}
     if not validate_u07_fixture(root, attempt.prepared):
         return False
     learner_commits = tuple(
@@ -3247,56 +3248,55 @@ def _u07_capstone(context: _SemanticContext) -> bool:
         ).stdout.splitlines()
         if _SHA40.fullmatch(line)
     )
-    if len(learner_commits) != 3 or learner_commits[-1] != attempt.head:
+    if not learner_commits or learner_commits[-1] != attempt.head:
         return False
     parent = attempt.prepared
     for commit in learner_commits:
         if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
             return False
         parent = commit
-    scope_commit, test_commit, code_commit = learner_commits
-    scope_paths = set(_commit_paths(root, scope_commit))
+    changed_paths = run_git(
+        root,
+        ["diff", "--no-ext-diff", "--name-only", attempt.prepared, attempt.head],
+        check=False,
+    ).stdout.splitlines()
     specs = sorted(
-        path for path in scope_paths
-        if path.startswith(f"{paths['spec_directory']}/") and path.endswith(".md")
+        path for path in changed_paths
+        if path.startswith(".codearbiter/specs/") and path.endswith(".md")
     )
     plans = sorted(
-        path for path in scope_paths
-        if path.startswith(f"{paths['plan_directory']}/") and path.endswith(".md")
+        path for path in changed_paths
+        if path.startswith(".codearbiter/plans/") and path.endswith(".md")
     )
-    adrs = sorted(
-        path for path in scope_paths
-        if path.startswith(f"{paths['adr_directory']}/") and path.endswith(".md")
-    )
+    allowed_governance = {
+        ".codearbiter/open-tasks.md",
+        ".codearbiter/triage.log",
+        ".codearbiter/last-checkpoint",
+    }
+    allowed_paths = {paths["code"], paths["test"], *specs, *plans, *allowed_governance}
     if (
         len(specs) != 1
         or len(plans) != 1
-        or len(adrs) != 1
-        or scope_paths != {specs[0], plans[0], adrs[0]}
         or Path(specs[0]).stem != Path(plans[0]).stem
-        or re.fullmatch(r"\d{4}-.+\.md", Path(adrs[0]).name) is None
-        or set(_commit_paths(root, test_commit)) != {paths["test"]}
-        or set(_commit_paths(root, code_commit)) != {paths["code"]}
+        or paths["code"] not in changed_paths
+        or paths["test"] not in changed_paths
+        or any(path not in allowed_paths for path in changed_paths)
     ):
         return False
     documents = {
-        "spec": _text(root, scope_commit, specs[0]),
-        "plan": _text(root, scope_commit, plans[0]),
-        "adr": _text(root, scope_commit, adrs[0]),
+        "spec": _text(root, attempt.head, specs[0]),
+        "plan": _text(root, attempt.head, plans[0]),
     }
     if not (
         _headings(documents["spec"], ("Problem", "Acceptance criteria"))
         and _headings(documents["plan"], ("Plan", "Verification"))
-        and _headings(documents["adr"], ("Decision", "Consequences"))
     ):
         return False
-    candidate_paths = run_git(
-        root, ["diff", "--no-ext-diff", "--name-only", scope_commit, code_commit], check=False
-    ).stdout.splitlines()
-    if candidate_paths != [paths["test"], paths["code"]]:
+    document_text = "\n".join(item or "" for item in documents.values()).casefold()
+    if any(token not in document_text for token in ("control", "character", "resolution")):
         return False
-    test_blob = _git_blob(root, code_commit, paths["test"])
-    code_blob = _git_blob(root, code_commit, paths["code"])
+    test_blob = _git_blob(root, attempt.head, paths["test"])
+    code_blob = _git_blob(root, attempt.head, paths["code"])
     if (
         test_blob is None
         or code_blob is None
@@ -3353,7 +3353,7 @@ def _u07_capstone(context: _SemanticContext) -> bool:
         return False
     clean = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
     return bool(
-        _changed_blobs_are_secret_free(root, code_commit, candidate_paths)
+        _changed_blobs_are_secret_free(root, attempt.head, changed_paths)
         and test_result.returncode == 0
         and control_probe.returncode == 0
         and clean.returncode == 0
@@ -3883,6 +3883,8 @@ def _semantic(context: _SemanticContext) -> bool:
             and report["predicted_reviewers"] == _predicted_reviewers(changed_paths)
             and report["optional_surfaces"] == ["ca-sandbox", "ca-new-skill", "ca-watch", "ca-tribunal"]
         )
+    if profile == "feature_capstone":
+        return _u07_capstone(context)
     return False
 
 
