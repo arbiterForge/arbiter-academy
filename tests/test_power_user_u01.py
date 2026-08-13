@@ -152,7 +152,7 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn("U02-override-audit-metrics", release.available_labs)
         self.assertIn("U02-override-audit-metrics", release.runnable_labs)
         self.assertIn("U02-override-audit-metrics", release.guided_labs)
-        self.assertIn("U03-refactor-chore-release", manifest.guided_labs)
+        self.assertIn("U03-refactor-chore-release", release.guided_labs)
         for lab_id in ("U04-initialize-projects", "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"):
             self.assertNotIn(lab_id, release.available_labs)
 
