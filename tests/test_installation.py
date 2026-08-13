@@ -497,7 +497,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and any(f"/U0{number}" in name for number in range(3, 8))
                     for name in names
                 ),
-                "the public wheel must not distribute unpublished U03-U07 material",
+                "the public wheel must not distribute unpublished U04-U07 material",
             )
             self.assertEqual(
                 sum(
