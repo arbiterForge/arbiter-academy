@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -39,11 +40,13 @@ class CatalogExportTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True, text=True)
             subprocess.run(["git", "-c", "gc.auto=0", "-c", "maintenance.auto=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "source"], cwd=root, check=True, capture_output=True, text=True)
             output = Path(directory) / "catalog.json"
+            environment = {**os.environ, "GIT_GC_AUTO": "0", "GIT_MAINTENANCE_AUTO": "0"}
             result = subprocess.run(
                 [sys.executable, str(script), "export-catalog", str(output)],
                 cwd=root,
                 capture_output=True,
                 text=True,
+                env=environment,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             payload = json.loads(output.read_text(encoding="utf-8"))
@@ -57,6 +60,7 @@ class CatalogExportTests(unittest.TestCase):
                 cwd=root,
                 capture_output=True,
                 text=True,
+                env=environment,
             )
             self.assertEqual(second.returncode, 0, second.stderr)
             self.assertEqual(output.read_bytes(), original)
