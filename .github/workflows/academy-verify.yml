@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: arbiterForge/codeArbiter
-          ref: 469c2fb82555346a739ab72a0f7284f22874aa3e
+          ref: debb49da71aa1b97bca0988f72e46bb5875a23e3
           path: .ci/codearbiter-source
           persist-credentials: false
 
