@@ -71,8 +71,8 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_19))
         self.assertEqual(manifest.coming_next, tuple(COMING_NEXT))
 
-    def test_preview_zero_eighteen_promotes_the_accepted_u05_closure(self) -> None:
-        """U05 becomes public only with its four accepted Power User prerequisites."""
+    def test_preview_zero_nineteen_promotes_the_accepted_u06_closure(self) -> None:
+        """U06 becomes public only with its five accepted Power User prerequisites."""
         manifest = load_preview_manifest(self.root)
 
         self.assertEqual(manifest.release, "preview-0.19")
