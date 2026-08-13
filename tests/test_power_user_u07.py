@@ -6,6 +6,8 @@ from pathlib import Path
 from academy_engine import curriculum
 from academy_engine.lesson_actions import load_action_manifest
 from academy_engine.preview import load_preview_manifest
+from academy_engine.scenario import PreparationError, prepare_lab
+from tests.test_foundations_labs import AcademyRepository, git
 
 
 SOURCE = Path(__file__).parents[1]
@@ -45,6 +47,21 @@ class U07PrivateCapstoneContractTests(unittest.TestCase):
         self.assertNotIn("U07-submission-boundary.json", guide)
         release = load_preview_manifest(SOURCE)
         self.assertNotIn(U07, release.guided_labs)
+
+    def test_private_capstone_refuses_direct_fixture_preparation(self) -> None:
+        """An internal API must not revive the retired local capstone simulation."""
+        fixture = AcademyRepository()
+        self.addCleanup(fixture.close)
+        fixture.add_safe_upstream()
+
+        with self.assertRaisesRegex(PreparationError, "not accepted"):
+            prepare_lab(fixture.root, U07)
+
+        self.assertEqual(git(fixture.root, "branch", "--list", "academy/U07-capstone/*").stdout, "")
+        self.assertEqual(
+            git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout,
+            "",
+        )
 
 
 if __name__ == "__main__":

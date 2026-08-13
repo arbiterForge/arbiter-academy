@@ -201,9 +201,9 @@ _PROFILES = {
     "debug_spike_conflict": ("spike", "board", "observation"),
     "preview_evidence": ("report",),
     "u06_preview_evidence": ("candidate", "report"),
-    "capstone": ("spec_directory", "plan_directory", "adr_directory", "code", "test"),
+    "unavailable": (),
 }
-_REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "capstone"})
+_REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release"})
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F01-fork-clone-doctor": ("remote_and_doctor", "remote_doctor", {"artifact": ".codearbiter/reports/academy/F01-doctor.json"}),
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
@@ -223,7 +223,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md", "observation": "docs/U05-cache-key-observation.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
-    "U07-capstone": ("capstone_governed_range", "capstone", {"spec_directory": ".codearbiter/specs", "plan_directory": ".codearbiter/plans", "adr_directory": ".codearbiter/decisions", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
+    "U07-capstone": ("unavailable_until_accepted", "unavailable", {}),
 }
 
 
@@ -775,8 +775,6 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
                 "workshop_queue/service.py",
             }
         )
-    if contract.id == "U07-capstone":
-        expected_paths.add("tests/test_service.py")
     actual_paths = set(
         run_git(
             root,
@@ -815,8 +813,6 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         )
     if contract.id == "P05-checkpoint-remediation":
         return validate_p05_fixture(root, attempt.prepared)
-    if contract.id == "U07-capstone":
-        return validate_u07_fixture(root, attempt.prepared)
     return True
 
 
@@ -3887,8 +3883,6 @@ def _semantic(context: _SemanticContext) -> bool:
             and report["predicted_reviewers"] == _predicted_reviewers(changed_paths)
             and report["optional_surfaces"] == ["ca-sandbox", "ca-new-skill", "ca-watch", "ca-tribunal"]
         )
-    if profile == "capstone":
-        return _u07_capstone(context)
     return False
 
 

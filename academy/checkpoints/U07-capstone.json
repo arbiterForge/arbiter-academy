@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"U07-capstone","predicates":[{"id":"capstone_governed_range","type":"lab_semantics","profile":"capstone","spec_directory":".codearbiter/specs","plan_directory":".codearbiter/plans","adr_directory":".codearbiter/decisions","code":"workshop_queue/service.py","test":"tests/test_service.py"}]}
+{"schema_version":2,"id":"U07-capstone","predicates":[{"id":"unavailable_until_accepted","type":"lab_semantics","profile":"unavailable"}]}
