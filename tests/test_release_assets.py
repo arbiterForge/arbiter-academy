@@ -25,7 +25,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 BUILDER = REPOSITORY / "scripts" / "build_release_assets.py"
 RELEASE = "preview-0.20"
 ARCHIVE = f"arbiter-academy-{RELEASE}.zip"
-EPOCH = 1_787_011_200
+EPOCH = 1_786_579_200
 EXPECTED_ASSETS = {
     "install.ps1",
     "install.ps1.sha256",
@@ -132,7 +132,7 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
     def test_preview_zero_sixteen_is_the_only_current_candidate_identity(self) -> None:
         """Catches current assets drifting while Preview 0.9 history remains intact."""
         self.assertEqual(RELEASE, "preview-0.20")
-        self.assertEqual(EPOCH, 1_787_011_200)
+        self.assertEqual(EPOCH, 1_786_579_200)
         publication = REPOSITORY / "academy" / "publication"
         self.assertFalse((publication / "preview-0.7.json").exists())
         self.assertFalse((publication / "preview-0.8.json").exists())

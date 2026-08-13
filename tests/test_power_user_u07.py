@@ -14,10 +14,10 @@ SOURCE = Path(__file__).parents[1]
 U07 = "U07-capstone"
 
 
-class U07PrivateCapstoneContractTests(unittest.TestCase):
+class U07CapstoneContractTests(unittest.TestCase):
     """U07 teaches the real feature lane without fabricating hosted proof."""
 
-    def test_private_guide_uses_the_real_feature_lane_and_keeps_pr_proof_in_the_browser(self) -> None:
+    def test_public_guide_uses_the_real_feature_lane_and_keeps_pr_proof_in_the_browser(self) -> None:
         manifest = load_action_manifest(SOURCE, U07)
         action_ids = tuple(action.id for action in manifest.actions)
         self.assertEqual(
@@ -62,13 +62,17 @@ class U07PrivateCapstoneContractTests(unittest.TestCase):
         self.assertIn("real CodeArbiter feature lane", guide)
         self.assertIn("hosted pull request", guide)
         self.assertIn("does not prove that the feature command ran", guide)
+        self.assertIn("capstone in the public Academy course", guide)
+        self.assertNotIn("private source material", guide)
+        self.assertNotIn("not as a Preview route", guide)
+        self.assertNotIn("this draft", guide)
         self.assertNotIn("U07-pr-receipt", guide)
         self.assertNotIn("$ca-adr", guide)
         self.assertNotIn("$ca-review", guide)
         release = load_preview_manifest(SOURCE)
-        self.assertNotIn(U07, release.guided_labs)
+        self.assertIn(U07, release.guided_labs)
 
-    def test_private_capstone_prepares_the_real_feature_fixture(self) -> None:
+    def test_capstone_prepares_the_real_feature_fixture(self) -> None:
         """The accepted capstone starts from a bounded, inspectable defect."""
         fixture = AcademyRepository()
         self.addCleanup(fixture.close)

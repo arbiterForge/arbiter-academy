@@ -72,8 +72,8 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
-    def test_preview_zero_nineteen_publishes_u06_and_the_guided_inventory(self) -> None:
-        """Catches U06 missing after its accepted guided promotion."""
+    def test_preview_zero_twenty_publishes_u07_and_the_complete_guided_inventory(self) -> None:
+        """Catches U07 missing after the final accepted guided promotion."""
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
@@ -142,7 +142,8 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("<strong>Current release inventory.</strong>", index)
         self.assertIn("Preview 0.20", index)
         self.assertIn("P08-repository-hygiene", index)
-        self.assertIn("Power User</strong>: U07", index)
+        self.assertIn('href="labs/U07-capstone/index.html"', index)
+        self.assertNotIn("Power User</strong>: U07", index)
 
         u01 = (self.out / "labs" / "U01-autonomous-sprint" / "index.html").read_text(
             encoding="utf-8"
