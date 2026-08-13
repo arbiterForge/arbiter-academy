@@ -198,8 +198,16 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         (self.root / self._CHORE).write_text("# Workshop Queue\n\nPrivate Academy release note.\n", encoding="utf-8")
         self._commit("document approved release note", self._CHORE)
         (self.root / self._CODE).write_text("def read_ticket():\n    return 'open'  # refactored\n", encoding="utf-8")
-        head = self._commit("refactor store boundary", self._CODE)
-        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
+        self._commit(
+            "refactor: clarify store boundary\n\n"
+            "CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.",
+            self._CODE,
+        )
+        (self.root / self._CHANGELOG).write_text("# Changelog\n\n" + self._section(), encoding="utf-8")
+        head = self._commit("chore: prepare academy release", self._CHANGELOG)
+        message = Path(self.temporary.name) / "reversed-tag-message.txt"
+        message.write_text(self._tag_message(), encoding="utf-8")
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), "--cleanup=verbatim", head)
 
         self.assertFalse(_semantic(self._context(head)))
 
