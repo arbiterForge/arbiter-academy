@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $Release = "preview-0.18"
 $ArchiveName = "arbiter-academy-preview-0.18.zip"
-$BundleSha256 = "93c65cd44d15b14d7a503da58674023c56e91d5d7e26effcd4c6fe43d0c13429"
+$BundleSha256 = "26c802b061e6c75c7c944a8fdb7b9d096adba8069179b655a9d95ecb58c54788"
 $AssetUrl = "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.18/arbiter-academy-preview-0.18.zip"
 
 function Assert-PathInside {
