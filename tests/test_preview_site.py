@@ -166,6 +166,62 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Native terminal · Windows", html)
         self.assertNotIn("{{action:", html)
 
+    def test_u04_private_document_uses_shared_actions_without_a_public_route(self) -> None:
+        """U04 source may render for review, but Preview 0.12 must not publish it."""
+        document_id = "U04-initialize-projects"
+        manifest = load_action_manifest(self.root, document_id)
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/power-user/U04-initialize-projects.md"),
+            document_id,
+            require_h1=True,
+        )
+        rendered = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(rendered.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="U04-run-greenfield-decompose"', rendered)
+        self.assertIn('data-action-id="U04-run-brownfield-create-context"', rendered)
+        self.assertIn('data-copy-target="command-U04-prepare-attempt-windows"', rendered)
+        self.assertIn("Your agent · Codex harness", rendered)
+        self.assertIn("You · Native terminal · Windows", rendered)
+        self.assertNotIn("{{action:", rendered)
+
+        manifest_publication = load_preview_manifest(self.root)
+        self.assertNotIn(document_id, manifest_publication.guided_labs)
+        build_preview_site(self.root, self.out, release_sha="d" * 40)
+        self.assertFalse((self.out / "labs" / document_id / "index.html").exists())
+
+    def test_u04_private_render_places_a_hard_stop_before_future_source_cards(self) -> None:
+        """Catches a rendered Preview refusal flowing into a copyable unavailable lifecycle."""
+        document_id = "U04-initialize-projects"
+        document = preview_site._read_markdown_document(
+            self.root,
+            Path("academy/tracks/power-user/U04-initialize-projects.md"),
+            document_id,
+            require_h1=True,
+        )
+        rendered = str(document["content"])
+
+        self.assertIn("Current Preview 0.12 boundary", rendered)
+        self.assertIn("Future private-source walkthrough", rendered)
+        current_heading = rendered.index("Current Preview 0.12 boundary")
+        prepare_card = rendered.index('data-action-id="U04-prepare-attempt"')
+        stop_copy = rendered.index("stop and use a published Preview 0.12 lab", prepare_card)
+        future_heading = rendered.index("Future private-source walkthrough")
+        first_future_card = rendered.index('data-action-id="U04-inspect-root"')
+        self.assertLess(current_heading, prepare_card)
+        self.assertLess(prepare_card, stop_copy)
+        self.assertLess(stop_copy, future_heading)
+        self.assertLess(future_heading, first_future_card)
+        self.assertIn("not runnable with Preview 0.12", rendered)
+        self.assertIn('data-action-id="U04-write-binding-report"', rendered)
+        self.assertNotIn('data-copy-target="command-U04-write-binding-report-', rendered)
+        self.assertIn("canonical writer is unavailable in Preview 0.12", rendered)
+
     def test_p07_guided_document_renders_action_cards_as_a_public_route(self) -> None:
         """Catches the public P07 route losing its shared action-card contract."""
         manifest = load_action_manifest(self.root, "P07-threat-model")

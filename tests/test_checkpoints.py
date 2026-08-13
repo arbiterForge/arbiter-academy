@@ -1306,6 +1306,27 @@ class WorkshopQueueCliTests:
         with self.assertRaisesRegex(CheckpointError, "exactly one"):
             load_checkpoint(self.path)
 
+    def test_definition_accepts_the_u04_two_project_binding_fields(self):
+        self.write(
+            {
+                "schema_version": 2,
+                "id": "U04-initialize-projects",
+                "predicates": [
+                    {
+                        "id": "initialized_projects",
+                        "type": "lab_semantics",
+                        "profile": "initialized_projects",
+                        "greenfield": ".academy/workspaces/U04-greenfield",
+                        "brownfield": ".academy/workspaces/U04-brownfield",
+                        "report": ".codearbiter/reports/academy/U04-initialization.md",
+                    }
+                ],
+            }
+        )
+        checkpoint = load_checkpoint(self.path)
+        self.assertEqual(checkpoint.predicates[0].data["greenfield"], ".academy/workspaces/U04-greenfield")
+        self.assertEqual(checkpoint.predicates[0].data["brownfield"], ".academy/workspaces/U04-brownfield")
+
     def test_wrong_branch_fails_recomputed_git_evidence(self):
         subprocess.run(["git", "init"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "switch", "-c", "wrong-branch"], cwd=self.root, check=True, capture_output=True, text=True)

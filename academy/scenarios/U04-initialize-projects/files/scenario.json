@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"U04-initialize-projects","operation":"secondary_initialization","target":".academy/workspaces/U04-secondary","starting_condition":"workspace-absent"}
+{"schema_version":1,"lab_id":"U04-initialize-projects","operation":"two_fixture_initialization","target":"greenfield-and-brownfield","starting_condition":"projects-absent"}

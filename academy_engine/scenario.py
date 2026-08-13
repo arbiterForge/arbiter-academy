@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
+import stat
 import tempfile
 import re
 from dataclasses import dataclass
@@ -41,6 +43,7 @@ from academy_engine.exercise_state import (
 from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.p05_fixture import P05FixtureError, stage_p05_fixture
+from academy_engine.u04_fixture import U04FixtureError, stage_u04_fixture
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
@@ -85,6 +88,10 @@ _P05_FIXTURE_TARGETS = (
     "workshop_queue/cli.py",
     "workshop_queue/model.py",
     "workshop_queue/service.py",
+)
+_U04_FIXTURE_TARGETS = (
+    ".academy/workspaces/U04-greenfield",
+    ".academy/workspaces/U04-brownfield",
 )
 
 
@@ -337,7 +344,18 @@ def _snapshots(
 def _remove_target(target: Path) -> None:
     if target.exists():
         if target.is_dir():
-            shutil.rmtree(target)
+            def remove_readonly(
+                function: Callable[[str], object],
+                path: str,
+                error_info: tuple[type[BaseException], BaseException, object],
+            ) -> None:
+                error = error_info[1]
+                if not isinstance(error, PermissionError):
+                    raise error
+                os.chmod(path, stat.S_IWRITE)
+                function(path)
+
+            shutil.rmtree(target, onerror=remove_readonly)
         else:
             target.unlink()
 
@@ -455,7 +473,13 @@ def prepare_lab(
     branch = f"academy/{lab.id}/{attempt}"
     original_branch = _branch(repository)
     with tempfile.TemporaryDirectory(prefix="academy-scenario-") as temporary:
-        fixture_targets = _P05_FIXTURE_TARGETS if lab.id == "P05-checkpoint-remediation" else ()
+        fixture_targets = (
+            _P05_FIXTURE_TARGETS
+            if lab.id == "P05-checkpoint-remediation"
+            else _U04_FIXTURE_TARGETS
+            if lab.id == "U04-initialize-projects"
+            else ()
+        )
         snapshots = _snapshots(
             repository,
             manifest,
@@ -491,6 +515,8 @@ def prepare_lab(
                 targets.append(operation.destination.relative_to(repository).as_posix())
             if lab.id == "P05-checkpoint-remediation":
                 targets.extend(stage_p05_fixture(repository, base=base_sha))
+            if lab.id == "U04-initialize-projects":
+                stage_u04_fixture(repository, base=base_sha)
             if targets:
                 run_git(repository, ["add", "-A", "--", *targets])
             run_git(repository, ["commit", "--allow-empty", "-m", f"academy: prepare {lab.id} attempt {attempt}"])
@@ -503,6 +529,7 @@ def prepare_lab(
             PathBoundaryError,
             AttributionError,
             P05FixtureError,
+            U04FixtureError,
             PreparationError,
         ) as error:
             try:
@@ -609,6 +636,10 @@ def reset_lab(
     suffix = current.removeprefix(expected_prefix)
     if not current.startswith(expected_prefix) or not suffix.isdecimal() or str(int(suffix)) != suffix or int(suffix) < 1:
         raise PreparationError("reset requires the matching attempt branch for this Academy lab.")
+    if lab_id == "U04-initialize-projects":
+        raise PreparationError(
+            "U04 reset is unavailable until Academy can archive both child repository histories."
+        )
     lab, manifest, manifest_path = _catalog_and_manifest(repository, lab_id)
     _validate_overlay(repository, manifest, manifest_path)
     _ensure_mutation_remote_safety(repository, manifest)

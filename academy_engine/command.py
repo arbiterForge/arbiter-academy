@@ -587,3 +587,35 @@ def run_git_unbound(
             raise GitCommandError("unbound Git isolation marker is occupied.")
         actual_args.insert(0, f"--git-dir={isolated}")
     return _run(["git", *actual_args], cwd=directory, check=check)
+
+
+def initialize_empty_training_repository(target: Path) -> None:
+    """Create one local, empty, non-bare Academy fixture repository on ``main``.
+
+    This is intentionally narrower than :func:`run_git_unbound`: callers cannot
+    select options, a template, a Git directory, or a target outside the plain
+    empty directory they already created and validated.
+    """
+    directory = Path(target).expanduser()
+    if not directory.is_absolute():
+        raise GitCommandError("training repository target must be absolute.")
+    try:
+        details = directory.lstat()
+        occupied = any(directory.iterdir())
+    except OSError as error:
+        raise GitCommandError(
+            "training repository target must be an empty plain directory."
+        ) from error
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    if (
+        not stat.S_ISDIR(details.st_mode)
+        or stat.S_ISLNK(details.st_mode)
+        or bool(getattr(details, "st_file_attributes", 0) & reparse_flag)
+        or occupied
+    ):
+        raise GitCommandError("training repository target must be an empty plain directory.")
+    _run(
+        ["git", "init", "--initial-branch=main"],
+        cwd=directory,
+        check=True,
+    )
