@@ -79,6 +79,7 @@ class CatalogExportTests(unittest.TestCase):
                 "P07-threat-model",
                 "P08-repository-hygiene",
                 "U01-autonomous-sprint",
+                "U05-debug-spike-conflict",
             },
         )
         self.assertTrue(
