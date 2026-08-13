@@ -2404,8 +2404,6 @@ class PrivateU03LessonActionTests(unittest.TestCase):
             "behavioral parity",
             "human approval",
             "CodeArbiter command execution",
-            "SemVer derivation",
-            "CHANGELOG or manifest update",
             "tag push",
             "publication",
         ):
@@ -2420,26 +2418,15 @@ class PrivateU03LessonActionTests(unittest.TestCase):
         self.assertIn("workshop_queue/store.py", actions["U03-stage-refactor"].instruction)
         self.assertIn("README.md", actions["U03-stage-chore"].instruction)
         tag = actions["U03-inspect-tag"]
-        self.assertIn("academy-v0.3.0", tag.instruction)
-        self.assertIn(
-            "Academy private exercise: academy-private-training 0.3.0",
-            tag.instruction,
-        )
-        self.assertIn(
-            "Academy private exercise: academy-private-training 0.3.0",
-            tag.expected_result,
-        )
-        self.assertIn("one terminal newline", tag.instruction)
-        self.assertIn("one terminal newline", tag.expected_result)
-        self.assertIn("extra blank", tag.recovery)
+        self.assertIn("academy-v0.0.1", tag.instruction)
+        self.assertIn("generated 0.0.1 changelog section", tag.instruction)
+        self.assertIn("matching Released-at date", tag.expected_result)
+        self.assertIn("does not point at HEAD", tag.recovery)
         self.assertTrue(
-            all("cat-file" in variant.command for variant in tag.variants)
+            all("git cat-file -t academy-v0.0.1" in variant.command for variant in tag.variants)
         )
         self.assertTrue(
-            all("repr(body)" in variant.command for variant in tag.variants)
-        )
-        self.assertTrue(
-            all("body != expected" in variant.command for variant in tag.variants)
+            all("git show --no-patch --format=%B academy-v0.0.1" in variant.command for variant in tag.variants)
         )
 
 

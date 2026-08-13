@@ -3301,13 +3301,11 @@ class PrivateU03PreviewContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("Preview 0.15 refuses U03", guide)
         self.assertIn("future private contract", guide)
-        self.assertIn("academy-v0.3.0", guide)
+        self.assertIn("academy-v0.0.1", guide)
         for limitation in (
             "behavioral parity",
             "human approval",
             "CodeArbiter command execution",
-            "SemVer derivation",
-            "CHANGELOG or manifest update",
             "tag push",
             "publication",
         ):

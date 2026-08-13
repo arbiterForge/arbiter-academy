@@ -1327,7 +1327,7 @@ class WorkshopQueueCliTests:
         self.assertEqual(checkpoint.predicates[0].data["greenfield"], ".academy/workspaces/U04-greenfield")
         self.assertEqual(checkpoint.predicates[0].data["brownfield"], ".academy/workspaces/U04-brownfield")
 
-    def test_definition_accepts_u03_release_identity_strings(self):
+    def test_definition_accepts_u03_real_release_target_fields(self):
         self.write(
             {
                 "schema_version": 2,
@@ -1342,15 +1342,28 @@ class WorkshopQueueCliTests:
                         "test": "tests/test_store.py",
                         "chore": "README.md",
                         "release_target": "academy-private-training",
-                        "release_version": "0.3.0",
-                        "release_tag": "academy-v0.3.0",
-                        "release_message": "Academy private exercise: academy-private-training 0.3.0",
+                        "release_version": "0.0.1",
+                        "release_tag": "academy-v0.0.1",
+                        "release_changelog": "CHANGELOG.md",
+                        "release_targets": ".codearbiter/release-targets.md",
                     }
                 ],
             }
         )
         checkpoint = load_checkpoint(self.path)
-        self.assertEqual(checkpoint.predicates[0].data["release_tag"], "academy-v0.3.0")
+        self.assertEqual(checkpoint.predicates[0].data["release_tag"], "academy-v0.0.1")
+
+    def test_u03_real_release_fields_are_declared_by_the_checkpoint_schema(self):
+        """Catches public schema drift from the real ca-release target contract."""
+        schema = json.loads(
+            (Path(__file__).parents[1] / "academy/checkpoint.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        properties = schema["properties"]["predicates"]["items"]["properties"]
+        self.assertIn("release_changelog", properties)
+        self.assertIn("release_targets", properties)
+        self.assertNotIn("release_message", properties)
 
     def test_wrong_branch_fails_recomputed_git_evidence(self):
         subprocess.run(["git", "init"], cwd=self.root, check=True, capture_output=True, text=True)
