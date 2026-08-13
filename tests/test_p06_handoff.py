@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -22,6 +21,7 @@ from tests.test_p06_context_recovery import (
     _git,
     _write,
 )
+from tests._temporary import RetryingTemporaryDirectory
 
 
 P06_LAB_ID = "P06-context-drift-recovery"
@@ -29,8 +29,8 @@ P06_HANDOFF_PATH = ".codearbiter/reports/academy/P06-recovery.json"
 
 
 class P06HandoffTests(unittest.TestCase):
-    def _attempt(self, *, extra_correction_path: bool = False) -> tuple[tempfile.TemporaryDirectory[str], Path, str, str]:
-        temporary = tempfile.TemporaryDirectory()
+    def _attempt(self, *, extra_correction_path: bool = False) -> tuple[RetryingTemporaryDirectory, Path, str, str]:
+        temporary = RetryingTemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
         _git(root, "init", "-b", "main")

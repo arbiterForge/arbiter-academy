@@ -2629,11 +2629,10 @@ class P04NativeDependencyReviewTests(unittest.TestCase):
 
 
 class U07CapstoneSemanticTests(unittest.TestCase):
-    """Exercise the bounded local capstone history without a hosted PR claim."""
+    """Exercise bounded feature artifacts without claiming a hosted PR occurred."""
 
     spec_path = ".codearbiter/specs/capstone.md"
     plan_path = ".codearbiter/plans/capstone.md"
-    adr_path = ".codearbiter/decisions/0004-capstone.md"
     code_path = "workshop_queue/service.py"
     test_path = "tests/test_service.py"
 
@@ -2694,13 +2693,10 @@ class U07CapstoneSemanticTests(unittest.TestCase):
             self.root,
             _Attempt("academy/U07-capstone/1", 1, self.prepared, self.prepared, self._head()),
             Predicate(
-                "capstone_governed_range",
+                "feature_capstone_range",
                 "lab_semantics",
                 {
-                    "profile": "capstone",
-                    "spec_directory": ".codearbiter/specs",
-                    "plan_directory": ".codearbiter/plans",
-                    "adr_directory": ".codearbiter/decisions",
+                    "profile": "feature_capstone",
                     "code": self.code_path,
                     "test": self.test_path,
                 },
@@ -2708,9 +2704,8 @@ class U07CapstoneSemanticTests(unittest.TestCase):
         )
 
     def _write_honest_history(self, *, extra_implementation_path: bool = False) -> None:
-        self._write(self.spec_path, "# Capstone specification\n\n## Problem\n\nExpose the terminal ticket state.\n\n## Acceptance criteria\n\n- The status is terminal.\n")
-        self._write(self.plan_path, "# Capstone plan\n\n## Plan\n\n1. Write the focused regression.\n2. Change the service.\n\n## Verification\n\n`python -m unittest tests.test_service`\n")
-        self._write(self.adr_path, "# ADR-0004: Terminal status\n\n## Decision\n\nReturn the terminal state.\n\n## Consequences\n\nThe service contract changes.\n")
+        self._write(self.spec_path, "# Reject control characters\n\n## Problem\n\nTicket resolution accepts control characters.\n\n## Acceptance criteria\n\n- Resolution rejects newline, tab, and DEL control characters.\n")
+        self._write(self.plan_path, "# Reject control characters\n\n## Plan\n\n1. Write the focused resolution regression.\n2. Change the service.\n\n## Verification\n\n`python -m unittest tests.test_service`\n")
         self._commit("record capstone scope")
 
         prepared_test = (self.root / self.test_path).read_text(encoding="utf-8")
@@ -2726,16 +2721,16 @@ class U07CapstoneSemanticTests(unittest.TestCase):
             self._write("README.md", "unrelated\n")
         candidate = self._commit("implement capstone terminal state")
 
-    def test_retired_capstone_profile_cannot_accept_a_local_history(self) -> None:
+    def test_accepts_feature_history_without_an_adr_or_pr_receipt(self) -> None:
         self._write_honest_history()
-        self.assertFalse(_semantic(self._context()))
+        self.assertTrue(_semantic(self._context()))
 
     def test_rejects_implementation_commit_with_an_unrelated_path(self) -> None:
         self._write_honest_history(extra_implementation_path=True)
         self.assertFalse(_semantic(self._context()))
 
-    def test_rejects_scope_commit_with_a_noncanonical_adr_filename(self) -> None:
-        self.adr_path = ".codearbiter/decisions/capstone.md"
+    def test_rejects_feature_documents_with_different_slugs(self) -> None:
+        self.plan_path = ".codearbiter/plans/another-feature.md"
         self._write_honest_history()
         self.assertFalse(_semantic(self._context()))
 

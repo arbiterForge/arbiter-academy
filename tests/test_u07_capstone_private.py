@@ -6,7 +6,8 @@ import unittest
 from pathlib import Path
 
 from academy_engine.preview import load_preview_manifest, require_guided_lab, require_runnable_lab
-from academy_engine.scenario import PreparationError, prepare_lab
+from academy_engine.checkpoints import evaluate_checkpoint
+from academy_engine.scenario import prepare_lab
 from academy_engine.u07_fixture import u07_remediation_source_is_exact, u07_remediation_test_is_exact
 from scripts import build_preview_site as preview_site
 from scripts.build_preview_site import build_preview_site
@@ -42,28 +43,84 @@ class U07PrivateCapstoneTests(unittest.TestCase):
 '''
         self.assertFalse(u07_remediation_source_is_exact(fake))
 
-    def test_checkpoint_marks_the_retired_capstone_unavailable(self) -> None:
+    def test_checkpoint_binds_real_feature_artifacts_without_a_pr_receipt(self) -> None:
         checkpoint = json.loads(
             (SOURCE / "academy/checkpoints/U07-capstone.json").read_text(encoding="utf-8")
         )
         predicate = checkpoint["predicates"][0]
         self.assertEqual(
             predicate,
-            {
-                "id": "unavailable_until_accepted",
-                "type": "lab_semantics",
-                "profile": "unavailable",
-            },
+            {"id": "feature_capstone_range", "type": "lab_semantics", "profile": "feature_capstone", "code": "workshop_queue/service.py", "test": "tests/test_service.py"},
         )
 
-    def test_retired_capstone_cannot_prepare_or_accept_a_local_history(self) -> None:
+    def test_prepare_creates_a_bounded_real_feature_fixture(self) -> None:
         fixture = AcademyRepository()
         self.addCleanup(fixture.close)
         fixture.add_safe_upstream()
-        with self.assertRaisesRegex(PreparationError, "not accepted"):
-            prepare_lab(fixture.root, LAB)
+        prepared = prepare_lab(fixture.root, LAB)
+        self.assertEqual(prepared.branch, "academy/U07-capstone/1")
+        self.assertIn(
+            "test_u07_prepared_resolution_control_is_accepted",
+            (fixture.root / "tests/test_service.py").read_text(encoding="utf-8"),
+        )
 
         self.assertEqual(git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout, "")
+
+    def test_check_accepts_real_feature_artifacts_without_an_adr_or_pr_receipt(self) -> None:
+        """A real feature commit is not constrained to the retired synthetic three-commit history."""
+        fixture = AcademyRepository()
+        self.addCleanup(fixture.close)
+        fixture.add_safe_upstream()
+        prepare_lab(fixture.root, LAB)
+
+        test_path = fixture.root / "tests/test_service.py"
+        prepared_test = test_path.read_text(encoding="utf-8")
+        start = prepared_test.index("    def test_u07_prepared_resolution_control_is_accepted")
+        end = prepared_test.index("\n\nif __name__ == \"__main__\":", start)
+        test_path.write_text(
+            prepared_test[:start]
+            + "    def test_u07_rejects_control_characters_in_resolution(self) -> None:\n"
+            + "        claimed = claim_ticket([open_ticket(\"RQ-U07\")], \"RQ-U07\", \"Sam\", fixed_now())\n"
+            + "        for resolution in (\"done\\nagain\", \"done\\tagain\", \"done\\x7fagain\"):\n"
+            + "            with self.subTest(resolution=repr(resolution)):\n"
+            + "                with self.assertRaisesRegex(ValueError, \"control characters\"):\n"
+            + "                    complete_ticket(claimed, \"RQ-U07\", resolution, fixed_now())\n"
+            + prepared_test[end:],
+            encoding="utf-8",
+        )
+        service_path = fixture.root / "workshop_queue/service.py"
+        service = service_path.read_text(encoding="utf-8")
+        marker = '            if not resolution.strip():\n                raise ValueError("resolution must be non-empty")\n'
+        service_path.write_text(
+            service.replace(
+                marker,
+                marker
+                + '            if any(ord(character) < 32 or ord(character) == 127 for character in resolution):\n'
+                + '                raise ValueError("resolution must not contain control characters")\n',
+                1,
+            ),
+            encoding="utf-8",
+        )
+        spec = fixture.root / ".codearbiter/specs/reject-control-characters-in-ticket-resolutions.md"
+        plan = fixture.root / ".codearbiter/plans/reject-control-characters-in-ticket-resolutions.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        plan.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(
+            "# Reject control characters in ticket resolutions\n\n## Problem\n\nTicket resolutions accept control characters.\n\n## Acceptance criteria\n\n- Reject newline, tab, and DEL control characters.\n",
+            encoding="utf-8",
+        )
+        plan.write_text(
+            "# Reject control characters in ticket resolutions\n\n## Plan\n\n1. Add a focused service regression.\n2. Reject control characters in the service.\n\n## Verification\n\npython -m unittest tests.test_service\n",
+            encoding="utf-8",
+        )
+        fixture.commit("feature: reject control characters", spec.relative_to(fixture.root).as_posix(), plan.relative_to(fixture.root).as_posix(), "tests/test_service.py", "workshop_queue/service.py")
+
+        result = evaluate_checkpoint(fixture.root, LAB)
+        self.assertTrue(result.passed, result)
+
+        (fixture.root / "README.md").write_text("copied spike code\n", encoding="utf-8")
+        fixture.commit("feature: unrelated transfer", "README.md")
+        self.assertFalse(evaluate_checkpoint(fixture.root, LAB).passed)
 
     def test_private_source_renders_for_review_but_is_excluded_from_every_preview_lifecycle_inventory(self) -> None:
         document = preview_site._read_markdown_document(
@@ -72,8 +129,8 @@ class U07PrivateCapstoneTests(unittest.TestCase):
             LAB,
             require_h1=True,
         )
-        self.assertIn('data-action-id="U07-read-private-boundary"', document["content"])
-        self.assertIn('data-action-id="U07-check-refusal"', document["content"])
+        self.assertIn('data-action-id="U07-run-feature"', document["content"])
+        self.assertIn('data-action-id="U07-open-pr"', document["content"])
         manifest = load_preview_manifest(SOURCE)
         for inventory in (manifest.available_labs, manifest.runnable_labs, manifest.guided_labs):
             self.assertNotIn(LAB, inventory)

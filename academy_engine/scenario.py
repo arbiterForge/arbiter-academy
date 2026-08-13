@@ -45,6 +45,7 @@ from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.p05_fixture import P05FixtureError, stage_p05_fixture
 from academy_engine.u03_fixture import U03FixtureError, U03_RELEASE_TARGETS_PATH, stage_u03_fixture
 from academy_engine.u04_fixture import U04FixtureError, stage_u04_fixture
+from academy_engine.u07_fixture import U07FixtureError, U07_FIXTURE_PATHS, stage_u07_fixture
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
@@ -100,6 +101,7 @@ _U04_FIXTURE_TARGETS = (
     ".academy/workspaces/U04-brownfield",
 )
 _U03_FIXTURE_TARGETS = (U03_RELEASE_TARGETS_PATH,)
+_U07_FIXTURE_TARGETS = U07_FIXTURE_PATHS
 
 
 def p02_state_reachable(lab_id: str | None) -> bool:
@@ -437,10 +439,6 @@ def prepare_lab(
     """Prepare one catalog-sourced attempt from the clean immutable base branch."""
     try:
         repository = repository_root(root)
-        if lab_id == "U07-capstone":
-            raise PreparationError(
-                "U07-capstone fixture is not accepted; Academy cannot prepare its retired local simulation."
-            )
         if lab_id == "P02-commit-review-pr":
             if not installed_authority:
                 raise PreparationError(_P02_AUTHORITY_REQUIRED)
@@ -491,6 +489,8 @@ def prepare_lab(
             if lab.id == "U04-initialize-projects"
             else _U03_FIXTURE_TARGETS
             if lab.id == "U03-refactor-chore-release"
+            else _U07_FIXTURE_TARGETS
+            if lab.id == "U07-capstone"
             else ()
         )
         snapshots = _snapshots(
@@ -532,6 +532,8 @@ def prepare_lab(
                 targets.extend(stage_u03_fixture(repository, base=base_sha))
             if lab.id == "U04-initialize-projects":
                 stage_u04_fixture(repository, base=base_sha)
+            if lab.id == "U07-capstone":
+                targets.extend(stage_u07_fixture(repository, base=base_sha))
             if targets:
                 run_git(repository, ["add", "-A", "--", *targets])
             run_git(repository, ["commit", "--allow-empty", "-m", f"academy: prepare {lab.id} attempt {attempt}"])
@@ -546,6 +548,7 @@ def prepare_lab(
             P05FixtureError,
             U03FixtureError,
             U04FixtureError,
+            U07FixtureError,
             PreparationError,
         ) as error:
             try:
