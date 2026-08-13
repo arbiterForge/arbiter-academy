@@ -2726,9 +2726,9 @@ class U07CapstoneSemanticTests(unittest.TestCase):
             self._write("README.md", "unrelated\n")
         candidate = self._commit("implement capstone terminal state")
 
-    def test_accepts_bounded_local_history_and_never_needs_a_hosted_pr(self) -> None:
+    def test_retired_capstone_profile_cannot_accept_a_local_history(self) -> None:
         self._write_honest_history()
-        self.assertTrue(_semantic(self._context()))
+        self.assertFalse(_semantic(self._context()))
 
     def test_rejects_implementation_commit_with_an_unrelated_path(self) -> None:
         self._write_honest_history(extra_implementation_path=True)
