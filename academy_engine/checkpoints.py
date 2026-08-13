@@ -171,7 +171,7 @@ _PROFILES = {
     "refactor_chore_release": ("code", "test", "chore", "tag_prefix"),
     "initialized_fixture": ("workspace", "report"),
     "initialized_projects": ("greenfield", "brownfield", "report"),
-    "debug_spike_conflict": ("debug", "spike", "conflict"),
+    "debug_spike_conflict": ("spike", "board"),
     "preview_evidence": ("report",),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
