@@ -3490,7 +3490,7 @@ def _u03_refactor_chore_release(root: Path, attempt: _Attempt, data: dict[str, o
         and tag_type.returncode == 0 and tag_type.stdout.strip() == "tag"
         and tag_head.returncode == 0 and tag_head.stdout.strip() == attempt.head
         and tag_body.returncode == 0 and separator
-        and body == f"{section.group(1)}\nReleased-at: {release_date}\n"
+        and body.replace("\r\n", "\n") == f"{section.group(1)}\nReleased-at: {release_date}\n"
     )
 
 
