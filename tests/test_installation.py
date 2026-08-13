@@ -494,7 +494,7 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertFalse(
                 any(
                     "/share/arbiter-academy/academy/" in name
-                    and any(f"/U0{number}" in name for number in range(3, 8))
+                    and any(f"/U0{number}" in name for number in range(4, 8))
                     for name in names
                 ),
                 "the public wheel must not distribute unpublished U04-U07 material",
@@ -505,7 +505,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                14,
+                15,
             )
             self.assertEqual(
                 sum(
@@ -513,7 +513,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                14,
+                15,
             )
             self.assertEqual(
                 sum(
@@ -521,7 +521,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                14,
+                15,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]
@@ -567,7 +567,11 @@ class InstalledWheelTests(unittest.TestCase):
             }
             self.assertEqual(
                 power_user_sources,
-                {"U01-autonomous-sprint.md", "U02-override-audit-metrics.md"},
+                {
+                    "U01-autonomous-sprint.md",
+                    "U02-override-audit-metrics.md",
+                    "U03-refactor-chore-release.md",
+                },
             )
 
             venv = scratch / "venv"
