@@ -48,6 +48,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/actions/U02-override-audit-metrics.json",
   "academy/actions/U03-refactor-chore-release.json",
   "academy/actions/U04-initialize-projects.json",
+  "academy/actions/U05-debug-spike-conflict.json",
 ]
 "share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
 "share/arbiter-academy/academy/checkpoints" = [
@@ -67,8 +68,9 @@ workshop_queue = ["seed/tickets.json"]
   "academy/checkpoints/U02-override-audit-metrics.json",
   "academy/checkpoints/U03-refactor-chore-release.json",
   "academy/checkpoints/U04-initialize-projects.json",
+  "academy/checkpoints/U05-debug-spike-conflict.json",
 ]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.17.json"]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.18.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
@@ -100,6 +102,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/tracks/power-user/U02-override-audit-metrics.md",
   "academy/tracks/power-user/U03-refactor-chore-release.md",
   "academy/tracks/power-user/U04-initialize-projects.md",
+  "academy/tracks/power-user/U05-debug-spike-conflict.md",
 ]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor" = ["academy/scenarios/F01-fork-clone-doctor/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
@@ -133,3 +136,5 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/scenarios/U03-refactor-chore-release/files" = ["academy/scenarios/U03-refactor-chore-release/files/*"]
 "share/arbiter-academy/academy/scenarios/U04-initialize-projects" = ["academy/scenarios/U04-initialize-projects/manifest.json"]
 "share/arbiter-academy/academy/scenarios/U04-initialize-projects/files" = ["academy/scenarios/U04-initialize-projects/files/*"]
+"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict" = ["academy/scenarios/U05-debug-spike-conflict/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict/files" = ["academy/scenarios/U05-debug-spike-conflict/files/*"]

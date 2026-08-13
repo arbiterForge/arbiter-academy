@@ -95,7 +95,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 )
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
-                self.assertIn("preview-0.17", " ".join(variant.command for variant in action.variants))
+                self.assertIn("preview-0.18", " ".join(variant.command for variant in action.variants))
 
         inspect = by_id["U01-inspect-scenario"]
         self.assertEqual({variant.surface for variant in inspect.variants}, {"native-terminal", "harness"})

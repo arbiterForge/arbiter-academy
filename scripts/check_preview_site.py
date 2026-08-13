@@ -114,9 +114,9 @@ _LABS = (
     "U02-override-audit-metrics",
     "U03-refactor-chore-release",
     "U04-initialize-projects",
+    "U05-debug-spike-conflict",
 )
 _COMING_NEXT = (
-    "U05-debug-spike-conflict",
     "U06-preview-and-advanced-surfaces", "U07-capstone",
 )
 _RUNNABLE_LINK_LABELS = (
@@ -136,8 +136,9 @@ _RUNNABLE_LINK_LABELS = (
     "U02: Record a scoped override with local audit evidence",
     "U03: Refactor, chore, and local release evidence",
     "U04: Initialize a greenfield and a brownfield project",
+    "U05: Debug, spike, and conflict without inventing evidence",
 )
-_COMING_NEXT_ENTRIES = (("Power User: U05 through U07. Guided rewrites are in progress.", False),)
+_COMING_NEXT_ENTRIES = (("Power User: U06 through U07. Guided rewrites are in progress.", False),)
 _PUBLIC_PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
     "Git 2.39 or newer.",
@@ -146,8 +147,8 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U04 are the guided lessons published in Preview 0.17.",
-    "U05-U07 remain unavailable in Preview 0.17.",
+    "F01-F04, P01-P08, and U01-U05 are the guided lessons published in Preview 0.18.",
+    "U06-U07 remain unavailable in Preview 0.18.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -304,6 +305,13 @@ _EXPECTED_ACTION_IDS = {
         "U04-inspect-project-evidence", "U04-write-binding-report", "U04-inspect-report",
         "U04-stage-report", "U04-review-commit-boundary", "U04-run-commit-gate",
         "U04-confirm-clean", "U04-check-status", "U04-reset-retry",
+    ),
+    Path("labs/U05-debug-spike-conflict/index.html"): (
+        "U05-confirm-readiness", "U05-prepare-attempt", "U05-read-observation",
+        "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
+        "U05-run-spike", "U05-confirm-spike-question", "U05-transfer-findings",
+        "U05-review-findings", "U05-commit-findings", "U05-delete-spike",
+        "U05-halt-for-conflict", "U05-check-status", "U05-reset-retry",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -593,7 +601,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.17"
+        or data.get("release") != "preview-0.18"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -672,6 +680,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             Path("labs/U02-override-audit-metrics/index.html"),
             Path("labs/U03-refactor-chore-release/index.html"),
             Path("labs/U04-initialize-projects/index.html"),
+            Path("labs/U05-debug-spike-conflict/index.html"),
         }:
             expected_statuses = (_GUIDED_STATUS,)
         else:
