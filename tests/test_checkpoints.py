@@ -1327,6 +1327,31 @@ class WorkshopQueueCliTests:
         self.assertEqual(checkpoint.predicates[0].data["greenfield"], ".academy/workspaces/U04-greenfield")
         self.assertEqual(checkpoint.predicates[0].data["brownfield"], ".academy/workspaces/U04-brownfield")
 
+    def test_definition_accepts_u03_release_identity_strings(self):
+        self.write(
+            {
+                "schema_version": 2,
+                "id": "U03-refactor-chore-release",
+                "predicates": [
+                    {
+                        "id": "refactor_chore_release",
+                        "type": "lab_semantics",
+                        "profile": "refactor_chore_release",
+                        "scenario": "training_scenarios/U03-refactor-chore-release.json",
+                        "code": "workshop_queue/store.py",
+                        "test": "tests/test_store.py",
+                        "chore": "README.md",
+                        "release_target": "academy-private-training",
+                        "release_version": "0.3.0",
+                        "release_tag": "academy-v0.3.0",
+                        "release_message": "Academy private exercise: academy-private-training 0.3.0",
+                    }
+                ],
+            }
+        )
+        checkpoint = load_checkpoint(self.path)
+        self.assertEqual(checkpoint.predicates[0].data["release_tag"], "academy-v0.3.0")
+
     def test_wrong_branch_fails_recomputed_git_evidence(self):
         subprocess.run(["git", "init"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "switch", "-c", "wrong-branch"], cwd=self.root, check=True, capture_output=True, text=True)

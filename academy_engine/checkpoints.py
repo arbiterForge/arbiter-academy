@@ -353,6 +353,23 @@ def load_checkpoint(path: Path) -> Checkpoint:
                     if not re.fullmatch(r"[a-z][a-z0-9.-]{1,31}", prefix):
                         raise CheckpointError("tag_prefix is invalid.")
                     data_fields[field] = prefix
+                elif field == "release_target":
+                    target = _string(item[field], field)
+                    if not re.fullmatch(r"[a-z][a-z0-9-]{1,63}", target):
+                        raise CheckpointError("release_target is invalid.")
+                    data_fields[field] = target
+                elif field == "release_version":
+                    version = _string(item[field], field)
+                    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+                        raise CheckpointError("release_version is invalid.")
+                    data_fields[field] = version
+                elif field == "release_tag":
+                    release_tag = _string(item[field], field)
+                    if not re.fullmatch(r"[a-z][a-z0-9-]*-v[0-9]+\.[0-9]+\.[0-9]+", release_tag):
+                        raise CheckpointError("release_tag is invalid.")
+                    data_fields[field] = release_tag
+                elif field == "release_message":
+                    data_fields[field] = _string(item[field], field)
                 else:
                     data_fields[field] = _safe_path(
                         item[field], field, directory=field == "workspace"
