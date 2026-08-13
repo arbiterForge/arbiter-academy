@@ -117,6 +117,9 @@ class PreviewSiteTests(unittest.TestCase):
             ("P06-context-drift-recovery", "P06-prepare"),
             ("P07-threat-model", "P07-prepare"),
             ("P08-repository-hygiene", "P08-prepare"),
+            ("U02-override-audit-metrics", "U02-prepare"),
+            ("U02-override-audit-metrics", "U02-log-override"),
+            ("U02-override-audit-metrics", "U02-check"),
         ):
             rendered = (self.out / "labs" / lab_id / "index.html").read_text(encoding="utf-8")
             self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', rendered)

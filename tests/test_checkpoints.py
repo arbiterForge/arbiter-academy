@@ -1970,6 +1970,8 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         audit_receipt: bool = True,
         metrics_receipt: bool = True,
         override_lines: int = 1,
+        audit_packet_name: str = "2026-08-12.md",
+        audit_packet_prose_only: bool = False,
     ) -> _SemanticContext:
         root = self.root / f"u02-{len(tuple(self.root.iterdir()))}"
         root.mkdir()
@@ -2028,13 +2030,19 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
                 encoding="utf-8",
                 newline="\n",
             )
-        audit_packet_path = root / ".codearbiter" / "audits" / "2026-08-12.md"
+        audit_packet_path = root / ".codearbiter" / "audits" / audit_packet_name
         if audit_packet:
             audit_packet_path.parent.mkdir(parents=True)
             audit_packet_path.write_text(
-                "# Academy audit packet\n\n"
-                "## Overrides\n"
-                + "".join(new_lines),
+                (
+                    "# Academy audit packet\n\n"
+                    "## Overrides\n"
+                    + "".join(new_lines)
+                    if not audit_packet_prose_only
+                    else "# Academy audit packet\n\n"
+                    + "The override record was: "
+                    + new_lines[0]
+                ),
                 encoding="utf-8",
                 newline="\n",
             )
@@ -2044,7 +2052,7 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         if metrics_receipt:
             paths = (*paths, ".codearbiter/reports/academy/U02-metrics.json")
         if audit_packet:
-            paths = (*paths, ".codearbiter/audits/2026-08-12.md")
+            paths = (*paths, f".codearbiter/audits/{audit_packet_name}")
         if extra_path:
             (root / "extra.txt").write_text("decoy\n", encoding="utf-8", newline="\n")
             paths = (*paths, "extra.txt")
@@ -2110,6 +2118,16 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         self.assertFalse(
             _semantic(self._semantic_context(audit_packet=True, override_lines=2))
         )
+
+    def test_u02_rejects_noncanonical_audit_packet_names_and_prose_only_quotes(self) -> None:
+        """A dated CodeArbiter packet quotes the record as an Overrides entry, not prose."""
+        cases = {
+            "alternate-packet-name": {"audit_packet_name": "override-summary.md"},
+            "prose-only-quote": {"audit_packet_prose_only": True},
+        }
+        for name, arguments in cases.items():
+            with self.subTest(name=name):
+                self.assertFalse(_semantic(self._semantic_context(audit_packet=True, **arguments)))
 
 
 class P04NativeDependencyReviewTests(unittest.TestCase):

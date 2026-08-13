@@ -3643,10 +3643,10 @@ def _semantic(context: _SemanticContext) -> bool:
         commit_parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
         expected_paths = {overrides}
         changed_paths = set(_commit_paths(root, attempt.head))
-        audit_packet_paths = {
-            path for path in changed_paths
-            if path.startswith(f"{audit_packets}/") and path.endswith(".md")
-        }
+        audit_packet_name = re.compile(
+            rf"^{re.escape(audit_packets)}/\d{{4}}-\d{{2}}-\d{{2}}(?:-\d+)?\.md$"
+        )
+        audit_packet_paths = {path for path in changed_paths if audit_packet_name.fullmatch(path)}
         status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
         if (
             prepared_overrides is None or final_overrides is None
@@ -3663,8 +3663,14 @@ def _semantic(context: _SemanticContext) -> bool:
         override_line = re.compile(r"^\[[^\]\r\n]+\] \| BY: [^|\r\n]+ \| GATE: safe-training-gate \| REASON: [^\r\n]+$")
         audit_packet = _text(root, attempt.head, next(iter(audit_packet_paths)))
         return bool(
-            len(new_lines) == 1 and all(override_line.fullmatch(line) for line in new_lines)
-            and audit_packet is not None and all(line in audit_packet for line in new_lines)
+            len(new_lines) == 1
+            and all(override_line.fullmatch(line) for line in new_lines)
+            and audit_packet is not None
+            and re.search(r"(?m)^## Overrides\s*$", audit_packet)
+            and all(
+                re.search(rf"(?m)^{re.escape(line)}$", audit_packet)
+                for line in new_lines
+            )
         )
     if profile == "refactor_chore_release":
         return _u03_refactor_chore_release(root, attempt, data)

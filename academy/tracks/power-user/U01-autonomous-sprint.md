@@ -107,8 +107,8 @@ artifact content. Preserve the attempt and use Reset only after returning safely
 
 {{action:U01-reset-retry}}
 
-U02 is not published in Preview 0.15. Do not use unpublished source exercises as a substitute for a
-published Academy lesson.
+U02 is published in Preview 0.15. Continue through its published Academy lesson rather than using
+unpublished source exercises as a substitute for a guided route.
 
 ## Understand the mechanism
 
