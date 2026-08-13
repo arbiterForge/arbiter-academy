@@ -847,7 +847,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
         self.assertIn("U01 is published in this release", html)
-        self.assertIn("U03-U07 remain unavailable", html)
+        self.assertIn("U03 through U07", html)
         self.assertIn("Doctor", html)
         self.assertIn(
             "A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.",
