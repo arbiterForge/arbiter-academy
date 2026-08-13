@@ -146,10 +146,19 @@ def u07_remediation_test_is_exact(raw: bytes) -> bool:
     except (UnicodeDecodeError, SyntaxError):
         return False
     methods = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name == "test_u07_rejects_control_characters_in_resolution"
+        method
+        for test_case in tree.body
+        if isinstance(test_case, ast.ClassDef)
+        and any(
+            isinstance(base, ast.Attribute)
+            and isinstance(base.value, ast.Name)
+            and base.value.id == "unittest"
+            and base.attr == "TestCase"
+            for base in test_case.bases
+        )
+        for method in test_case.body
+        if isinstance(method, ast.FunctionDef)
+        and method.name == "test_u07_rejects_control_characters_in_resolution"
     ]
     if len(methods) != 1 or methods[0].decorator_list:
         return False

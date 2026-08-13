@@ -3251,6 +3251,7 @@ def _u07_capstone(context: _SemanticContext) -> bool:
         or len(adrs) != 1
         or scope_paths != {specs[0], plans[0], adrs[0]}
         or Path(specs[0]).stem != Path(plans[0]).stem
+        or re.fullmatch(r"\d{4}-.+\.md", Path(adrs[0]).name) is None
         or set(_commit_paths(root, test_commit)) != {paths["test"]}
         or set(_commit_paths(root, code_commit)) != {paths["code"]}
     ):
@@ -3286,42 +3287,47 @@ def _u07_capstone(context: _SemanticContext) -> bool:
         return False
     if remote.origin is None:
         return False
-    test_result = subprocess.run(
-        [sys.executable, "-m", "unittest", paths["test"].replace("/", ".").removesuffix(".py")],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-    )
-    control_probe = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "\n".join(
-                (
-                    "from datetime import datetime, timezone",
-                    "from workshop_queue.model import Ticket, TicketStatus",
-                    "from workshop_queue.service import claim_ticket, complete_ticket",
-                    "now = datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc)",
-                    "ticket = Ticket('RQ-U07', 'title', 'description', TicketStatus.OPEN, now)",
-                    "claimed = claim_ticket([ticket], 'RQ-U07', 'Sam', now)",
-                    "for resolution in ('done\\nagain', 'done\\tagain', 'done\\x7fagain'):",
-                    "    try:",
-                    "        complete_ticket(claimed, 'RQ-U07', resolution, now)",
-                    "    except ValueError as error:",
-                    "        assert 'control characters' in str(error)",
-                    "    else:",
-                    "        raise AssertionError(resolution)",
-                )
-            ),
-        ],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-    )
+    try:
+        test_result = subprocess.run(
+            [sys.executable, "-m", "unittest", paths["test"].replace("/", ".").removesuffix(".py")],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            timeout=10,
+        )
+        control_probe = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "\n".join(
+                    (
+                        "from datetime import datetime, timezone",
+                        "from workshop_queue.model import Ticket, TicketStatus",
+                        "from workshop_queue.service import claim_ticket, complete_ticket",
+                        "now = datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc)",
+                        "ticket = Ticket('RQ-U07', 'title', 'description', TicketStatus.OPEN, now)",
+                        "claimed = claim_ticket([ticket], 'RQ-U07', 'Sam', now)",
+                        "for resolution in ('done\\nagain', 'done\\tagain', 'done\\x7fagain'):",
+                        "    try:",
+                        "        complete_ticket(claimed, 'RQ-U07', resolution, now)",
+                        "    except ValueError as error:",
+                        "        assert 'control characters' in str(error)",
+                        "    else:",
+                        "        raise AssertionError(resolution)",
+                    )
+                ),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        return False
     clean = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
     return bool(
         _changed_blobs_are_secret_free(root, code_commit, candidate_paths)

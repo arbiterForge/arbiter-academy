@@ -30,11 +30,19 @@ class U07PrivateCapstoneTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8", newline="\n")
 
     def test_capstone_test_contract_rejects_a_vacuous_assertion(self) -> None:
-        capstone_test = b'''\n    def test_u07_rejects_control_characters_in_resolution(self) -> None:\n        claimed = claim_ticket([open_ticket("RQ-U07")], "RQ-U07", "Sam", fixed_now())\n        for resolution in ("done\\nagain", "done\\tagain", "done\\x7fagain"):\n            with self.subTest(resolution=repr(resolution)):\n                with self.assertRaisesRegex(ValueError, "control characters"):\n                    complete_ticket(claimed, "RQ-U07", resolution, fixed_now())\n'''
+        capstone_test = b'''\nimport unittest\n\nclass ServiceTests(unittest.TestCase):\n    def test_u07_rejects_control_characters_in_resolution(self) -> None:\n        claimed = claim_ticket([open_ticket("RQ-U07")], "RQ-U07", "Sam", fixed_now())\n        for resolution in ("done\\nagain", "done\\tagain", "done\\x7fagain"):\n            with self.subTest(resolution=repr(resolution)):\n                with self.assertRaisesRegex(ValueError, "control characters"):\n                    complete_ticket(claimed, "RQ-U07", resolution, fixed_now())\n'''
         self.assertTrue(u07_remediation_test_is_exact(capstone_test))
         self.assertFalse(
             u07_remediation_test_is_exact(
-                b"    @unittest.skip('bypass')\n" + capstone_test
+                b'''\n    def test_u07_rejects_control_characters_in_resolution(self) -> None:\n        claimed = claim_ticket([open_ticket("RQ-U07")], "RQ-U07", "Sam", fixed_now())\n        for resolution in ("done\\nagain", "done\\tagain", "done\\x7fagain"):\n            with self.assertRaisesRegex(ValueError, "control characters"):\n                complete_ticket(claimed, "RQ-U07", resolution, fixed_now())\n'''
+            )
+        )
+        self.assertFalse(
+            u07_remediation_test_is_exact(
+                capstone_test.replace(
+                    b"    def test_u07_rejects_control_characters_in_resolution",
+                    b"    @unittest.skip('bypass')\n    def test_u07_rejects_control_characters_in_resolution",
+                )
             )
         )
 

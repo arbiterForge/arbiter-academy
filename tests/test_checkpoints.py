@@ -2687,3 +2687,22 @@ class U07CapstoneSemanticTests(unittest.TestCase):
     def test_rejects_implementation_commit_with_an_unrelated_path(self) -> None:
         self._write_honest_history(extra_implementation_path=True)
         self.assertFalse(_semantic(self._context()))
+
+    def test_rejects_scope_commit_with_a_noncanonical_adr_filename(self) -> None:
+        self.adr_path = ".codearbiter/decisions/capstone.md"
+        self._write_honest_history()
+        self.assertFalse(_semantic(self._context()))
+
+    def test_rejects_each_learner_controlled_runtime_probe_timeout(self) -> None:
+        self._write_honest_history()
+        original_run = subprocess.run
+        for target in (("-m", "unittest"), ("-c",)):
+            def timeout_target(command, *args, **kwargs):
+                if tuple(command[1 : 1 + len(target)]) == target:
+                    raise subprocess.TimeoutExpired(command, 1)
+                return original_run(command, *args, **kwargs)
+
+            with self.subTest(target=target), mock.patch(
+                "academy_engine.checkpoints.subprocess.run", side_effect=timeout_target
+            ):
+                self.assertFalse(_semantic(self._context()))
