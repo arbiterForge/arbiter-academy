@@ -114,7 +114,10 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertIn("debug.note.0001", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
-        self.assertIn("released CodeArbiter build", by_id["U05-run-spike"].instruction)
+        self.assertIn("released CodeArbiter 2.15.1", by_id["U05-run-spike"].instruction)
+        self.assertIn("2.15.1", by_id["U05-run-spike"].instruction)
+        self.assertIn("0.7.1", by_id["U05-run-spike"].instruction)
+        self.assertIn("0.8.1", by_id["U05-run-spike"].instruction)
         self.assertIn("PR 687", by_id["U05-run-spike"].instruction)
         self.assertIn("stop", by_id["U05-halt-for-conflict"].expected_result.casefold())
         for action_id in ("U05-prepare-attempt", "U05-check-status"):
@@ -130,7 +133,10 @@ class U05PluginContractTests(unittest.TestCase):
         guide = (SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md").read_text(encoding="utf-8")
         lab = curriculum._parse_lab(SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md")
         self.assertEqual(lab.id, U05)
-        self.assertIn("CodeArbiter build containing the", guide)
+        self.assertIn("released CodeArbiter 2.15.1", guide)
+        self.assertIn("2.15.1", guide)
+        self.assertIn("0.7.1", guide)
+        self.assertIn("0.8.1", guide)
         self.assertIn("$ca-conflict", guide)
         self.assertIn("no fictional command receipt", guide)
 
