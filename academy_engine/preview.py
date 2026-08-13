@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.13"
+_RELEASE = "preview-0.14"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -27,8 +27,16 @@ _RUNNABLE_LABS = (
     "P06-context-drift-recovery",
     "P07-threat-model",
     "P08-repository-hygiene",
+    "U01-autonomous-sprint",
 )
-_COMING_NEXT: tuple[str, ...] = ()
+_COMING_NEXT = (
+    "U02-override-audit-metrics",
+    "U03-refactor-chore-release",
+    "U04-initialize-projects",
+    "U05-debug-spike-conflict",
+    "U06-preview-and-advanced-surfaces",
+    "U07-capstone",
+)
 _PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
     "Git 2.39 or newer.",
@@ -37,8 +45,8 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04 and P01-P08 are the guided lessons published in Preview 0.13.",
-    "The Power User track is not published in Preview 0.13.",
+    "F01-F04, P01-P08, and U01 are the guided lessons published in Preview 0.14.",
+    "U02-U07 remain unavailable in Preview 0.14.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"
@@ -247,16 +255,16 @@ def validate_preview_manifest(
         raise ValueError("preview manifest runnable_labs must not overlap coming_next")
     _validate_known_ordered_closure(catalog, runnable_labs)
     if runnable_labs != _RUNNABLE_LABS:
-        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.13")
+        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.14")
     _validate_guided_labs(catalog, runnable_labs, guided_labs)
     if guided_labs != _RUNNABLE_LABS:
-        raise ValueError("preview manifest guided_labs must list only the reviewed F01 through F04 and P01 through P08 lessons")
+        raise ValueError("preview manifest guided_labs must list only the reviewed F01 through F04, P01 through P08, and U01 lessons")
     if coming_next != _COMING_NEXT:
         raise ValueError("preview manifest coming_next must name the reviewed guided-rewrite sequence")
     if prerequisites != _PREREQUISITES:
-        raise ValueError("preview manifest prerequisites must match the reviewed Preview 0.13 onboarding contract")
+        raise ValueError("preview manifest prerequisites must match the reviewed Preview 0.14 onboarding contract")
     if known_limits != _KNOWN_LIMITS:
-        raise ValueError("preview manifest known_limits must match the reviewed Preview 0.13 public limits")
+        raise ValueError("preview manifest known_limits must match the reviewed Preview 0.14 public limits")
 
     return PreviewManifest(
         release,
@@ -273,7 +281,7 @@ def validate_preview_manifest(
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:
-    """Load and validate the checked-in Preview 0.13 public eligibility manifest."""
+    """Load and validate the checked-in Preview 0.14 public eligibility manifest."""
     path = root / "academy" / "publication" / f"{_RELEASE}.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -286,14 +294,14 @@ def require_runnable_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* is runnable in the reviewed public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.runnable_labs:
-        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.13")
+        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.14")
 
 
 def require_guided_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* has a reviewed guided lesson in the public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.guided_labs:
-        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.13")
+        raise ValueError(f"{lab_id} is not guided in Academy Preview 0.14")
 
 
 def require_published_lab(root: Path, lab_id: str) -> None:

@@ -15,17 +15,16 @@ next_lab: U02-override-audit-metrics
 
 ## Know before you begin
 
-U01 has a reviewed source scenario and positive Check contract, but it is not public or runnable in
-Preview 0.13. The website remains the primary lesson surface. Academy CLI is only the future helper
-for Prepare, Check, and Reset. The installed public verifier deliberately refuses those operations
-until the lesson has an accepted public release boundary.
+U01 is a guided, runnable lesson in Preview 0.14. The website remains the primary lesson surface.
+Academy CLI prepares the reviewed attempt, checks its local evidence boundary, and creates a
+non-destructive numbered retry when recovery is needed.
 
-Complete P08 first. In a later private integration environment, keep the repository root open in a
-native terminal and the selected CodeArbiter harness. A command typed directly in a native terminal
+Complete P08 first. In your personal fork, keep the repository root open in a native terminal and
+the selected CodeArbiter harness. A command typed directly in a native terminal
 has no `!`. A shell command passed through a harness begins with exactly one `!`. A host-native
 CodeArbiter command belongs to the harness and has no `!`. The action cards label each case.
 
-{{action:U01-confirm-private-boundary}}
+{{action:U01-confirm-fork-boundary}}
 
 ## What you will prove
 
@@ -40,18 +39,20 @@ change product code, tests, dependencies, or remotes.
 
 ## Prepare safely
 
-{{action:U01-inspect-scenario}}
-
 {{action:U01-prepare-attempt}}
 
-The expected public result is still a refusal, not an attempt branch. Do not convert that refusal into
-a private shortcut by copying scenario files into a learner checkout. A later public U01 fixture must
-be installed through the accepted Academy authority.
+Prepare must run in the forked checkout that passed P08's remote safety work. It creates the numbered
+attempt from reviewed fixture bytes; do not recreate that branch or scenario manually.
+
+{{action:U01-inspect-scenario}}
+
+The scenario is installed by the reviewed Academy fixture. Its named deliverable and approval-required
+starting condition explain the exact boundary the prepared attempt now contains.
 
 ## Practice
 
-The next actions describe the private exercise only after a maintainer has supplied a prepared
-attempt. They are not permission to start an autonomous sprint on an ordinary checkout.
+The next actions run only on the numbered attempt that Prepare just created. They do not authorize
+an autonomous sprint on an ordinary checkout.
 
 {{action:U01-run-sprint}}
 
@@ -65,12 +66,12 @@ call, typed a host command, or created the pull request.
 
 ## Recognize success
 
-For the private exercise design, success is a reviewable boundary: a prepared attempt, a bounded
+Success is a reviewable boundary: a prepared attempt, a bounded
 specification and plan, an append-only sprint record, and one operator guide in the same committed
 packet. The real sprint lane opens a pull request from the learner fork after its commit gate. It is
 not a public release claim, proof that a pull request exists, or permission to merge.
 
-The future Check accepts one linear learner commit containing exactly those four paths. It checks the
+Check accepts one linear learner commit containing exactly those four paths. It checks the
 prepared brief, exact headings and scope, a preserved sprint-log prefix, the required guide topics,
 and a clean worktree. It does not authenticate approval.
 
@@ -78,8 +79,7 @@ and a clean worktree. It does not authenticate approval.
 
 {{action:U01-check-status}}
 
-The public refusal is deliberate. In a prepared source-only attempt, Check verifies
-repository-derived evidence rather than a transcript supplied by the learner. It does not prove that
+Check verifies repository-derived evidence rather than a transcript supplied by the learner. It does not prove that
 a host command ran, that a learner approved a proposal knowingly, or that an autonomous process
 reasoned well. It does not prove that a pull request was created.
 
@@ -100,14 +100,14 @@ prefix unchanged and commits no unrelated file.
 
 ### Hint 3
 
-Treat an unavailable public Check as a release-boundary signal. It protects the public course from
-recording progress before the installed verifier includes this accepted contract.
+Treat a failed Check as evidence to inspect, not an invitation to rewrite history or manufacture
+artifact content. Preserve the attempt and use Reset only after returning safely to main.
 
 {{action:U01-return-base}}
 
 {{action:U01-reset-retry}}
 
-U02 is also private in Preview 0.13. Do not use unpublished source exercises as a substitute for a
+U02 is not published in Preview 0.14. Do not use unpublished source exercises as a substitute for a
 published Academy lesson.
 
 ## Understand the mechanism
@@ -116,6 +116,5 @@ The scenario supplies an approval-required documentation scope, the required ope
 and three topics. The checkpoint compares that prepared brief with the final spec, plan, guide, and
 append-only sprint log. It accepts one clean descendant commit with no extra paths.
 
-This guide uses the same shared action manifest and renderer as published lessons, records each actor
-and execution surface, and keeps the website-first lesson boundary intact. Publishing U01 still
-requires package, route, browser, and hosted-release acceptance evidence for the complete learner path.
+This guide uses the shared action manifest and renderer, records each actor and execution surface,
+and keeps the website-first lesson boundary intact.

@@ -44,6 +44,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/actions/P06-context-drift-recovery.json",
   "academy/actions/P07-threat-model.json",
   "academy/actions/P08-repository-hygiene.json",
+  "academy/actions/U01-autonomous-sprint.json",
 ]
 "share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
 "share/arbiter-academy/academy/checkpoints" = [
@@ -59,8 +60,9 @@ workshop_queue = ["seed/tickets.json"]
   "academy/checkpoints/P06-context-drift-recovery.json",
   "academy/checkpoints/P07-threat-model.json",
   "academy/checkpoints/P08-repository-hygiene.json",
+  "academy/checkpoints/U01-autonomous-sprint.json",
 ]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.13.json"]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.14.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
@@ -87,6 +89,9 @@ workshop_queue = ["seed/tickets.json"]
   "academy/tracks/practitioner/P07-threat-model.md",
   "academy/tracks/practitioner/P08-repository-hygiene.md",
 ]
+"share/arbiter-academy/academy/tracks/power-user" = [
+  "academy/tracks/power-user/U01-autonomous-sprint.md",
+]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor" = ["academy/scenarios/F01-fork-clone-doctor/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
 "share/arbiter-academy/academy/scenarios/F02-orient-to-state" = ["academy/scenarios/F02-orient-to-state/manifest.json"]
@@ -111,3 +116,5 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/scenarios/P07-threat-model/files" = ["academy/scenarios/P07-threat-model/files/*"]
 "share/arbiter-academy/academy/scenarios/P08-repository-hygiene" = ["academy/scenarios/P08-repository-hygiene/manifest.json"]
 "share/arbiter-academy/academy/scenarios/P08-repository-hygiene/files" = ["academy/scenarios/P08-repository-hygiene/files/*"]
+"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint" = ["academy/scenarios/U01-autonomous-sprint/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint/files" = ["academy/scenarios/U01-autonomous-sprint/files/*"]

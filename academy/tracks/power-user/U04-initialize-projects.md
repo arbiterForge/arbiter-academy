@@ -15,11 +15,11 @@ next_lab: U05-debug-spike-conflict
 
 ## Know before you begin
 
-U04 is future private-source material and is not runnable with Preview 0.13. The current release
+U04 is future private-source material and is not runnable with Preview 0.14. The current release
 refuses U04 Prepare, Check, Reset, and the canonical report writer before the U04 lifecycle begins.
 Do not use the detailed cards below as a workaround for that publication boundary.
 
-### Current Preview 0.13 boundary
+### Current Preview 0.14 boundary
 
 {{action:U04-confirm-private-boundary}}
 
@@ -43,18 +43,18 @@ child, and prove clean status. An unresolved `[CONFIRM-NN]` stops the attempt.
 
 ## Prepare safely
 
-The optional card below proves only that installed Preview 0.13 refuses Prepare. It does not create
+The optional card below proves only that installed Preview 0.14 refuses Prepare. It does not create
 the two children or authorize the remaining lifecycle.
 
 {{action:U04-prepare-attempt}}
 
-After the refusal, stop and use a published Preview 0.13 lab.
+After the refusal, stop and use a published Preview 0.14 lab.
 
 ### Future private-source walkthrough
 
 Everything from the next card through the parent clean-state card requires a future accepted U04
 release that publishes the lesson and its supported tooling. These cards preserve the reviewed
-lifecycle contract, but they are not executable with Preview 0.13.
+lifecycle contract, but they are not executable with Preview 0.14.
 
 {{action:U04-inspect-root}}
 
@@ -102,7 +102,7 @@ Then create and commit the real brownfield context without synthetic plan docume
 
 {{action:U04-confirm-brownfield-clean}}
 
-Only after both future child commits are clean may the Academy parent bind them. Preview 0.13 cannot
+Only after both future child commits are clean may the Academy parent bind them. Preview 0.14 cannot
 write that report. The future accepted tooling must publish one supported canonical writer so no
 learner or agent has to guess verifier-sensitive headings, labels, field order, or terminal newline.
 
@@ -133,13 +133,13 @@ ran, that a learner made a good decision, or that anything was pushed or publish
 
 ## Check
 
-Current Preview 0.13 Check is only an optional refusal probe. It cannot verify the future lifecycle.
+Current Preview 0.14 Check is only an optional refusal probe. It cannot verify the future lifecycle.
 
 {{action:U04-check-status}}
 
 ## Recover or continue
 
-Preview 0.13 Reset is only an optional refusal probe and cannot recover this unpublished lesson.
+Preview 0.14 Reset is only an optional refusal probe and cannot recover this unpublished lesson.
 For a future accepted attempt, preserve failures and return to the exact child whose review or commit
 gate stopped. Do not reset, rewrite, or delete child history to make status look clean.
 
@@ -151,5 +151,5 @@ The private action manifest preserves actor, surface, timing, expected result, e
 and next safe step for future acceptance. Its verifier reads real CodeArbiter layout from committed
 child heads: decompose plans live under `.codearbiter/plans/`; context-creation documents remain in
 their real root locations. Future accepted tooling must expose the canonical report writer and Check
-through the same byte renderer. Until then, Preview 0.13 refuses the commands before those U04
+through the same byte renderer. Until then, Preview 0.14 refuses the commands before those U04
 mechanics run.

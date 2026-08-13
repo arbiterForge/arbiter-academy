@@ -230,7 +230,12 @@ def _validate_rendered_inventory(rendered_pages: dict[Path, str], approved_files
 
 
 def _read_public_lesson(root: Path, lab_id: str, *, guided: bool = False) -> dict[str, object]:
-    track = "foundations" if lab_id.startswith("F") else "practitioner" if lab_id.startswith("P") else ""
+    track = (
+        "foundations" if lab_id.startswith("F")
+        else "practitioner" if lab_id.startswith("P")
+        else "power-user" if lab_id.startswith("U")
+        else ""
+    )
     if not track:
         raise ValueError(f"eligible lesson has unsupported lab ID: {lab_id}")
     path = root / "academy" / "tracks" / track / f"{lab_id}.md"
@@ -773,6 +778,7 @@ def _render_pages(
     if manifest.coming_next:
         foundations = tuple(_lab_code(lab_id) for lab_id in manifest.coming_next if lab_id.startswith("F"))
         practitioner = tuple(_lab_code(lab_id) for lab_id in manifest.coming_next if lab_id.startswith("P"))
+        power_user = tuple(_lab_code(lab_id) for lab_id in manifest.coming_next if lab_id.startswith("U"))
         groups = []
         if foundations:
             if len(foundations) == 1:
@@ -790,6 +796,12 @@ def _render_pages(
             groups.append(
                 "<li><strong>Practitioner</strong>: "
                 + escape(f"{practitioner[0]} through {practitioner[-1]}")
+                + ". Guided rewrites are in progress.</li>"
+            )
+        if power_user:
+            groups.append(
+                "<li><strong>Power User</strong>: "
+                + escape(f"{power_user[0]} through {power_user[-1]}")
                 + ". Guided rewrites are in progress.</li>"
             )
         coming_next = "\n".join(groups)
@@ -870,7 +882,13 @@ def _render_pages(
             for level, slug, title in headings
             if level in {2, 3}
         )
-        track_label = "Foundations" if lab_id.startswith("F") else "Practitioner"
+        track_label = (
+            "Foundations"
+            if lab_id.startswith("F")
+            else "Practitioner"
+            if lab_id.startswith("P")
+            else "Power User"
+        )
         pages[Path("labs") / lab_id / "index.html"] = _page(
             templates,
             f"{lesson['title']} | Arbiter Academy {release_label}",

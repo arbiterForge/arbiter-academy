@@ -18,9 +18,9 @@ from scripts import build_preview_site
 SOURCE = Path(__file__).parents[1]
 U01 = "U01-autonomous-sprint"
 U01_ACTION_IDS = (
-    "U01-confirm-private-boundary",
-    "U01-inspect-scenario",
+    "U01-confirm-fork-boundary",
     "U01-prepare-attempt",
+    "U01-inspect-scenario",
     "U01-run-sprint",
     "U01-approve-or-decline-spec",
     "U01-inspect-artifacts",
@@ -41,8 +41,8 @@ U01_HEADINGS = (
 
 
 class U01GuidedContractTests(unittest.TestCase):
-    def test_u01_private_guide_has_the_shared_eight_heading_action_contract(self) -> None:
-        """Catches U01 drifting into a bespoke or partial private lesson."""
+    def test_u01_public_guide_has_the_shared_eight_heading_action_contract(self) -> None:
+        """Catches U01 drifting into a bespoke or partial public lesson."""
         guide = (
             SOURCE / "academy/tracks/power-user/U01-autonomous-sprint.md"
         ).read_text(encoding="utf-8")
@@ -51,8 +51,8 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn("```", guide)
         self.assertIn("The website remains the primary lesson surface.", normalized)
-        self.assertIn("not public or runnable in Preview 0.13", normalized)
-        self.assertIn("reviewed source scenario and positive Check contract", normalized)
+        self.assertIn("guided, runnable lesson in Preview 0.14", normalized)
+        self.assertIn("non-destructive numbered retry", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)
         self.assertIn("opens a pull request", normalized)
@@ -63,7 +63,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 self.assertIn(f"{{{{action:{action_id}}}}}", guide)
 
     def test_u01_action_manifest_keeps_execution_surfaces_and_limits_explicit(self) -> None:
-        """Catches host syntax, shell markers, or private-boundary claims regressing."""
+        """Catches host syntax, shell markers, or public-boundary claims regressing."""
         manifest = load_action_manifest(SOURCE, U01)
         self.assertEqual(tuple(action.id for action in manifest.actions), U01_ACTION_IDS)
         by_id = {action.id: action for action in manifest.actions}
@@ -94,7 +94,8 @@ class U01GuidedContractTests(unittest.TestCase):
                     all(variant.surface == "native-terminal" for variant in action.variants)
                 )
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
-                self.assertIn("not published", action.expected_result.casefold())
+                self.assertIn("Academy", action.expected_result)
+                self.assertIn("preview-0.14", " ".join(variant.command for variant in action.variants))
 
         inspect = by_id["U01-inspect-scenario"]
         self.assertEqual({variant.surface for variant in inspect.variants}, {"native-terminal", "harness"})
@@ -106,8 +107,11 @@ class U01GuidedContractTests(unittest.TestCase):
             )
         )
 
-    def test_u01_private_source_parses_and_renders_with_the_shared_renderer(self) -> None:
-        """Catches a private Power User source contract becoming unparseable or bespoke HTML."""
+        self.assertNotIn("unavailable", by_id["U01-check-status"].title.casefold())
+        self.assertNotIn("unavailable", by_id["U01-reset-retry"].title.casefold())
+
+    def test_u01_public_source_parses_and_renders_with_the_shared_renderer(self) -> None:
+        """Catches a public Power User source contract becoming unparseable or bespoke HTML."""
         lab = curriculum._parse_lab(
             SOURCE / "academy/tracks/power-user/U01-autonomous-sprint.md"
         )
@@ -128,12 +132,14 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn('data-copy-target="command-U01-run-sprint-codex"', content)
         self.assertNotIn("{{action:", content)
 
-    def test_u01_remains_outside_the_preview_zero_twelve_public_boundary(self) -> None:
-        """A shared private contract never changes the accepted public-release claim."""
+    def test_u01_is_the_only_power_user_lab_in_the_preview_zero_fourteen_public_boundary(self) -> None:
+        """The first public Power User slice must not expose U02-U07."""
         release = load_preview_manifest(SOURCE)
-        self.assertNotIn(U01, release.available_labs)
-        self.assertNotIn(U01, release.runnable_labs)
-        self.assertNotIn(U01, release.guided_labs)
+        self.assertIn(U01, release.available_labs)
+        self.assertIn(U01, release.runnable_labs)
+        self.assertIn(U01, release.guided_labs)
+        for lab_id in ("U02-override-audit-metrics", "U03-refactor-chore-release", "U04-initialize-projects", "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"):
+            self.assertNotIn(lab_id, release.available_labs)
 
     def test_u01_declares_the_bounded_sprint_fixture_and_positive_predicate(self) -> None:
         """Catches the U01 guide, scenario, and durable Check contract drifting apart."""

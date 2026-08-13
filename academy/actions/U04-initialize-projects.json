@@ -9,13 +9,13 @@
       "title": "confirm private boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Read the current release boundary. Preview 0.13 refuses U04, so do not begin the private two-child walkthrough or initialize CodeArbiter in the Academy root.",
+      "instruction": "Read the current release boundary. Preview 0.14 refuses U04, so do not begin the private two-child walkthrough or initialize CodeArbiter in the Academy root.",
       "rationale": "This step preserves the real repository lifecycle.",
       "resources": [],
       "variants": [],
-      "expected_result": "Preview 0.13 refuses U04 and this boundary card authorizes no repository work. Next safe step: stop and use a published Preview 0.13 lab.",
-      "recovery": "If any current Academy page presents U04 as runnable, stop and use the published Preview 0.13 inventory; do not try private source commands to resolve the contradiction.",
-      "evidence": "Preserve the Preview 0.13 Power User known limit or a refusal from one of the optional boundary probes; neither proves U04 completion."
+      "expected_result": "Preview 0.14 refuses U04 and this boundary card authorizes no repository work. Next safe step: stop and use a published Preview 0.14 lab.",
+      "recovery": "If any current Academy page presents U04 as runnable, stop and use the published Preview 0.14 inventory; do not try private source commands to resolve the contradiction.",
+      "evidence": "Preserve the Preview 0.14 Power User known limit or a refusal from one of the optional boundary probes; neither proves U04 completion."
     },
     {
       "id": "U04-prepare-attempt",
@@ -23,7 +23,7 @@
       "title": "prepare attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.13 boundary probe only: invoke installed Academy Prepare from the Academy root and expect refusal; native commands never begin with !.",
+      "instruction": "Optional Preview 0.14 boundary probe only: invoke installed Academy Prepare from the Academy root and expect refusal; native commands never begin with !.",
       "rationale": "This step preserves the real repository lifecycle.",
       "resources": [],
       "variants": [
@@ -33,7 +33,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -42,7 +42,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -51,13 +51,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.13 refuses U04 and creates nothing; it does not prepare either child repository. Next safe step: stop and use a published Preview 0.13 lab.",
+      "expected_result": "Preview 0.14 refuses U04 and creates nothing; it does not prepare either child repository. Next safe step: stop and use a published Preview 0.14 lab.",
       "recovery": "If Prepare does anything other than refuse, preserve its output and exit result and stop; do not inspect, delete, or create a child path by hand.",
-      "evidence": "Preserve the refusal output and exit result; they prove only that Preview 0.13 kept U04 unavailable."
+      "evidence": "Preserve the refusal output and exit result; they prove only that Preview 0.14 kept U04 unavailable."
     },
     {
       "id": "U04-inspect-root",
@@ -926,12 +926,12 @@
       "title": "write binding report",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. The canonical writer is unavailable in Preview 0.13. Continue only when future accepted U04 tooling publishes a supported writer command; never substitute the Preview 0.13 binary or hand-author verifier-sensitive bytes.",
+      "instruction": "Future private-source walkthrough only. The canonical writer is unavailable in Preview 0.14. Continue only when future accepted U04 tooling publishes a supported writer command; never substitute the Preview 0.14 binary or hand-author verifier-sensitive bytes.",
       "rationale": "This step preserves the real repository lifecycle.",
       "resources": [],
       "variants": [],
-      "expected_result": "No report is written in Preview 0.13. In a future accepted U04 release, its supported canonical writer creates .codearbiter/reports/academy/U04-initialization.md with canonical generated bytes bound to both clean committed children. Next safe step: inspect report.",
-      "recovery": "If future accepted U04 tooling does not publish a supported writer command, stop and preserve both child bindings; do not run the Preview 0.13 binary or hand-author the report.",
+      "expected_result": "No report is written in Preview 0.14. In a future accepted U04 release, its supported canonical writer creates .codearbiter/reports/academy/U04-initialization.md with canonical generated bytes bound to both clean committed children. Next safe step: inspect report.",
+      "recovery": "If future accepted U04 tooling does not publish a supported writer command, stop and preserve both child bindings; do not run the Preview 0.14 binary or hand-author the report.",
       "evidence": "In the future accepted walkthrough, preserve the canonical report at its exact path plus the committed HEAD, committed tree, and context digest it records for each child."
     },
     {
@@ -1131,7 +1131,7 @@
       "title": "check status",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.13 boundary probe only: invoke installed Academy Check and expect refusal; do not treat it as lifecycle verification.",
+      "instruction": "Optional Preview 0.14 boundary probe only: invoke installed Academy Check and expect refusal; do not treat it as lifecycle verification.",
       "rationale": "This step preserves the real repository lifecycle.",
       "resources": [],
       "variants": [
@@ -1141,7 +1141,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1150,7 +1150,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1159,11 +1159,11 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.13 refuses U04 and reports no U04 completion or verification. Next safe step: stop and use a published Preview 0.13 lab.",
+      "expected_result": "Preview 0.14 refuses U04 and reports no U04 completion or verification. Next safe step: stop and use a published Preview 0.14 lab.",
       "recovery": "If Check reports success or reaches U04 verification, preserve its output and exit result and stop; do not infer repository state from this command alone.",
       "evidence": "Preserve the refusal output and exit result; the supplied command proves no parent or child HEAD/status claim."
     },
@@ -1173,7 +1173,7 @@
       "title": "reset retry",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.13 boundary probe only: invoke installed Academy Reset and expect refusal; do not use it as recovery for the future private walkthrough.",
+      "instruction": "Optional Preview 0.14 boundary probe only: invoke installed Academy Reset and expect refusal; do not use it as recovery for the future private walkthrough.",
       "rationale": "This step preserves the real repository lifecycle.",
       "resources": [],
       "variants": [
@@ -1183,7 +1183,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1192,7 +1192,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1201,11 +1201,11 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.13 refuses U04 Reset and reports no reset or retry. Next safe step: stop and use a published Preview 0.13 lab.",
+      "expected_result": "Preview 0.14 refuses U04 Reset and reports no reset or retry. Next safe step: stop and use a published Preview 0.14 lab.",
       "recovery": "If Reset reports success or creates a retry, preserve its output and exit result and stop; do not infer repository state or delete either child from this command alone.",
       "evidence": "Preserve the refusal output and exit result; the supplied command proves no parent or child HEAD/status claim."
     }
