@@ -21,6 +21,7 @@ from academy_engine.exercise_state import ExerciseStateError
 from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
 from academy_engine.external_state import ExternalStateStore
 from academy_engine.progress import inspect_progress
+from academy_engine.paths import PathBoundaryError
 from tests._temporary import RetryingTemporaryDirectory
 from tests.test_p06_context_recovery import (
     P06_CLI_OBJECT,
@@ -714,6 +715,226 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual((root / ".codearbiter/open-tasks.md").read_bytes(), before)
         self.assertEqual(git(root, "branch", "--show-current"), "main")
         self.assertFalse(git(root, "branch", "--list", "academy/P01-feature-through-plan/1"))
+
+    def test_u04_prepare_stages_two_clean_isolated_project_fixtures(self) -> None:
+        """U04 must prepare its own child repositories, not ask learners to invent them."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+
+        prepared = prepare_lab(root, "U04-initialize-projects")
+
+        self.assertEqual(prepared.branch, "academy/U04-initialize-projects/1")
+        for relative, expected_seed in (
+            (".academy/workspaces/U04-greenfield", ("README.md", b"# Greenfield fixture\n")),
+            (
+                ".academy/workspaces/U04-brownfield",
+                (
+                    "workshop_queue/legacy_queue.py",
+                    b"def summarize(items: list[str]) -> str:\n    return \",\".join(items)\n",
+                ),
+            ),
+        ):
+            with self.subTest(relative=relative):
+                child = root / relative
+                self.assertEqual(
+                    Path(git(child, "rev-parse", "--show-toplevel")).resolve(),
+                    child.resolve(),
+                )
+                self.assertTrue(git(child, "rev-parse", "HEAD"))
+                self.assertEqual(git(child, "status", "--porcelain", "--untracked-files=all"), "")
+                self.assertFalse((child / ".codearbiter").exists())
+                seed_path, seed_contents = expected_seed
+                self.assertEqual((child / seed_path).read_bytes(), seed_contents)
+        self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
+
+    def test_u04_prepare_refuses_an_existing_private_fixture_target(self) -> None:
+        """Ignored Academy state can still be user evidence; Prepare must not erase it."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        existing = root / ".academy/workspaces/U04-greenfield/notes.txt"
+        existing.parent.mkdir(parents=True)
+        existing.write_text("preserve\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(PreparationError, "already occupied"):
+            prepare_lab(root, "U04-initialize-projects")
+
+        self.assertEqual(existing.read_text(encoding="utf-8"), "preserve\n")
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/1"))
+
+    def test_u04_prepare_rejects_a_dangling_fixture_symlink_before_branch_creation(self) -> None:
+        """A dangling private target is rejected by the path boundary before mutation."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        target = root / ".academy/workspaces/U04-greenfield"
+        target.parent.mkdir(parents=True)
+        try:
+            target.symlink_to(root / "absent-target", target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"symlink/reparse creation unavailable: {error}")
+
+        with self.assertRaisesRegex(PathBoundaryError, "symlink or reparse"):
+            prepare_lab(root, "U04-initialize-projects")
+
+    def test_u04_reset_refuses_before_any_state_restoration(self) -> None:
+        """The unconditional U04 reset refusal cannot mutate a prior exercise."""
+        with patch("academy_engine.scenario._restore_p02_before_later_lab") as restore:
+            with self.assertRaisesRegex(PreparationError, "archive both child repository histories"):
+                reset_lab(Path("C:/not-a-repository"), "U04-initialize-projects")
+        restore.assert_not_called()
+
+    def test_u04_prepare_rolls_back_when_the_second_child_fixture_fails(self) -> None:
+        """A half-staged private fixture must not survive a failed Prepare command."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        from academy_engine import u04_fixture
+
+        original_stage = u04_fixture._stage_child
+
+        def fail_on_brownfield(repository: Path, relative: str, kind: str) -> None:
+            if kind == "brownfield":
+                raise u04_fixture.U04FixtureError("injected brownfield fixture failure")
+            original_stage(repository, relative, kind)
+
+        with patch("academy_engine.u04_fixture._stage_child", side_effect=fail_on_brownfield):
+            with self.assertRaisesRegex(PreparationError, "injected brownfield fixture failure"):
+                prepare_lab(root, "U04-initialize-projects")
+
+        self.assertFalse((root / ".academy/workspaces/U04-greenfield").exists())
+        self.assertFalse((root / ".academy/workspaces/U04-brownfield").exists())
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/1"))
+
+    def test_u04_reset_refuses_until_it_can_archive_both_child_histories(self) -> None:
+        """Reset cannot erase ignored child evidence merely to create a retry."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        prepared = prepare_lab(root, "U04-initialize-projects")
+        child_paths = (
+            ".academy/workspaces/U04-greenfield",
+            ".academy/workspaces/U04-brownfield",
+        )
+        for relative in child_paths:
+            child = root / relative
+            (child / "learner-change.txt").write_text("attempt one\n", encoding="utf-8")
+            git(child, "add", "learner-change.txt")
+            git(child, "commit", "-m", "learner changes child fixture")
+
+        child_heads = {relative: git(root / relative, "rev-parse", "HEAD") for relative in child_paths}
+        with self.assertRaisesRegex(PreparationError, "archive both child repository histories"):
+            reset_lab(
+                root,
+                "U04-initialize-projects",
+                now=lambda: datetime(2026, 8, 12, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(git(root, "branch", "--show-current"), prepared.branch)
+        self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/2"))
+        for relative in child_paths:
+            with self.subTest(relative=relative):
+                child = root / relative
+                self.assertEqual(git(child, "rev-parse", "HEAD"), child_heads[relative])
+                self.assertTrue((child / "learner-change.txt").is_file())
+                self.assertEqual(
+                    git(child, "status", "--porcelain", "--untracked-files=all"), ""
+                )
+
+    def test_u04_prepare_refusal_preserves_both_preexisting_workspace_paths(self) -> None:
+        """Occupied ignored paths must survive Prepare's early refusal unchanged."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        originals = {
+            ".academy/workspaces/U04-greenfield": b"original greenfield\n",
+            ".academy/workspaces/U04-brownfield": b"original brownfield\n",
+        }
+        for relative, contents in originals.items():
+            target = root / relative
+            target.mkdir(parents=True)
+            (target / "sentinel.txt").write_bytes(contents)
+        with self.assertRaisesRegex(PreparationError, "already occupied"):
+            prepare_lab(root, "U04-initialize-projects")
+
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/1"))
+        for relative, contents in originals.items():
+            with self.subTest(relative=relative):
+                target = root / relative
+                self.assertEqual((target / "sentinel.txt").read_bytes(), contents)
+                self.assertEqual(
+                    tuple(path.relative_to(target).as_posix() for path in target.rglob("*")),
+                    ("sentinel.txt",),
+                )
+
+    def test_u04_reset_refusal_preserves_dirty_child_state_and_creates_no_archive(self) -> None:
+        """Refusal must not mutate either child repository or create root refs."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        prepared = prepare_lab(root, "U04-initialize-projects")
+        child_heads: dict[str, str] = {}
+        for relative in (
+            ".academy/workspaces/U04-greenfield",
+            ".academy/workspaces/U04-brownfield",
+        ):
+            child = root / relative
+            (child / "learner-change.txt").write_text("preserve me\n", encoding="utf-8")
+            git(child, "add", "learner-change.txt")
+            git(child, "commit", "-m", "learner changes child fixture")
+            child_heads[relative] = git(child, "rev-parse", "HEAD")
+            (child / "working-tree-note.txt").write_text("still in progress\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            PreparationError, "archive both child repository histories"
+        ):
+            reset_lab(
+                root,
+                "U04-initialize-projects",
+                now=lambda: datetime(2026, 8, 12, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(git(root, "branch", "--show-current"), prepared.branch)
+        self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/2"))
+        self.assertFalse(
+            git(
+                root,
+                "branch",
+                "--list",
+                "academy/archive/U04-initialize-projects/20260812T000000Z",
+            )
+        )
+        for relative, head in child_heads.items():
+            with self.subTest(relative=relative):
+                child = root / relative
+                self.assertEqual(git(child, "rev-parse", "HEAD"), head)
+                self.assertEqual((child / "learner-change.txt").read_text(encoding="utf-8"), "preserve me\n")
+                self.assertEqual(
+                    (child / "working-tree-note.txt").read_text(encoding="utf-8"),
+                    "still in progress\n",
+                )
+                self.assertEqual(
+                    git(child, "status", "--porcelain", "--untracked-files=all"),
+                    "?? working-tree-note.txt",
+                )
 
     def test_p03_rejects_unsafe_attribution_before_attempt_branch_mutation(self) -> None:
         """Catches P03 inheriting generic preparation before its identity preflight."""

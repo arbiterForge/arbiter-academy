@@ -9,7 +9,11 @@ import sysconfig
 from pathlib import Path
 
 from academy_engine.catalog import CatalogError
-from academy_engine.checkpoints import CheckpointError, evaluate_checkpoint
+from academy_engine.checkpoints import (
+    CheckpointError,
+    evaluate_checkpoint,
+    write_u04_initialization_report,
+)
 from academy_engine.command import (
     GitCommandError,
     repository_root,
@@ -85,6 +89,7 @@ def _parser() -> argparse.ArgumentParser:
             "verify-track",
             "record",
             "write-handoff",
+            "write-report",
         ),
     )
     parser.add_argument("lab_id", nargs="?")
@@ -118,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         and arguments.lab_id != "P02-commit-review-pr"
         and p02_state_reachable(arguments.lab_id)
     )
-    if (arguments.command in {"check", "graduate", "record", "write-handoff"} or authoritative_exercise) and arguments.repository is None:
+    if (arguments.command in {"check", "graduate", "record", "write-handoff", "write-report"} or authoritative_exercise) and arguments.repository is None:
         parser.error(f"{arguments.command} requires --repository TARGET")
     requested_repository = (
         arguments.repository.expanduser().resolve()
@@ -127,13 +132,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         repository = repository_root(requested_repository)
-        if arguments.command in {"prepare", "reset", "check", "record", "write-handoff"} and arguments.lab_id:
+        if arguments.command in {"prepare", "reset", "check", "record", "write-handoff", "write-report"} and arguments.lab_id:
             require_published_lab(_verifier_publication_root(), arguments.lab_id)
         if arguments.command == "graduate":
             require_graduation_available(_verifier_publication_root())
         installed_authority = False
         if (
-            arguments.command in {"check", "graduate", "record"}
+            arguments.command in {"check", "graduate", "record", "write-report"}
             or authoritative_exercise
             or (later_p02_reachable and arguments.repository is not None)
         ):
@@ -227,6 +232,16 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError as error:
                 raise VerifierTrustError("P06 handoff is invalid.") from error
             print(f"Drafted P06 recovery handoff: {handoff_path}")
+            return 0
+        if arguments.command == "write-report":
+            if arguments.lab_id != "U04-initialize-projects":
+                parser.error("write-report is available only for U04-initialize-projects")
+            destination = write_u04_initialization_report(repository)
+            try:
+                report_path = destination.relative_to(repository).as_posix()
+            except ValueError as error:
+                raise VerifierTrustError("U04 report destination is invalid.") from error
+            print(f"Drafted U04 initialization report: {report_path}")
             return 0
         if arguments.command == "update":
             print(update_academy(repository).render())

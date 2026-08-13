@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import errno
+import os
+import shutil
+import stat
 import tempfile
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Protocol
 
 
@@ -33,6 +37,32 @@ def _retry_cleanup(
             if error.errno != errno.ENOTEMPTY or attempt == 4:
                 raise
             sleep(0.05 * (2**attempt))
+
+
+def remove_tree_with_retry(
+    target: Path,
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    """Remove a Git fixture tree despite read-only objects and teardown races."""
+    def remove() -> None:
+        if not target.exists():
+            return
+
+        def remove_readonly(
+            function: Callable[[str], object],
+            path: str,
+            error_info: tuple[type[BaseException], BaseException, object],
+        ) -> None:
+            error = error_info[1]
+            if not isinstance(error, PermissionError):
+                raise error
+            os.chmod(path, os.stat(path).st_mode | stat.S_IWUSR)
+            function(path)
+
+        shutil.rmtree(target, onerror=remove_readonly)
+
+    _retry_cleanup(remove, sleep=sleep)
 
 
 class RetryingTemporaryDirectory(tempfile.TemporaryDirectory):
