@@ -22,7 +22,7 @@ from tests._temporary import cleanup_temporary_directory
 SOURCE = Path(__file__).resolve().parents[1]
 OFFICIAL_CODEARBITER_SHA = "debb49da71aa1b97bca0988f72e46bb5875a23e3"
 OFFICIAL_TASKWRITE_BLOB = "287d49a24cd8aaf7e33ee3852c2092aca03c4b78"
-OFFICIAL_TASKWRITE_SHA256 = "1322c76498829a51577643c8216e0c09375de9c866de975f425bb3d0519a651a"
+OFFICIAL_TASKWRITE_SHA256 = "f834f3fcc9dafcdf31db16ad4f52cd232c17162dc1711bdba112c2cac8a30d29"
 FOUNDATIONS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
