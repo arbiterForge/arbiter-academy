@@ -61,8 +61,8 @@
       "title": "Use the host-native sprint command only on a private prepared attempt",
       "actor": "agent",
       "surface": null,
-      "instruction": "On a maintainer-supplied private prepared attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. Do not run it against an ordinary checkout or use it to skip the sprint specification approval gate.",
-      "rationale": "An autonomous sprint may execute after its specification gate, but it cannot self-authorize the scope of an Academy exercise.",
+      "instruction": "On a maintainer-supplied private prepared attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. The real sprint lane ends by pushing the learner fork branch and opening a pull request. Do not run it against an ordinary checkout or use it to skip the sprint specification approval gate.",
+      "rationale": "An autonomous sprint may execute after its specification gate, but it cannot self-authorize the scope of an Academy exercise or merge its own pull request.",
       "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:sprint academy-sprint","copy":true},
@@ -70,9 +70,9 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-sprint academy-sprint","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-sprint academy-sprint","copy":true}
       ],
-      "expected_result": "The host enters its sprint specification gate and presents the proposed scope before autonomous work begins.",
+      "expected_result": "The host presents the proposed scope before autonomous work begins, then after its commit gate opens a pull request from the learner fork. It never merges that pull request.",
       "recovery": "If the host cannot find the sprint command, do not replace it with shell syntax. Confirm the supported host installation and private attempt first.",
-      "evidence": "Preserve the proposed specification, derived plan, operator guide, and appended sprint-log decision record. The future source Check validates repository facts, not host invocation."
+      "evidence": "Preserve the proposed specification, derived plan, operator guide, and appended sprint-log decision record. The future source Check validates repository facts, not host invocation, approval, or pull-request creation."
     },
     {
       "id": "U01-approve-or-decline-spec",
@@ -80,7 +80,7 @@
       "title": "Make the sprint specification decision",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Read the proposed specification before answering the host. Approve only the bounded academy-sprint operator guide with explicit acceptance criteria and no product-code, test, dependency, push, or network work. Decline or revise vague scope.",
+      "instruction": "Read the proposed specification before answering the host. Approve only the bounded academy-sprint operator guide with explicit acceptance criteria, no product-code, test, dependency, or remote changes, and the real sprint terminal: push only the learner fork branch, open a pull request, never merge. Decline or revise vague scope.",
       "rationale": "The learner, not the autonomous process, owns the scope decision that permits later execution.",
       "resources": [],
       "variants": [],

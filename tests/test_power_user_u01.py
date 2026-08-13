@@ -55,6 +55,9 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn("reviewed source scenario and positive Check contract", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)
+        self.assertIn("opens a pull request", normalized)
+        self.assertIn("does not prove that a pull request was created", normalized)
+        self.assertNotIn("It does not push.", guide)
         for action_id in U01_ACTION_IDS:
             with self.subTest(action_id=action_id):
                 self.assertIn(f"{{{{action:{action_id}}}}}", guide)
@@ -77,6 +80,8 @@ class U01GuidedContractTests(unittest.TestCase):
             },
         )
         self.assertTrue(all(not variant.command.startswith("!") for variant in sprint.variants))
+        self.assertIn("opens a pull request", sprint.expected_result.casefold())
+        self.assertIn("never merges", sprint.expected_result.casefold())
 
         for action_id in ("U01-prepare-attempt", "U01-check-status", "U01-reset-retry"):
             action = by_id[action_id]
@@ -231,6 +236,9 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         self._git(root, "init", "-b", "main")
         self._git(root, "config", "user.name", "Academy Learner")
         self._git(root, "config", "user.email", "learner@example.invalid")
+        self._git(root, "remote", "add", "origin", "https://github.com/academy-learner/arbiter-academy.git")
+        self._git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+        self._git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
         self._git(root, "add", ".")
         self._git(root, "commit", "-m", "academy: prepare U01 base")
         prepared = self._git(root, "rev-parse", "HEAD")
@@ -249,14 +257,18 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         *,
         extra_packet_path: bool = False,
         scope_suffix: str = "",
+        scope_clause: str | None = None,
     ) -> str:
         (root / ".codearbiter/specs").mkdir(exist_ok=True)
         (root / ".codearbiter/plans").mkdir(exist_ok=True)
         (root / "docs").mkdir(exist_ok=True)
+        scope_clause = scope_clause or (
+            "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It never pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+        )
         (root / ".codearbiter/specs/academy-sprint.md").write_text(
             "# Academy sprint: operator guide\n\n"
             "## Problem\nNew operators need a compact explanation of the bounded autonomous sprint.\n\n"
-            "## Scope\nThe allowed final commit contains docs/academy-sprint-summary.md. It does not push. It does not change product code, tests, dependencies, remotes, or network state."
+            f"## Scope\n{scope_clause}"
             f"{scope_suffix}\n\n"
             "## Acceptance criteria\n"
             "1. The guide names the human approval boundary.\n"
@@ -370,19 +382,33 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
 
             self.assertFalse(_semantic(context))
 
-    def test_sprint_decisions_rejects_a_scope_that_authorizes_a_push(self) -> None:
-        """Catches a documentation-only sprint scope that still permits a remote side effect."""
+    def test_sprint_decisions_accepts_the_fork_pr_terminal_but_rejects_direct_upstream_push(self) -> None:
+        """The real sprint lane opens a PR, never a direct upstream push or merge."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             context = self._context(root)
+            self.assertTrue(_semantic(context))
             self._git(root, "reset", "--soft", "HEAD^")
-            head = self._commit_packet(root, scope_suffix=" Push the branch when finished.")
+            head = self._commit_packet(
+                root,
+                scope_clause=(
+                    "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+                ),
+            )
             context = _SemanticContext(
                 root,
                 _Attempt(context.attempt.branch, 1, context.attempt.prepared, context.attempt.base, head),
                 context.predicate,
             )
 
+            self.assertFalse(_semantic(context))
+
+    def test_sprint_decisions_rejects_an_upstream_that_can_receive_a_push(self) -> None:
+        """A real sprint PR may push the learner fork, never the upstream repository."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context = self._context(root)
+            self._git(root, "remote", "set-url", "--push", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
             self.assertFalse(_semantic(context))
 
     def test_prepare_materializes_the_sealed_u01_brief(self) -> None:

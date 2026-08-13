@@ -34,8 +34,9 @@ reads the proposed specification, decides whether its scope is acceptable, then 
 specification, plan, append-only sprint log, and one bounded operator guide.
 
 This is a documentation-only sprint. Its allowed final commit contains four paths: the spec, plan,
-sprint log, and `docs/academy-sprint-summary.md`. It does not push. It does not change product code,
-tests, dependencies, remotes, or network state.
+sprint log, and `docs/academy-sprint-summary.md`. The real sprint lane then pushes only the learner
+fork branch and opens a pull request. It never pushes directly to upstream or merges. It does not
+change product code, tests, dependencies, or remotes.
 
 ## Prepare safely
 
@@ -60,13 +61,14 @@ attempt. They are not permission to start an autonomous sprint on an ordinary ch
 
 The sprint specification gate is where the learner sets authority. Check can verify the resulting
 repository evidence, but it cannot prove that a person understood the proposal, made a good judgment
-call, or typed a host command.
+call, typed a host command, or created the pull request.
 
 ## Recognize success
 
 For the private exercise design, success is a reviewable boundary: a prepared attempt, a bounded
 specification and plan, an append-only sprint record, and one operator guide in the same committed
-packet. It is not a public release claim or permission to push changes.
+packet. The real sprint lane opens a pull request from the learner fork after its commit gate. It is
+not a public release claim, proof that a pull request exists, or permission to merge.
 
 The future Check accepts one linear learner commit containing exactly those four paths. It checks the
 prepared brief, exact headings and scope, a preserved sprint-log prefix, the required guide topics,
@@ -79,7 +81,7 @@ and a clean worktree. It does not authenticate approval.
 The public refusal is deliberate. In a prepared source-only attempt, Check verifies
 repository-derived evidence rather than a transcript supplied by the learner. It does not prove that
 a host command ran, that a learner approved a proposal knowingly, or that an autonomous process
-reasoned well.
+reasoned well. It does not prove that a pull request was created.
 
 ## Recover or continue
 
