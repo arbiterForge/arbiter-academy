@@ -115,7 +115,6 @@ class PrivateU03CheckpointTests(unittest.TestCase):
                     "code": self._CODE,
                     "test": self._TEST,
                     "chore": self._CHORE,
-                    "tag_prefix": "academy-v",
                     "release_target": self._TARGET,
                     "release_version": self._VERSION,
                     "release_tag": self._TAG,
