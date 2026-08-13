@@ -157,8 +157,8 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
-    def test_published_u06_data_and_only_published_power_user_data_are_in_the_public_wheel(self) -> None:
-        """A downloadable Preview wheel includes U06 while keeping U07 private."""
+    def test_published_u07_data_and_all_guided_power_user_data_are_in_the_public_wheel(self) -> None:
+        """A downloadable Preview wheel includes the final public U07 capstone."""
         repository = Path(__file__).resolve().parents[1]
         package = (repository / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn(
@@ -166,9 +166,13 @@ class InstalledWheelTests(unittest.TestCase):
             package,
         )
         wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
-        expected = (
+        expected_u06 = (
             "workshop_queue-0.1.0.data/data/share/arbiter-academy/academy/"
             "scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"
+        )
+        expected_u07 = (
+            "workshop_queue-0.1.0.data/data/share/arbiter-academy/academy/"
+            "scenarios/U07-capstone/files/scenario.json"
         )
         with tempfile.TemporaryDirectory() as temporary_directory:
             scratch = Path(temporary_directory)
@@ -198,8 +202,8 @@ class InstalledWheelTests(unittest.TestCase):
             wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
             with zipfile.ZipFile(wheel) as contents:
                 names = set(contents.namelist())
-                self.assertIn(expected, names)
-                self.assertFalse(any("/U07-" in name for name in names))
+                self.assertIn(expected_u06, names)
+                self.assertIn(expected_u07, names)
 
     def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
         """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
@@ -505,13 +509,9 @@ class InstalledWheelTests(unittest.TestCase):
                 any(name.endswith("/academy/actions/U06-preview-and-advanced-surfaces.json") for name in names),
                 "the public wheel must distribute the accepted U06 action contract",
             )
-            self.assertFalse(
-                any(
-                    "/share/arbiter-academy/academy/" in name
-                        and "/U07-" in name
-                    for name in names
-                ),
-                "the public wheel must not distribute unpublished U07 material",
+            self.assertTrue(
+                any(name.endswith("/academy/actions/U07-capstone.json") for name in names),
+                "the public wheel must distribute the accepted U07 action contract",
             )
             self.assertEqual(
                 sum(
@@ -519,7 +519,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             self.assertEqual(
                 sum(
@@ -527,7 +527,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             self.assertEqual(
                 sum(
@@ -535,7 +535,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]
@@ -588,6 +588,7 @@ class InstalledWheelTests(unittest.TestCase):
                     "U04-initialize-projects.md",
                     "U05-debug-spike-conflict.md",
                     "U06-preview-and-advanced-surfaces.md",
+                    "U07-capstone.md",
                 },
             )
 
