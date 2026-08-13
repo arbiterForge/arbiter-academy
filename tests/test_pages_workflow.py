@@ -344,6 +344,13 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertRegex(pages_trigger, r"(?ms)^  push:\s+branches:\s+- main\s*$")
         self.assertIn("github.ref == 'refs/heads/main'", self.deploy)
 
+    def test_browser_visual_baselines_use_a_fixed_public_release_identity(self) -> None:
+        """Visual snapshots must not churn merely because a PR head SHA changes."""
+        self.assertRegex(
+            self.browser,
+            r"(?m)^      CA_VISUAL_RELEASE_SHA: a{40}\s*$",
+        )
+
     def test_concurrency_isolated_by_ref_and_cancels_only_stale_non_main_runs(self) -> None:
         concurrency = _block(self.verify_workflow, "concurrency:", r"[a-zA-Z0-9_-]+:")
         self.assertIn("group: ${{ github.workflow }}-${{ github.ref }}", concurrency)
