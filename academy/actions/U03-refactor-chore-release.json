@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "lesson_contract_version": 1,
+  "document_id": "U03-refactor-chore-release",
+  "actions": [
+    {
+      "id": "U03-read-boundary",
+      "sequence": 1,
+      "title": "Read the private evidence boundary",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "This source-only lesson is not runnable in Preview 0.12. Its future private contract is limited to an exact refactor of workshop_queue/store.py, a later docs-only README.md commit, an unchanged pre-existing tests/test_store.py, a clean worktree, and the declared annotated academy-v0.3.0 tag at the attempt head. Do not substitute your own scope, target, or release metadata.",
+      "rationale": "A narrow contract makes the difference between repository evidence and a broader release claim visible.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can name the future private boundaries and know that Preview 0.12 does not prepare this lesson.",
+      "recovery": "If you need a runnable exercise today, return to an available Preview 0.12 lesson. Do not create U03 state files by hand.",
+      "evidence": "A future Check can observe repository bytes, commit topology, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, CodeArbiter command execution, SemVer derivation, CHANGELOG or manifest update, tag push, or publication."
+    },
+    {
+      "id": "U03-prepare",
+      "sequence": 2,
+      "title": "Ask Preview 0.12 to prepare U03",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "At the clean Academy clone root, run Prepare in a native terminal. Native-terminal commands go directly into that terminal and never begin with !.",
+      "rationale": "The refusal distinguishes unavailable training material from a prepared attempt.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true}
+      ],
+      "expected_result": "Preview 0.12 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "recovery": "Treat the refusal as the public boundary. Do not retry with another command or simulate a prepared attempt.",
+      "evidence": "Preview 0.12 creates no U03 attempt, scenario, commit, tag, or release record."
+    },
+    {
+      "id": "U03-confirm-refusal",
+      "sequence": 3,
+      "title": "Confirm the refusal changed nothing",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Inspect the worktree from the same native terminal after the refusal. These commands are direct terminal commands and never begin with !.",
+      "rationale": "An unavailable lesson must not leave partial learner state behind.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
+      ],
+      "expected_result": "Preview 0.12 refuses U03 and the worktree remains unchanged.",
+      "recovery": "If unrelated work is already present, preserve it and resolve that work separately. Do not hand-author a U03 scenario.",
+      "evidence": "An empty status output only confirms the local worktree state you inspected."
+    },
+    {
+      "id": "U03-review-future-brief",
+      "sequence": 4,
+      "title": "Review the future sealed brief before work begins",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Only in a future private prepared attempt, read the sealed brief and identify its exact refactor scope, approved README fact, declared release target, required annotated tag, and required tag message `Academy private exercise: academy-private-training 0.3.0`. The brief supplies those values. Do not invent a generic command argument or a release claim.",
+      "rationale": "The source lesson can teach the boundary now without pretending the current public release has prepared it.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can distinguish the prepared brief's exact values from details the lesson does not establish.",
+      "recovery": "If any required value is absent or ambiguous, stop the future attempt and preserve the condition for its author. Do not guess.",
+      "evidence": "Reading a brief does not authenticate a human approval or an executed host command."
+    },
+    {
+      "id": "U03-run-refactor",
+      "sequence": 5,
+      "title": "Start the host-native refactor route",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Only in a future private prepared attempt, invoke the host-native refactor route. Supply the exact sealed scope when the host asks for it. This is a CodeArbiter command, never a ! terminal passthrough command.",
+      "rationale": "The refactor route should be bounded by the sealed U03 surface before the learner examines a change.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:refactor","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-refactor","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-refactor","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-refactor","copy":true}
+      ],
+      "expected_result": "In a future private attempt, the host gathers the sealed scope before producing a proposed refactor boundary.",
+      "recovery": "If the host requests a value that the sealed brief does not provide, stop. Do not supply a made-up scope.",
+      "evidence": "This lesson does not treat the command text as proof of behavioral parity or CodeArbiter command execution."
+    },
+    {
+      "id": "U03-inspect-refactor",
+      "sequence": 6,
+      "title": "Inspect the proposed refactor boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only in a future private attempt, inspect the proposed diff in a native terminal. These commands are direct terminal commands and never begin with !.",
+      "rationale": "The learner sees the exact implementation path before staging it.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git diff -- workshop_queue/store.py\ngit diff -- tests/test_store.py","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git diff -- workshop_queue/store.py\ngit diff -- tests/test_store.py","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git diff -- workshop_queue/store.py\ngit diff -- tests/test_store.py","copy":true}
+      ],
+      "expected_result": "You can inspect the proposed store.py delta and confirm that tests/test_store.py has no diff in the future private attempt.",
+      "recovery": "If a pre-existing test changes or another path is involved, stop the refactor boundary instead of staging it.",
+      "evidence": "A diff shows local bytes. It does not prove behavioral parity."
+    },
+    {
+      "id": "U03-review-refactor",
+      "sequence": 7,
+      "title": "Decide whether the refactor boundary is acceptable",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "In a future private attempt, decide whether the proposed change is limited to the sealed refactor boundary and leaves tests/test_store.py unchanged. Do not ask the agent to widen the task or assert that a review proves parity.",
+      "rationale": "A learner decision remains separate from repository evidence.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You either stop the refactor boundary or can name the exact file that may be staged.",
+      "recovery": "If the boundary is unclear, return to the sealed brief and preserve the proposed diff. Do not stage it.",
+      "evidence": "No file or log can prove that this learner review occurred."
+    },
+    {
+      "id": "U03-stage-refactor",
+      "sequence": 8,
+      "title": "Stage only the sealed refactor file",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only after accepting the future private refactor boundary, stage workshop_queue/store.py in a native terminal. Native-terminal commands never begin with !.",
+      "rationale": "The staged path list makes the first commit boundary explicit.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- workshop_queue/store.py\ngit diff --cached --name-only","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- workshop_queue/store.py\ngit diff --cached --name-only","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- workshop_queue/store.py\ngit diff --cached --name-only","copy":true}
+      ],
+      "expected_result": "The future private staged boundary names only workshop_queue/store.py.",
+      "recovery": "If another path is staged, unstage only the unexpected path and inspect again. Do not reset or rewrite the attempt.",
+      "evidence": "The staged list is a local scope check, not proof that a refactor is behaviorally equivalent."
+    },
+    {
+      "id": "U03-commit-refactor",
+      "sequence": 9,
+      "title": "Commit the accepted refactor boundary",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After the learner reviews the staged future private boundary, invoke the host-native commit gate. It is a CodeArbiter command, never a ! terminal passthrough command.",
+      "rationale": "The future Check expects the refactor commit before the docs-only commit.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "A future private attempt has one committed refactor boundary before the later docs-only work.",
+      "recovery": "If the gate reports a finding, preserve it and correct only the stated boundary. Do not amend or rewrite the attempt history.",
+      "evidence": "A commit can show ordered paths and bytes. It does not prove a human approval or a successful host conversation."
+    },
+    {
+      "id": "U03-run-chore",
+      "sequence": 10,
+      "title": "Start the host-native docs chore route",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Only in a future private attempt, invoke the host-native docs chore route. Supply the exact approved README fact from the sealed brief when the host asks. This is a CodeArbiter command, never a ! terminal passthrough command.",
+      "rationale": "The second change is a docs-only boundary, not a disguised implementation change.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:chore docs","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-chore docs","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-chore docs","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-chore docs","copy":true}
+      ],
+      "expected_result": "In a future private attempt, the host gathers the exact approved README fact before proposing a docs-only delta.",
+      "recovery": "If the host proposes code, test, or release-metadata changes, stop the chore boundary instead of staging it.",
+      "evidence": "This lesson does not treat the command text as proof of a valid docs-only decision."
+    },
+    {
+      "id": "U03-inspect-chore",
+      "sequence": 11,
+      "title": "Inspect the proposed docs-only boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only in a future private attempt, inspect the proposed README delta in a native terminal. These commands are direct terminal commands and never begin with !.",
+      "rationale": "The learner can reject scope creep before the second commit exists.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git diff -- README.md\ngit status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git diff -- README.md\ngit status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git diff -- README.md\ngit status --short","copy":true}
+      ],
+      "expected_result": "You can inspect the future private README.md delta and identify any path outside the docs-only boundary.",
+      "recovery": "If any non-README.md path is present, stop and return to the sealed brief. Do not stage the chore.",
+      "evidence": "A worktree inspection reports local state only."
+    },
+    {
+      "id": "U03-review-chore",
+      "sequence": 12,
+      "title": "Decide whether the docs-only boundary is acceptable",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "In a future private attempt, decide whether the README.md delta states only the prepared approved fact. The learner makes this decision. Do not use a generated report as a substitute for it.",
+      "rationale": "A distinct review prevents the later docs commit from inheriting the refactor's authorization.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You either stop the docs boundary or can name README.md as the only file that may be staged.",
+      "recovery": "If the intended fact is not exact, preserve the diff and ask the agent to revise only that future draft.",
+      "evidence": "No artifact can prove that the learner accepted the docs-only boundary."
+    },
+    {
+      "id": "U03-stage-chore",
+      "sequence": 13,
+      "title": "Stage only the approved README change",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only after accepting the future private docs-only boundary, stage README.md in a native terminal. Native-terminal commands never begin with !.",
+      "rationale": "The second staged path list keeps the chore distinct from the refactor commit.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git add -- README.md\ngit diff --cached --name-only","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git add -- README.md\ngit diff --cached --name-only","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git add -- README.md\ngit diff --cached --name-only","copy":true}
+      ],
+      "expected_result": "The future private staged boundary names only README.md.",
+      "recovery": "If another path is staged, unstage only the unexpected path and inspect again. Do not reset or rewrite the attempt.",
+      "evidence": "The staged list can show an exact local path boundary, not an approval."
+    },
+    {
+      "id": "U03-commit-chore",
+      "sequence": 14,
+      "title": "Commit the accepted docs-only boundary",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "After the learner reviews the staged future private README boundary, invoke the host-native commit gate. It is a CodeArbiter command, never a ! terminal passthrough command.",
+      "rationale": "The future Check expects the docs-only commit after the refactor commit.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
+      ],
+      "expected_result": "A future private attempt has its docs-only commit after the sealed refactor commit.",
+      "recovery": "If the gate blocks, preserve the finding and correct only the named README boundary. Do not rewrite either commit.",
+      "evidence": "A commit can show ordered repository paths. It does not prove a human approval or a host command execution."
+    },
+    {
+      "id": "U03-run-release",
+      "sequence": 15,
+      "title": "Start the host-native release route",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Only in a future private attempt, invoke the host-native release route. Supply the exact declared target from the sealed brief when the host asks. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not push a tag.",
+      "rationale": "The route is a local evidence step in this lesson, not a promise of published software.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:release academy-private-training","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-release academy-private-training","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-release academy-private-training","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-release academy-private-training","copy":true}
+      ],
+      "expected_result": "The future private route can be evaluated against the sealed target without a tag push or publication claim.",
+      "recovery": "If the target is absent or the route reports a blocker, preserve that result and stop. Do not manufacture release metadata.",
+      "evidence": "This lesson does not establish SemVer derivation, CHANGELOG or manifest update, tag push, or publication."
+    },
+    {
+      "id": "U03-review-release",
+      "sequence": 16,
+      "title": "Review the local tag boundary",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "In a future private attempt, review the exact declared target and confirm that the only required release evidence is an annotated local academy-v0.3.0 tag at the attempt head with the exact message `Academy private exercise: academy-private-training 0.3.0`. Do not claim that a tag proves publication, a pushed reference, or a release record.",
+      "rationale": "The local tag has a narrow evidentiary meaning.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can either stop for a missing boundary or proceed to inspect the declared local tag.",
+      "recovery": "If the tag name, object type, or target is not exact, preserve the state and stop. Do not retag over the attempt.",
+      "evidence": "Review is a learner action. The repository cannot prove it happened."
+    },
+    {
+      "id": "U03-inspect-tag",
+      "sequence": 17,
+      "title": "Inspect the declared annotated tag at HEAD",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only in a future private attempt, inspect the exact academy-v0.3.0 tag in a native terminal. Check that its tag body is exactly `Academy private exercise: academy-private-training 0.3.0` followed by one terminal newline, with no extra blank content. The command prints Python's byte representation of the body and exits nonzero unless it is exact. Native-terminal commands never begin with !.",
+      "rationale": "The learner verifies that the local tag is annotated, has Check's exact canonical body including one terminal newline, and points to the current attempt head.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\n@'\nimport subprocess\nraw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"])\n_, separator, body = raw.partition(b\"\\n\\n\")\nexpected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"\nprint(repr(body))\nraise SystemExit(not separator or body != expected)\n'@ | python -","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\npython -c 'import subprocess; raw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"]); _, separator, body = raw.partition(b\"\\n\\n\"); expected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"; print(repr(body)); raise SystemExit(not separator or body != expected)'","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\npython -c 'import subprocess; raw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"]); _, separator, body = raw.partition(b\"\\n\\n\"); expected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"; print(repr(body)); raise SystemExit(not separator or body != expected)'","copy":true}
+      ],
+      "expected_result": "The future private inspection reports a tag object, academy-v0.3.0 at HEAD, and `b'Academy private exercise: academy-private-training 0.3.0\\n'` as the complete tag body: the required message plus one terminal newline only.",
+      "recovery": "If the object is lightweight, the tag is absent, its message differs, the body has an extra blank line or other extra blank content, or it does not point at HEAD, stop the attempt without moving the tag.",
+      "evidence": "This local check does not prove a remote tag, a GitHub Release, or publication."
+    },
+    {
+      "id": "U03-check",
+      "sequence": 18,
+      "title": "Ask Preview 0.12 to check U03",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run Check in a native terminal. Native-terminal commands never begin with !.",
+      "rationale": "The current refusal keeps incomplete private material out of the public course boundary.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true}
+      ],
+      "expected_result": "Preview 0.12 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "recovery": "Keep the refusal as evidence of the public boundary. Do not imitate a passing U03 result.",
+      "evidence": "Preview 0.12 cannot attest to the future private U03 contract."
+    },
+    {
+      "id": "U03-reset",
+      "sequence": 19,
+      "title": "Ask Preview 0.12 to reset U03",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run Reset in a native terminal. Native-terminal commands never begin with !.",
+      "rationale": "The current refusal confirms that no U03 attempt exists to reset in Preview 0.12.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true}
+      ],
+      "expected_result": "Preview 0.12 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "recovery": "Do not use Reset as a substitute for deleting or rewriting private attempt history. The current public release has none.",
+      "evidence": "Preview 0.12 creates no reset archive for an unavailable U03 lesson."
+    }
+  ]
+}

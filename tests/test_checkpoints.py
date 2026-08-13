@@ -1917,6 +1917,161 @@ class P03NativeEvidenceTests(unittest.TestCase):
         self.assertFalse(checkpoints._p03_accepted_adr(self.root, copied_attempt, adr_path, log_path))
 
 
+class U02OverrideAuditMetricTests(unittest.TestCase):
+    """Adversarial direct tests for the private U02 evidence predicate."""
+
+    def setUp(self) -> None:
+        self.temp = RetryingTemporaryDirectory()
+        self.root = Path(self.temp.name)
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _git(self, root: Path, *arguments: str) -> str:
+        result = subprocess.run(
+            ["git", *arguments], cwd=root, text=True, capture_output=True, check=False
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout.strip()
+
+    def _semantic_context(
+        self,
+        *,
+        gate: str = "safe-training-gate",
+        tamper_prefix: bool = False,
+        extra_path: bool = False,
+        dirty: bool = False,
+        audit_packet: bool = False,
+        override_lines: int = 1,
+    ) -> _SemanticContext:
+        root = self.root / f"u02-{len(tuple(self.root.iterdir()))}"
+        root.mkdir()
+        self._git(root, "init", "-b", "main")
+        self._git(root, "config", "user.name", "U02 Fixture")
+        self._git(root, "config", "user.email", "u02@example.invalid")
+
+        override_path = root / ".codearbiter" / "overrides.log"
+        override_path.parent.mkdir()
+        prepared_line = (
+            "[2026-08-12T10:00:00+00:00] | BY: u02@example.invalid | "
+            "GATE: prior-training-gate | REASON: prepared fixture\n"
+        )
+        override_path.write_text(prepared_line, encoding="utf-8", newline="\n")
+        self._git(root, "add", ".codearbiter/overrides.log")
+        self._git(root, "commit", "-m", "base override log")
+        self._git(root, "switch", "-c", "academy/U02-override-audit-metrics/1")
+        self._git(root, "commit", "--allow-empty", "-m", "academy: prepare U02 attempt 1")
+        prepared = self._git(root, "rev-parse", "HEAD")
+        base = self._git(root, "rev-parse", "HEAD^")
+
+        self.assertGreaterEqual(override_lines, 1)
+        new_lines = [
+            "[2026-08-12T10:01:0"
+            f"{index}+00:00] | BY: u02@example.invalid | "
+            f"GATE: {gate} | REASON: scoped Academy exercise {index}\n"
+            for index in range(1, override_lines + 1)
+        ]
+        final_lines = [prepared_line, *new_lines]
+        if tamper_prefix:
+            final_lines[0] = final_lines[0].replace("prepared fixture", "rewritten fixture")
+        override_path.write_text("".join(final_lines), encoding="utf-8", newline="\n")
+
+        audit_path = root / ".codearbiter" / "reports" / "academy" / "U02-audit.md"
+        audit_path.parent.mkdir(parents=True)
+        hashed_lines = final_lines if tamper_prefix else new_lines
+        audit_path.write_text(
+            "\n".join(hashlib.sha256(line.rstrip("\n").encode("utf-8")).hexdigest() for line in hashed_lines)
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        metrics_path = audit_path.with_name("U02-metrics.json")
+        metrics_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "override_count": len(new_lines),
+                    "low_confidence_count": 0,
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        audit_packet_path = root / ".codearbiter" / "audits" / "2026-08-12.md"
+        if audit_packet:
+            audit_packet_path.parent.mkdir(parents=True)
+            audit_packet_path.write_text(
+                "# Academy audit packet\n\n"
+                "## Overrides\n"
+                + "".join(new_lines),
+                encoding="utf-8",
+                newline="\n",
+            )
+        paths = (
+            ".codearbiter/overrides.log",
+            ".codearbiter/reports/academy/U02-audit.md",
+            ".codearbiter/reports/academy/U02-metrics.json",
+        )
+        if audit_packet:
+            paths = (*paths, ".codearbiter/audits/2026-08-12.md")
+        if extra_path:
+            (root / "extra.txt").write_text("decoy\n", encoding="utf-8", newline="\n")
+            paths = (*paths, "extra.txt")
+        self._git(root, "add", "--", *paths)
+        self._git(root, "commit", "-m", "record U02 evidence")
+        head = self._git(root, "rev-parse", "HEAD")
+        if dirty:
+            (root / "untracked.txt").write_text("dirty\n", encoding="utf-8", newline="\n")
+
+        return _SemanticContext(
+            root,
+            _Attempt("academy/U02-override-audit-metrics/1", 1, prepared, base, head),
+            Predicate(
+                "linked_override_audit_metrics",
+                "lab_semantics",
+                {
+                    "profile": "override_audit_metrics",
+                    "overrides": ".codearbiter/overrides.log",
+                    "audit": ".codearbiter/reports/academy/U02-audit.md",
+                    "metrics": ".codearbiter/reports/academy/U02-metrics.json",
+                    "audit_packets": ".codearbiter/audits",
+                },
+            ),
+        )
+
+    def test_u02_accepts_exact_append_only_safe_training_evidence(self) -> None:
+        self.assertTrue(_semantic(self._semantic_context(audit_packet=True)))
+
+    def test_u02_checkpoint_definition_loads_the_audit_packet_directory_contract(self) -> None:
+        """Catches direct predicate tests bypassing an unregistered checkpoint field."""
+        checkpoint = load_checkpoint(
+            Path(__file__).parents[1]
+            / "academy/checkpoints/U02-override-audit-metrics.json"
+        )
+        self.assertEqual(
+            checkpoint.predicates[0].data["audit_packets"], ".codearbiter/audits"
+        )
+
+    def test_u02_rejects_tampered_prefix_wrong_gate_extra_path_and_dirty_worktree(self) -> None:
+        cases = {
+            "prepared-log-prefix-tampered": {"tamper_prefix": True},
+            "wrong-gate": {"gate": "other-gate"},
+            "extra-commit-path": {"extra_path": True},
+            "dirty-worktree": {"dirty": True},
+        }
+        for name, arguments in cases.items():
+            with self.subTest(name=name):
+                self.assertFalse(_semantic(self._semantic_context(audit_packet=True, **arguments)))
+
+    def test_u02_rejects_multiple_otherwise_valid_safe_training_overrides(self) -> None:
+        """Catches the lesson's one-override boundary becoming a permissive log batch."""
+        self.assertFalse(
+            _semantic(self._semantic_context(audit_packet=True, override_lines=2))
+        )
+
+
 class P04NativeDependencyReviewTests(unittest.TestCase):
     """Exercise P04 against immutable candidate blobs and real learner Git history."""
 
