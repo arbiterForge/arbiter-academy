@@ -143,8 +143,8 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn('data-copy-target="command-U01-run-sprint-codex"', content)
         self.assertNotIn("{{action:", content)
 
-    def test_u01_and_u02_are_the_only_power_user_labs_in_the_preview_zero_sixteen_public_boundary(self) -> None:
-        """The third public Power User slice must not expose U04-U07."""
+    def test_u01_through_u04_are_the_power_user_labs_in_the_preview_zero_seventeen_public_boundary(self) -> None:
+        """The fourth public Power User slice must not expose U05-U07."""
         release = load_preview_manifest(SOURCE)
         self.assertIn(U01, release.available_labs)
         self.assertIn(U01, release.runnable_labs)
@@ -153,7 +153,10 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn("U02-override-audit-metrics", release.runnable_labs)
         self.assertIn("U02-override-audit-metrics", release.guided_labs)
         self.assertIn("U03-refactor-chore-release", release.guided_labs)
-        for lab_id in ("U04-initialize-projects", "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"):
+        self.assertIn("U04-initialize-projects", release.available_labs)
+        self.assertIn("U04-initialize-projects", release.runnable_labs)
+        self.assertIn("U04-initialize-projects", release.guided_labs)
+        for lab_id in ("U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"):
             self.assertNotIn(lab_id, release.available_labs)
 
     def test_u01_declares_the_bounded_sprint_fixture_and_positive_predicate(self) -> None:
