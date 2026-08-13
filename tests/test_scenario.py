@@ -21,6 +21,7 @@ from academy_engine.exercise_state import ExerciseStateError
 from academy_engine.scenario import PreparedLab, PreparationError, prepare_lab, reset_lab
 from academy_engine.external_state import ExternalStateStore
 from academy_engine.progress import inspect_progress
+from academy_engine.paths import PathBoundaryError
 from tests._temporary import RetryingTemporaryDirectory
 from tests.test_p06_context_recovery import (
     P06_CLI_OBJECT,
@@ -766,6 +767,30 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(existing.read_text(encoding="utf-8"), "preserve\n")
         self.assertEqual(git(root, "branch", "--show-current"), "main")
         self.assertFalse(git(root, "branch", "--list", "academy/U04-initialize-projects/1"))
+
+    def test_u04_prepare_rejects_a_dangling_fixture_symlink_before_branch_creation(self) -> None:
+        """A dangling private target is rejected by the path boundary before mutation."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        (root / ".gitignore").write_text(".academy/\n", encoding="utf-8")
+        git(root, "add", ".gitignore")
+        git(root, "commit", "-m", "ignore Academy private state")
+        target = root / ".academy/workspaces/U04-greenfield"
+        target.parent.mkdir(parents=True)
+        try:
+            target.symlink_to(root / "absent-target", target_is_directory=True)
+        except OSError as error:
+            self.skipTest(f"symlink/reparse creation unavailable: {error}")
+
+        with self.assertRaisesRegex(PathBoundaryError, "symlink or reparse"):
+            prepare_lab(root, "U04-initialize-projects")
+
+    def test_u04_reset_refuses_before_any_state_restoration(self) -> None:
+        """The unconditional U04 reset refusal cannot mutate a prior exercise."""
+        with patch("academy_engine.scenario._restore_p02_before_later_lab") as restore:
+            with self.assertRaisesRegex(PreparationError, "archive both child repository histories"):
+                reset_lab(Path("C:/not-a-repository"), "U04-initialize-projects")
+        restore.assert_not_called()
 
     def test_u04_prepare_rolls_back_when_the_second_child_fixture_fails(self) -> None:
         """A half-staged private fixture must not survive a failed Prepare command."""

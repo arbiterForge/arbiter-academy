@@ -57,7 +57,7 @@ def remove_tree_with_retry(
             error = error_info[1]
             if not isinstance(error, PermissionError):
                 raise error
-            os.chmod(path, stat.S_IWRITE)
+            os.chmod(path, os.stat(path).st_mode | stat.S_IWUSR)
             function(path)
 
         shutil.rmtree(target, onerror=remove_readonly)

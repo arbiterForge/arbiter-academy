@@ -352,7 +352,7 @@ def _remove_target(target: Path) -> None:
                 error = error_info[1]
                 if not isinstance(error, PermissionError):
                     raise error
-                os.chmod(path, stat.S_IWRITE)
+                os.chmod(path, os.stat(path).st_mode | stat.S_IWUSR)
                 function(path)
 
             shutil.rmtree(target, onerror=remove_readonly)
@@ -590,6 +590,10 @@ def reset_lab(
     installed_authority: bool = False,
 ) -> PreparedLab:
     """Archive the current clean attempt and prepare an independent retry."""
+    if lab_id == "U04-initialize-projects":
+        raise PreparationError(
+            "U04 reset is unavailable until Academy can archive both child repository histories."
+        )
     if lab_id == "P02-commit-review-pr":
         if not installed_authority:
             raise PreparationError(_P02_AUTHORITY_REQUIRED)
@@ -636,10 +640,6 @@ def reset_lab(
     suffix = current.removeprefix(expected_prefix)
     if not current.startswith(expected_prefix) or not suffix.isdecimal() or str(int(suffix)) != suffix or int(suffix) < 1:
         raise PreparationError("reset requires the matching attempt branch for this Academy lab.")
-    if lab_id == "U04-initialize-projects":
-        raise PreparationError(
-            "U04 reset is unavailable until Academy can archive both child repository histories."
-        )
     lab, manifest, manifest_path = _catalog_and_manifest(repository, lab_id)
     _validate_overlay(repository, manifest, manifest_path)
     _ensure_mutation_remote_safety(repository, manifest)

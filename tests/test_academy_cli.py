@@ -214,6 +214,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 ("reset", "reset_lab"),
                 ("check", "evaluate_checkpoint"),
                 ("write-handoff", "write_p06_handoff"),
+                ("write-report", "write_u04_initialization_report"),
             ):
                 with self.subTest(lab_id=lab_id, command=command), patch(
                     "academy_engine.cli.repository_root", return_value=REPOSITORY

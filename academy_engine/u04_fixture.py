@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from academy_engine.command import GitCommandError, initialize_empty_training_repository, run_git
@@ -28,12 +29,12 @@ U04_SEED_CONTENT = {
 
 def _stage_child(repository: Path, relative: str, kind: str) -> None:
     child = ensure_within(repository, Path(relative))
-    if child.exists():
+    if os.path.lexists(child):
         raise U04FixtureError("U04 fixture target is already occupied.")
-    child.parent.mkdir(parents=True, exist_ok=True)
-    child.mkdir()
-    child = ensure_within(repository, Path(relative))
     try:
+        child.parent.mkdir(parents=True, exist_ok=True)
+        child.mkdir()
+        child = ensure_within(repository, Path(relative))
         initialize_empty_training_repository(child)
         run_git(child, ["config", "user.name", "Academy Fixture"], trust_local_config=True)
         run_git(
