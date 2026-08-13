@@ -796,6 +796,39 @@ class ScenarioTests(unittest.TestCase):
                 self.assertEqual((child / seed_path).read_bytes(), seed_contents)
         self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
 
+    def test_u05_prepare_stages_an_observed_symptom_without_faking_plugin_output(self) -> None:
+        """U05 starts with a reproducible observation, not an invented debug receipt."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        board_before = (root / ".codearbiter/open-tasks.md").read_bytes()
+
+        prepared = prepare_lab(root, "U05-debug-spike-conflict")
+
+        self.assertEqual(prepared.branch, "academy/U05-debug-spike-conflict/1")
+        self.assertEqual(
+            tuple(
+                git(
+                    root,
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-only",
+                    "-r",
+                    prepared.commit_sha,
+                ).splitlines()
+            ),
+            (
+                "docs/U05-cache-key-observation.md",
+                "training_scenarios/U05-debug-spike-conflict.json",
+            ),
+        )
+        observation = (root / "docs/U05-cache-key-observation.md").read_text(encoding="utf-8")
+        self.assertIn("## Observed behavior", observation)
+        self.assertIn("## Reproduction", observation)
+        self.assertIn("## Expected behavior", observation)
+        self.assertNotIn("debug.note", observation)
+        self.assertEqual((root / ".codearbiter/open-tasks.md").read_bytes(), board_before)
+        self.assertEqual(git(root, "status", "--porcelain", "--untracked-files=all"), "")
+
     def test_u04_prepare_refuses_an_existing_private_fixture_target(self) -> None:
         """Ignored Academy state can still be user evidence; Prepare must not erase it."""
         temporary, root = p01_academy_git_fixture()

@@ -26,6 +26,7 @@ class U05PluginContractTests(unittest.TestCase):
         "profile": "debug_spike_conflict",
         "spike": ".codearbiter/spikes/u05-cache-key.md",
         "board": ".codearbiter/open-tasks.md",
+        "observation": "docs/U05-cache-key-observation.md",
     }
 
     def git(self, root: Path, *args: str) -> str:
@@ -39,9 +40,20 @@ class U05PluginContractTests(unittest.TestCase):
         copy_spike_code: bool = False,
         leave_untracked_spike_code: bool = False,
         split_debug_metadata: bool = False,
+        include_observation: bool = True,
+        collapse_evidence_into_one_commit: bool = False,
     ) -> _SemanticContext:
         (root / ".codearbiter/spikes").mkdir(parents=True)
         (root / ".codearbiter/open-tasks.md").write_text("# Open tasks\n", encoding="utf-8")
+        if include_observation:
+            (root / "docs").mkdir()
+            (root / "docs/U05-cache-key-observation.md").write_text(
+                "# U05 cache-key observation\n\n"
+                "## Observed behavior\nFixture observation.\n\n"
+                "## Reproduction\nRead-only evidence.\n\n"
+                "## Expected behavior\nNo code change.\n",
+                encoding="utf-8",
+            )
         self.git(root, "init", "-b", "main")
         self.git(root, "config", "user.name", "Academy Learner")
         self.git(root, "config", "user.email", "learner@example.invalid")
@@ -49,10 +61,6 @@ class U05PluginContractTests(unittest.TestCase):
         self.git(root, "commit", "-m", "academy: prepare U05")
         prepared = self.git(root, "rev-parse", "HEAD")
         self.git(root, "switch", "-c", "academy/U05-debug-spike-conflict/1")
-        (root / ".codearbiter/spikes/u05-cache-key.md").write_text(
-            "# Cache-key spike\n\n## Question\nWhich cache key is stale?\n\n## What tried\nRead-only trace.\n\n## Answer\nThe tenant key is omitted.\n\n## Implication\nRoute a fix through $ca-fix.\n",
-            encoding="utf-8",
-        )
         board = (
             "# Open tasks\n\n## In-flight\n\n"
             "- [ ] debug.note.0001 - U05 cache-key investigation closed without code changes\n"
@@ -65,19 +73,45 @@ class U05PluginContractTests(unittest.TestCase):
                 "  - Context: cited read-only trace\n"
                 "- [ ] maintenance.note.0001 - unrelated work closed without code changes\n"
                 "  - Desc: unrelated maintenance\n"
-            )
+        )
         (root / ".codearbiter/open-tasks.md").write_text(board, encoding="utf-8")
-        if copy_spike_code:
-            (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
-        paths = [".codearbiter"]
-        if copy_spike_code:
-            paths.append("exploratory_spike.py")
-        self.git(root, "add", *paths)
-        self.git(root, "commit", "-m", "docs: retain U05 findings")
+        if collapse_evidence_into_one_commit:
+            (root / ".codearbiter/spikes/u05-cache-key.md").write_text(
+                "# Cache-key spike\n\n## Question\nWhich cache key is stale?\n\n## What tried\nRead-only trace.\n\n## Answer\nThe tenant key is omitted.\n\n## Implication\nRoute a fix through $ca-fix.\n",
+                encoding="utf-8",
+            )
+            if copy_spike_code:
+                (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
+            paths = [".codearbiter"]
+            if copy_spike_code:
+                paths.append("exploratory_spike.py")
+            self.git(root, "add", *paths)
+            self.git(root, "commit", "-m", "docs: retain U05 findings")
+        else:
+            self.git(root, "add", ".codearbiter/open-tasks.md")
+            self.git(root, "commit", "-m", "docs: close U05 debug investigation")
+            self.git(root, "switch", "-c", "spike/u05-cache-key")
+            (root / ".codearbiter/spikes/u05-cache-key.md").write_text(
+                "# Cache-key spike\n\n## Question\nWhich cache key is stale?\n\n## What tried\nRead-only trace.\n\n## Answer\nThe tenant key is omitted.\n\n## Implication\nRoute a fix through $ca-fix.\n",
+                encoding="utf-8",
+            )
+            self.git(root, "add", ".codearbiter/spikes/u05-cache-key.md")
+            self.git(root, "commit", "-m", "docs: record U05 spike findings")
+            self.git(root, "switch", "academy/U05-debug-spike-conflict/1")
+            self.git(root, "restore", "--source", "spike/u05-cache-key", "--", ".codearbiter/spikes/u05-cache-key.md")
+            if copy_spike_code:
+                (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
+            paths = [".codearbiter/spikes/u05-cache-key.md"]
+            if copy_spike_code:
+                paths.append("exploratory_spike.py")
+            self.git(root, "add", *paths)
+            self.git(root, "commit", "-m", "docs: retain U05 findings")
+            if not retain_spike:
+                self.git(root, "branch", "-D", "spike/u05-cache-key")
         head = self.git(root, "rev-parse", "HEAD")
         if leave_untracked_spike_code:
             (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
-        if retain_spike:
+        if retain_spike and collapse_evidence_into_one_commit:
             self.git(root, "branch", "spike/u05-cache-key", head)
         return _SemanticContext(root, _Attempt("academy/U05-debug-spike-conflict/1", 1, prepared, prepared, head), Predicate("u05", "lab_semantics", self.data))
 
@@ -101,6 +135,16 @@ class U05PluginContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             self.assertFalse(_semantic(self.context(Path(directory), split_debug_metadata=True)))
 
+    def test_rejects_a_generic_spike_and_board_without_the_prepared_observation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(_semantic(self.context(Path(directory), include_observation=False)))
+
+    def test_rejects_debug_and_spike_evidence_collapsed_into_one_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(
+                _semantic(self.context(Path(directory), collapse_evidence_into_one_commit=True))
+            )
+
     def test_allows_an_unrelated_spike_branch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -112,14 +156,20 @@ class U05PluginContractTests(unittest.TestCase):
         manifest = load_action_manifest(SOURCE, U05)
         by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(tuple(by_id), (
-            "U05-confirm-private-boundary", "U05-prepare-attempt", "U05-run-debug",
-            "U05-run-spike", "U05-halt-for-conflict", "U05-check-status",
+            "U05-confirm-private-boundary", "U05-prepare-attempt", "U05-read-observation",
+            "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
+            "U05-run-spike", "U05-transfer-findings", "U05-review-findings",
+            "U05-commit-findings", "U05-delete-spike", "U05-halt-for-conflict",
+            "U05-check-status",
         ))
         self.assertIn("debug.note.0001", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
         self.assertIn(U05_RELEASED_INTEGRATION, by_id["U05-run-spike"].instruction)
         self.assertIn("PR 687", by_id["U05-run-spike"].instruction)
+        self.assertIn("git restore --source spike/u05-cache-key", by_id["U05-transfer-findings"].variants[0].command)
+        self.assertIn("git branch -D spike/u05-cache-key", by_id["U05-delete-spike"].variants[0].command)
+        self.assertNotIn("git merge", by_id["U05-transfer-findings"].instruction.casefold())
         self.assertIn("stop", by_id["U05-halt-for-conflict"].expected_result.casefold())
         for action_id in ("U05-prepare-attempt", "U05-check-status"):
             self.assertIn("not published", by_id[action_id].expected_result.casefold())

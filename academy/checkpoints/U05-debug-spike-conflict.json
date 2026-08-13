@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"U05-debug-spike-conflict","predicates":[{"id":"debug_spike_conflict_artifacts","type":"lab_semantics","profile":"debug_spike_conflict","spike":".codearbiter/spikes/u05-cache-key.md","board":".codearbiter/open-tasks.md"}]}
+{"schema_version":2,"id":"U05-debug-spike-conflict","predicates":[{"id":"debug_spike_conflict_artifacts","type":"lab_semantics","profile":"debug_spike_conflict","spike":".codearbiter/spikes/u05-cache-key.md","board":".codearbiter/open-tasks.md","observation":"docs/U05-cache-key-observation.md"}]}

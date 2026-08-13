@@ -198,7 +198,7 @@ _PROFILES = {
     ),
     "initialized_fixture": ("workspace", "report"),
     "initialized_projects": ("greenfield", "brownfield", "report"),
-    "debug_spike_conflict": ("spike", "board"),
+    "debug_spike_conflict": ("spike", "board", "observation"),
     "preview_evidence": ("report",),
     "u06_preview_evidence": ("candidate", "report"),
     "capstone": ("spec_directory", "plan_directory", "adr_directory", "code", "test"),
@@ -221,7 +221,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit_packets": ".codearbiter/audits"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.0.1", "release_tag": "academy-v0.0.1", "release_changelog": "CHANGELOG.md", "release_targets": ".codearbiter/release-targets.md"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
-    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
+    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md", "observation": "docs/U05-cache-key-observation.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
     "U07-capstone": ("capstone_governed_range", "capstone", {"spec_directory": ".codearbiter/specs", "plan_directory": ".codearbiter/plans", "adr_directory": ".codearbiter/decisions", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
@@ -3726,6 +3726,8 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "debug_spike_conflict":
         spike = _changed_document(context, str(data["spike"]))
         board = _changed_document(context, str(data["board"]))
+        observation = _text(root, attempt.prepared, str(data["observation"]))
+        commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
         status = run_git(
             root,
             ["status", "--porcelain", "--untracked-files=all"],
@@ -3744,8 +3746,14 @@ def _semantic(context: _SemanticContext) -> bool:
             check=False,
         ).stdout.strip()
         return bool(
-            _headings(spike, ("Question", "What tried", "Answer", "Implication"))
+            observation
+            and _headings(observation, ("Observed behavior", "Reproduction", "Expected behavior"))
+            and "debug.note" not in observation
+            and _headings(spike, ("Question", "What tried", "Answer", "Implication"))
             and board
+            and commits is not None
+            and _commit_paths(root, commits[0]) == (str(data["board"]),)
+            and _commit_paths(root, commits[1]) == (str(data["spike"]),)
             and re.search(
                 r"(?m)^- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n  - Desc: .+$",
                 board,
