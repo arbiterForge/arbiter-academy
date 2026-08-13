@@ -32,7 +32,9 @@ from academy_engine.exercise_state import (
 )
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 from academy_engine.p05_fixture import validate_p05_fixture
+from academy_engine.paths import ensure_within
 from academy_engine.secret_rules import blob_is_secret_free
+from academy_engine.u04_fixture import U04_SEED_CONTENT
 
 LAB_INVENTORY = (
     "F01-fork-clone-doctor",
@@ -168,7 +170,8 @@ _PROFILES = {
     "override_audit_metrics": ("overrides", "audit", "metrics"),
     "refactor_chore_release": ("code", "test", "chore", "tag_prefix"),
     "initialized_fixture": ("workspace", "report"),
-    "debug_spike_conflict": ("spike", "board"),
+    "initialized_projects": ("greenfield", "brownfield", "report"),
+    "debug_spike_conflict": ("debug", "spike", "conflict"),
     "preview_evidence": ("report",),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
@@ -189,7 +192,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "tag_prefix": "academy-v"}),
-    "U04-initialize-projects": ("initialized_secondary_fixture", "initialized_fixture", {"workspace": ".academy/workspaces/U04-secondary", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
+    "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "preview_evidence", {"report": ".codearbiter/reports/academy/U06-preview.json"}),
     "U07-capstone": ("capstone_governed_range", "capstone", {"spec": ".codearbiter/specs/capstone.md", "plan": ".codearbiter/plans/capstone.md", "adr": ".codearbiter/decisions/0004-capstone.md", "review": ".codearbiter/reports/academy/U07-review.json", "pr_receipt": ".codearbiter/reports/academy/U07-pr-receipt.json", "audit": ".codearbiter/reports/academy/U07-audit.json", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
@@ -2960,6 +2963,256 @@ def _p06_provenance_recovery(context: _SemanticContext) -> bool:
     )
 
 
+_U04_CHILD_PATHS = {
+    "greenfield": ".academy/workspaces/U04-greenfield",
+    "brownfield": ".academy/workspaces/U04-brownfield",
+}
+_U04_COMMON_CHILD_DOCUMENTS = (
+    ".codearbiter/CONTEXT.md",
+    ".codearbiter/tech-stack.md",
+    ".codearbiter/coding-standards.md",
+    ".codearbiter/security-controls.md",
+    ".codearbiter/open-questions.md",
+    ".codearbiter/open-tasks.md",
+    ".codearbiter/overrides.log",
+)
+_U04_GREENFIELD_PLANS = (
+    ".codearbiter/plans/01-architecture-breakdown.md",
+    ".codearbiter/plans/02-phased-build-plan.md",
+    ".codearbiter/plans/03-task-backlog.md",
+)
+_U04_REPORT_PATH = ".codearbiter/reports/academy/U04-initialization.md"
+
+
+def _u04_child_binding(root: Path, path: str, kind: str) -> tuple[str, str, str] | None:
+    child = root / path
+    required_documents = (
+        *_U04_COMMON_CHILD_DOCUMENTS,
+        *(_U04_GREENFIELD_PLANS if kind == "greenfield" else ()),
+    )
+    if not (
+        _plain_path_within(root, child, regular_file=False)
+        and _plain_path_within(child, child / ".git", regular_file=False)
+        and all(
+            _plain_path_within(child, child / document, regular_file=True)
+            for document in required_documents
+        )
+    ):
+        return None
+    child_root = run_git(child, ["rev-parse", "--show-toplevel"], check=False)
+    if child_root.returncode or Path(child_root.stdout.strip()).resolve() != child.resolve():
+        return None
+    head_result = run_git(child, ["rev-parse", "HEAD"], check=False)
+    head = head_result.stdout.strip()
+    if head_result.returncode or not _SHA40.fullmatch(head):
+        return None
+    initial = run_git(child, ["rev-list", "--max-parents=0", head], check=False)
+    initial_commits = tuple(
+        line for line in initial.stdout.splitlines() if _SHA40.fullmatch(line)
+    )
+    seed = U04_SEED_CONTENT.get(kind)
+    if initial.returncode or len(initial_commits) != 1 or seed is None:
+        return None
+    seed_commit = initial_commits[0]
+    seed_paths = tuple(
+        run_git(child, ["ls-tree", "-r", "--name-only", seed_commit], check=False)
+        .stdout.splitlines()
+    )
+    if seed_paths != tuple(sorted(seed)) or any(
+        _git_blob(child, seed_commit, document) != contents
+        for document, contents in seed.items()
+    ):
+        return None
+    tree_result = run_git(child, ["rev-parse", "HEAD^{tree}"], check=False)
+    tree = tree_result.stdout.strip()
+    if tree_result.returncode or not _SHA40.fullmatch(tree):
+        return None
+    status = run_git(child, ["status", "--porcelain", "--untracked-files=all"], check=False)
+    if status.returncode or status.stdout:
+        return None
+    documents = tuple(_git_blob(child, head, document) for document in required_documents)
+    if any(document is None or b"[CONFIRM-" in document.upper() for document in documents):
+        return None
+    markdown_paths = tuple(
+        path
+        for path in run_git(
+            child,
+            ["ls-tree", "-r", "--name-only", head, "--", ".codearbiter"],
+            check=False,
+        ).stdout.splitlines()
+        if path.endswith(".md")
+    )
+    if any(
+        blob is None or b"[CONFIRM-" in blob.upper()
+        for blob in (_git_blob(child, head, path) for path in markdown_paths)
+    ):
+        return None
+    context = documents[0]
+    if not (
+        re.search(rb"(?mi)^arbiter:\s*enabled\s*$", context)
+        and b"<!--INITIALIZED-->" in context
+    ):
+        return None
+    if kind == "greenfield":
+        decision_paths = tuple(
+            path
+            for path in run_git(
+                child,
+                ["ls-tree", "-r", "--name-only", head, "--", ".codearbiter/decisions"],
+                check=False,
+            ).stdout.splitlines()
+            if path.endswith(".md") and path != ".codearbiter/decisions/decision-log.md"
+        )
+        decisions = tuple(_git_blob(child, head, path) for path in decision_paths)
+        if not any(
+            decision is not None
+            and b"[CONFIRM-" not in decision.upper()
+            and re.search(rb"(?mi)^status:\s*accepted\s*$", decision)
+            for decision in decisions
+        ):
+            return None
+    elif any(_git_blob(child, head, plan) is not None for plan in _U04_GREENFIELD_PLANS):
+        return None
+    return head, tree, _raw_digest(context)
+
+
+def _u04_report(bindings: dict[str, tuple[str, str, str]]) -> bytes:
+    greenfield, brownfield = (bindings[name] for name in ("greenfield", "brownfield"))
+    return (
+        "# U04 initialization evidence\n\n"
+        "## Greenfield\n"
+        f"Path: {_U04_CHILD_PATHS['greenfield']}\n"
+        f"HEAD: {greenfield[0]}\n"
+        f"Tree: {greenfield[1]}\n"
+        f"CONTEXT-SHA256: {greenfield[2]}\n\n"
+        "## Brownfield\n"
+        f"Path: {_U04_CHILD_PATHS['brownfield']}\n"
+        f"HEAD: {brownfield[0]}\n"
+        f"Tree: {brownfield[1]}\n"
+        f"CONTEXT-SHA256: {brownfield[2]}\n\n"
+        "## Route evidence\n"
+        "Greenfield-Plans: .codearbiter/plans/01-architecture-breakdown.md; "
+        ".codearbiter/plans/02-phased-build-plan.md; "
+        ".codearbiter/plans/03-task-backlog.md\n"
+        "Brownfield-Context: .codearbiter/CONTEXT.md; .codearbiter/tech-stack.md; "
+        ".codearbiter/coding-standards.md; .codearbiter/security-controls.md\n"
+    ).encode("utf-8")
+
+
+def write_u04_initialization_report(root: Path) -> Path:
+    """Write the canonical U04 report only from clean, committed child state."""
+    bindings = {
+        name: _u04_child_binding(root, path, name)
+        for name, path in _U04_CHILD_PATHS.items()
+    }
+    if any(binding is None for binding in bindings.values()):
+        raise ValueError(
+            "U04 child repositories must be clean and committed before report generation."
+        )
+    concrete_bindings = {
+        name: binding for name, binding in bindings.items() if binding is not None
+    }
+    destination = ensure_within(root, Path(_U04_REPORT_PATH))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(_u04_report(concrete_bindings))
+    return destination
+
+
+def _u04_initialized_projects(context: _SemanticContext) -> bool:
+    root, attempt, data = context.root, context.attempt, context.predicate.data
+    if (
+        data.get("greenfield") != _U04_CHILD_PATHS["greenfield"]
+        or data.get("brownfield") != _U04_CHILD_PATHS["brownfield"]
+        or data.get("report") != _U04_REPORT_PATH
+    ):
+        return False
+    root_status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
+    history = run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False)
+    commits = tuple(line for line in history.stdout.splitlines() if _SHA40.fullmatch(line))
+    if (
+        root_status.returncode
+        or root_status.stdout
+        or history.returncode
+        or not commits
+        or commits[-1] != attempt.head
+        or any(_commit_paths(root, commit) != (_U04_REPORT_PATH,) for commit in commits)
+        or not _changed(root, attempt.prepared, attempt.head, _U04_REPORT_PATH)
+    ):
+        return False
+    bindings = {
+        name: _u04_child_binding(root, path, name)
+        for name, path in _U04_CHILD_PATHS.items()
+    }
+    if any(binding is None for binding in bindings.values()):
+        return False
+    concrete_bindings = {
+        name: binding for name, binding in bindings.items() if binding is not None
+    }
+    return _git_blob(root, attempt.head, _U04_REPORT_PATH) == _u04_report(concrete_bindings)
+
+
+def _initialized_fixture(context: _SemanticContext) -> bool:
+    """Keep direct strictness-fixture coverage for the retired noncanonical profile."""
+    root, attempt, data = context.root, context.attempt, context.predicate.data
+    report = _changed_document(context, str(data["report"]))
+    workspace = root / str(data["workspace"])
+    live_context = workspace / ".codearbiter" / "CONTEXT.md"
+    workspace_plain = _plain_path_within(root, workspace, regular_file=False)
+    git_directory_plain = workspace_plain and _plain_path_within(
+        workspace, workspace / ".git", regular_file=False
+    )
+    context_plain = workspace_plain and _plain_path_within(
+        workspace, live_context, regular_file=True
+    )
+    child_root = (
+        run_git(workspace, ["rev-parse", "--show-toplevel"], check=False).stdout.strip()
+        if workspace_plain and git_directory_plain and context_plain
+        else ""
+    )
+    child_head = (
+        run_git(workspace, ["rev-parse", "HEAD"], check=False).stdout.strip()
+        if child_root and Path(child_root).resolve() == workspace.resolve()
+        else ""
+    )
+    child_tree = (
+        run_git(workspace, ["rev-parse", "HEAD^{tree}"], check=False).stdout.strip()
+        if _SHA40.fullmatch(child_head)
+        else ""
+    )
+    context_blob = (
+        _git_blob(workspace, child_head, ".codearbiter/CONTEXT.md")
+        if _SHA40.fullmatch(child_head)
+        else None
+    )
+    clean = (
+        not run_git(
+            workspace,
+            ["status", "--porcelain", "--untracked-files=all"],
+            check=False,
+        ).stdout
+        if child_root
+        else False
+    )
+    return bool(
+        report
+        and _headings(report, ("Init", "Brownfield", "Greenfield", "Reconciliation"))
+        and _SHA40.fullmatch(child_head)
+        and _SHA40.fullmatch(child_tree)
+        and Path(child_root).resolve() == workspace.resolve()
+        and workspace_plain
+        and git_directory_plain
+        and context_plain
+        and context_blob is not None
+        and clean
+        and re.search(rf"(?m)^Child-HEAD:\s*{re.escape(child_head)}\s*$", report)
+        and re.search(rf"(?m)^Child-Tree:\s*{re.escape(child_tree)}\s*$", report)
+        and re.search(
+            rf"(?m)^CONTEXT-SHA256:\s*{re.escape(_raw_digest(context_blob))}\s*$",
+            report,
+        )
+    )
+
+
 def _semantic(context: _SemanticContext) -> bool:
     data = context.predicate.data
     profile = str(data["profile"])
@@ -3172,64 +3425,10 @@ def _semantic(context: _SemanticContext) -> bool:
             and len({item[0] for item in commits}) >= 2
             and any(tag.startswith(str(data["tag_prefix"])) for tag in tags)
         )
+    if profile == "initialized_projects":
+        return _u04_initialized_projects(context)
     if profile == "initialized_fixture":
-        report = _changed_document(context, str(data["report"]))
-        workspace = root / str(data["workspace"])
-        live_context = workspace / ".codearbiter" / "CONTEXT.md"
-        workspace_plain = _plain_path_within(root, workspace, regular_file=False)
-        git_directory_plain = workspace_plain and _plain_path_within(
-            workspace, workspace / ".git", regular_file=False
-        )
-        context_plain = workspace_plain and _plain_path_within(
-            workspace, live_context, regular_file=True
-        )
-        child_root = (
-            run_git(workspace, ["rev-parse", "--show-toplevel"], check=False).stdout.strip()
-            if workspace_plain and git_directory_plain and context_plain
-            else ""
-        )
-        child_head = (
-            run_git(workspace, ["rev-parse", "HEAD"], check=False).stdout.strip()
-            if child_root and Path(child_root).resolve() == workspace.resolve()
-            else ""
-        )
-        child_tree = (
-            run_git(workspace, ["rev-parse", "HEAD^{tree}"], check=False).stdout.strip()
-            if _SHA40.fullmatch(child_head)
-            else ""
-        )
-        context_blob = (
-            _git_blob(workspace, child_head, ".codearbiter/CONTEXT.md")
-            if _SHA40.fullmatch(child_head)
-            else None
-        )
-        clean = (
-            not run_git(
-                workspace,
-                ["status", "--porcelain", "--untracked-files=all"],
-                check=False,
-            ).stdout
-            if child_root
-            else False
-        )
-        return bool(
-            report
-            and _headings(report, ("Init", "Brownfield", "Greenfield", "Reconciliation"))
-            and _SHA40.fullmatch(child_head)
-            and _SHA40.fullmatch(child_tree)
-            and Path(child_root).resolve() == workspace.resolve()
-            and workspace_plain
-            and git_directory_plain
-            and context_plain
-            and context_blob is not None
-            and clean
-            and re.search(rf"(?m)^Child-HEAD:\s*{re.escape(child_head)}\s*$", report)
-            and re.search(rf"(?m)^Child-Tree:\s*{re.escape(child_tree)}\s*$", report)
-            and re.search(
-                rf"(?m)^CONTEXT-SHA256:\s*{re.escape(_raw_digest(context_blob))}\s*$",
-                report,
-            )
-        )
+        return _initialized_fixture(context)
     if profile == "debug_spike_conflict":
         spike = _changed_document(context, str(data["spike"]))
         board = _changed_document(context, str(data["board"]))

@@ -14,7 +14,12 @@ from unittest.mock import patch
 
 import academy_engine.command as command_module
 from academy_engine.checkpoints import evaluate_checkpoint
-from academy_engine.command import GitCommandError, _run, run_git_unbound
+from academy_engine.command import (
+    GitCommandError,
+    _run,
+    initialize_empty_training_repository,
+    run_git_unbound,
+)
 from academy_engine.git import run_git
 
 
@@ -231,6 +236,23 @@ class RunGitTests(unittest.TestCase):
             ).stdout.strip(),
             "true",
         )
+
+    def test_initializes_only_an_empty_plain_child_repository(self) -> None:
+        child = self.root / "private" / "child"
+        child.mkdir(parents=True)
+        initialize_empty_training_repository(child)
+
+        self.assertTrue((child / ".git").is_dir())
+        self.assertEqual(
+            run_git(child, ["symbolic-ref", "--short", "HEAD"]).stdout.strip(),
+            "main",
+        )
+        self.assertEqual(
+            run_git(child, ["status", "--porcelain", "--untracked-files=all"]).stdout,
+            "",
+        )
+        with self.assertRaisesRegex(GitCommandError, "empty plain directory"):
+            initialize_empty_training_repository(child)
 
     def test_unbound_runner_rejects_joined_learner_git_dir_before_init_mutates_config(self) -> None:
         """Catches init validation that only inspects the first Git argument."""

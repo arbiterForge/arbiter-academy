@@ -63,9 +63,7 @@ class CatalogExportTests(unittest.TestCase):
         self.assertRegex(payload["source_commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(len(payload["labs"]), 19)
         statuses = {item["id"]: item["source_status"] for item in payload["labs"]}
-        self.assertEqual(
-            {lab_id for lab_id, status in statuses.items() if status == "authored"},
-            {
+        authored = {
                 "F01-fork-clone-doctor",
                 "F02-orient-to-state",
                 "F03-work-the-board",
@@ -81,18 +79,13 @@ class CatalogExportTests(unittest.TestCase):
                 "U01-autonomous-sprint",
                 "U04-initialize-projects",
                 "U05-debug-spike-conflict",
-            },
-        )
+        }
+        self.assertEqual({lab_id for lab_id, status in statuses.items() if status == "authored"}, authored)
         self.assertTrue(
             all(
                 status == "pending"
                 for lab_id, status in statuses.items()
-                if lab_id.startswith("U0")
-                and lab_id not in {
-                    "U01-autonomous-sprint",
-                    "U04-initialize-projects",
-                    "U05-debug-spike-conflict",
-                }
+                if lab_id not in authored
             )
         )
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))
