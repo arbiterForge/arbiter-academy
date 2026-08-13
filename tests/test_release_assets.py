@@ -129,10 +129,10 @@ def release_builder_module() -> object:
 
 
 class ReleaseAssetBuilderTests(unittest.TestCase):
-    def test_preview_zero_ten_is_the_only_current_candidate_identity(self) -> None:
+    def test_preview_zero_thirteen_is_the_only_current_candidate_identity(self) -> None:
         """Catches current assets drifting while Preview 0.9 history remains intact."""
         self.assertEqual(RELEASE, "preview-0.13")
-        self.assertEqual(EPOCH, 1_786_838_400)
+        self.assertEqual(EPOCH, 1_786_924_800)
         publication = REPOSITORY / "academy" / "publication"
         self.assertFalse((publication / "preview-0.7.json").exists())
         self.assertFalse((publication / "preview-0.8.json").exists())
