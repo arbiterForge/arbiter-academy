@@ -28,6 +28,7 @@
             ]
           },
           "artifact": {"$ref": "#/$defs/path"},
+          "candidate": {"$ref": "#/$defs/path"},
           "context": {"$ref": "#/$defs/path"},
           "board": {"$ref": "#/$defs/path"},
           "audit": {"$ref": "#/$defs/path"},

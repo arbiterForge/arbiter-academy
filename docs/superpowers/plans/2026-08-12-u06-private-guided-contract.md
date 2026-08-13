@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Keep U06 source-only and private: do not alter Preview 0.12, route inventory, installers, release assets, or public README claims.
+- Keep U06 source-only and private: do not alter Preview 0.12, route inventory, release assets, or public README claims. The narrow installer package-data declaration required to preserve U06's nested scenario seed is allowed; unrelated installer changes are not.
 - Use exactly the shared eight guided headings and standalone action references; no raw runnable command fences or bespoke UI.
 - Teach `$ca-preview` as a read-only predicted review. Do not conflate it with the Academy Preview release identity.
 - Never direct learners to run `ca-sandbox`, `ca-new-skill`, `ca-watch`, or `ca-tribunal`; classify their real prerequisites and risks instead.
