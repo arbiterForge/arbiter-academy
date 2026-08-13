@@ -43,6 +43,7 @@ from academy_engine.exercise_state import (
 from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.p05_fixture import P05FixtureError, stage_p05_fixture
+from academy_engine.u03_fixture import U03FixtureError, U03_RELEASE_TARGETS_PATH, stage_u03_fixture
 from academy_engine.u04_fixture import U04FixtureError, stage_u04_fixture
 from academy_engine.u07_fixture import U07FixtureError, U07_FIXTURE_PATHS, stage_u07_fixture
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
@@ -99,6 +100,7 @@ _U04_FIXTURE_TARGETS = (
     ".academy/workspaces/U04-greenfield",
     ".academy/workspaces/U04-brownfield",
 )
+_U03_FIXTURE_TARGETS = (U03_RELEASE_TARGETS_PATH,)
 _U07_FIXTURE_TARGETS = U07_FIXTURE_PATHS
 
 
@@ -485,6 +487,8 @@ def prepare_lab(
             if lab.id == "P05-checkpoint-remediation"
             else _U04_FIXTURE_TARGETS
             if lab.id == "U04-initialize-projects"
+            else _U03_FIXTURE_TARGETS
+            if lab.id == "U03-refactor-chore-release"
             else _U07_FIXTURE_TARGETS
             if lab.id == "U07-capstone"
             else ()
@@ -524,6 +528,8 @@ def prepare_lab(
                 targets.append(operation.destination.relative_to(repository).as_posix())
             if lab.id == "P05-checkpoint-remediation":
                 targets.extend(stage_p05_fixture(repository, base=base_sha))
+            if lab.id == "U03-refactor-chore-release":
+                targets.extend(stage_u03_fixture(repository, base=base_sha))
             if lab.id == "U04-initialize-projects":
                 stage_u04_fixture(repository, base=base_sha)
             if lab.id == "U07-capstone":
@@ -540,6 +546,7 @@ def prepare_lab(
             PathBoundaryError,
             AttributionError,
             P05FixtureError,
+            U03FixtureError,
             U04FixtureError,
             U07FixtureError,
             PreparationError,

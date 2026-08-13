@@ -34,10 +34,12 @@ class PrivateU03CheckpointTests(unittest.TestCase):
     _CODE = "workshop_queue/store.py"
     _TEST = "tests/test_store.py"
     _CHORE = "README.md"
+    _CHANGELOG = "CHANGELOG.md"
+    _TARGETS = ".codearbiter/release-targets.md"
     _TARGET = "academy-private-training"
-    _VERSION = "0.3.0"
-    _TAG = "academy-v0.3.0"
-    _TAG_MESSAGE = "Academy private exercise: academy-private-training 0.3.0"
+    _VERSION = "0.0.1"
+    _TAG = "academy-v0.0.1"
+    _DATE = "2026-08-13"
 
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -63,33 +65,47 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         self.branch = "academy/U03-refactor-chore-release/1"
         git(self.root, "switch", "-c", self.branch)
         self._write_brief()
-        self.prepared = self._commit("prepare private U03 brief", self._SCENARIO_PATH)
+        self.prepared = self._commit("prepare private U03 brief", self._SCENARIO_PATH, self._TARGETS)
 
     def _write_brief(self) -> None:
         payload = {
             "schema_version": 2,
             "lab_id": "U03-refactor-chore-release",
             "operation": "refactor_chore_release",
-            "starting_condition": "release-untagged",
+            "starting_condition": "first-release",
             "refactor": {"code_path": self._CODE, "test_path": self._TEST},
             "chore": {"path": self._CHORE},
             "release": {
                 "target": self._TARGET,
                 "version": self._VERSION,
                 "tag": self._TAG,
-                "tag_message": self._TAG_MESSAGE,
+                "changelog": self._CHANGELOG,
             },
         }
         path = self.root / self._SCENARIO_PATH
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        (self.root / self._TARGETS).write_text(
+            "<!-- release-targets -->\n[academy-private-training]\nprefix: academy-v\n"
+            "changelog: CHANGELOG.md\npayload: .\n<!-- /release-targets -->\n",
+            encoding="utf-8",
+        )
+
+    def _section(self) -> str:
+        return (
+            f"## [{self._VERSION}] — {self._DATE}\n\n### Changed\n\n"
+            "- Preserve ticket-read behavior while clarifying its boundary.\n"
+        )
+
+    def _tag_message(self) -> str:
+        return f"{self._section()}\nReleased-at: {self._DATE}\n"
 
     def _commit(self, message: str, *paths: str) -> str:
         git(self.root, "add", "--", *paths)
         git(self.root, "commit", "-m", message)
         return git(self.root, "rev-parse", "HEAD")
 
-    def _complete_two_commit_attempt(self, *, mutate_test: bool = False, extra_path: bool = False) -> str:
+    def _complete_three_commit_attempt(self, *, mutate_test: bool = False, extra_path: bool = False) -> str:
         (self.root / self._CODE).write_text("def read_ticket():\n    return 'open'  # refactored\n", encoding="utf-8")
         paths = [self._CODE]
         if mutate_test:
@@ -98,9 +114,15 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         if extra_path:
             (self.root / "unapproved.txt").write_text("outside the brief\n", encoding="utf-8")
             paths.append("unapproved.txt")
-        self._commit("refactor store boundary", *paths)
+        self._commit(
+            "refactor: clarify store boundary\n\n"
+            "CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.",
+            *paths,
+        )
         (self.root / self._CHORE).write_text("# Workshop Queue\n\nPrivate Academy release note.\n", encoding="utf-8")
-        return self._commit("document approved release note", self._CHORE)
+        self._commit("docs: document approved release note", self._CHORE)
+        (self.root / self._CHANGELOG).write_text("# Changelog\n\n" + self._section(), encoding="utf-8")
+        return self._commit("chore: prepare academy release", self._CHANGELOG)
 
     def _context(self, head: str) -> _SemanticContext:
         return _SemanticContext(
@@ -118,14 +140,15 @@ class PrivateU03CheckpointTests(unittest.TestCase):
                     "release_target": self._TARGET,
                     "release_version": self._VERSION,
                     "release_tag": self._TAG,
-                    "release_message": self._TAG_MESSAGE,
+                    "release_changelog": self._CHANGELOG,
+                    "release_targets": self._TARGETS,
                 },
             ),
         )
 
     def test_rejects_a_lightweight_tag_even_when_legacy_path_checks_pass(self) -> None:
         """Catches accepting `git tag academy-v*` as release evidence."""
-        head = self._complete_two_commit_attempt()
+        head = self._complete_three_commit_attempt()
         git(self.root, "tag", self._TAG, head)
 
         self.assertTrue(_remote_safe(self.root))
@@ -133,15 +156,19 @@ class PrivateU03CheckpointTests(unittest.TestCase):
 
     def test_accepts_only_the_declared_annotated_tag_on_a_bounded_clean_attempt(self) -> None:
         """Catches a verifier that cannot accept the intended private evidence boundary."""
-        head = self._complete_two_commit_attempt()
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt()
+        message = Path(self.temporary.name) / "tag-message.txt"
+        message.write_text(self._tag_message(), encoding="utf-8")
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), head)
 
         self.assertTrue(_semantic(self._context(head)))
 
     def test_rejects_an_annotated_tag_with_extra_blank_content_after_the_message(self) -> None:
         """Catches stripping extra blank tag-body content from an otherwise exact message."""
-        head = self._complete_two_commit_attempt()
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt()
+        message = Path(self.temporary.name) / "tag-message.txt"
+        message.write_text(self._tag_message(), encoding="utf-8")
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), head)
         tag_object = subprocess.run(
             ["git", "cat-file", "tag", self._TAG],
             cwd=self.root,
@@ -161,8 +188,8 @@ class PrivateU03CheckpointTests(unittest.TestCase):
 
     def test_rejects_an_annotated_tag_for_a_different_declared_release(self) -> None:
         """Catches accepting a well-formed tag that does not name the prepared release."""
-        head = self._complete_two_commit_attempt()
-        git(self.root, "tag", "-a", "academy-v9.9.9", "-m", "Academy private exercise: other 9.9.9", head)
+        head = self._complete_three_commit_attempt()
+        git(self.root, "tag", "-a", "academy-v9.9.9", "-m", "wrong", head)
 
         self.assertFalse(_semantic(self._context(head)))
 
@@ -172,29 +199,29 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         self._commit("document approved release note", self._CHORE)
         (self.root / self._CODE).write_text("def read_ticket():\n    return 'open'  # refactored\n", encoding="utf-8")
         head = self._commit("refactor store boundary", self._CODE)
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
 
         self.assertFalse(_semantic(self._context(head)))
 
     def test_rejects_unapproved_path_inside_the_refactor_commit(self) -> None:
         """Catches accepting a lesson commit that changes files outside the prepared scope."""
-        head = self._complete_two_commit_attempt(extra_path=True)
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt(extra_path=True)
+        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
 
         self.assertFalse(_semantic(self._context(head)))
 
     def test_rejects_a_dirty_worktree_after_other_evidence_is_complete(self) -> None:
         """Catches treating committed evidence as sufficient when the learner state is dirty."""
-        head = self._complete_two_commit_attempt()
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt()
+        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
         (self.root / "uncommitted.txt").write_text("not part of the attempt\n", encoding="utf-8")
 
         self.assertFalse(_semantic(self._context(head)))
 
     def test_rejects_a_changed_preexisting_parity_test(self) -> None:
         """Catches a refactor exercise that rewrites the baseline regression instead of preserving it."""
-        head = self._complete_two_commit_attempt(mutate_test=True)
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt(mutate_test=True)
+        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
 
         self.assertFalse(_semantic(self._context(head)))
 
@@ -202,13 +229,13 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         """Catches treating a missing test before and after the attempt as preserved evidence."""
         (self.root / self._TEST).unlink()
         self.prepared = self._commit("prepare U03 without parity fixture", self._TEST)
-        head = self._complete_two_commit_attempt()
-        git(self.root, "tag", "-a", self._TAG, "-m", self._TAG_MESSAGE, head)
+        head = self._complete_three_commit_attempt()
+        git(self.root, "tag", "-a", self._TAG, "-m", self._tag_message(), head)
 
         self.assertFalse(_semantic(self._context(head)))
 
     def test_prepare_copies_the_declared_private_brief_before_work_starts(self) -> None:
-        """Catches a U03 scenario that does not seed the verifier's exact inputs."""
+        """Catches a U03 scenario that cannot drive the real release lane."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "learner"
             root.mkdir()
@@ -232,12 +259,23 @@ class PrivateU03CheckpointTests(unittest.TestCase):
             brief = json.loads((root / self._SCENARIO_PATH).read_text(encoding="utf-8"))
 
             self.assertEqual(prepared.branch, self.branch)
-            self.assertEqual(
-                brief["release"],
-                {"target": self._TARGET, "version": self._VERSION, "tag": self._TAG, "tag_message": self._TAG_MESSAGE},
-            )
             self.assertEqual(brief["refactor"], {"code_path": self._CODE, "test_path": self._TEST})
             self.assertEqual(brief["chore"], {"path": self._CHORE})
+            targets = (root / ".codearbiter/release-targets.md").read_text(encoding="utf-8")
+            self.assertIn("<!-- release-targets -->", targets)
+            self.assertIn("[academy-private-training]", targets)
+            self.assertIn("prefix: academy-v", targets)
+            self.assertIn("changelog: CHANGELOG.md", targets)
+            self.assertIn("payload: .", targets)
+            self.assertEqual(
+                brief["release"],
+                {
+                    "target": self._TARGET,
+                    "version": "0.0.1",
+                    "tag": "academy-v0.0.1",
+                    "changelog": "CHANGELOG.md",
+                },
+            )
 
 
 if __name__ == "__main__":

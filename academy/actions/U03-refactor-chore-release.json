@@ -9,13 +9,13 @@
       "title": "Read the private evidence boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "This source-only lesson is not runnable in Preview 0.15. Its future private contract is limited to an exact refactor of workshop_queue/store.py, a later docs-only README.md commit, an unchanged pre-existing tests/test_store.py, a clean worktree, and the declared annotated academy-v0.3.0 tag at the attempt head. Do not substitute your own scope, target, or release metadata.",
+      "instruction": "This source-only lesson is not runnable in Preview 0.15. Its future private contract is limited to an exact refactor of workshop_queue/store.py, a later docs-only README.md commit, the generated CHANGELOG.md release commit, an unchanged pre-existing tests/test_store.py, a clean worktree, and the declared annotated academy-v0.0.1 tag at the attempt head. Do not substitute your own scope, target, or release metadata.",
       "rationale": "A narrow contract makes the difference between repository evidence and a broader release claim visible.",
       "resources": [],
       "variants": [],
       "expected_result": "You can name the future private boundaries and know that Preview 0.15 does not prepare this lesson.",
       "recovery": "If you need a runnable exercise today, return to an available Preview 0.15 lesson. Do not create U03 state files by hand.",
-      "evidence": "A future Check can observe repository bytes, commit topology, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, CodeArbiter command execution, SemVer derivation, CHANGELOG or manifest update, tag push, or publication."
+      "evidence": "A future Check can observe repository bytes, commit topology, the declared release target, generated CHANGELOG section, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, CodeArbiter command execution, tag push, or publication."
     },
     {
       "id": "U03-prepare",
@@ -59,7 +59,7 @@
       "title": "Review the future sealed brief before work begins",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Only in a future private prepared attempt, read the sealed brief and identify its exact refactor scope, approved README fact, declared release target, required annotated tag, and required tag message `Academy private exercise: academy-private-training 0.3.0`. The brief supplies those values. Do not invent a generic command argument or a release claim.",
+      "instruction": "Only in a future private prepared attempt, read the sealed brief and identify its exact refactor scope, approved README fact, declared release target, generated CHANGELOG path, and derived annotated tag academy-v0.0.1. The brief supplies those values. Do not invent a generic command argument or a release claim.",
       "rationale": "The source lesson can teach the boundary now without pretending the current public release has prepared it.",
       "resources": [],
       "variants": [],
@@ -249,7 +249,7 @@
       "title": "Start the host-native release route",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only in a future private attempt, invoke the host-native release route. Supply the exact declared target from the sealed brief when the host asks. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not push a tag.",
+      "instruction": "Only in a future private attempt, invoke the host-native release route. Supply the exact declared target academy-private-training. The route derives the first-release patch version from the refactor commit, writes and commits CHANGELOG.md, then composes an annotated local tag. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not push a tag.",
       "rationale": "The route is a local evidence step in this lesson, not a promise of published software.",
       "resources": [],
       "variants": [
@@ -258,9 +258,9 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-release academy-private-training","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-release academy-private-training","copy":true}
       ],
-      "expected_result": "The future private route can be evaluated against the sealed target without a tag push or publication claim.",
+      "expected_result": "The future private route derives academy-v0.0.1, commits the generated CHANGELOG.md section, and composes an annotated local tag without a tag push or publication claim.",
       "recovery": "If the target is absent or the route reports a blocker, preserve that result and stop. Do not manufacture release metadata.",
-      "evidence": "This lesson does not establish SemVer derivation, CHANGELOG or manifest update, tag push, or publication."
+      "evidence": "The local changelog commit and tag are observable release artifacts; they do not prove a remote tag, GitHub Release, or publication."
     },
     {
       "id": "U03-review-release",
@@ -268,7 +268,7 @@
       "title": "Review the local tag boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "In a future private attempt, review the exact declared target and confirm that the only required release evidence is an annotated local academy-v0.3.0 tag at the attempt head with the exact message `Academy private exercise: academy-private-training 0.3.0`. Do not claim that a tag proves publication, a pushed reference, or a release record.",
+      "instruction": "In a future private attempt, review the declared target and confirm that the required local release evidence is the generated CHANGELOG.md commit followed by annotated academy-v0.0.1 at the attempt head. Its body must reproduce the generated 0.0.1 changelog section followed by its matching Released-at date. Do not claim that a tag proves publication, a pushed reference, or a release record.",
       "rationale": "The local tag has a narrow evidentiary meaning.",
       "resources": [],
       "variants": [],
@@ -282,16 +282,16 @@
       "title": "Inspect the declared annotated tag at HEAD",
       "actor": "learner",
       "surface": null,
-      "instruction": "Only in a future private attempt, inspect the exact academy-v0.3.0 tag in a native terminal. Check that its tag body is exactly `Academy private exercise: academy-private-training 0.3.0` followed by one terminal newline, with no extra blank content. The command prints Python's byte representation of the body and exits nonzero unless it is exact. Native-terminal commands never begin with !.",
+      "instruction": "Only in a future private attempt, inspect academy-v0.0.1 and CHANGELOG.md in a native terminal. Confirm the tag is annotated at HEAD and that its body reproduces the generated 0.0.1 changelog section followed by a matching Released-at date. Native-terminal commands never begin with !.",
       "rationale": "The learner verifies that the local tag is annotated, has Check's exact canonical body including one terminal newline, and points to the current attempt head.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\n@'\nimport subprocess\nraw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"])\n_, separator, body = raw.partition(b\"\\n\\n\")\nexpected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"\nprint(repr(body))\nraise SystemExit(not separator or body != expected)\n'@ | python -","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\npython -c 'import subprocess; raw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"]); _, separator, body = raw.partition(b\"\\n\\n\"); expected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"; print(repr(body)); raise SystemExit(not separator or body != expected)'","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git cat-file -t academy-v0.3.0\ngit tag --points-at HEAD\npython -c 'import subprocess; raw = subprocess.check_output([\"git\", \"cat-file\", \"tag\", \"academy-v0.3.0\"]); _, separator, body = raw.partition(b\"\\n\\n\"); expected = b\"Academy private exercise: academy-private-training 0.3.0\\n\"; print(repr(body)); raise SystemExit(not separator or body != expected)'","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git cat-file -t academy-v0.0.1\ngit tag --points-at HEAD\ngit show --no-patch --format=%B academy-v0.0.1\nGet-Content CHANGELOG.md","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git cat-file -t academy-v0.0.1\ngit tag --points-at HEAD\ngit show --no-patch --format=%B academy-v0.0.1\ncat CHANGELOG.md","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git cat-file -t academy-v0.0.1\ngit tag --points-at HEAD\ngit show --no-patch --format=%B academy-v0.0.1\ncat CHANGELOG.md","copy":true}
       ],
-      "expected_result": "The future private inspection reports a tag object, academy-v0.3.0 at HEAD, and `b'Academy private exercise: academy-private-training 0.3.0\\n'` as the complete tag body: the required message plus one terminal newline only.",
-      "recovery": "If the object is lightweight, the tag is absent, its message differs, the body has an extra blank line or other extra blank content, or it does not point at HEAD, stop the attempt without moving the tag.",
+      "expected_result": "The future private inspection reports a tag object, academy-v0.0.1 at HEAD, and a tag body whose generated release section exactly matches CHANGELOG.md before its matching Released-at date.",
+      "recovery": "If the object is lightweight, the tag is absent, its generated section or Released-at date differs from CHANGELOG.md, or it does not point at HEAD, stop the attempt without moving the tag.",
       "evidence": "This local check does not prove a remote tag, a GitHub Release, or publication."
     },
     {

@@ -16,9 +16,9 @@ Read the boundary before running anything. Preview 0.15 refuses U03 prepare, che
 
 ## What you will prove
 
-The future private contract is deliberately narrow. It can observe a sealed refactor of `workshop_queue/store.py`, a later docs-only `README.md` commit, unchanged pre-existing `tests/test_store.py`, a clean worktree, and an annotated local `academy-v0.3.0` tag at the attempt head whose body is exactly `Academy private exercise: academy-private-training 0.3.0` plus one terminal newline—no extra blank line or other blank content.
+The future private contract is deliberately narrow. It can observe a sealed refactor of `workshop_queue/store.py`, a later docs-only `README.md` commit, the generated `CHANGELOG.md` release commit, unchanged pre-existing `tests/test_store.py`, a clean worktree, and annotated local `academy-v0.0.1` at the attempt head. Its tag body reproduces the generated 0.0.1 changelog section followed by the matching `Released-at` date.
 
-It does not prove behavioral parity, human approval, CodeArbiter command execution, SemVer derivation, CHANGELOG or manifest update, tag push, or publication.
+It does not prove behavioral parity, human approval, CodeArbiter command execution, tag push, or publication.
 
 ## Prepare safely
 
@@ -62,7 +62,7 @@ The following cards describe a future private prepared attempt. Use them only af
 
 ## Recognize success
 
-For the future private contract, success is limited to the observed local boundary: two ordered commits, the named paths, an unchanged pre-existing test file, a clean worktree, and the declared annotated tag at the attempt head with a canonical body of `Academy private exercise: academy-private-training 0.3.0` plus one terminal newline only. The tag action prints the raw body representation as `b'Academy private exercise: academy-private-training 0.3.0\\n'`; an extra blank line would appear there and fail the check. It is not a claim about a remote, a release page, or published software.
+For the future private contract, success is limited to the observed local boundary: three ordered commits (refactor, docs chore, generated changelog), the named paths, an unchanged pre-existing test file, a clean worktree, and an annotated `academy-v0.0.1` tag at the attempt head. The tag body must reproduce the generated changelog section and matching `Released-at` date exactly. It is not a claim about a remote, a release page, or published software.
 
 ## Check
 
