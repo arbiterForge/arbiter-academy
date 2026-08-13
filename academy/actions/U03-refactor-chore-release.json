@@ -249,7 +249,7 @@
       "title": "Start the host-native release route",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only in a future private attempt, invoke the host-native release route. Supply the exact declared target academy-private-training. The route derives the first-release patch version from the refactor commit, writes and commits CHANGELOG.md, then composes an annotated local tag. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not push a tag.",
+      "instruction": "Only in a future private attempt, invoke the host-native release route. Supply the exact declared target academy-private-training. It first presents the derived 0.0.1 patch release for learner confirmation; only after that confirmation may it write and commit CHANGELOG.md and compose an annotated local tag. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not authorize a tag push or publication.",
       "rationale": "The route is a local evidence step in this lesson, not a promise of published software.",
       "resources": [],
       "variants": [
@@ -258,7 +258,7 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-release academy-private-training","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-release academy-private-training","copy":true}
       ],
-      "expected_result": "The future private route derives academy-v0.0.1, commits the generated CHANGELOG.md section, and composes an annotated local tag without a tag push or publication claim.",
+      "expected_result": "After the learner confirms the derived version, the future private route commits the generated CHANGELOG.md section and composes annotated academy-v0.0.1 without a tag push or publication claim.",
       "recovery": "If the target is absent or the route reports a blocker, preserve that result and stop. Do not manufacture release metadata.",
       "evidence": "The local changelog commit and tag are observable release artifacts; they do not prove a remote tag, GitHub Release, or publication."
     },
