@@ -194,7 +194,7 @@ _PROFILES = {
     "override_audit_metrics": ("overrides", "audit_packets"),
     "refactor_chore_release": (
         "scenario", "code", "test", "chore", "release_target", "release_version",
-        "release_tag", "release_message",
+        "release_tag", "release_changelog", "release_targets",
     ),
     "initialized_fixture": ("workspace", "report"),
     "initialized_projects": ("greenfield", "brownfield", "report"),
@@ -219,7 +219,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit_packets": ".codearbiter/audits"}),
-    "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.3.0", "release_tag": "academy-v0.3.0", "release_message": "Academy private exercise: academy-private-training 0.3.0"}),
+    "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.0.1", "release_tag": "academy-v0.0.1", "release_changelog": "CHANGELOG.md", "release_targets": ".codearbiter/release-targets.md"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
@@ -393,8 +393,8 @@ def load_checkpoint(path: Path) -> Checkpoint:
                     if not re.fullmatch(r"[a-z][a-z0-9-]*-v[0-9]+\.[0-9]+\.[0-9]+", release_tag):
                         raise CheckpointError("release_tag is invalid.")
                     data_fields[field] = release_tag
-                elif field == "release_message":
-                    data_fields[field] = _string(item[field], field)
+                elif field in {"release_changelog", "release_targets"}:
+                    data_fields[field] = _safe_path(item[field], field)
                 else:
                     data_fields[field] = _safe_path(
                         item[field], field, directory=field == "workspace"
@@ -653,6 +653,26 @@ def _exact_two_commit_range(
     if commits[-1] != head:
         return None
     return commits[0], commits[1]
+
+
+def _exact_three_commit_range(
+    root: Path, prepared: str, head: str
+) -> tuple[str, str, str] | None:
+    """Return one linear three-commit learner range, or no bounded range."""
+    oid_pattern = _repository_oid_pattern(root)
+    if oid_pattern is None:
+        return None
+    result = run_git(root, ["rev-list", "--reverse", f"{prepared}..{head}"], check=False)
+    commits = tuple(line for line in result.stdout.splitlines() if oid_pattern.fullmatch(line))
+    if result.returncode or len(commits) != 3 or commits[-1] != head:
+        return None
+    parent = prepared
+    for commit in commits:
+        parents = run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split()
+        if parents != [commit, parent]:
+            return None
+        parent = commit
+    return commits[0], commits[1], commits[2]
 
 
 def _predicted_reviewers(paths: list[str]) -> list[str]:
@@ -3408,33 +3428,57 @@ def _initialized_fixture(context: _SemanticContext) -> bool:
 
 
 def _u03_refactor_chore_release(root: Path, attempt: _Attempt, data: dict[str, object]) -> bool:
-    """Check only the bounded private U03 evidence, never a real release outcome."""
+    """Check the observable local artifacts of the real release lane, not publication."""
     scenario, code, test, chore = (str(data[key]) for key in ("scenario", "code", "test", "chore"))
-    target, version, tag, message = (
+    target, version, tag, changelog, targets_path = (
         str(data[key])
-        for key in ("release_target", "release_version", "release_tag", "release_message")
+        for key in ("release_target", "release_version", "release_tag", "release_changelog", "release_targets")
     )
     brief = _json(root, attempt.prepared, scenario)
     expected_brief = {
         "schema_version": 2,
         "lab_id": "U03-refactor-chore-release",
         "operation": "refactor_chore_release",
-        "starting_condition": "release-untagged",
+        "starting_condition": "first-release",
         "refactor": {"code_path": code, "test_path": test},
         "chore": {"path": chore},
-        "release": {"target": target, "version": version, "tag": tag, "tag_message": message},
+        "release": {"target": target, "version": version, "tag": tag, "changelog": changelog},
     }
-    commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
+    commits = _exact_three_commit_range(root, attempt.prepared, attempt.head)
     prepared_test = _git_blob(root, attempt.prepared, test)
+    prepared_targets = _git_blob(root, attempt.prepared, targets_path)
     if (
         brief != expected_brief
         or commits is None
         or set(_commit_paths(root, commits[0])) != {code}
         or set(_commit_paths(root, commits[1])) != {chore}
+        or set(_commit_paths(root, commits[2])) != {changelog}
         or prepared_test is None
         or prepared_test != _git_blob(root, attempt.head, test)
+        or prepared_targets != (
+            b"<!-- release-targets -->\n"
+            + f"[{target}]\n".encode()
+            + b"prefix: academy-v\n"
+            + f"changelog: {changelog}\n".encode()
+            + b"payload: .\n<!-- /release-targets -->\n"
+        )
     ):
         return False
+    refactor_message = run_git(root, ["log", "-1", "--format=%B", commits[0]], check=False).stdout
+    changelog_blob = _git_blob(root, attempt.head, changelog)
+    if changelog_blob is None:
+        return False
+    try:
+        changelog_text = changelog_blob.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    section = re.search(
+        rf"(?s)^# Changelog\n\n(## \[{re.escape(version)}\] — (\d{{4}}-\d{{2}}-\d{{2}})\n.*)\Z",
+        changelog_text,
+    )
+    if not section or not re.search(r"(?m)^CHANGELOG:\s*.+$", refactor_message):
+        return False
+    release_date = section.group(2)
     status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
     tag_ref = f"refs/tags/{tag}"
     tag_type = run_git(root, ["cat-file", "-t", tag_ref], check=False)
@@ -3445,7 +3489,8 @@ def _u03_refactor_chore_release(root: Path, attempt: _Attempt, data: dict[str, o
         version and tag == f"academy-v{version}" and status.returncode == 0 and not status.stdout
         and tag_type.returncode == 0 and tag_type.stdout.strip() == "tag"
         and tag_head.returncode == 0 and tag_head.stdout.strip() == attempt.head
-        and tag_body.returncode == 0 and separator and body == f"{message}\n"
+        and tag_body.returncode == 0 and separator
+        and body.replace("\r\n", "\n") == f"{section.group(1)}\nReleased-at: {release_date}\n"
     )
 
 
