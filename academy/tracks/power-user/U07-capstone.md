@@ -17,7 +17,7 @@ next_lab: none
 
 ### Current Preview boundary
 
-U07 is private source material, not a runnable Preview 0.15 lesson. The website remains the
+U07 is private source material, not a runnable Preview 0.16 lesson. The website remains the
 primary teaching surface. Current Preview deliberately refuses Prepare and Check for U07; it does
 not create an attempt, evidence, report, route, or capstone branch.
 
@@ -33,7 +33,7 @@ does not prove an agent command, a hosted pull request, a review, a merge, or CI
 
 {{action:U07-prepare-refusal}}
 
-Stop here when using Preview 0.15. Continue with a published lab. The rest of this page is a
+Stop here when using Preview 0.16. Continue with a published lab. The rest of this page is a
 future private-source walkthrough describing the real CodeArbiter workflow that a later accepted
 fixture will teach.
 
@@ -101,7 +101,7 @@ accepted.
 If any future step produces an extra changed path, a fabricated receipt, a dirty worktree, or an
 unsafe remote, preserve the attempt for diagnosis and Reset it when that lifecycle is published.
 Do not hide the mismatch by rewriting commits or copying an artifact from another lab. Until then,
-continue with a published Preview 0.15 lab.
+continue with a published Preview 0.16 lab.
 
 ### Hint 1
 

@@ -286,10 +286,10 @@ class LessonActionTests(unittest.TestCase):
         for action_id in current_preview_ids:
             action = actions[action_id]
             with self.subTest(action=action_id):
-                self.assertIn("Preview 0.15 refuses U04", action.expected_result)
+                self.assertIn("Preview 0.16 refuses U04", action.expected_result)
                 self.assertTrue(
                     action.expected_result.endswith(
-                        "Next safe step: stop and use a published Preview 0.15 lab."
+                        "Next safe step: stop and use a published Preview 0.16 lab."
                     )
                 )
 
@@ -307,9 +307,9 @@ class LessonActionTests(unittest.TestCase):
 
         writer = actions["U04-write-binding-report"]
         self.assertEqual((writer.surface, writer.variants), ("active-harness", ()))
-        self.assertIn("canonical writer is unavailable in Preview 0.15", writer.instruction)
+        self.assertIn("canonical writer is unavailable in Preview 0.16", writer.instruction)
         self.assertIn("future accepted U04 tooling", writer.instruction)
-        self.assertIn("No report is written in Preview 0.15", writer.expected_result)
+        self.assertIn("No report is written in Preview 0.16", writer.expected_result)
 
         for action_id in ("U04-check-status", "U04-reset-retry"):
             action = actions[action_id]
@@ -383,7 +383,7 @@ class LessonActionTests(unittest.TestCase):
                 if action.id in current_preview_ids:
                     self.assertTrue(
                         action.expected_result.endswith(
-                            "Next safe step: stop and use a published Preview 0.15 lab."
+                            "Next safe step: stop and use a published Preview 0.16 lab."
                         )
                     )
                 else:
@@ -2178,7 +2178,7 @@ class LessonActionTests(unittest.TestCase):
                 with self.subTest(action=action.id, variant=variant.id):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
-        self.assertIn("Academy Preview 0.15", guide)
+        self.assertIn("Academy Preview 0.16", guide)
         self.assertIn("`ca-preview`", guide)
         self.assertIn("not `ca-preview` output", guide)
         self.assertIn("whether a secret scan ran", guide)
@@ -2301,9 +2301,9 @@ class PrivateU02LessonActionTests(unittest.TestCase):
         )
 
 
-class PrivateU03LessonActionTests(unittest.TestCase):
-    def test_private_u03_manifest_teaches_only_the_declared_future_contract(self) -> None:
-        """Catches U03 losing its exact evidence sequence or execution boundaries."""
+class U03LessonActionTests(unittest.TestCase):
+    def test_u03_manifest_teaches_the_declared_runnable_local_release_contract(self) -> None:
+        """Catches U03 publishing a fake remote release or an incomplete learner path."""
         manifest = load_action_manifest(
             Path(__file__).parents[1], "U03-refactor-chore-release"
         )
@@ -2314,8 +2314,8 @@ class PrivateU03LessonActionTests(unittest.TestCase):
             (
                 "U03-read-boundary",
                 "U03-prepare",
-                "U03-confirm-refusal",
-                "U03-review-future-brief",
+                "U03-confirm-prepared",
+                "U03-review-sealed-brief",
                 "U03-run-refactor",
                 "U03-inspect-refactor",
                 "U03-review-refactor",
@@ -2339,7 +2339,7 @@ class PrivateU03LessonActionTests(unittest.TestCase):
 
         for action_id in (
             "U03-prepare",
-            "U03-confirm-refusal",
+            "U03-confirm-prepared",
             "U03-inspect-refactor",
             "U03-stage-refactor",
             "U03-inspect-chore",
@@ -2387,7 +2387,7 @@ class PrivateU03LessonActionTests(unittest.TestCase):
 
         for action_id in (
             "U03-read-boundary",
-            "U03-review-future-brief",
+            "U03-review-sealed-brief",
             "U03-review-refactor",
             "U03-review-chore",
             "U03-review-release",
@@ -2410,10 +2410,18 @@ class PrivateU03LessonActionTests(unittest.TestCase):
             with self.subTest(limitation=limitation):
                 self.assertIn(limitation, boundary.evidence or "")
 
-        for action_id in ("U03-prepare", "U03-check", "U03-reset"):
-            with self.subTest(action=action_id):
-                self.assertIn("Preview 0.15 refuses U03", actions[action_id].expected_result)
-                self.assertIn("unchanged", actions[action_id].expected_result)
+        for action in manifest.actions:
+            with self.subTest(action=action.id):
+                self.assertNotIn("future private", action.instruction.casefold())
+                self.assertIn("Next safe step:", action.recovery)
+
+        prepare = actions["U03-prepare"]
+        self.assertIn("academy/U03-refactor-chore-release/1", prepare.expected_result)
+        self.assertIn("sealed brief", prepare.expected_result)
+        self.assertIn("academy-v0.0.1", actions["U03-run-release"].expected_result)
+        self.assertIn("does not push", actions["U03-run-release"].expected_result)
+        self.assertIn("passed", actions["U03-check"].expected_result)
+        self.assertIn("archive", actions["U03-reset"].expected_result)
 
         self.assertIn("workshop_queue/store.py", actions["U03-stage-refactor"].instruction)
         self.assertIn("README.md", actions["U03-stage-chore"].instruction)

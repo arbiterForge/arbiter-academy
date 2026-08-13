@@ -463,11 +463,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.15.json"
+                        "share/arbiter-academy/academy/publication/preview-0.16.json"
                     )
                     for name in names
                 ),
-                "preview-0.15.json",
+                "preview-0.16.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -482,6 +482,10 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(name.endswith("/academy/actions/U01-autonomous-sprint.json") for name in names),
                 "the public wheel must distribute the accepted U01 action contract",
+            )
+            self.assertTrue(
+                any(name.endswith("/academy/actions/U03-refactor-chore-release.json") for name in names),
+                "the public wheel must distribute the accepted U03 action contract",
             )
             self.assertTrue(
                 any(name.endswith("/academy/actions/U02-override-audit-metrics.json") for name in names),
