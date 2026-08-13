@@ -580,6 +580,7 @@ class InstalledWheelTests(unittest.TestCase):
                     "U02-override-audit-metrics.md",
                     "U03-refactor-chore-release.md",
                     "U04-initialize-projects.md",
+                    "U05-debug-spike-conflict.md",
                 },
             )
 
