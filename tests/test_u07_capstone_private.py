@@ -121,8 +121,9 @@ class U07PrivateCapstoneTests(unittest.TestCase):
         self.assertIn('data-action-id="U07-read-private-boundary"', document["content"])
         self.assertIn('data-action-id="U07-check-refusal"', document["content"])
         manifest = load_preview_manifest(SOURCE)
-        for inventory in (manifest.available_labs, manifest.runnable_labs, manifest.guided_labs, manifest.coming_next):
+        for inventory in (manifest.available_labs, manifest.runnable_labs, manifest.guided_labs):
             self.assertNotIn(LAB, inventory)
+        self.assertIn(LAB, manifest.coming_next)
         with self.assertRaisesRegex(ValueError, "not runnable"):
             require_runnable_lab(SOURCE, LAB)
         with self.assertRaisesRegex(ValueError, "not guided"):
@@ -131,5 +132,6 @@ class U07PrivateCapstoneTests(unittest.TestCase):
             output = Path(temporary) / "site"
             build_preview_site(SOURCE, output, release_sha="7" * 40)
             self.assertFalse((output / "power-user/U07-capstone/index.html").exists())
-            lifecycle = (output / "release.json").read_text(encoding="utf-8")
-            self.assertNotIn(LAB, lifecycle)
+            lifecycle = json.loads((output / "release.json").read_text(encoding="utf-8"))
+            self.assertNotIn(LAB, lifecycle["guided_labs"])
+            self.assertIn(LAB, lifecycle["coming_next"])

@@ -42,6 +42,7 @@ class PackageResourceTests(unittest.TestCase):
                 "academy/actions/P06-context-drift-recovery.json",
                 "academy/actions/P07-threat-model.json",
                 "academy/actions/P08-repository-hygiene.json",
+                "academy/actions/U01-autonomous-sprint.json",
             ],
         )
         self.assertEqual(
