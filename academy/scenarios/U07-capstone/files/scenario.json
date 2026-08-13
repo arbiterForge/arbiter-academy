@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"U07-capstone","operation":"governed_capstone","target":"selected-task","starting_condition":"capstone-unselected"}
+{"schema_version":1,"lab_id":"U07-capstone","operation":"capstone_terminal_state","target":"workshop_queue/service.py","starting_condition":"terminal-status-not-implemented"}

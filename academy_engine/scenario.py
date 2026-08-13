@@ -44,6 +44,7 @@ from academy_engine.external_state import ExternalStateError, ExternalStateStore
 from academy_engine.paths import PathBoundaryError, ensure_within
 from academy_engine.p05_fixture import P05FixtureError, stage_p05_fixture
 from academy_engine.u04_fixture import U04FixtureError, stage_u04_fixture
+from academy_engine.u07_fixture import U07FixtureError, U07_FIXTURE_PATHS, stage_u07_fixture
 from academy_engine.remotes import RemoteSafetyError, validate_training_remotes
 
 
@@ -98,6 +99,7 @@ _U04_FIXTURE_TARGETS = (
     ".academy/workspaces/U04-greenfield",
     ".academy/workspaces/U04-brownfield",
 )
+_U07_FIXTURE_TARGETS = U07_FIXTURE_PATHS
 
 
 def p02_state_reachable(lab_id: str | None) -> bool:
@@ -483,6 +485,8 @@ def prepare_lab(
             if lab.id == "P05-checkpoint-remediation"
             else _U04_FIXTURE_TARGETS
             if lab.id == "U04-initialize-projects"
+            else _U07_FIXTURE_TARGETS
+            if lab.id == "U07-capstone"
             else ()
         )
         snapshots = _snapshots(
@@ -522,6 +526,8 @@ def prepare_lab(
                 targets.extend(stage_p05_fixture(repository, base=base_sha))
             if lab.id == "U04-initialize-projects":
                 stage_u04_fixture(repository, base=base_sha)
+            if lab.id == "U07-capstone":
+                targets.extend(stage_u07_fixture(repository, base=base_sha))
             if targets:
                 run_git(repository, ["add", "-A", "--", *targets])
             run_git(repository, ["commit", "--allow-empty", "-m", f"academy: prepare {lab.id} attempt {attempt}"])
@@ -535,6 +541,7 @@ def prepare_lab(
             AttributionError,
             P05FixtureError,
             U04FixtureError,
+            U07FixtureError,
             PreparationError,
         ) as error:
             try:

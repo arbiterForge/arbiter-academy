@@ -2580,3 +2580,110 @@ class P04NativeDependencyReviewTests(unittest.TestCase):
         (self.root / self.lock_path).write_text("drift\n", encoding="utf-8")
         self._commit("drift rejected lock")
         self.assertFalse(_p04_dependency_review(self.root, self._attempt(), self.review_path, "pyproject.toml"))
+
+
+class U07CapstoneSemanticTests(unittest.TestCase):
+    """Exercise the bounded local capstone history without a hosted PR claim."""
+
+    spec_path = ".codearbiter/specs/capstone.md"
+    plan_path = ".codearbiter/plans/capstone.md"
+    adr_path = ".codearbiter/decisions/0004-capstone.md"
+    code_path = "workshop_queue/service.py"
+    test_path = "tests/test_service.py"
+
+    def setUp(self) -> None:
+        self.temp = RetryingTemporaryDirectory()
+        self.root = Path(self.temp.name)
+        (self.root / ".codearbiter").mkdir()
+        (self.root / ".codearbiter" / "CONTEXT.md").write_text("# Capstone fixture\n", encoding="utf-8")
+        source = Path(__file__).resolve().parents[1]
+        shutil.copytree(source / "workshop_queue", self.root / "workshop_queue")
+        shutil.copytree(source / "tests", self.root / "tests")
+        subprocess.run(["git", "init", "-b", "main"], cwd=self.root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "config", "user.name", "Academy Learner"], cwd=self.root, check=True)
+        subprocess.run(["git", "config", "user.email", "learner@example.invalid"], cwd=self.root, check=True)
+        subprocess.run(["git", "remote", "add", "origin", "https://github.com/academy-learner/arbiter-academy.git"], cwd=self.root, check=True)
+        subprocess.run(["git", "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git"], cwd=self.root, check=True)
+        subprocess.run(["git", "remote", "set-url", "--push", "upstream", "DISABLED"], cwd=self.root, check=True)
+        self._commit("base")
+        from academy_engine.u07_fixture import stage_u07_fixture
+
+        scenario_source = self.root / "academy" / "scenarios" / "U07-capstone" / "files" / "scenario.json"
+        scenario_source.parent.mkdir(parents=True)
+        scenario_source.write_text(
+            '{"schema_version":1,"lab_id":"U07-capstone","operation":"capstone_terminal_state","target":"workshop_queue/service.py","starting_condition":"terminal-status-not-implemented"}\n',
+            encoding="utf-8",
+        )
+        self._commit("add U07 scenario source")
+        subprocess.run(["git", "switch", "-c", "academy/U07-capstone/1"], cwd=self.root, check=True, capture_output=True, text=True)
+        base = self._head()
+        scenario = self.root / "training_scenarios/U07-capstone.json"
+        scenario.parent.mkdir(parents=True)
+        scenario.write_bytes(scenario_source.read_bytes())
+        stage_u07_fixture(self.root, base=base)
+        self._commit("academy: prepare U07-capstone attempt 1")
+        self.prepared = self._head()
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def _head(self) -> str:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.root, check=True, capture_output=True, text=True).stdout.strip()
+
+    def _commit(self, message: str, *, empty: bool = False) -> str:
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True, capture_output=True, text=True)
+        command = ["git", "commit", "-m", message]
+        if empty:
+            command.insert(2, "--allow-empty")
+        subprocess.run(command, cwd=self.root, check=True, capture_output=True, text=True)
+        return self._head()
+
+    def _write(self, relative: str, text: str) -> None:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+
+    def _context(self) -> _SemanticContext:
+        return _SemanticContext(
+            self.root,
+            _Attempt("academy/U07-capstone/1", 1, self.prepared, self.prepared, self._head()),
+            Predicate(
+                "capstone_governed_range",
+                "lab_semantics",
+                {
+                    "profile": "capstone",
+                    "spec_directory": ".codearbiter/specs",
+                    "plan_directory": ".codearbiter/plans",
+                    "adr_directory": ".codearbiter/decisions",
+                    "code": self.code_path,
+                    "test": self.test_path,
+                },
+            ),
+        )
+
+    def _write_honest_history(self, *, extra_implementation_path: bool = False) -> None:
+        self._write(self.spec_path, "# Capstone specification\n\n## Problem\n\nExpose the terminal ticket state.\n\n## Acceptance criteria\n\n- The status is terminal.\n")
+        self._write(self.plan_path, "# Capstone plan\n\n## Plan\n\n1. Write the focused regression.\n2. Change the service.\n\n## Verification\n\n`python -m unittest tests.test_service`\n")
+        self._write(self.adr_path, "# ADR-0004: Terminal status\n\n## Decision\n\nReturn the terminal state.\n\n## Consequences\n\nThe service contract changes.\n")
+        self._commit("record capstone scope")
+
+        prepared_test = (self.root / self.test_path).read_text(encoding="utf-8")
+        start = prepared_test.index("    def test_u07_prepared_resolution_control_is_accepted")
+        end = prepared_test.index("\n\nif __name__ == \"__main__\":", start)
+        self._write(self.test_path, prepared_test[:start] + "    def test_u07_rejects_control_characters_in_resolution(self) -> None:\n        claimed = claim_ticket([open_ticket(\"RQ-U07\")], \"RQ-U07\", \"Sam\", fixed_now())\n        for resolution in (\"done\\nagain\", \"done\\tagain\", \"done\\x7fagain\"):\n            with self.subTest(resolution=repr(resolution)):\n                with self.assertRaisesRegex(ValueError, \"control characters\"):\n                    complete_ticket(claimed, \"RQ-U07\", resolution, fixed_now())\n" + prepared_test[end:])
+        self._commit("test capstone terminal state")
+
+        service = (self.root / self.code_path).read_text(encoding="utf-8")
+        needle = '            if not resolution.strip():\n                raise ValueError("resolution must be non-empty")\n'
+        self._write(self.code_path, service.replace(needle, needle + '            if any(ord(character) < 32 or ord(character) == 127 for character in resolution):\n                raise ValueError("resolution must not contain control characters")\n', 1))
+        if extra_implementation_path:
+            self._write("README.md", "unrelated\n")
+        candidate = self._commit("implement capstone terminal state")
+
+    def test_accepts_bounded_local_history_and_never_needs_a_hosted_pr(self) -> None:
+        self._write_honest_history()
+        self.assertTrue(_semantic(self._context()))
+
+    def test_rejects_implementation_commit_with_an_unrelated_path(self) -> None:
+        self._write_honest_history(extra_implementation_path=True)
+        self.assertFalse(_semantic(self._context()))
