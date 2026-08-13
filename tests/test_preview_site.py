@@ -72,12 +72,12 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
-    def test_preview_zero_fourteen_publishes_u01_and_the_guided_inventory(self) -> None:
+    def test_preview_zero_fifteen_publishes_u02_and_the_guided_inventory(self) -> None:
         """Catches P06-P08 missing after their accepted guided promotion."""
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
-        manifest_path = publication / "preview-0.14.json"
+        manifest_path = publication / "preview-0.15.json"
         self.assertTrue(manifest_path.is_file())
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         public_labs = [
@@ -94,16 +94,16 @@ class PreviewSiteTests(unittest.TestCase):
             "P07-threat-model",
             "P08-repository-hygiene",
             "U01-autonomous-sprint",
+            "U02-override-audit-metrics",
         ]
         coming_next = [
-            "U02-override-audit-metrics",
             "U03-refactor-chore-release",
             "U04-initialize-projects",
             "U05-debug-spike-conflict",
             "U06-preview-and-advanced-surfaces",
             "U07-capstone",
         ]
-        self.assertEqual(manifest["release"], "preview-0.14")
+        self.assertEqual(manifest["release"], "preview-0.15")
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             self.assertEqual(manifest[field], public_labs, field)
         self.assertEqual(manifest["coming_next"], coming_next)
@@ -117,15 +117,18 @@ class PreviewSiteTests(unittest.TestCase):
             ("P06-context-drift-recovery", "P06-prepare"),
             ("P07-threat-model", "P07-prepare"),
             ("P08-repository-hygiene", "P08-prepare"),
+            ("U02-override-audit-metrics", "U02-prepare"),
+            ("U02-override-audit-metrics", "U02-log-override"),
+            ("U02-override-audit-metrics", "U02-check"),
         ):
             rendered = (self.out / "labs" / lab_id / "index.html").read_text(encoding="utf-8")
             self.assertIn('<p class="lesson-publication-status">Guided lesson</p>', rendered)
             self.assertIn(f'data-action-id="{action_id}"', rendered)
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("<strong>Current release inventory.</strong>", index)
-        self.assertIn("Preview 0.14", index)
+        self.assertIn("Preview 0.15", index)
         self.assertIn("P08-repository-hygiene", index)
-        self.assertIn("Power User</strong>: U02 through U07", index)
+        self.assertIn("Power User</strong>: U03 through U07", index)
 
         u01 = (self.out / "labs" / "U01-autonomous-sprint" / "index.html").read_text(
             encoding="utf-8"
@@ -136,7 +139,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_shared_release_chrome_derives_from_the_validated_preview_manifest(self) -> None:
         """Catches a future preview leaving a title, footer, or unavailable-next label stale."""
         source = self._copy_public_source("release-chrome")
-        current = source / "academy" / "publication" / "preview-0.14.json"
+        current = source / "academy" / "publication" / "preview-0.15.json"
         alternate = json.loads(current.read_text(encoding="utf-8"))
         alternate["release"] = "preview-9.9"
         (source / "academy" / "publication" / "preview-9.9.json").write_text(
@@ -155,7 +158,7 @@ class PreviewSiteTests(unittest.TestCase):
         for page in (home, recovery, p08):
             self.assertIn('meta name="academy-release" content="preview-9.9"', page)
             self.assertIn("Preview 9.9", page)
-            self.assertNotIn("Preview 0.14", page)
+            self.assertNotIn("Preview 0.15", page)
         self.assertIn("<title>Arbiter Academy Preview 9.9</title>", home)
         self.assertIn("Preview 9.9 release</a>", home)
         self.assertIn('Continue with <a href="../U01-autonomous-sprint/index.html">U01-autonomous-sprint</a>.', p08)
@@ -182,7 +185,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", html)
 
     def test_u04_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U04 source may render for review, but Preview 0.14 must not publish it."""
+        """U04 source may render for review, but Preview 0.15 must not publish it."""
         document_id = "U04-initialize-projects"
         manifest = load_action_manifest(self.root, document_id)
         document = preview_site._read_markdown_document(
@@ -221,21 +224,21 @@ class PreviewSiteTests(unittest.TestCase):
         )
         rendered = str(document["content"])
 
-        self.assertIn("Current Preview 0.14 boundary", rendered)
+        self.assertIn("Current Preview 0.15 boundary", rendered)
         self.assertIn("Future private-source walkthrough", rendered)
-        current_heading = rendered.index("Current Preview 0.14 boundary")
+        current_heading = rendered.index("Current Preview 0.15 boundary")
         prepare_card = rendered.index('data-action-id="U04-prepare-attempt"')
-        stop_copy = rendered.index("stop and use a published Preview 0.14 lab", prepare_card)
+        stop_copy = rendered.index("stop and use a published Preview 0.15 lab", prepare_card)
         future_heading = rendered.index("Future private-source walkthrough")
         first_future_card = rendered.index('data-action-id="U04-inspect-root"')
         self.assertLess(current_heading, prepare_card)
         self.assertLess(prepare_card, stop_copy)
         self.assertLess(stop_copy, future_heading)
         self.assertLess(future_heading, first_future_card)
-        self.assertIn("not runnable with Preview 0.14", rendered)
+        self.assertIn("not runnable with Preview 0.15", rendered)
         self.assertIn('data-action-id="U04-write-binding-report"', rendered)
         self.assertNotIn('data-copy-target="command-U04-write-binding-report-', rendered)
-        self.assertIn("canonical writer is unavailable in Preview 0.14", rendered)
+        self.assertIn("canonical writer is unavailable in Preview 0.15", rendered)
 
     def test_p07_guided_document_renders_action_cards_as_a_public_route(self) -> None:
         """Catches the public P07 route losing its shared action-card contract."""
@@ -367,7 +370,7 @@ class PreviewSiteTests(unittest.TestCase):
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
             with self.subTest(action=action_id):
                 rendered = preview_site._render_action(actions[action_id])
-                self.assertIn("preview-0.14", rendered)
+                self.assertIn("preview-0.15", rendered)
                 self.assertIn("command-variant", rendered)
                 self.assertIn("command-copy", rendered)
                 self.assertIn("<pre>", rendered)
@@ -631,7 +634,7 @@ class PreviewSiteTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             r"^home (?:runnable lab links|coming-next entries) do not match the exact "
-            r"(?:guided )?Preview 0\.14 (?:inventory|guided-rewrite sequence)$",
+        r"(?:guided )?Preview 0\.15 (?:inventory|guided-rewrite sequence)$",
         ):
             check_preview_site(self.out)
 
@@ -769,6 +772,9 @@ class PreviewSiteTests(unittest.TestCase):
             ("U01-autonomous-sprint", "U01-prepare-attempt"): ("prepare", "U01-autonomous-sprint"),
             ("U01-autonomous-sprint", "U01-check-status"): ("check", "U01-autonomous-sprint"),
             ("U01-autonomous-sprint", "U01-reset-retry"): ("reset", "U01-autonomous-sprint"),
+            ("U02-override-audit-metrics", "U02-prepare"): ("prepare", "U02-override-audit-metrics"),
+            ("U02-override-audit-metrics", "U02-check"): ("check", "U02-override-audit-metrics"),
+            ("U02-override-audit-metrics", "U02-reset"): ("reset", "U02-override-audit-metrics"),
         }
         academy_looking = re.compile(
             r'^\s*(?:&\s+\$academy|"\$academy"|arbiter-academy(?:\.exe)?\b)'
@@ -844,7 +850,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("Git", html)
         self.assertIn("codeArbiter", html)
         self.assertIn("U01 is published in this release", html)
-        self.assertIn("U02-U07 remain unavailable", html)
+        self.assertIn("U03 through U07", html)
         self.assertIn("Doctor", html)
         self.assertIn(
             "A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.",
@@ -939,10 +945,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.14/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.14/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.14/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.14/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.15/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.15/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.15/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.15/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
@@ -991,11 +997,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.14/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.15/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.14/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.15/install/install.sh"',
             html,
         )
         self.assertIn(
@@ -1041,7 +1047,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.14.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.15.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -1186,6 +1192,7 @@ class PreviewSiteTests(unittest.TestCase):
             "P07-threat-model",
             "P08-repository-hygiene",
             "U01-autonomous-sprint",
+            "U02-override-audit-metrics",
         )
         expected_files = {
             "assets/academy.css",
@@ -1212,12 +1219,12 @@ class PreviewSiteTests(unittest.TestCase):
         expected_links = [f'labs/{lab_id}/index.html' for lab_id in expected_labs]
         actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
         self.assertEqual(actual_links, expected_links)
-        self.assertIn('<meta name="academy-release" content="preview-0.14">', index)
+        self.assertIn('<meta name="academy-release" content="preview-0.15">', index)
         self.assertIn("Current release inventory.", index)
         self.assertIn("Graduation is unavailable until the complete 19-lab course is published.", index)
         self.assertNotIn("Preview 0.11", index)
         self.assertIn("coming-next", index)
-        self.assertIn("U02 through U07.", index)
+        self.assertIn("U03 through U07.", index)
         self.assertTrue((self.out / "labs" / "P08-repository-hygiene" / "index.html").is_file())
         self.assertIn("P08-repository-hygiene", index)
 
@@ -1336,7 +1343,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
-        """Catches stale release identity or a changed public inventory in Preview 0.14 output."""
+        """Catches stale release identity or a changed public inventory in Preview 0.15 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -1452,7 +1459,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.14"',
+                '"release": "preview-0.15"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1575,11 +1582,11 @@ class PreviewSiteTests(unittest.TestCase):
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
                 )
 
-    def test_readme_matches_the_preview_zero_fourteen_public_lesson_boundary(self) -> None:
+    def test_readme_matches_the_preview_zero_fifteen_public_lesson_boundary(self) -> None:
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("Preview 0.14 publishes thirteen guided labs:", readme)
+        self.assertIn("Preview 0.15 publishes fourteen guided labs:", readme)
         for lab_id in (
             "P04-review-a-dependency",
             "P05-checkpoint-remediation",
@@ -1587,6 +1594,7 @@ class PreviewSiteTests(unittest.TestCase):
             "P07-threat-model",
             "P08-repository-hygiene",
             "U01-autonomous-sprint",
+            "U02-override-audit-metrics",
         ):
             with self.subTest(lab=lab_id):
                 self.assertIn(
@@ -1858,7 +1866,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.14">'
+        current = '<meta name="academy-release" content="preview-0.15">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2035,7 +2043,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
 
     def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U06 may render from source, but Preview 0.14 must not publish its route."""
+        """U06 may render from source, but Preview 0.15 must not publish its route."""
         lab_id = "U06-preview-and-advanced-surfaces"
         guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
         source = (self.root / guide_path).read_text(encoding="utf-8")
@@ -2808,8 +2816,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.14.json",
-            academy / "publication" / "preview-0.14.json",
+            self.root / "academy" / "publication" / "preview-0.15.json",
+            academy / "publication" / "preview-0.15.json",
         )
         for track in ("foundations", "practitioner", "power-user"):
             shutil.copytree(
@@ -3240,14 +3248,17 @@ class PrivateU02PreviewContractTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
         self.assertNotIn("```", guide)
         self.assertIn("does not prove that a human approved", guide)
-        self.assertIn("does not prove that any hosted service", guide)
-        self.assertIn("The Power User track remains private", guide)
+        self.assertIn("or that any hosted service", guide)
+        self.assertIn("U02 is a published Power User lesson in Preview 0.15", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
-        self.assertIn("Preview 0.14 refuses U02", guide)
-        self.assertIn("future private prepared-attempt contract", guide)
-        self.assertNotIn("after Prepare", guide)
-        self.assertNotIn("U02-override-audit-metrics", load_preview_manifest(root).guided_labs)
+        self.assertIn("Prepare creates a numbered U02 branch", guide)
+        self.assertIn("Work the prepared U02 attempt", guide)
+        self.assertIn("stages exactly two paths", guide)
+        self.assertIn("does not preserve a transcript, JSON summary", guide)
+        self.assertNotIn("their SHA-256 digests in the U02 audit", guide)
+        self.assertIn("after Prepare", guide)
+        self.assertIn("U02-override-audit-metrics", load_preview_manifest(root).guided_labs)
         self.assertEqual(
             re.findall(r"(?m)^## .+$", guide),
             [
@@ -3288,7 +3299,7 @@ class PrivateU03PreviewContractTests(unittest.TestCase):
         self.assertIn('class="command-copy"', content)
         self.assertNotIn("{{action:", content)
         self.assertNotIn("```", guide)
-        self.assertIn("Preview 0.14 refuses U03", guide)
+        self.assertIn("Preview 0.15 refuses U03", guide)
         self.assertIn("future private contract", guide)
         self.assertIn("academy-v0.3.0", guide)
         for limitation in (

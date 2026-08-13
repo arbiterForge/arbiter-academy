@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.14
+## Preview 0.15
 
-Preview 0.14 publishes thirteen guided labs:
+Preview 0.15 publishes fourteen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -38,8 +38,11 @@ Preview 0.14 publishes thirteen guided labs:
 - **U01 is guided and runnable.** Its lesson governs a real CodeArbiter sprint
   in the learner's fork: the learner approves scope, the sprint opens a fork
   pull request after its commit gate, and it never self-merges.
+- **U02 is guided and runnable.** Its lesson records one narrow override, keeps
+  the real audit packet as evidence, and treats the read-only metrics glance as
+  advice rather than a fabricated receipt.
 
-U02-U07 remain unavailable in Preview 0.14 while their guided rewrites and
+U03-U07 remain unavailable in Preview 0.15 while their guided rewrites and
 acceptance boundaries are completed. Graduation is unavailable until the
 complete 19-lab course through U07 is published.
 
@@ -59,6 +62,7 @@ complete 19-lab course through U07 is published.
 - [Continue to P07 - Threat-model the path-handling boundary](https://arbiterforge.github.io/arbiter-academy/labs/P07-threat-model/)
 - [Continue to P08 - Classify repository hygiene without destructive cleanup](https://arbiterforge.github.io/arbiter-academy/labs/P08-repository-hygiene/)
 - [Continue to U01 - Govern an autonomous sprint without outsourcing approval](https://arbiterforge.github.io/arbiter-academy/labs/U01-autonomous-sprint/)
+- [Continue to U02 - Record a scoped override with local audit evidence](https://arbiterforge.github.io/arbiter-academy/labs/U02-override-audit-metrics/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

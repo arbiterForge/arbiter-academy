@@ -191,7 +191,7 @@ _PROFILES = {
     "hygiene_snapshot": ("snapshot",),
     "p08_authenticated": (),
     "sprint_decisions": ("spec", "plan", "sprint_log", "brief", "deliverable"),
-    "override_audit_metrics": ("overrides", "audit", "metrics", "audit_packets"),
+    "override_audit_metrics": ("overrides", "audit_packets"),
     "refactor_chore_release": (
         "scenario", "code", "test", "chore", "release_target", "release_version",
         "release_tag", "release_message",
@@ -218,7 +218,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
-    "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json", "audit_packets": ".codearbiter/audits"}),
+    "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit_packets": ".codearbiter/audits"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.3.0", "release_tag": "academy-v0.3.0", "release_message": "Academy private exercise: academy-private-training 0.3.0"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
@@ -3629,11 +3629,9 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "sprint_decisions":
         return _u01_sprint_decisions(context)
     if profile == "override_audit_metrics":
-        overrides, audit, metrics, audit_packets = (
-            str(data[key]) for key in ("overrides", "audit", "metrics", "audit_packets")
+        overrides, audit_packets = (
+            str(data[key]) for key in ("overrides", "audit_packets")
         )
-        audit_text = _changed_document(context, audit)
-        metric_data = _json(root, attempt.head, metrics)
         prepared_overrides = _git_blob(root, attempt.prepared, overrides)
         final_overrides = _git_blob(root, attempt.head, overrides)
         object_ids = _repository_oid_pattern(root)
@@ -3643,18 +3641,16 @@ def _semantic(context: _SemanticContext) -> bool:
             ).stdout.splitlines() if object_ids is not None and object_ids.fullmatch(line)
         )
         commit_parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
-        expected_paths = {overrides, audit, metrics}
+        expected_paths = {overrides}
         changed_paths = set(_commit_paths(root, attempt.head))
-        audit_packet_paths = {
-            path for path in changed_paths
-            if path.startswith(f"{audit_packets}/") and path.endswith(".md")
-        }
+        audit_packet_name = re.compile(
+            rf"^{re.escape(audit_packets)}/\d{{4}}-\d{{2}}-\d{{2}}(?:-\d+)?\.md$"
+        )
+        audit_packet_paths = {path for path in changed_paths if audit_packet_name.fullmatch(path)}
         status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
         if (
-            not audit_text or not metric_data or prepared_overrides is None or final_overrides is None
+            prepared_overrides is None or final_overrides is None
             or not prepared_overrides.endswith(b"\n") or not final_overrides.startswith(prepared_overrides)
-            or not _changed(root, attempt.prepared, attempt.head, audit)
-            or not _changed(root, attempt.prepared, attempt.head, metrics)
             or commits != (attempt.head,) or commit_parents != [attempt.head, attempt.prepared]
             or len(audit_packet_paths) != 1 or changed_paths != expected_paths | audit_packet_paths
             or status.returncode != 0 or status.stdout
@@ -3667,14 +3663,14 @@ def _semantic(context: _SemanticContext) -> bool:
         override_line = re.compile(r"^\[[^\]\r\n]+\] \| BY: [^|\r\n]+ \| GATE: safe-training-gate \| REASON: [^\r\n]+$")
         audit_packet = _text(root, attempt.head, next(iter(audit_packet_paths)))
         return bool(
-            len(new_lines) == 1 and all(override_line.fullmatch(line) for line in new_lines)
-            and all(hashlib.sha256(line.encode("utf-8")).hexdigest() in audit_text for line in new_lines)
-            and audit_packet is not None and all(line in audit_packet for line in new_lines)
-            and set(metric_data) == {"schema_version", "override_count", "low_confidence_count"}
-            and _version(metric_data["schema_version"], 1)
-            and metric_data["override_count"] == len(new_lines)
-            and type(metric_data["low_confidence_count"]) is int
-            and metric_data["low_confidence_count"] >= 0
+            len(new_lines) == 1
+            and all(override_line.fullmatch(line) for line in new_lines)
+            and audit_packet is not None
+            and re.search(r"(?m)^## Overrides\s*$", audit_packet)
+            and all(
+                re.search(rf"(?m)^{re.escape(line)}$", audit_packet)
+                for line in new_lines
+            )
         )
     if profile == "refactor_chore_release":
         return _u03_refactor_chore_release(root, attempt, data)

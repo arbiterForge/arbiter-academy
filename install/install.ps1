@@ -7,10 +7,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$Release = "preview-0.14"
-$ArchiveName = "arbiter-academy-preview-0.14.zip"
-$BundleSha256 = "8355ea9ee609d8d36f9bc56aa8ec3deeca7afde1f03fa21627b090f369a08bc1"
-$AssetUrl = "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.14/arbiter-academy-preview-0.14.zip"
+$Release = "preview-0.15"
+$ArchiveName = "arbiter-academy-preview-0.15.zip"
+$BundleSha256 = "b1f8798109f177bc78380775b05d5ce8cf3c103e9c4a573e39a2861303b986d2"
+$AssetUrl = "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.15/arbiter-academy-preview-0.15.zip"
 
 function Assert-PathInside {
     param([string]$Root, [string]$Candidate)
