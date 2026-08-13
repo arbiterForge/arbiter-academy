@@ -2170,7 +2170,7 @@ class LessonActionTests(unittest.TestCase):
                 with self.subTest(action=action.id, variant=variant.id):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
-        self.assertIn("Academy Preview 0.17", guide)
+        self.assertIn("Academy Preview 0.18", guide)
         self.assertIn("`ca-preview`", guide)
         self.assertIn("not `ca-preview` output", guide)
         self.assertIn("whether a secret scan ran", guide)
