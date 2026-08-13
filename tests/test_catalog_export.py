@@ -86,7 +86,8 @@ class CatalogExportTests(unittest.TestCase):
             all(
                 status == "pending"
                 for lab_id, status in statuses.items()
-                if lab_id.startswith("U0") and lab_id != "U01-autonomous-sprint"
+                if lab_id.startswith("U0")
+                and lab_id not in {"U01-autonomous-sprint", "U05-debug-spike-conflict"}
             )
         )
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))

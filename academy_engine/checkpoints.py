@@ -3233,6 +3233,11 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "debug_spike_conflict":
         spike = _changed_document(context, str(data["spike"]))
         board = _changed_document(context, str(data["board"]))
+        status = run_git(
+            root,
+            ["status", "--porcelain", "--untracked-files=all"],
+            check=False,
+        )
         changed_paths = set(
             run_git(
                 root,
@@ -3248,10 +3253,13 @@ def _semantic(context: _SemanticContext) -> bool:
         return bool(
             _headings(spike, ("Question", "What tried", "Answer", "Implication"))
             and board
-            and re.search(r"(?m)^- \[ \] debug\.note\.\d{4} - .+$", board)
-            and re.search(r"(?m)^  - Desc: .+$", board)
-            and "closed without code changes" in board
+            and re.search(
+                r"(?m)^- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n  - Desc: .+$",
+                board,
+            )
             and not spike_refs
+            and status.returncode == 0
+            and not status.stdout
             and changed_paths == {str(data["spike"]), str(data["board"])}
         )
     if profile == "preview_evidence":

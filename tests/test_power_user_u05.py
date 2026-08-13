@@ -27,7 +27,15 @@ class U05PluginContractTests(unittest.TestCase):
     def git(self, root: Path, *args: str) -> str:
         return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
 
-    def context(self, root: Path, *, retain_spike: bool = False, copy_spike_code: bool = False) -> _SemanticContext:
+    def context(
+        self,
+        root: Path,
+        *,
+        retain_spike: bool = False,
+        copy_spike_code: bool = False,
+        leave_untracked_spike_code: bool = False,
+        split_debug_metadata: bool = False,
+    ) -> _SemanticContext:
         (root / ".codearbiter/spikes").mkdir(parents=True)
         (root / ".codearbiter/open-tasks.md").write_text("# Open tasks\n", encoding="utf-8")
         self.git(root, "init", "-b", "main")
@@ -41,12 +49,20 @@ class U05PluginContractTests(unittest.TestCase):
             "# Cache-key spike\n\n## Question\nWhich cache key is stale?\n\n## What tried\nRead-only trace.\n\n## Answer\nThe tenant key is omitted.\n\n## Implication\nRoute a fix through $ca-fix.\n",
             encoding="utf-8",
         )
-        (root / ".codearbiter/open-tasks.md").write_text(
+        board = (
             "# Open tasks\n\n## In-flight\n\n"
             "- [ ] debug.note.0001 - U05 cache-key investigation closed without code changes\n"
-            "  - Desc: cited read-only trace\n",
-            encoding="utf-8",
+            "  - Desc: cited read-only trace\n"
         )
+        if split_debug_metadata:
+            board = (
+                "# Open tasks\n\n## In-flight\n\n"
+                "- [ ] debug.note.0001 - U05 cache-key investigation\n"
+                "  - Context: cited read-only trace\n"
+                "- [ ] maintenance.note.0001 - unrelated work closed without code changes\n"
+                "  - Desc: unrelated maintenance\n"
+            )
+        (root / ".codearbiter/open-tasks.md").write_text(board, encoding="utf-8")
         if copy_spike_code:
             (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
         paths = [".codearbiter"]
@@ -55,6 +71,8 @@ class U05PluginContractTests(unittest.TestCase):
         self.git(root, "add", *paths)
         self.git(root, "commit", "-m", "docs: retain U05 findings")
         head = self.git(root, "rev-parse", "HEAD")
+        if leave_untracked_spike_code:
+            (root / "exploratory_spike.py").write_text("unsafe exploratory code\n", encoding="utf-8")
         if retain_spike:
             self.git(root, "branch", "spike/u05-cache-key", head)
         return _SemanticContext(root, _Attempt("academy/U05-debug-spike-conflict/1", 1, prepared, prepared, head), Predicate("u05", "lab_semantics", self.data))
@@ -70,6 +88,14 @@ class U05PluginContractTests(unittest.TestCase):
     def test_rejects_spike_code_copied_into_the_parent_attempt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             self.assertFalse(_semantic(self.context(Path(directory), copy_spike_code=True)))
+
+    def test_rejects_uncommitted_exploratory_spike_code_after_valid_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(_semantic(self.context(Path(directory), leave_untracked_spike_code=True)))
+
+    def test_rejects_debug_metadata_separated_from_its_no_action_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(_semantic(self.context(Path(directory), split_debug_metadata=True)))
 
     def test_allows_an_unrelated_spike_branch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -92,6 +118,10 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertIn("stop", by_id["U05-halt-for-conflict"].expected_result.casefold())
         for action_id in ("U05-prepare-attempt", "U05-check-status"):
             self.assertIn("not published", by_id[action_id].expected_result.casefold())
+        check_variants = {variant.id: variant for variant in by_id["U05-check-status"].variants}
+        self.assertEqual(set(check_variants), {"windows", "posix"})
+        self.assertIn("check U05-debug-spike-conflict", check_variants["posix"].command)
+        self.assertNotIn("prepare U05-debug-spike-conflict", check_variants["posix"].command)
         release = load_preview_manifest(SOURCE)
         self.assertNotIn(U05, release.guided_labs)
 
