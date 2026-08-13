@@ -3090,5 +3090,111 @@ raise SystemExit(result.returncode)
         self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
 
 
+class PrivateU02PreviewContractTests(unittest.TestCase):
+    def test_private_u02_guide_uses_shared_action_renderer_without_publication(self) -> None:
+        """Catches private U02 losing its website-first action contract or truth boundary."""
+        root = Path(__file__).parents[1]
+        document = preview_site._read_markdown_document(
+            root,
+            Path("academy/tracks/power-user/U02-override-audit-metrics.md"),
+            "U02-override-audit-metrics",
+            require_h1=True,
+        )
+        manifest = load_action_manifest(root, "U02-override-audit-metrics")
+        guide = (
+            root / "academy/tracks/power-user/U02-override-audit-metrics.md"
+        ).read_text(encoding="utf-8")
+        content = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertIn('data-action-id="U02-log-override"', content)
+        self.assertIn('data-action-id="U02-check"', content)
+        self.assertIn('class="command-copy"', content)
+        self.assertNotIn("{{action:", content)
+        self.assertNotIn("```", guide)
+        self.assertIn("does not prove that a human approved", guide)
+        self.assertIn("does not prove that any hosted service", guide)
+        self.assertIn("The Power User track remains private", guide)
+        self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
+        self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
+        self.assertIn("Preview 0.12 refuses U02", guide)
+        self.assertIn("future private prepared-attempt contract", guide)
+        self.assertNotIn("after Prepare", guide)
+        self.assertNotIn("U02-override-audit-metrics", load_preview_manifest(root).guided_labs)
+        self.assertEqual(
+            re.findall(r"(?m)^## .+$", guide),
+            [
+                "## Know before you begin",
+                "## What you will prove",
+                "## Prepare safely",
+                "## Practice",
+                "## Recognize success",
+                "## Check",
+                "## Recover or continue",
+                "## Understand the mechanism",
+            ],
+        )
+
+
+class PrivateU03PreviewContractTests(unittest.TestCase):
+    def test_private_u03_guide_uses_shared_action_renderer_without_publication(self) -> None:
+        """Catches U03 losing its action-card path, private boundary, or stated limits."""
+        root = Path(__file__).parents[1]
+        document = preview_site._read_markdown_document(
+            root,
+            Path("academy/tracks/power-user/U03-refactor-chore-release.md"),
+            "U03-refactor-chore-release",
+            require_h1=True,
+        )
+        manifest = load_action_manifest(root, "U03-refactor-chore-release")
+        guide = (
+            root / "academy/tracks/power-user/U03-refactor-chore-release.md"
+        ).read_text(encoding="utf-8")
+        content = str(document["content"])
+
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertIn('data-action-id="U03-run-refactor"', content)
+        self.assertIn('data-action-id="U03-run-release"', content)
+        self.assertIn('class="command-copy"', content)
+        self.assertNotIn("{{action:", content)
+        self.assertNotIn("```", guide)
+        self.assertIn("Preview 0.12 refuses U03", guide)
+        self.assertIn("future private contract", guide)
+        self.assertIn("academy-v0.3.0", guide)
+        for limitation in (
+            "behavioral parity",
+            "human approval",
+            "CodeArbiter command execution",
+            "SemVer derivation",
+            "CHANGELOG or manifest update",
+            "tag push",
+            "publication",
+        ):
+            with self.subTest(limitation=limitation):
+                self.assertIn(limitation, guide)
+        self.assertNotIn("U03-refactor-chore-release", load_preview_manifest(root).guided_labs)
+        self.assertEqual(
+            re.findall(r"(?m)^## .+$", guide),
+            [
+                "## Know before you begin",
+                "## What you will prove",
+                "## Prepare safely",
+                "## Practice",
+                "## Recognize success",
+                "## Check",
+                "## Recover or continue",
+                "## Understand the mechanism",
+            ],
+        )
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

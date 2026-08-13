@@ -1866,5 +1866,266 @@ class LessonActionTests(unittest.TestCase):
             )
 
 
+class PrivateU02LessonActionTests(unittest.TestCase):
+    def test_private_u02_manifest_keeps_override_evidence_and_command_surfaces_distinct(self) -> None:
+        """Catches U02 blurring an override record with human approval or shell routing."""
+        manifest = load_action_manifest(
+            Path(__file__).parents[1], "U02-override-audit-metrics"
+        )
+        actions = {action.id: action for action in manifest.actions}
+
+        self.assertEqual(
+            tuple(action.id for action in manifest.actions),
+            (
+                "U02-read-boundary",
+                "U02-prepare",
+                "U02-read-scenario",
+                "U02-decide-scope",
+                "U02-log-override",
+                "U02-inspect-log",
+                "U02-run-audit",
+                "U02-run-metrics",
+                "U02-write-evidence",
+                "U02-review-evidence-boundary",
+                "U02-stage-evidence",
+                "U02-commit-evidence",
+                "U02-check",
+                "U02-reset",
+            ),
+        )
+        self.assertEqual(
+            tuple(action.sequence for action in manifest.actions), tuple(range(1, 15))
+        )
+
+        native_actions = (
+            "U02-prepare",
+            "U02-read-scenario",
+            "U02-stage-evidence",
+            "U02-check",
+            "U02-reset",
+        )
+        for action_id in native_actions:
+            with self.subTest(action=action_id):
+                action = actions[action_id]
+                self.assertEqual(
+                    tuple(variant.surface for variant in action.variants),
+                    ("native-terminal", "native-terminal", "native-terminal"),
+                )
+                self.assertFalse(
+                    any(variant.command.startswith("!") for variant in action.variants)
+                )
+
+        inspect_log = actions["U02-inspect-log"]
+        self.assertEqual(inspect_log.actor, "learner")
+        self.assertTrue(all(variant.surface == "harness" for variant in inspect_log.variants))
+        self.assertTrue(all(variant.command.startswith("!") for variant in inspect_log.variants))
+        self.assertFalse(any(variant.command.startswith("!!") for variant in inspect_log.variants))
+
+        for action_id, command in (
+            (
+                "U02-log-override",
+                'override "safe-training-gate: record one scoped training override"',
+            ),
+            ("U02-run-audit", "audit --since-checkpoint"),
+            ("U02-run-metrics", "metrics"),
+            ("U02-commit-evidence", "commit"),
+        ):
+            with self.subTest(action=action_id):
+                variants = actions[action_id].variants
+                self.assertEqual(
+                    tuple((variant.host, variant.command) for variant in variants),
+                    (
+                        ("claude-code", f"/ca:{command}"),
+                        ("codex", f"$ca-{command}"),
+                        ("pi", f"/ca-{command}"),
+                        ("pi", f"/skill:ca-{command}"),
+                    ),
+                )
+                self.assertTrue(all(variant.language == "codearbiter" for variant in variants))
+                self.assertFalse(any(variant.command.startswith("!") for variant in variants))
+
+        boundary = actions["U02-read-boundary"]
+        self.assertIn("does not prove", boundary.evidence or "")
+        self.assertIn("human approval", boundary.evidence or "")
+        for action_id in ("U02-prepare", "U02-check", "U02-reset"):
+            with self.subTest(action=action_id):
+                action = actions[action_id]
+                self.assertIn("Preview 0.12", action.expected_result)
+                self.assertIn("refuses", action.expected_result)
+                self.assertIn("unchanged", action.expected_result)
+                self.assertNotIn("creates", action.expected_result)
+                self.assertNotIn("passed", action.expected_result)
+
+        evidence = actions["U02-write-evidence"]
+        self.assertEqual((evidence.actor, evidence.surface), ("agent", "active-harness"))
+        self.assertIn("SHA-256", evidence.instruction)
+        self.assertIn("override_count", evidence.instruction)
+        self.assertIn("low_confidence_count", evidence.instruction)
+        self.assertIn("Do not stage, commit, or push", evidence.instruction)
+        review = actions["U02-review-evidence-boundary"]
+        self.assertEqual((review.actor, review.surface), ("learner", "active-harness"))
+        self.assertIn("overrides.log", review.instruction)
+        self.assertIn("printed by the audit command", review.instruction)
+        self.assertIn("U02-audit.md", review.instruction)
+        self.assertIn("U02-metrics.json", review.instruction)
+        self.assertIn("four-path", review.expected_result)
+        self.assertIn("four-path", review.recovery)
+        self.assertIn("Do not stage, commit, or push", review.instruction)
+        stage = actions["U02-stage-evidence"]
+        self.assertIn("exact path printed by the audit command", stage.instruction)
+        self.assertNotIn("exactly one audit packet", stage.instruction)
+        self.assertIn("Exactly four paths", stage.expected_result)
+        self.assertTrue(
+            all("Paste the exact audit packet path" in variant.command for variant in stage.variants)
+        )
+        self.assertTrue(
+            all("Get-ChildItem .codearbiter" not in variant.command for variant in stage.variants)
+        )
+
+
+class PrivateU03LessonActionTests(unittest.TestCase):
+    def test_private_u03_manifest_teaches_only_the_declared_future_contract(self) -> None:
+        """Catches U03 losing its exact evidence sequence or execution boundaries."""
+        manifest = load_action_manifest(
+            Path(__file__).parents[1], "U03-refactor-chore-release"
+        )
+        actions = {action.id: action for action in manifest.actions}
+
+        self.assertEqual(
+            tuple(action.id for action in manifest.actions),
+            (
+                "U03-read-boundary",
+                "U03-prepare",
+                "U03-confirm-refusal",
+                "U03-review-future-brief",
+                "U03-run-refactor",
+                "U03-inspect-refactor",
+                "U03-review-refactor",
+                "U03-stage-refactor",
+                "U03-commit-refactor",
+                "U03-run-chore",
+                "U03-inspect-chore",
+                "U03-review-chore",
+                "U03-stage-chore",
+                "U03-commit-chore",
+                "U03-run-release",
+                "U03-review-release",
+                "U03-inspect-tag",
+                "U03-check",
+                "U03-reset",
+            ),
+        )
+        self.assertEqual(
+            tuple(action.sequence for action in manifest.actions), tuple(range(1, 20))
+        )
+
+        for action_id in (
+            "U03-prepare",
+            "U03-confirm-refusal",
+            "U03-inspect-refactor",
+            "U03-stage-refactor",
+            "U03-inspect-chore",
+            "U03-stage-chore",
+            "U03-inspect-tag",
+            "U03-check",
+            "U03-reset",
+        ):
+            with self.subTest(action=action_id):
+                action = actions[action_id]
+                self.assertEqual(action.actor, "learner")
+                self.assertEqual(
+                    tuple(variant.surface for variant in action.variants),
+                    ("native-terminal", "native-terminal", "native-terminal"),
+                )
+                self.assertFalse(
+                    any(variant.command.startswith("!") for variant in action.variants)
+                )
+
+        for action_id, command in (
+            ("U03-run-refactor", "refactor"),
+            ("U03-commit-refactor", "commit"),
+            ("U03-run-chore", "chore docs"),
+            ("U03-commit-chore", "commit"),
+            ("U03-run-release", "release academy-private-training"),
+        ):
+            with self.subTest(action=action_id):
+                action = actions[action_id]
+                self.assertEqual(action.actor, "agent")
+                self.assertEqual(
+                    tuple((variant.host, variant.command) for variant in action.variants),
+                    (
+                        ("claude-code", f"/ca:{command}"),
+                        ("codex", f"$ca-{command}"),
+                        ("pi", f"/ca-{command}"),
+                        ("pi", f"/skill:ca-{command}"),
+                    ),
+                )
+                self.assertTrue(
+                    all(variant.language == "codearbiter" for variant in action.variants)
+                )
+                self.assertFalse(
+                    any(variant.command.startswith("!") for variant in action.variants)
+                )
+
+        for action_id in (
+            "U03-read-boundary",
+            "U03-review-future-brief",
+            "U03-review-refactor",
+            "U03-review-chore",
+            "U03-review-release",
+        ):
+            with self.subTest(action=action_id):
+                self.assertEqual(
+                    (actions[action_id].actor, actions[action_id].surface),
+                    ("learner", "active-harness"),
+                )
+
+        boundary = actions["U03-read-boundary"]
+        self.assertIn("does not prove", boundary.evidence or "")
+        for limitation in (
+            "behavioral parity",
+            "human approval",
+            "CodeArbiter command execution",
+            "SemVer derivation",
+            "CHANGELOG or manifest update",
+            "tag push",
+            "publication",
+        ):
+            with self.subTest(limitation=limitation):
+                self.assertIn(limitation, boundary.evidence or "")
+
+        for action_id in ("U03-prepare", "U03-check", "U03-reset"):
+            with self.subTest(action=action_id):
+                self.assertIn("Preview 0.12 refuses U03", actions[action_id].expected_result)
+                self.assertIn("unchanged", actions[action_id].expected_result)
+
+        self.assertIn("workshop_queue/store.py", actions["U03-stage-refactor"].instruction)
+        self.assertIn("README.md", actions["U03-stage-chore"].instruction)
+        tag = actions["U03-inspect-tag"]
+        self.assertIn("academy-v0.3.0", tag.instruction)
+        self.assertIn(
+            "Academy private exercise: academy-private-training 0.3.0",
+            tag.instruction,
+        )
+        self.assertIn(
+            "Academy private exercise: academy-private-training 0.3.0",
+            tag.expected_result,
+        )
+        self.assertIn("one terminal newline", tag.instruction)
+        self.assertIn("one terminal newline", tag.expected_result)
+        self.assertIn("extra blank", tag.recovery)
+        self.assertTrue(
+            all("cat-file" in variant.command for variant in tag.variants)
+        )
+        self.assertTrue(
+            all("repr(body)" in variant.command for variant in tag.variants)
+        )
+        self.assertTrue(
+            all("body != expected" in variant.command for variant in tag.variants)
+        )
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
