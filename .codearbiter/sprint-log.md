@@ -37,3 +37,11 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
   no network, dependency, credential, or push requirement.
 - Chosen: implement the bounded U01 source contract now and keep it private until packaging, routing,
   browser, and hosted-release acceptance establish a public lesson boundary.
+
+
+## SD-ACA-008 - Promote U06 with repository-fact evidence only - confidence: high
+- Date: 2026-08-13
+- Point: Whether the public U06 lesson should preserve hand-authored preview telemetry or bind only durable repository facts after the real read-only ca-preview advisory step.
+- Options: retain invented reviewer/scan fields; keep U06 private; publish the accepted two-commit candidate and Academy binding record while explicitly excluding invocation and telemetry claims.
+- SMARTS: Reliable, Testable, and Securable favor the bounded repository record because it can be reproduced from committed state without claiming a host result. Available and Maintainable favor the existing installed Prepare/Check/Reset lifecycle and explicit public package inventory.
+- Chosen: publish U06 in Preview 0.19 with real host-native ca-preview guidance, a public route, deterministic package assets, and U07 as the sole non-linking coming-next lesson.

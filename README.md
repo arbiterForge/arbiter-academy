@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.18
+## Preview 0.19
 
-Preview 0.18 publishes seventeen guided labs:
+Preview 0.19 publishes seventeen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -51,7 +51,7 @@ Preview 0.18 publishes seventeen guided labs:
   note, transfers only committed spike findings to the parent branch, then
   deletes the disposable spike without merging it.
 
-U06-U07 remain unavailable in Preview 0.18 while their guided rewrites and
+U06-U07 remain unavailable in Preview 0.19 while their guided rewrites and
 acceptance boundaries are completed. Graduation is unavailable until the
 complete 19-lab course through U07 is published.
 

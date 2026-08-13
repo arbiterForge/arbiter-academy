@@ -51,7 +51,7 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn("```", guide)
         self.assertIn("The website remains the primary lesson surface.", normalized)
-        self.assertIn("guided, runnable lesson in Preview 0.18", normalized)
+        self.assertIn("guided, runnable lesson in Preview 0.19", normalized)
         self.assertIn("non-destructive numbered retry", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)
@@ -95,7 +95,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 )
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
-                self.assertIn("preview-0.18", " ".join(variant.command for variant in action.variants))
+                self.assertIn("preview-0.19", " ".join(variant.command for variant in action.variants))
 
         inspect = by_id["U01-inspect-scenario"]
         self.assertEqual({variant.surface for variant in inspect.variants}, {"native-terminal", "harness"})
@@ -143,8 +143,8 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn('data-copy-target="command-U01-run-sprint-codex"', content)
         self.assertNotIn("{{action:", content)
 
-    def test_u01_through_u05_are_the_power_user_labs_in_the_preview_zero_eighteen_public_boundary(self) -> None:
-        """The fifth public Power User slice must not expose U06-U07."""
+    def test_u01_through_u06_are_the_power_user_labs_in_the_preview_zero_nineteen_public_boundary(self) -> None:
+        """The sixth public Power User slice must not expose U07."""
         release = load_preview_manifest(SOURCE)
         self.assertIn(U01, release.available_labs)
         self.assertIn(U01, release.runnable_labs)
@@ -159,7 +159,10 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn("U05-debug-spike-conflict", release.available_labs)
         self.assertIn("U05-debug-spike-conflict", release.runnable_labs)
         self.assertIn("U05-debug-spike-conflict", release.guided_labs)
-        for lab_id in ("U06-preview-and-advanced-surfaces", "U07-capstone"):
+        self.assertIn("U06-preview-and-advanced-surfaces", release.available_labs)
+        self.assertIn("U06-preview-and-advanced-surfaces", release.runnable_labs)
+        self.assertIn("U06-preview-and-advanced-surfaces", release.guided_labs)
+        for lab_id in ("U07-capstone",):
             self.assertNotIn(lab_id, release.available_labs)
 
     def test_u01_declares_the_bounded_sprint_fixture_and_positive_predicate(self) -> None:
