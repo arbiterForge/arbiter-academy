@@ -214,7 +214,7 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertEqual(lab.id, U05)
         self.assertIn("released CodeArbiter contract", guide)
         self.assertIn("$ca-conflict", guide)
-        self.assertIn("cannot prove an agent’s private reasoning", guide)
+        self.assertIn("cannot prove an agent's private reasoning", guide)
         self.assertIn("{{action:U05-reset-retry}}", guide)
 
     def test_public_u05_cards_are_runnable_without_private_source_framing(self) -> None:

@@ -15,7 +15,7 @@ next_lab: U06-preview-and-advanced-surfaces
 
 ## Know before you begin
 
-This lesson uses the released CodeArbiter contract. The website gives the sequence and your host runs the real commands. Academy can inspect repository facts at the end, but it cannot prove an agent’s private reasoning or a human conflict decision.
+This lesson uses the released CodeArbiter contract. The website gives the sequence and your host runs the real commands. Academy can inspect repository facts at the end, but it cannot prove an agent's private reasoning or a human conflict decision.
 
 {{action:U05-confirm-readiness}}
 
