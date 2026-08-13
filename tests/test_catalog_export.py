@@ -37,7 +37,7 @@ class CatalogExportTests(unittest.TestCase):
             )
             subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True, text=True)
             subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True, text=True)
-            subprocess.run(["git", "-c", "gc.auto=0", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "source"], cwd=root, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "-c", "gc.auto=0", "-c", "maintenance.auto=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", "source"], cwd=root, check=True, capture_output=True, text=True)
             output = Path(directory) / "catalog.json"
             result = subprocess.run(
                 [sys.executable, str(script), "export-catalog", str(output)],
