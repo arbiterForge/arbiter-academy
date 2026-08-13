@@ -159,7 +159,7 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         head = self._complete_three_commit_attempt()
         message = Path(self.temporary.name) / "tag-message.txt"
         message.write_text(self._tag_message(), encoding="utf-8")
-        git(self.root, "tag", "-a", self._TAG, "-F", str(message), head)
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), "--cleanup=verbatim", head)
 
         self.assertTrue(_semantic(self._context(head)))
 
@@ -168,7 +168,7 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         head = self._complete_three_commit_attempt()
         message = Path(self.temporary.name) / "tag-message.txt"
         message.write_text(self._tag_message(), encoding="utf-8")
-        git(self.root, "tag", "-a", self._TAG, "-F", str(message), head)
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), "--cleanup=verbatim", head)
         tag_object = subprocess.run(
             ["git", "cat-file", "tag", self._TAG],
             cwd=self.root,
