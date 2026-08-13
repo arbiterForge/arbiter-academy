@@ -51,7 +51,7 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn("```", guide)
         self.assertIn("The website remains the primary lesson surface.", normalized)
-        self.assertIn("guided, runnable lesson in Preview 0.16", normalized)
+        self.assertIn("guided, runnable lesson in Preview 0.17", normalized)
         self.assertIn("non-destructive numbered retry", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)
@@ -95,7 +95,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 )
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
-                self.assertIn("preview-0.16", " ".join(variant.command for variant in action.variants))
+                self.assertIn("preview-0.17", " ".join(variant.command for variant in action.variants))
 
         inspect = by_id["U01-inspect-scenario"]
         self.assertEqual({variant.surface for variant in inspect.variants}, {"native-terminal", "harness"})
