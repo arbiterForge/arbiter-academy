@@ -23,8 +23,8 @@ for U05. Do not substitute an Academy-only branch, report, or made-up command fo
 
 ## What you will prove
 
-The future private walkthrough requires a CodeArbiter build containing the
-[findings-only spike contract](https://github.com/arbiterForge/codeArbiter/pull/685): `$ca-spike` uses `spike/<slug>`, retains only
+The future private walkthrough requires a released CodeArbiter build containing the
+[findings-only spike contract](https://github.com/arbiterForge/codeArbiter/pull/687): `$ca-spike` uses `spike/<slug>`, retains only
 `.codearbiter/spikes/<slug>.md` on the parent, and deletes the spike branch. `$ca-debug` changes no
 code and may close with its actual queued `debug.note` board entry. `$ca-conflict` stops, presents
 the competing rules and hierarchy, and waits for a person; it produces no fictional command receipt.
