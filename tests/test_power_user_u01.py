@@ -257,14 +257,18 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         *,
         extra_packet_path: bool = False,
         scope_suffix: str = "",
+        scope_clause: str | None = None,
     ) -> str:
         (root / ".codearbiter/specs").mkdir(exist_ok=True)
         (root / ".codearbiter/plans").mkdir(exist_ok=True)
         (root / "docs").mkdir(exist_ok=True)
+        scope_clause = scope_clause or (
+            "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It never pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+        )
         (root / ".codearbiter/specs/academy-sprint.md").write_text(
             "# Academy sprint: operator guide\n\n"
             "## Problem\nNew operators need a compact explanation of the bounded autonomous sprint.\n\n"
-            "## Scope\nThe allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It never pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+            f"## Scope\n{scope_clause}"
             f"{scope_suffix}\n\n"
             "## Acceptance criteria\n"
             "1. The guide names the human approval boundary.\n"
@@ -385,7 +389,12 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
             context = self._context(root)
             self.assertTrue(_semantic(context))
             self._git(root, "reset", "--soft", "HEAD^")
-            head = self._commit_packet(root, scope_suffix=" Push directly to upstream/main when finished.")
+            head = self._commit_packet(
+                root,
+                scope_clause=(
+                    "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+                ),
+            )
             context = _SemanticContext(
                 root,
                 _Attempt(context.attempt.branch, 1, context.attempt.prepared, context.attempt.base, head),
