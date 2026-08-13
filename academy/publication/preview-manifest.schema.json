@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.18 publication manifest",
+  "title": "Arbiter Academy Preview 0.19 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.18"},
+    "release": {"const": "preview-0.19"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 17,
-      "maxItems": 17,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -29,13 +29,14 @@
         {"const": "U02-override-audit-metrics"},
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
-        {"const": "U05-debug-spike-conflict"}
+        {"const": "U05-debug-spike-conflict"},
+        {"const": "U06-preview-and-advanced-surfaces"}
       ]
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 17,
-      "maxItems": 17,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -54,13 +55,14 @@
         {"const": "U02-override-audit-metrics"},
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
-        {"const": "U05-debug-spike-conflict"}
+        {"const": "U05-debug-spike-conflict"},
+        {"const": "U06-preview-and-advanced-surfaces"}
       ]
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 17,
-      "maxItems": 17,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -79,16 +81,16 @@
         {"const": "U02-override-audit-metrics"},
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
-        {"const": "U05-debug-spike-conflict"}
+        {"const": "U05-debug-spike-conflict"},
+        {"const": "U06-preview-and-advanced-surfaces"}
       ]
     },
     "coming_next": {
       "type": "array",
-      "minItems": 2,
-      "maxItems": 2,
+      "minItems": 1,
+      "maxItems": 1,
       "items": false,
       "prefixItems": [
-        {"const": "U06-preview-and-advanced-surfaces"},
         {"const": "U07-capstone"}
       ]
     },
@@ -111,8 +113,8 @@
       "maxItems": 3,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04, P01-P08, and U01-U05 are the guided lessons published in Preview 0.18."},
-        {"const": "U06-U07 remain unavailable in Preview 0.18."},
+        {"const": "F01-F04, P01-P08, and U01-U06 are the guided lessons published in Preview 0.19."},
+        {"const": "U07 remains unavailable in Preview 0.19."},
         {"const": "Graduation is unavailable until the complete 19-lab course is published."}
       ]
     },

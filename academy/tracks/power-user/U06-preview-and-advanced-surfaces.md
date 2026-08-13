@@ -15,20 +15,19 @@ next_lab: U07-capstone
 
 ## Know before you begin
 
-U06 is a private source lesson. Academy Preview 0.18 is the installed public release, and it does
-not publish U06 yet. Its Prepare, Check, and Reset commands must refuse this lab. That is a release
-boundary, not a missing prerequisite you should work around.
+U06 is a guided, runnable lesson in Academy Preview 0.19. Use its installed Prepare, Check, and
+Reset commands from this page; do not substitute repository-local source execution.
 
 The website is the course interface. Academy CLI is a setup, Check, and recovery helper when a
 lesson is released. A direct native-terminal command has no `!`; a shell command passed through a
 harness begins with exactly one `!`; a host-native CodeArbiter command belongs in the harness and
 has no `!`. Each rendered action card labels the surface and supplies a copy button.
 
-{{action:U06-confirm-private-boundary}}
+{{action:U06-confirm-public-boundary}}
 
 ## What you will prove
 
-In a future private prepared attempt, you will turn one frozen Markdown seed into one exact safe
+In a prepared attempt, you will turn one frozen Markdown seed into one exact safe
 policy. You will ask the selected host for a read-only `ca-preview`, evaluate its advice, and retain
 only two learner commits: the candidate, then its binding report. You do not push, change product
 code, add dependencies, or make an advanced operation look routine.
@@ -46,9 +45,8 @@ reviewers it predicted, whether a secret scan ran, or that you agreed with a pre
 
 {{action:U06-inspect-seeded-candidate}}
 
-The public refusal is correct today. The remaining cards describe only a maintainer-supplied private
-attempt after an accepted release integration. Do not create the candidate, report, or attempt branch
-by hand in an ordinary checkout.
+Prepare creates the bounded attempt and frozen candidate. Do not create the candidate, report, or
+attempt branch by hand.
 
 ## Create a contained preview
 
@@ -58,7 +56,7 @@ by hand in an ordinary checkout.
 
 {{action:U06-run-read-only-preview}}
 
-The two names are easy to confuse. Academy Preview 0.18 names an installed release and its public
+The two names are easy to confuse. Academy Preview 0.19 names an installed release and its public
 availability boundary. `ca-preview` is a host-native, advisory review of the current diff. It does
 not stage, commit, push, create a release, or give the agent authority to enlarge the change.
 
@@ -105,8 +103,7 @@ committed bytes; neither the record nor Check claims that `ca-preview` ran or pe
 
 **Check limit:** source Check verifies committed repository facts. It cannot establish that you ran
 `ca-preview`, understood its result, or consciously chose not to execute an advanced command. The
-installed Academy Preview 0.18 Check still refuses U06 until an accepted release carries this source
-contract.
+installed Academy Preview 0.19 Check evaluates this accepted source contract.
 
 ## Recover or continue
 

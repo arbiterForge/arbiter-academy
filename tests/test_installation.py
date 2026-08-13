@@ -157,11 +157,11 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
-    def test_unpublished_power_user_data_is_excluded_from_the_public_wheel(self) -> None:
-        """A downloadable Preview wheel must not disclose private lesson artifacts."""
+    def test_published_u06_data_and_only_published_power_user_data_are_in_the_public_wheel(self) -> None:
+        """A downloadable Preview wheel includes U06 while keeping U07 private."""
         repository = Path(__file__).resolve().parents[1]
         package = (repository / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertNotIn(
+        self.assertIn(
             '"academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"',
             package,
         )
@@ -197,7 +197,9 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
             with zipfile.ZipFile(wheel) as contents:
-                self.assertNotIn(expected, set(contents.namelist()))
+                names = set(contents.namelist())
+                self.assertIn(expected, names)
+                self.assertFalse(any("/U07-" in name for name in names))
 
     def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
         """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
@@ -463,11 +465,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.18.json"
+                        "share/arbiter-academy/academy/publication/preview-0.19.json"
                     )
                     for name in names
                 ),
-                "preview-0.18.json",
+                "preview-0.19.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -499,13 +501,17 @@ class InstalledWheelTests(unittest.TestCase):
                 any(name.endswith("/academy/actions/U05-debug-spike-conflict.json") for name in names),
                 "the public wheel must distribute the accepted U05 action contract",
             )
+            self.assertTrue(
+                any(name.endswith("/academy/actions/U06-preview-and-advanced-surfaces.json") for name in names),
+                "the public wheel must distribute the accepted U06 action contract",
+            )
             self.assertFalse(
                 any(
                     "/share/arbiter-academy/academy/" in name
-                        and any(f"/U0{number}" in name for number in range(6, 8))
+                        and "/U07-" in name
                     for name in names
                 ),
-                "the public wheel must not distribute unpublished U06-U07 material",
+                "the public wheel must not distribute unpublished U07 material",
             )
             self.assertEqual(
                 sum(
@@ -513,7 +519,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                17,
+                18,
             )
             self.assertEqual(
                 sum(
@@ -521,7 +527,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                17,
+                18,
             )
             self.assertEqual(
                 sum(
@@ -529,7 +535,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                17,
+                18,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]

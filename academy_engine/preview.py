@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.18"
+_RELEASE = "preview-0.19"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -32,9 +32,9 @@ _RUNNABLE_LABS = (
     "U03-refactor-chore-release",
     "U04-initialize-projects",
     "U05-debug-spike-conflict",
+    "U06-preview-and-advanced-surfaces",
 )
 _COMING_NEXT = (
-    "U06-preview-and-advanced-surfaces",
     "U07-capstone",
 )
 _PREREQUISITES = (
@@ -45,8 +45,8 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U05 are the guided lessons published in Preview 0.18.",
-    "U06-U07 remain unavailable in Preview 0.18.",
+    "F01-F04, P01-P08, and U01-U06 are the guided lessons published in Preview 0.19.",
+    "U07 remains unavailable in Preview 0.19.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"

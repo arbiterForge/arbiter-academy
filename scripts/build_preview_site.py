@@ -799,10 +799,16 @@ def _render_pages(
                 + ". Guided rewrites are in progress.</li>"
             )
         if power_user:
+            range_label = (
+                power_user[0]
+                if len(power_user) == 1
+                else f"{power_user[0]} through {power_user[-1]}"
+            )
+            rewrite_label = "Guided rewrite is" if len(power_user) == 1 else "Guided rewrites are"
             groups.append(
                 "<li><strong>Power User</strong>: "
-                + escape(f"{power_user[0]} through {power_user[-1]}")
-                + ". Guided rewrites are in progress.</li>"
+                + escape(range_label)
+                + f". {rewrite_label} in progress.</li>"
             )
         coming_next = "\n".join(groups)
         coming_next_section = (

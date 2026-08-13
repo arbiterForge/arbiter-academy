@@ -151,7 +151,7 @@ P03_CHOICES = (
 P08_DOCUMENT_ID = "P08-repository-hygiene"
 U06_DOCUMENT_ID = "U06-preview-and-advanced-surfaces"
 U06_ACTION_IDS = (
-    "U06-confirm-private-boundary",
+    "U06-confirm-public-boundary",
     "U06-prepare-attempt",
     "U06-inspect-scenario",
     "U06-inspect-seeded-candidate",
@@ -2079,8 +2079,8 @@ class LessonActionTests(unittest.TestCase):
                 ),
             )
 
-    def test_private_u06_manifest_teaches_preview_without_executing_advanced_surfaces(self) -> None:
-        """Catches U06 losing its private boundary, command ownership, or evidence sequence."""
+    def test_public_u06_manifest_teaches_preview_without_executing_advanced_surfaces(self) -> None:
+        """Catches U06 losing its public boundary, command ownership, or evidence sequence."""
         root = Path(__file__).parents[1]
         manifest = load_action_manifest(root, U06_DOCUMENT_ID)
         manifest_source = (root / "academy/actions/U06-preview-and-advanced-surfaces.json").read_text(encoding="utf-8")
@@ -2099,7 +2099,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertNotIn("```", guide)
 
         by_id = {action.id: action for action in manifest.actions}
-        self.assertEqual((by_id["U06-confirm-private-boundary"].actor, by_id["U06-confirm-private-boundary"].surface), ("learner", "browser"))
+        self.assertEqual((by_id["U06-confirm-public-boundary"].actor, by_id["U06-confirm-public-boundary"].surface), ("learner", "browser"))
         self.assertEqual(by_id["U06-create-contained-diff"].actor, "agent")
         exact_candidate = (
             "# U06 preview candidate\n\n"
@@ -2170,7 +2170,7 @@ class LessonActionTests(unittest.TestCase):
                 with self.subTest(action=action.id, variant=variant.id):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
-        self.assertIn("Academy Preview 0.18", guide)
+        self.assertIn("Academy Preview 0.19", guide)
         self.assertIn("`ca-preview`", guide)
         self.assertIn("not `ca-preview` output", guide)
         self.assertIn("whether a secret scan ran", guide)
