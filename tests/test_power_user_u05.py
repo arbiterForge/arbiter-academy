@@ -174,21 +174,22 @@ class U05PluginContractTests(unittest.TestCase):
             self.git(root, "branch", "spike/unrelated", context.attempt.head)
             self.assertTrue(_semantic(context))
 
-    def test_private_cards_name_real_plugin_contracts_and_preview_refusal(self) -> None:
+    def test_public_cards_name_real_plugin_contracts_and_recovery(self) -> None:
         manifest = load_action_manifest(SOURCE, U05)
         by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(tuple(by_id), (
-            "U05-confirm-private-boundary", "U05-prepare-attempt", "U05-read-observation",
+            "U05-confirm-readiness", "U05-prepare-attempt", "U05-read-observation",
             "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
             "U05-run-spike", "U05-confirm-spike-question", "U05-transfer-findings", "U05-review-findings",
             "U05-commit-findings", "U05-delete-spike", "U05-halt-for-conflict",
-            "U05-check-status",
+            "U05-check-status", "U05-reset-retry",
         ))
         self.assertIn("debug.note.0001", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
-        self.assertIn(U05_RELEASED_INTEGRATION, by_id["U05-run-spike"].instruction)
-        self.assertIn("PR 687", by_id["U05-run-spike"].instruction)
+        self.assertIn("CodeArbiter 2.15.1", by_id["U05-confirm-readiness"].instruction)
+        self.assertIn("ca-codex 0.7.1", by_id["U05-confirm-readiness"].instruction)
+        self.assertIn("ca-pi 0.8.1", by_id["U05-confirm-readiness"].instruction)
         self.assertIn("confirm", by_id["U05-confirm-spike-question"].instruction.casefold())
         self.assertIn("pauses before creating", by_id["U05-run-spike"].expected_result)
         self.assertIn("commits only .codearbiter/spikes/u05-cache-key.md", by_id["U05-confirm-spike-question"].expected_result)
@@ -196,22 +197,36 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertIn("git branch -D spike/u05-cache-key", by_id["U05-delete-spike"].variants[0].command)
         self.assertNotIn("git merge", by_id["U05-transfer-findings"].instruction.casefold())
         self.assertIn("stop", by_id["U05-halt-for-conflict"].expected_result.casefold())
-        for action_id in ("U05-prepare-attempt", "U05-check-status"):
-            self.assertIn("not published", by_id[action_id].expected_result.casefold())
+        for action_id in ("U05-prepare-attempt", "U05-check-status", "U05-reset-retry"):
+            self.assertEqual(
+                tuple(variant.operating_system for variant in by_id[action_id].variants),
+                ("windows", "macos", "linux"),
+            )
+            self.assertTrue(all("preview-0.18" in variant.command for variant in by_id[action_id].variants))
         check_variants = {variant.id: variant for variant in by_id["U05-check-status"].variants}
-        self.assertEqual(set(check_variants), {"windows", "posix"})
-        self.assertIn("check U05-debug-spike-conflict", check_variants["posix"].command)
-        self.assertNotIn("prepare U05-debug-spike-conflict", check_variants["posix"].command)
-        release = load_preview_manifest(SOURCE)
-        self.assertNotIn(U05, release.guided_labs)
+        self.assertEqual(set(check_variants), {"windows", "macos", "linux"})
+        self.assertIn("check U05-debug-spike-conflict", check_variants["linux"].command)
+        self.assertNotIn("prepare U05-debug-spike-conflict", check_variants["linux"].command)
 
-    def test_private_guide_keeps_the_real_plugin_boundary_visible(self) -> None:
+    def test_public_guide_keeps_the_real_plugin_boundary_visible(self) -> None:
         guide = (SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md").read_text(encoding="utf-8")
         lab = curriculum._parse_lab(SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md")
         self.assertEqual(lab.id, U05)
-        self.assertIn(U05_RELEASED_INTEGRATION, guide)
+        self.assertIn("released CodeArbiter contract", guide)
         self.assertIn("$ca-conflict", guide)
-        self.assertIn("no fictional command receipt", guide)
+        self.assertIn("cannot prove an agent's private reasoning", guide)
+        self.assertIn("{{action:U05-reset-retry}}", guide)
+
+    def test_public_u05_cards_are_runnable_without_private_source_framing(self) -> None:
+        """A released U05 must guide its accepted real-plugin lifecycle, not a refusal."""
+        manifest = load_action_manifest(SOURCE, U05)
+        by_id = {action.id: action for action in manifest.actions}
+
+        self.assertTrue(all("Future private-source walkthrough only" not in action.instruction for action in manifest.actions))
+        self.assertIn("creates a clean U05 attempt", by_id["U05-prepare-attempt"].expected_result)
+        self.assertIn("evaluates the prepared U05 attempt", by_id["U05-check-status"].expected_result)
+        self.assertNotIn("not published", by_id["U05-prepare-attempt"].expected_result.casefold())
+        self.assertNotIn("not published", by_id["U05-check-status"].expected_result.casefold())
 
 
 if __name__ == "__main__":

@@ -1438,10 +1438,10 @@ class _SemanticContext:
 _P01_SOURCE_IDENTITY = {
     "schema_version": 1,
     "repository": "arbiterForge/codeArbiter",
-    "commit": "469c2fb82555346a739ab72a0f7284f22874aa3e",
+    "commit": "debb49da71aa1b97bca0988f72e46bb5875a23e3",
     "task_writer_path": "core/pysrc/taskwrite.py",
-    "task_writer_blob": "73258a414b27798f26d347389e02404fb070ca89",
-    "task_writer_sha256": "2637d3bca4cf6e77c6486a350dabfd5f14f86de946c52d474482d990491ed65f",
+    "task_writer_blob": "287d49a24cd8aaf7e33ee3852c2092aca03c4b78",
+    "task_writer_sha256": "f834f3fcc9dafcdf31db16ad4f52cd232c17162dc1711bdba112c2cac8a30d29",
 }
 _P01_PATHS = frozenset(
     {
