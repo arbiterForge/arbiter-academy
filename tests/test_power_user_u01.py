@@ -110,6 +110,17 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertNotIn("unavailable", by_id["U01-check-status"].title.casefold())
         self.assertNotIn("unavailable", by_id["U01-reset-retry"].title.casefold())
 
+        return_base = by_id["U01-return-base"]
+        for variant in return_base.variants:
+            with self.subTest(return_base_variant=variant.id):
+                self.assertIn("git status --short", variant.command)
+                self.assertIn("exit 1", variant.command)
+                self.assertIn("git switch main", variant.command)
+                self.assertLess(
+                    variant.command.index("exit 1"),
+                    variant.command.index("git switch main"),
+                )
+
     def test_u01_public_source_parses_and_renders_with_the_shared_renderer(self) -> None:
         """Catches a public Power User source contract becoming unparseable or bespoke HTML."""
         lab = curriculum._parse_lab(

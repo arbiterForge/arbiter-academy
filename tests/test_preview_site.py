@@ -72,7 +72,7 @@ def read_webp_dimensions(path: Path) -> tuple[int, int]:
 
 
 class PreviewSiteTests(unittest.TestCase):
-    def test_preview_zero_twelve_publishes_the_complete_guided_practitioner_boundary(self) -> None:
+    def test_preview_zero_fourteen_publishes_u01_and_the_guided_inventory(self) -> None:
         """Catches P06-P08 missing after their accepted guided promotion."""
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
@@ -1575,7 +1575,7 @@ class PreviewSiteTests(unittest.TestCase):
                     r"arbiter-academy\s+--repository\s+[^\n<]+\s+graduate\b",
                 )
 
-    def test_readme_matches_the_preview_zero_twelve_public_lesson_boundary(self) -> None:
+    def test_readme_matches_the_preview_zero_fourteen_public_lesson_boundary(self) -> None:
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 

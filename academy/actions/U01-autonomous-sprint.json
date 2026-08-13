@@ -134,9 +134,9 @@
       "rationale": "Leaving evidence intact keeps an incomplete training run inspectable without treating it as public completion.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short\ngit switch main","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short\ngit switch main","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short\ngit switch main","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$status = git status --short\nif ($status) {\n  Write-Error \"The U01 attempt is dirty. Inspect it before switching branches.\"\n  exit 1\n}\ngit switch main","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main","copy":true}
       ],
       "expected_result": "git status --short prints nothing before main becomes the active branch.",
       "recovery": "If status shows changes, stop and inspect them. Do not discard, amend, rebase, force-update, or delete the attempt branch to make it look clean.",
