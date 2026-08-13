@@ -317,7 +317,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.build = _block(self.pages_workflow, "  build:", r"  [a-zA-Z0-9_-]+:")
         self.deploy = _block(self.pages_workflow, "  deploy:", r"  [a-zA-Z0-9_-]+:")
 
-    def test_pages_release_gate_targets_the_exact_preview_zero_twelve_candidate(self) -> None:
+    def test_pages_release_gate_targets_the_exact_preview_zero_nineteen_candidate(self) -> None:
         """Catches Pages reproducing or accepting superseded preview release assets."""
         self.assertEqual(
             RELEASE_ASSETS,
@@ -331,7 +331,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             ),
         )
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.18\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.19\s*$")
         self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1787011200\s*$")
         self.assertNotIn("preview-0.7", release_job)
 
@@ -925,7 +925,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "release verification job with the exact six-asset inventory is missing",
         )
         release_job = release_jobs[0]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.18\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.19\s*$")
         self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
         self.assertIn(
             "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",

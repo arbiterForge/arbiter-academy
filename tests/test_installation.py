@@ -587,6 +587,7 @@ class InstalledWheelTests(unittest.TestCase):
                     "U03-refactor-chore-release.md",
                     "U04-initialize-projects.md",
                     "U05-debug-spike-conflict.md",
+                    "U06-preview-and-advanced-surfaces.md",
                 },
             )
 
