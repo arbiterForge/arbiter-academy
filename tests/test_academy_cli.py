@@ -135,6 +135,41 @@ class AcademyCliTrustTests(unittest.TestCase):
             ".codearbiter/reports/academy/P02-pr-receipt.json\n",
         )
 
+    def test_u04_write_report_dispatches_the_canonical_generator(self) -> None:
+        """Catches an action card naming a report command the installed CLI cannot run."""
+        destination = REPOSITORY / ".codearbiter/reports/academy/U04-initialization.md"
+        output, errors = StringIO(), StringIO()
+        with patch(
+            "academy_engine.cli.repository_root", return_value=REPOSITORY
+        ), patch("academy_engine.cli.require_published_lab") as publication_gate, patch(
+            "academy_engine.cli.validate_repository_git_config"
+        ), patch("academy_engine.cli.ensure_authoritative_verifier"), patch(
+            "academy_engine.cli.write_u04_initialization_report",
+            create=True,
+            return_value=destination,
+        ) as writer, redirect_stdout(output), redirect_stderr(errors):
+            try:
+                exit_code = main(
+                    [
+                        "--repository",
+                        str(REPOSITORY),
+                        "write-report",
+                        "U04-initialize-projects",
+                    ]
+                )
+            except SystemExit as error:
+                self.fail(f"write-report must be a real Academy command, got exit {error.code}")
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(errors.getvalue(), "")
+        self.assertEqual(
+            output.getvalue(),
+            "Drafted U04 initialization report: "
+            ".codearbiter/reports/academy/U04-initialization.md\n",
+        )
+        publication_gate.assert_called_once_with(REPOSITORY, "U04-initialize-projects")
+        writer.assert_called_once_with(REPOSITORY)
+
     def test_publication_gate_uses_verifier_data_not_the_learner_repository(self) -> None:
         """Catches installed verification reading release policy from learner input."""
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -179,6 +214,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                 ("reset", "reset_lab"),
                 ("check", "evaluate_checkpoint"),
                 ("write-handoff", "write_p06_handoff"),
+                ("write-report", "write_u04_initialization_report"),
             ):
                 with self.subTest(lab_id=lab_id, command=command), patch(
                     "academy_engine.cli.repository_root", return_value=REPOSITORY
@@ -993,7 +1029,7 @@ class AcademyCliTrustTests(unittest.TestCase):
             git("add", ".gitignore")
             git("commit", "-m", "fixture base")
 
-            generated_workspace = root / ".academy" / "workspaces" / "U04-secondary" / ".git"
+            generated_workspace = root / ".academy" / "workspaces" / "U04-greenfield" / ".git"
             generated_workspace.mkdir(parents=True)
             (generated_workspace / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
             nested_probe = root / "nested" / ".academy" / "sentinel"
@@ -1080,7 +1116,7 @@ class AcademyCliTrustTests(unittest.TestCase):
                         "check-ignore",
                         "--quiet",
                         "--",
-                        ".academy/workspaces/U04-secondary/.git/HEAD",
+                        ".academy/workspaces/U04-greenfield/.git/HEAD",
                         check=False,
                     ).returncode,
                     0,

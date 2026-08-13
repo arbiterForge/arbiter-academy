@@ -23,7 +23,7 @@
               "approved_spec_plan", "pr_receipt", "accepted_adr", "dependency_review",
               "checkpoint_remediation", "provenance_recovery", "stride_model",
               "hygiene_snapshot", "sprint_decisions", "override_audit_metrics",
-              "refactor_chore_release", "initialized_fixture", "debug_spike_conflict",
+              "refactor_chore_release", "initialized_fixture", "initialized_projects", "debug_spike_conflict",
               "preview_evidence", "u06_preview_evidence", "capstone"
             ]
           },
@@ -42,7 +42,6 @@
           "review": {"$ref": "#/$defs/path"},
           "project": {"$ref": "#/$defs/path"},
           "report": {"$ref": "#/$defs/path"},
-          "candidate": {"$ref": "#/$defs/path"},
           "handoff": {"$ref": "#/$defs/path"},
           "source": {"$ref": "#/$defs/path"},
           "preserved_path": {"$ref": "#/$defs/path"},
@@ -58,6 +57,8 @@
           "chore": {"$ref": "#/$defs/path"},
           "tag_prefix": {"type": "string", "pattern": "^[a-z][a-z0-9.-]{1,31}$"},
           "workspace": {"$ref": "#/$defs/path"},
+          "greenfield": {"$ref": "#/$defs/path"},
+          "brownfield": {"$ref": "#/$defs/path"},
           "debug": {"$ref": "#/$defs/path"},
           "spike": {"$ref": "#/$defs/path"},
           "conflict": {"$ref": "#/$defs/path"},

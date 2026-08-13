@@ -234,9 +234,200 @@ P02_ACTION_IDS = (
     "P02-stage-receipt", "P02-run-receipt-commit", "P02-confirm-clean",
     "P02-check", "P02-reset",
 )
+U04_DOCUMENT_ID = "U04-initialize-projects"
+U04_ACTION_IDS = (
+    "U04-confirm-private-boundary",
+    "U04-prepare-attempt",
+    "U04-inspect-root",
+    "U04-inspect-greenfield",
+    "U04-run-greenfield-init",
+    "U04-run-greenfield-decompose",
+    "U04-read-greenfield-plans",
+    "U04-choose-greenfield-reconciliation",
+    "U04-run-greenfield-reconcile",
+    "U04-inspect-greenfield-changes",
+    "U04-stage-greenfield-changes",
+    "U04-review-greenfield-commit-boundary",
+    "U04-run-greenfield-commit-gate",
+    "U04-confirm-greenfield-clean",
+    "U04-inspect-brownfield",
+    "U04-run-brownfield-init",
+    "U04-run-brownfield-create-context",
+    "U04-inspect-brownfield-changes",
+    "U04-stage-brownfield-changes",
+    "U04-review-brownfield-commit-boundary",
+    "U04-run-brownfield-commit-gate",
+    "U04-confirm-brownfield-clean",
+    "U04-inspect-project-evidence",
+    "U04-write-binding-report",
+    "U04-inspect-report",
+    "U04-stage-report",
+    "U04-review-commit-boundary",
+    "U04-run-commit-gate",
+    "U04-confirm-clean",
+    "U04-check-status",
+    "U04-reset-retry",
+)
 
 
 class LessonActionTests(unittest.TestCase):
+    def test_private_u04_separates_preview_refusals_from_future_source_steps(self) -> None:
+        """Catches current Preview cards leading learners into unavailable U04 tooling."""
+        manifest = load_action_manifest(Path(__file__).parents[1], U04_DOCUMENT_ID)
+        actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(tuple(actions), U04_ACTION_IDS)
+
+        current_preview_ids = (
+            "U04-confirm-private-boundary",
+            "U04-prepare-attempt",
+            "U04-check-status",
+            "U04-reset-retry",
+        )
+        for action_id in current_preview_ids:
+            action = actions[action_id]
+            with self.subTest(action=action_id):
+                self.assertIn("Preview 0.12 refuses U04", action.expected_result)
+                self.assertTrue(
+                    action.expected_result.endswith(
+                        "Next safe step: stop and use a published Preview 0.12 lab."
+                    )
+                )
+
+        prepare = actions["U04-prepare-attempt"]
+        self.assertNotIn("future guided release", prepare.expected_result)
+        self.assertNotIn("U04-greenfield", prepare.expected_result)
+        self.assertNotIn("U04-brownfield", prepare.expected_result)
+
+        for action_id in U04_ACTION_IDS[2:29]:
+            with self.subTest(future_action=action_id):
+                self.assertIn(
+                    "Future private-source walkthrough only",
+                    actions[action_id].instruction,
+                )
+
+        writer = actions["U04-write-binding-report"]
+        self.assertEqual((writer.surface, writer.variants), ("active-harness", ()))
+        self.assertIn("canonical writer is unavailable in Preview 0.12", writer.instruction)
+        self.assertIn("future accepted U04 tooling", writer.instruction)
+        self.assertIn("No report is written in Preview 0.12", writer.expected_result)
+
+        for action_id in ("U04-check-status", "U04-reset-retry"):
+            action = actions[action_id]
+            claimed_proof = " ".join(
+                (action.expected_result, action.evidence or "", action.recovery)
+            ).lower()
+            with self.subTest(refusal_evidence=action_id):
+                self.assertNotIn("before-and-after", claimed_proof)
+                self.assertNotIn("working trees unchanged", claimed_proof)
+                self.assertNotIn("histories unchanged", claimed_proof)
+                self.assertIn("refusal output and exit result", claimed_proof)
+
+    def test_private_u04_cards_keep_action_specific_results_evidence_and_recovery(self) -> None:
+        """Catches replacing newcomer lifecycle guidance with a generic repeated template."""
+        manifest = load_action_manifest(Path(__file__).parents[1], U04_DOCUMENT_ID)
+        actions = {action.id: action for action in manifest.actions}
+        self.assertEqual(tuple(actions), U04_ACTION_IDS)
+
+        generic_fragments = (
+            "The step completes without crossing its boundary.",
+            "Stop and preserve current evidence; correct only the named repository boundary.",
+            "Check verifies durable repository bytes only, never host invocation or learner judgment.",
+        )
+        current_preview_ids = {
+            "U04-confirm-private-boundary",
+            "U04-prepare-attempt",
+            "U04-check-status",
+            "U04-reset-retry",
+        }
+        future_next_steps = dict(
+            zip(
+                U04_ACTION_IDS[2:29],
+                (
+                    "inspect greenfield",
+                    "run greenfield init",
+                    "run greenfield decompose",
+                    "read greenfield plans",
+                    "choose greenfield reconciliation",
+                    "run greenfield reconcile",
+                    "inspect greenfield changes",
+                    "stage greenfield changes",
+                    "review greenfield commit boundary",
+                    "run greenfield commit gate",
+                    "confirm greenfield clean",
+                    "inspect brownfield",
+                    "run brownfield init",
+                    "run brownfield create context",
+                    "inspect brownfield changes",
+                    "stage brownfield changes",
+                    "review brownfield commit boundary",
+                    "run brownfield commit gate",
+                    "confirm brownfield clean",
+                    "inspect project evidence",
+                    "write binding report",
+                    "inspect report",
+                    "stage report",
+                    "review commit boundary",
+                    "run commit gate",
+                    "confirm clean",
+                    "recognize the future accepted result",
+                ),
+                strict=True,
+            )
+        )
+        for action in manifest.actions:
+            guidance = " ".join(
+                (action.expected_result, action.recovery, action.evidence or "")
+            )
+            with self.subTest(action=action.id):
+                self.assertFalse(any(fragment in guidance for fragment in generic_fragments))
+                if action.id in current_preview_ids:
+                    self.assertTrue(
+                        action.expected_result.endswith(
+                            "Next safe step: stop and use a published Preview 0.12 lab."
+                        )
+                    )
+                else:
+                    self.assertTrue(
+                        action.expected_result.endswith(
+                            f"Next safe step: {future_next_steps[action.id]}."
+                        )
+                    )
+
+        prepare = actions["U04-prepare-attempt"]
+        self.assertIn("creates nothing", prepare.expected_result)
+        self.assertIn("refusal output", prepare.evidence or "")
+
+        decompose = actions["U04-run-greenfield-decompose"]
+        for filename in (
+            "01-architecture-breakdown.md",
+            "02-phased-build-plan.md",
+            "03-task-backlog.md",
+        ):
+            self.assertIn(filename, decompose.expected_result)
+
+        for kind in ("greenfield", "brownfield"):
+            stage = actions[f"U04-stage-{kind}-changes"]
+            review = actions[f"U04-review-{kind}-commit-boundary"]
+            commit = actions[f"U04-run-{kind}-commit-gate"]
+            clean = actions[f"U04-confirm-{kind}-clean"]
+            with self.subTest(child=kind):
+                self.assertIn("staged", stage.expected_result)
+                self.assertIn(".codearbiter", stage.expected_result)
+                self.assertIn("cached diff", review.expected_result)
+                self.assertIn("no whitespace errors", review.expected_result)
+                self.assertIn("new child commit", commit.expected_result)
+                self.assertIn("working tree is clean", clean.expected_result)
+                self.assertIn("committed HEAD", clean.evidence or "")
+
+        writer = actions["U04-write-binding-report"]
+        self.assertIn(".codearbiter/reports/academy/U04-initialization.md", writer.expected_result)
+        self.assertIn("canonical generated bytes", writer.expected_result)
+
+        binding = actions["U04-inspect-project-evidence"]
+        for phrase in ("committed HEAD", "committed tree", "context digest"):
+            self.assertIn(phrase, binding.expected_result)
+            self.assertIn(phrase, writer.evidence or "")
+
     def test_private_p07_manifest_separates_threat_analysis_from_learner_review(self) -> None:
         """Catches P07 losing its real target, surface, or verifier-limit boundaries."""
         manifest = load_action_manifest(Path(__file__).parents[1], P07_DOCUMENT_ID)
