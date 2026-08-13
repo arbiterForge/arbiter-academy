@@ -463,11 +463,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.16.json"
+                        "share/arbiter-academy/academy/publication/preview-0.17.json"
                     )
                     for name in names
                 ),
-                "preview-0.16.json",
+                "preview-0.17.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -488,16 +488,20 @@ class InstalledWheelTests(unittest.TestCase):
                 "the public wheel must distribute the accepted U03 action contract",
             )
             self.assertTrue(
+                any(name.endswith("/academy/actions/U04-initialize-projects.json") for name in names),
+                "the public wheel must distribute the accepted U04 action contract",
+            )
+            self.assertTrue(
                 any(name.endswith("/academy/actions/U02-override-audit-metrics.json") for name in names),
                 "the public wheel must distribute the accepted U02 action contract",
             )
             self.assertFalse(
                 any(
                     "/share/arbiter-academy/academy/" in name
-                    and any(f"/U0{number}" in name for number in range(4, 8))
+                        and any(f"/U0{number}" in name for number in range(5, 8))
                     for name in names
                 ),
-                "the public wheel must not distribute unpublished U04-U07 material",
+                "the public wheel must not distribute unpublished U05-U07 material",
             )
             self.assertEqual(
                 sum(
@@ -505,7 +509,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                15,
+                16,
             )
             self.assertEqual(
                 sum(
@@ -513,7 +517,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                15,
+                16,
             )
             self.assertEqual(
                 sum(
@@ -521,7 +525,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                15,
+                16,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]
@@ -571,6 +575,7 @@ class InstalledWheelTests(unittest.TestCase):
                     "U01-autonomous-sprint.md",
                     "U02-override-audit-metrics.md",
                     "U03-refactor-chore-release.md",
+                    "U04-initialize-projects.md",
                 },
             )
 

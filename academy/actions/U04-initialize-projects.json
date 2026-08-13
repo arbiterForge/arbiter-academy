@@ -6,16 +6,16 @@
     {
       "id": "U04-confirm-private-boundary",
       "sequence": 1,
-      "title": "confirm private boundary",
+      "title": "confirm project boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Read the current release boundary. Preview 0.16 refuses U04, so do not begin the private two-child walkthrough or initialize CodeArbiter in the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Confirm that this is the Academy attempt root. U04 creates two child repositories under .academy/workspaces/; do not initialize CodeArbiter in the Academy root.",
+      "rationale": "It distinguishes the controller repository from the two child repositories before any tool writes state.",
       "resources": [],
       "variants": [],
-      "expected_result": "Preview 0.16 refuses U04 and this boundary card authorizes no repository work. Next safe step: stop and use a published Preview 0.16 lab.",
-      "recovery": "If any current Academy page presents U04 as runnable, stop and use the published Preview 0.16 inventory; do not try private source commands to resolve the contradiction.",
-      "evidence": "Preserve the Preview 0.16 Power User known limit or a refusal from one of the optional boundary probes; neither proves U04 completion."
+      "expected_result": "You know the Academy root controls the attempt and the two child paths are .academy/workspaces/U04-greenfield and .academy/workspaces/U04-brownfield. Next safe step: prepare attempt.",
+      "recovery": "If you have already initialized CodeArbiter in the Academy root, preserve the status and stop; do not delete or rewrite a repository to hide the mistake.",
+      "evidence": "Preserve the Academy-root path and the two child paths; no child repository exists yet."
     },
     {
       "id": "U04-prepare-attempt",
@@ -23,8 +23,8 @@
       "title": "prepare attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.16 boundary probe only: invoke installed Academy Prepare from the Academy root and expect refusal; native commands never begin with !.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "From the clean Academy root, run installed Academy Prepare. Native commands never begin with !.",
+      "rationale": "Prepare is the only supported way to create the bounded attempt and its two clean child repositories.",
       "resources": [],
       "variants": [
         {
@@ -33,7 +33,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.16\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.17\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -42,7 +42,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -51,13 +51,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.16 refuses U04 and creates nothing; it does not prepare either child repository. Next safe step: stop and use a published Preview 0.16 lab.",
-      "recovery": "If Prepare does anything other than refuse, preserve its output and exit result and stop; do not inspect, delete, or create a child path by hand.",
-      "evidence": "Preserve the refusal output and exit result; they prove only that Preview 0.16 kept U04 unavailable."
+      "expected_result": "Prepare switches to academy/U04-initialize-projects/<attempt> and creates clean .academy/workspaces/U04-greenfield and .academy/workspaces/U04-brownfield child repositories. Next safe step: inspect root.",
+      "recovery": "If Prepare reports an occupied child target or another setup error, preserve its output and correct that named boundary; do not create, delete, or initialize a child path by hand.",
+      "evidence": "Preserve Prepare output, the attempt branch, and empty status from both prepared child repositories."
     },
     {
       "id": "U04-inspect-root",
@@ -65,8 +65,8 @@
       "title": "inspect root",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Inspect the two prepared child repositories. Do not initialize the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Inspect the two prepared child repositories. Do not initialize the Academy root.",
+      "rationale": "It proves the prepared paths are separate children rather than accidental work in the Academy root.",
       "resources": [],
       "variants": [
         {
@@ -107,8 +107,8 @@
       "title": "inspect greenfield",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. Use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
+      "rationale": "The visible host root prevents a greenfield command from being sent to the parent or the brownfield child.",
       "resources": [],
       "variants": [],
       "expected_result": "The host visibly names .academy/workspaces/U04-greenfield as its project root; merely changing a terminal directory is not sufficient. Next safe step: run greenfield init.",
@@ -121,8 +121,8 @@
       "title": "run greenfield init",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-init; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-init; a terminal cd does not change the host root.",
+      "rationale": "Initialization belongs in the greenfield child so its governance state starts from the real plugin entry point.",
       "resources": [],
       "variants": [
         {
@@ -172,8 +172,8 @@
       "title": "run greenfield decompose",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-decompose; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-decompose; a terminal cd does not change the host root.",
+      "rationale": "Decomposition creates the greenfield planning artifacts that reconciliation will evaluate.",
       "resources": [],
       "variants": [
         {
@@ -223,8 +223,8 @@
       "title": "read greenfield plans",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Read .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md, .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md, and .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Read .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md, .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md, and .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md.",
+      "rationale": "Reading all three plans makes the later reconciliation a deliberate decision rather than an opaque command.",
       "resources": [],
       "variants": [
         {
@@ -265,8 +265,8 @@
       "title": "choose greenfield reconciliation",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. Review the three greenfield plan inputs, resolve decisions or stop on [CONFIRM-NN], then use Open Folder or the workspace switcher to visibly return to .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Review the three greenfield plan inputs, resolve decisions or stop on [CONFIRM-NN], then use Open Folder or the workspace switcher to visibly return to .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
+      "rationale": "Reconciliation must use learner-resolved decisions and stop on unresolved confirmation markers.",
       "resources": [],
       "variants": [],
       "expected_result": "Each plan decision has an explicit learner answer, no unresolved [CONFIRM-NN] remains, and the host is visibly rooted at U04-greenfield. Next safe step: run greenfield reconcile.",
@@ -279,8 +279,8 @@
       "title": "run greenfield reconcile",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only after the three plans and learner decisions exist, while visibly rooted at .academy/workspaces/U04-greenfield, run ca-reconcile; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only after the three plans and learner decisions exist, while visibly rooted at .academy/workspaces/U04-greenfield, run ca-reconcile; a terminal cd does not change the host root.",
+      "rationale": "Running reconcile only after its inputs exist keeps the plan-to-decision flow truthful.",
       "resources": [],
       "variants": [
         {
@@ -330,8 +330,8 @@
       "title": "inspect greenfield changes",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Inspect greenfield status and unstaged governance diff before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Inspect greenfield status and unstaged governance diff before staging.",
+      "rationale": "An unstaged inspection lets the learner see exactly what the greenfield plugin flow produced.",
       "resources": [],
       "variants": [
         {
@@ -372,8 +372,8 @@
       "title": "stage greenfield changes",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. After review, stage only greenfield generated governance changes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After review, stage only greenfield generated governance changes.",
+      "rationale": "Selective staging keeps generated greenfield governance files separate from unrelated parent or child work.",
       "resources": [],
       "variants": [
         {
@@ -414,8 +414,8 @@
       "title": "review greenfield commit boundary",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-greenfield.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-greenfield.",
+      "rationale": "Cached-diff review proves the exact greenfield commit boundary before the commit gate runs.",
       "resources": [],
       "variants": [
         {
@@ -456,8 +456,8 @@
       "title": "run greenfield commit gate",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only after learner review while visibly rooted at .academy/workspaces/U04-greenfield, run ca-commit; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only after learner review while visibly rooted at .academy/workspaces/U04-greenfield, run ca-commit; a terminal cd does not change the host root.",
+      "rationale": "The child-local commit gate records the reviewed greenfield governance change in its own history.",
       "resources": [],
       "variants": [
         {
@@ -507,8 +507,8 @@
       "title": "confirm greenfield clean",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. After greenfield ca-commit succeeds, confirm its status is empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After greenfield ca-commit succeeds, confirm its status is empty.",
+      "rationale": "A clean greenfield status is required before its committed facts can bind the parent report.",
       "resources": [],
       "variants": [
         {
@@ -549,8 +549,8 @@
       "title": "inspect brownfield",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. After greenfield is committed and clean, use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-brownfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After greenfield is committed and clean, use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-brownfield. A terminal cd does not change the host root.",
+      "rationale": "Switching deliberately to brownfield keeps its existing-source workflow distinct from greenfield decomposition.",
       "resources": [],
       "variants": [],
       "expected_result": "The greenfield remains committed and clean while the host visibly names .academy/workspaces/U04-brownfield as its new project root. Next safe step: run brownfield init.",
@@ -563,8 +563,8 @@
       "title": "run brownfield init",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-init; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-init; a terminal cd does not change the host root.",
+      "rationale": "Brownfield initialization starts governance in the existing child, never in the Academy root.",
       "resources": [],
       "variants": [
         {
@@ -614,8 +614,8 @@
       "title": "run brownfield create context",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-create-context; a terminal cd does not change the host root. Keep this route bound to existing source and do not use ca-decompose on the brownfield. ca-create-context does not create the three ca-reconcile plan inputs.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-create-context; a terminal cd does not change the host root. Keep this route bound to existing source and do not use ca-decompose on the brownfield. ca-create-context does not create the three ca-reconcile plan inputs.",
+      "rationale": "Create-context is the genuine brownfield route and does not invent greenfield plan artifacts.",
       "resources": [],
       "variants": [
         {
@@ -665,8 +665,8 @@
       "title": "inspect brownfield changes",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Inspect brownfield status and unstaged governance diff before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Inspect brownfield status and unstaged governance diff before staging.",
+      "rationale": "Inspecting the brownfield diff exposes the exact context artifacts before they become committed evidence.",
       "resources": [],
       "variants": [
         {
@@ -707,8 +707,8 @@
       "title": "stage brownfield changes",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. After review, stage only brownfield generated governance changes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After review, stage only brownfield generated governance changes.",
+      "rationale": "Selective staging confines the brownfield commit to generated governance state.",
       "resources": [],
       "variants": [
         {
@@ -749,8 +749,8 @@
       "title": "review brownfield commit boundary",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-brownfield.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-brownfield.",
+      "rationale": "Cached-diff review catches an incorrect brownfield boundary before a durable child commit.",
       "resources": [],
       "variants": [
         {
@@ -791,8 +791,8 @@
       "title": "run brownfield commit gate",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only after learner review while visibly rooted at .academy/workspaces/U04-brownfield, run ca-commit; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only after learner review while visibly rooted at .academy/workspaces/U04-brownfield, run ca-commit; a terminal cd does not change the host root.",
+      "rationale": "The brownfield child must pass its own commit gate so its history is independently verifiable.",
       "resources": [],
       "variants": [
         {
@@ -842,8 +842,8 @@
       "title": "confirm brownfield clean",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. After brownfield ca-commit succeeds, confirm its status is empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After brownfield ca-commit succeeds, confirm its status is empty.",
+      "rationale": "A clean brownfield status proves no uncommitted state is hidden behind the parent binding.",
       "resources": [],
       "variants": [
         {
@@ -884,8 +884,8 @@
       "title": "inspect project evidence",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only after both child ca-commit gates succeed and both statuses are empty, inspect committed heads, trees, context digests, and statuses.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only after both child ca-commit gates succeed and both statuses are empty, inspect committed heads, trees, context digests, and statuses.",
+      "rationale": "The parent report may bind only committed child heads and trees, so inspect those immutable facts first.",
       "resources": [],
       "variants": [
         {
@@ -925,14 +925,18 @@
       "sequence": 24,
       "title": "write binding report",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. The canonical writer is unavailable in Preview 0.16. Continue only when future accepted U04 tooling publishes a supported writer command; never substitute the Preview 0.16 binary or hand-author verifier-sensitive bytes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "surface": null,
+      "instruction": "After both children are committed and clean, run the supported canonical writer from the Academy root. Never hand-author verifier-sensitive report bytes.",
+      "rationale": "The supported writer derives canonical report bytes from live child repositories instead of trusting a hand-written claim.",
       "resources": [],
-      "variants": [],
-      "expected_result": "No report is written in Preview 0.16. In a future accepted U04 release, its supported canonical writer creates .codearbiter/reports/academy/U04-initialization.md with canonical generated bytes bound to both clean committed children. Next safe step: inspect report.",
-      "recovery": "If future accepted U04 tooling does not publish a supported writer command, stop and preserve both child bindings; do not run the Preview 0.16 binary or hand-author the report.",
-      "evidence": "In the future accepted walkthrough, preserve the canonical report at its exact path plus the committed HEAD, committed tree, and context digest it records for each child."
+      "variants": [
+        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.17\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path write-report U04-initialize-projects", "copy": true},
+        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects", "copy": true},
+        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects", "copy": true}
+      ],
+      "expected_result": "The writer creates .codearbiter/reports/academy/U04-initialization.md with canonical generated bytes bound to both clean committed children. Next safe step: inspect report.",
+      "recovery": "If the writer reports a dirty, uncommitted, or wrong-layout child, preserve the message and return only to that child; do not hand-author the report.",
+      "evidence": "Preserve the canonical report at its exact path plus each child's committed HEAD, committed tree, and context digest that it records."
     },
     {
       "id": "U04-inspect-report",
@@ -940,8 +944,8 @@
       "title": "inspect report",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Inspect the canonical parent report before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Inspect the canonical parent report before staging.",
+      "rationale": "Inspecting the generated report verifies its binding facts before it enters the parent commit.",
       "resources": [],
       "variants": [
         {
@@ -982,8 +986,8 @@
       "title": "stage report",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. After review, stage only the canonical parent report.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "After review, stage only the canonical parent report.",
+      "rationale": "Staging only the canonical report prevents child content or unrelated parent files from entering the binding commit.",
       "resources": [],
       "variants": [
         {
@@ -1024,8 +1028,8 @@
       "title": "review commit boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only. Confirm only the report is staged and both children are clean. Then use Open Folder or the workspace switcher to return to the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Confirm only the report is staged and both children are clean. Then use Open Folder or the workspace switcher to return to the Academy root.",
+      "rationale": "The parent cached diff must contain only the report while both child repositories remain clean.",
       "resources": [],
       "variants": [],
       "expected_result": "The parent index contains only U04-initialization.md, both child statuses remain empty, and the host visibly shows the Academy root. Next safe step: run commit gate.",
@@ -1038,8 +1042,8 @@
       "title": "run commit gate",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Only at the visibly confirmed Academy root, run ca-commit; do not run it in either child.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Only at the visibly confirmed Academy root, run ca-commit; do not run it in either child.",
+      "rationale": "The Academy-root commit gate preserves the separation between parent evidence and child governance history.",
       "resources": [],
       "variants": [
         {
@@ -1089,8 +1093,8 @@
       "title": "confirm clean",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only. Confirm parent, greenfield, and brownfield status are empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "Confirm parent, greenfield, and brownfield status are empty.",
+      "rationale": "Three clean statuses prove the complete evidence topology is settled before acceptance.",
       "resources": [],
       "variants": [
         {
@@ -1121,7 +1125,7 @@
           "copy": true
         }
       ],
-      "expected_result": "All three status commands print nothing: the Academy parent, U04-greenfield, and U04-brownfield working trees are clean. Next safe step: recognize the future accepted result.",
+      "expected_result": "All three status commands print nothing: the Academy parent, U04-greenfield, and U04-brownfield working trees are clean. Next safe step: recognize the accepted result.",
       "recovery": "If any command prints a path, preserve all three outputs and return only to the repository that is dirty; do not reset or rewrite either committed child history.",
       "evidence": "Preserve the three empty status outputs and current parent and child HEADs as the final clean-state record."
     },
@@ -1131,8 +1135,8 @@
       "title": "check status",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.16 boundary probe only: invoke installed Academy Check and expect refusal; do not treat it as lifecycle verification.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "From the clean Academy root, run installed Academy Check after committing the canonical parent report.",
+      "rationale": "Check validates durable child and parent facts, not an unobservable claim that a host command was invoked.",
       "resources": [],
       "variants": [
         {
@@ -1141,7 +1145,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.16\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.17\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1150,7 +1154,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1159,13 +1163,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.16 refuses U04 and reports no U04 completion or verification. Next safe step: stop and use a published Preview 0.16 lab.",
-      "recovery": "If Check reports success or reaches U04 verification, preserve its output and exit result and stop; do not infer repository state from this command alone.",
-      "evidence": "Preserve the refusal output and exit result; the supplied command proves no parent or child HEAD/status claim."
+      "expected_result": "Check prints checkpoint U04-initialize-projects: passed and records progress only after it sees the clean committed parent report and both committed child states. Next safe step: preserve the completed attempt.",
+      "recovery": "If Check names a child or parent fact that does not match, preserve its output and return only to that boundary; do not infer success from a command exit alone.",
+      "evidence": "Preserve Check output and the committed child HEADs, trees, context digests, and parent report it validated."
     },
     {
       "id": "U04-reset-retry",
@@ -1173,8 +1177,8 @@
       "title": "reset retry",
       "actor": "learner",
       "surface": null,
-      "instruction": "Optional Preview 0.16 boundary probe only: invoke installed Academy Reset and expect refusal; do not use it as recovery for the future private walkthrough.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "instruction": "If you need to recover, invoke installed Academy Reset only to read its preservation diagnostic. U04 Reset intentionally refuses until Academy can archive both child histories.",
+      "rationale": "Reset must refuse rather than discard child history until a supported archival path exists.",
       "resources": [],
       "variants": [
         {
@@ -1183,7 +1187,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.16\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.17\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1192,7 +1196,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1201,13 +1205,13 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.16/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.17/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         }
       ],
-      "expected_result": "Preview 0.16 refuses U04 Reset and reports no reset or retry. Next safe step: stop and use a published Preview 0.16 lab.",
-      "recovery": "If Reset reports success or creates a retry, preserve its output and exit result and stop; do not infer repository state or delete either child from this command alone.",
-      "evidence": "Preserve the refusal output and exit result; the supplied command proves no parent or child HEAD/status claim."
+      "expected_result": "Reset reports that it is unavailable until Academy can archive both child repository histories and leaves all three repositories unchanged. Next safe step: preserve state and correct the named child or parent boundary.",
+      "recovery": "Use the status, cached-diff, and commit cards for the named repository. Do not delete, reset, or rewrite either committed child history to make status look clean.",
+      "evidence": "Preserve the Reset diagnostic plus parent and child status before and after it; their equality proves no history was rewritten."
     }
   ]
 }
