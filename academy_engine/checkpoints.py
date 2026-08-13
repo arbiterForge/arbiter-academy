@@ -156,7 +156,7 @@ _U06_SAFE_CANDIDATE = (
     b"Preview may inspect the prepared attempt and report predicted reviewers. "
     b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
     b"## Evidence\n\n"
-    b"Record the reviewed commit, candidate tree, exact changed path, and a "
+    b"Record the reviewed commit, candidate tree, exact changed path, and "
     b"repository bindings in the U06 Academy record.\n"
 )
 _U06_ADVANCED_SURFACES = {

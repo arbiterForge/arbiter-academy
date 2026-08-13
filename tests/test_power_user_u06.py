@@ -17,6 +17,7 @@ from academy_engine.checkpoints import (
     _semantic,
     load_checkpoint,
 )
+from academy_engine.lesson_actions import load_action_manifest
 from academy_engine.scenario import PreparationError, prepare_lab
 from tests._temporary import RetryingTemporaryDirectory
 
@@ -32,7 +33,7 @@ SAFE_CANDIDATE = (
     b"Preview may inspect the prepared attempt and report predicted reviewers. "
     b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
     b"## Evidence\n\n"
-    b"Record the reviewed commit, candidate tree, exact changed path, and a "
+    b"Record the reviewed commit, candidate tree, exact changed path, and "
     b"repository bindings in the U06 Academy record.\n"
 )
 
@@ -138,6 +139,16 @@ class PrivateU06CheckpointTests(unittest.TestCase):
             [CANDIDATE_PATH, "training_scenarios/U06-preview-and-advanced-surfaces.json"],
         )
         self.assertTrue(_semantic(context))
+
+    def test_checkpoint_uses_the_exact_guided_safe_candidate(self) -> None:
+        """Catches a verifier byte typo that makes the published action text fail Check."""
+        manifest = load_action_manifest(SOURCE, U06)
+        writer = next(action for action in manifest.actions if action.id == "U06-create-contained-diff")
+        marker = "Write this exact UTF-8 body, including final LF:\n"
+        body = writer.variants[0].command.split(marker, 1)[1].split(
+            "\n\nDo not stage, commit, create a report, or run any advanced surface.", 1
+        )[0] + "\n"
+        self.assertEqual(checkpoints_module._U06_SAFE_CANDIDATE, body.encode("utf-8"))
 
     def test_rejects_candidate_with_wrong_parent_or_extra_changed_path(self) -> None:
         """Catches candidate evidence that is not the sole commit immediately after preparation."""
