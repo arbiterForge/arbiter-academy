@@ -76,6 +76,10 @@ def _normalize_wheel(source: Path, destination: Path, timestamp: tuple[int, int,
         raise BuildError(f"wheel must contain exactly one dist-info RECORD, found {len(record_names)}")
     record_name = record_names[0]
     dist_info = record_name.rsplit("/", 1)[0]
+    text_suffixes = (".css", ".html", ".js", ".json", ".md", ".py", ".toml", ".txt", ".yaml", ".yml")
+    for name, payload in members.items():
+        if name.endswith(text_suffixes):
+            members[name] = payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     for metadata_name in ("METADATA", "WHEEL", "entry_points.txt", "top_level.txt"):
         name = f"{dist_info}/{metadata_name}"
         if name in members:

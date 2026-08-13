@@ -143,8 +143,8 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn('data-copy-target="command-U01-run-sprint-codex"', content)
         self.assertNotIn("{{action:", content)
 
-    def test_u01_through_u06_are_the_power_user_labs_in_the_preview_zero_nineteen_public_boundary(self) -> None:
-        """The sixth public Power User slice must not expose U07."""
+    def test_u01_through_u07_are_the_power_user_labs_in_the_preview_zero_twenty_public_boundary(self) -> None:
+        """The complete public Power User track includes the U07 capstone."""
         release = load_preview_manifest(SOURCE)
         self.assertIn(U01, release.available_labs)
         self.assertIn(U01, release.runnable_labs)
@@ -162,8 +162,9 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertIn("U06-preview-and-advanced-surfaces", release.available_labs)
         self.assertIn("U06-preview-and-advanced-surfaces", release.runnable_labs)
         self.assertIn("U06-preview-and-advanced-surfaces", release.guided_labs)
-        for lab_id in ("U07-capstone",):
-            self.assertNotIn(lab_id, release.available_labs)
+        self.assertIn("U07-capstone", release.available_labs)
+        self.assertIn("U07-capstone", release.runnable_labs)
+        self.assertIn("U07-capstone", release.guided_labs)
 
     def test_u01_declares_the_bounded_sprint_fixture_and_positive_predicate(self) -> None:
         """Catches the U01 guide, scenario, and durable Check contract drifting apart."""
