@@ -1026,7 +1026,7 @@ def _plain_path_within(base: Path, target: Path, *, regular_file: bool) -> bool:
 def _remote_safe(root: Path) -> bool:
     try:
         report = validate_training_remotes(root, require_push_safe=True)
-    except (RemoteSafetyError, Exception):
+    except RemoteSafetyError:
         return False
     return bool(
         report.push_safe
@@ -2697,24 +2697,31 @@ def _u01_sprint_decisions(context: _SemanticContext) -> bool:
     required_scope = paths["deliverable"].casefold()
     topics = tuple(str(item) for item in brief["required_topics"])
     suffix = final_log[len(baseline_log):].decode("utf-8", "surrogateescape")
+    try:
+        remote = validate_training_remotes(root, require_push_safe=True)
+    except RemoteSafetyError:
+        return False
     return bool(
         commits == (attempt.head,)
         and set(_commit_paths(root, attempt.head)) == expected_paths
         and clean
+        and remote.origin is not None
         and required_scope in scope
         and all(
             token in scope
             for token in (
                 "does not change",
-                "does not push",
                 "product code",
                 "tests",
                 "dependencies",
-                "remote",
-                "network",
+                "remotes",
+                "fork branch",
+                "pull request",
+                "never pushes directly to upstream",
+                "never merges",
             )
         )
-        and scope.count("push") == 1
+        and scope.count("push") == 2
         and "none." == spec_sections["Open questions"].casefold()
         and all(topic.casefold() in deliverable.casefold() for topic in topics)
         and all(token in plan_sections["Acceptance criteria ledger"] for token in ("AC-01", "AC-02"))
