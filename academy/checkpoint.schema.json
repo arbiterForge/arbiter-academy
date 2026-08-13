@@ -68,7 +68,12 @@
           "debug": {"$ref": "#/$defs/path"},
           "spike": {"$ref": "#/$defs/path"},
           "conflict": {"$ref": "#/$defs/path"},
-          "pr_receipt": {"$ref": "#/$defs/path"}
+          "pr_receipt": {"$ref": "#/$defs/path"},
+          "submission_boundary": {"$ref": "#/$defs/path"},
+          "spec_directory": {"$ref": "#/$defs/path"},
+          "plan_directory": {"$ref": "#/$defs/path"},
+          "adr_directory": {"$ref": "#/$defs/path"},
+          "audit_directory": {"$ref": "#/$defs/path"}
         }
       }
     }

@@ -5,8 +5,11 @@ import ast
 import copy
 import hashlib
 import json
+import os
 import re
 import stat
+import subprocess
+import sys
 import tokenize
 import tomllib
 from dataclasses import dataclass
@@ -35,6 +38,11 @@ from academy_engine.p05_fixture import validate_p05_fixture
 from academy_engine.paths import ensure_within
 from academy_engine.secret_rules import blob_is_secret_free
 from academy_engine.u04_fixture import U04_SEED_CONTENT
+from academy_engine.u07_fixture import (
+    u07_remediation_source_is_exact,
+    u07_remediation_test_is_exact,
+    validate_u07_fixture,
+)
 
 LAB_INVENTORY = (
     "F01-fork-clone-doctor",
@@ -193,7 +201,7 @@ _PROFILES = {
     "debug_spike_conflict": ("spike", "board"),
     "preview_evidence": ("report",),
     "u06_preview_evidence": ("candidate", "report"),
-    "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
+    "capstone": ("spec_directory", "plan_directory", "adr_directory", "code", "test"),
 }
 _REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "capstone"})
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
@@ -215,7 +223,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
-    "U07-capstone": ("capstone_governed_range", "capstone", {"spec": ".codearbiter/specs/capstone.md", "plan": ".codearbiter/plans/capstone.md", "adr": ".codearbiter/decisions/0004-capstone.md", "review": ".codearbiter/reports/academy/U07-review.json", "pr_receipt": ".codearbiter/reports/academy/U07-pr-receipt.json", "audit": ".codearbiter/reports/academy/U07-audit.json", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
+    "U07-capstone": ("capstone_governed_range", "capstone", {"spec_directory": ".codearbiter/specs", "plan_directory": ".codearbiter/plans", "adr_directory": ".codearbiter/decisions", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
 
 
@@ -747,6 +755,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
                 "workshop_queue/service.py",
             }
         )
+    if contract.id == "U07-capstone":
+        expected_paths.add("tests/test_service.py")
     actual_paths = set(
         run_git(
             root,
@@ -785,6 +795,8 @@ def _validate_prepare(root: Path, contract: LabContract, attempt: _Attempt) -> b
         )
     if contract.id == "P05-checkpoint-remediation":
         return validate_p05_fixture(root, attempt.prepared)
+    if contract.id == "U07-capstone":
+        return validate_u07_fixture(root, attempt.prepared)
     return True
 
 
@@ -3193,6 +3205,139 @@ def _u04_initialized_projects(context: _SemanticContext) -> bool:
     return _git_blob(root, attempt.head, _U04_REPORT_PATH) == _u04_report(concrete_bindings)
 
 
+def _u07_capstone(context: _SemanticContext) -> bool:
+    """Verify the local U07 history without claiming a command or hosted event occurred."""
+    data = context.predicate.data
+    root, attempt = context.root, context.attempt
+    paths = {
+        name: str(data[name])
+        for name in (
+            "spec_directory", "plan_directory", "adr_directory", "code", "test"
+        )
+    }
+    if not validate_u07_fixture(root, attempt.prepared):
+        return False
+    learner_commits = tuple(
+        line
+        for line in run_git(
+            root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False
+        ).stdout.splitlines()
+        if _SHA40.fullmatch(line)
+    )
+    if len(learner_commits) != 3 or learner_commits[-1] != attempt.head:
+        return False
+    parent = attempt.prepared
+    for commit in learner_commits:
+        if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
+            return False
+        parent = commit
+    scope_commit, test_commit, code_commit = learner_commits
+    scope_paths = set(_commit_paths(root, scope_commit))
+    specs = sorted(
+        path for path in scope_paths
+        if path.startswith(f"{paths['spec_directory']}/") and path.endswith(".md")
+    )
+    plans = sorted(
+        path for path in scope_paths
+        if path.startswith(f"{paths['plan_directory']}/") and path.endswith(".md")
+    )
+    adrs = sorted(
+        path for path in scope_paths
+        if path.startswith(f"{paths['adr_directory']}/") and path.endswith(".md")
+    )
+    if (
+        len(specs) != 1
+        or len(plans) != 1
+        or len(adrs) != 1
+        or scope_paths != {specs[0], plans[0], adrs[0]}
+        or Path(specs[0]).stem != Path(plans[0]).stem
+        or re.fullmatch(r"\d{4}-.+\.md", Path(adrs[0]).name) is None
+        or set(_commit_paths(root, test_commit)) != {paths["test"]}
+        or set(_commit_paths(root, code_commit)) != {paths["code"]}
+    ):
+        return False
+    documents = {
+        "spec": _text(root, scope_commit, specs[0]),
+        "plan": _text(root, scope_commit, plans[0]),
+        "adr": _text(root, scope_commit, adrs[0]),
+    }
+    if not (
+        _headings(documents["spec"], ("Problem", "Acceptance criteria"))
+        and _headings(documents["plan"], ("Plan", "Verification"))
+        and _headings(documents["adr"], ("Decision", "Consequences"))
+    ):
+        return False
+    candidate_paths = run_git(
+        root, ["diff", "--no-ext-diff", "--name-only", scope_commit, code_commit], check=False
+    ).stdout.splitlines()
+    if candidate_paths != [paths["test"], paths["code"]]:
+        return False
+    test_blob = _git_blob(root, code_commit, paths["test"])
+    code_blob = _git_blob(root, code_commit, paths["code"])
+    if (
+        test_blob is None
+        or code_blob is None
+        or not u07_remediation_test_is_exact(test_blob)
+        or not u07_remediation_source_is_exact(code_blob)
+    ):
+        return False
+    try:
+        remote = validate_training_remotes(root, require_push_safe=True)
+    except (RemoteSafetyError, Exception):
+        return False
+    if remote.origin is None:
+        return False
+    try:
+        test_result = subprocess.run(
+            [sys.executable, "-m", "unittest", paths["test"].replace("/", ".").removesuffix(".py")],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            timeout=10,
+        )
+        control_probe = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "\n".join(
+                    (
+                        "from datetime import datetime, timezone",
+                        "from workshop_queue.model import Ticket, TicketStatus",
+                        "from workshop_queue.service import claim_ticket, complete_ticket",
+                        "now = datetime(2026, 7, 30, 12, 0, tzinfo=timezone.utc)",
+                        "ticket = Ticket('RQ-U07', 'title', 'description', TicketStatus.OPEN, now)",
+                        "claimed = claim_ticket([ticket], 'RQ-U07', 'Sam', now)",
+                        "for resolution in ('done\\nagain', 'done\\tagain', 'done\\x7fagain'):",
+                        "    try:",
+                        "        complete_ticket(claimed, 'RQ-U07', resolution, now)",
+                        "    except ValueError as error:",
+                        "        assert 'control characters' in str(error)",
+                        "    else:",
+                        "        raise AssertionError(resolution)",
+                    )
+                ),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired:
+        return False
+    clean = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
+    return bool(
+        _changed_blobs_are_secret_free(root, code_commit, candidate_paths)
+        and test_result.returncode == 0
+        and control_probe.returncode == 0
+        and clean.returncode == 0
+        and not clean.stdout
+    )
+
+
 def _initialized_fixture(context: _SemanticContext) -> bool:
     """Keep direct strictness-fixture coverage for the retired noncanonical profile."""
     root, attempt, data = context.root, context.attempt, context.predicate.data
@@ -3674,8 +3819,7 @@ def _semantic(context: _SemanticContext) -> bool:
             and report["optional_surfaces"] == ["ca-sandbox", "ca-new-skill", "ca-watch", "ca-tribunal"]
         )
     if profile == "capstone":
-        # Task 9 supplies the complete positive capstone predicate and fixture.
-        return False
+        return _u07_capstone(context)
     return False
 
 

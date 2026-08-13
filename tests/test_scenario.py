@@ -1693,3 +1693,18 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(git(self.root, "status", "--porcelain", "--untracked-files=all"), "")
         self.assertFalse(git(self.root, "branch", "--list", "academy/F01-fork-clone-doctor/1"))
         self.assertFalse((self.root / "exercise" / "seed.txt").exists())
+
+
+class U07ScenarioSeedTests(unittest.TestCase):
+    def test_u07_scenario_names_the_bounded_local_capstone_target(self) -> None:
+        source = Path(__file__).resolve().parents[1] / "academy/scenarios/U07-capstone/files/scenario.json"
+        self.assertEqual(
+            json.loads(source.read_text(encoding="utf-8")),
+            {
+                "schema_version": 1,
+                "lab_id": "U07-capstone",
+                "operation": "capstone_terminal_state",
+                "target": "workshop_queue/service.py",
+                "starting_condition": "terminal-status-not-implemented",
+            },
+        )
