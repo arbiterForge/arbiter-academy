@@ -157,11 +157,11 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
-    def test_u06_nested_scenario_seed_is_declared_as_wheel_data(self) -> None:
-        """Catches U06's nested candidate being omitted or flattened in the wheel."""
+    def test_unpublished_power_user_data_is_excluded_from_the_public_wheel(self) -> None:
+        """A downloadable Preview wheel must not disclose private lesson artifacts."""
         repository = Path(__file__).resolve().parents[1]
         package = (repository / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertIn(
+        self.assertNotIn(
             '"academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"',
             package,
         )
@@ -197,7 +197,7 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
             wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
             with zipfile.ZipFile(wheel) as contents:
-                self.assertIn(expected, set(contents.namelist()))
+                self.assertNotIn(expected, set(contents.namelist()))
 
     def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
         """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
@@ -463,11 +463,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.12.json"
+                        "share/arbiter-academy/academy/publication/preview-0.13.json"
                     )
                     for name in names
                 ),
-                "preview-0.12.json",
+                "preview-0.13.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -479,13 +479,22 @@ class InstalledWheelTests(unittest.TestCase):
                 {name for name in action_sources if name.startswith("P03")},
                 {"P03-record-an-adr.json"},
             )
+            self.assertFalse(
+                any(
+                    "/share/arbiter-academy/academy/"
+                    in name
+                    and "/U0" in name
+                    for name in names
+                ),
+                "the public wheel must not distribute unpublished Power User material",
+            )
             self.assertEqual(
                 sum(
                     name.endswith(".json")
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                19,
+                12,
             )
             self.assertEqual(
                 sum(
@@ -493,7 +502,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                19,
+                12,
             )
             self.assertEqual(
                 sum(
@@ -501,7 +510,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                19,
+                12,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]

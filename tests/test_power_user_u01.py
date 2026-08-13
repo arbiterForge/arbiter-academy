@@ -51,7 +51,7 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
         self.assertNotIn("```", guide)
         self.assertIn("The website remains the primary lesson surface.", normalized)
-        self.assertIn("not public or runnable in Preview 0.12", normalized)
+        self.assertIn("not public or runnable in Preview 0.13", normalized)
         self.assertIn("reviewed source scenario and positive Check contract", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)

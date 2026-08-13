@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.12
+## Preview 0.13
 
-Preview 0.12 publishes twelve guided labs:
+Preview 0.13 publishes twelve guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -36,7 +36,7 @@ Preview 0.12 publishes twelve guided labs:
 - **P08 is guided and runnable.** Its lesson classifies live Git refs and
   worktrees without authorizing destructive cleanup.
 
-The Power User track is outside Preview 0.12. Graduation is unavailable until
+The Power User track is outside Preview 0.13. Graduation is unavailable until
 the complete 19-lab course through U07 is published.
 
 ## Start the course

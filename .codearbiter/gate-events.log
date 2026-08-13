@@ -4,3 +4,6 @@
 [2026-07-20T09:20:00Z] REMIND [H-12] host=academy hook=fixture.py | assignment state is governed by ADR-0002; compare the fixture before changing it
 [2026-07-20T09:21:00Z] WARN host=academy hook=fixture.py | stale academy.hygiene.0002 is deliberate Academy hygiene training data
 [2026-07-30T13:00:00Z] REMIND [H-12] host=academy hook=fixture.py | fixture task id is academy.fixture.0002; the older academy.hygiene.0002 record is historical fixture data
+[2026-08-13T03:49:53Z] BLOCK [H-01] host=codex hook=pre-bash.py | Direct commit to main is prohibited (ORCHESTRATOR §3). Create a feature branch.
+[2026-08-13T03:51:22Z] BLOCK [H-05] host=codex hook=pre-bash.py | The .codearbiter audit logs (overrides.log, triage.log, sprint-log.md, gate-events.log, decisions/decision-log.md) are append-only (ORCHESTRATOR §7). Truncating, overwriting, or deleting the audit trail is prohibited; append with '>>' only.
+[2026-08-13T03:52:28Z] BLOCK [H-01] host=codex hook=pre-bash.py | Direct commit to main is prohibited (ORCHESTRATOR §3). Create a feature branch.

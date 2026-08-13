@@ -6,11 +6,11 @@ checkpoint_command: {{action:U03-check}}
 
 # U03: Refactor, chore, and local release evidence
 
-This source lesson is written for the Academy website. The Power User track remains private, so it does not create a public U03 route or change Preview 0.12.
+This source lesson is written for the Academy website. The Power User track remains private, so it does not create a public U03 route or change Preview 0.13.
 
 ## Know before you begin
 
-Read the boundary before running anything. Preview 0.12 refuses U03 prepare, check, and reset unchanged. That is correct: this release has no runnable U03 attempt.
+Read the boundary before running anything. Preview 0.13 refuses U03 prepare, check, and reset unchanged. That is correct: this release has no runnable U03 attempt.
 
 {{action:U03-read-boundary}}
 
@@ -66,13 +66,13 @@ For the future private contract, success is limited to the observed local bounda
 
 ## Check
 
-Preview 0.12 cannot validate this private contract. Its refusal is the current public result.
+Preview 0.13 cannot validate this private contract. Its refusal is the current public result.
 
 {{action:U03-check}}
 
 ## Recover or continue
 
-Do not destroy a failed future attempt to make it look clean. Preserve the state and use the private reset rules only when that future release supplies them. Preview 0.12 has no U03 attempt to reset.
+Do not destroy a failed future attempt to make it look clean. Preserve the state and use the private reset rules only when that future release supplies them. Preview 0.13 has no U03 attempt to reset.
 
 {{action:U03-reset}}
 

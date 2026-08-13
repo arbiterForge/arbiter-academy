@@ -27,7 +27,22 @@ class PackageResourceTests(unittest.TestCase):
         )
         self.assertEqual(
             data_files["share/arbiter-academy/academy/actions"],
-            ["academy/actions/*.json"],
+            [
+                "academy/actions/home.json",
+                "academy/actions/recovery.json",
+                "academy/actions/F01-fork-clone-doctor.json",
+                "academy/actions/F02-orient-to-state.json",
+                "academy/actions/F03-work-the-board.json",
+                "academy/actions/F04-fix-with-evidence.json",
+                "academy/actions/P01-feature-through-plan.json",
+                "academy/actions/P02-commit-review-pr.json",
+                "academy/actions/P03-record-an-adr.json",
+                "academy/actions/P04-review-a-dependency.json",
+                "academy/actions/P05-checkpoint-remediation.json",
+                "academy/actions/P06-context-drift-recovery.json",
+                "academy/actions/P07-threat-model.json",
+                "academy/actions/P08-repository-hygiene.json",
+            ],
         )
         self.assertEqual(
             data_files["share/arbiter-academy/academy/guides"],

@@ -29,10 +29,38 @@ workshop_queue = ["seed/tickets.json"]
   "academy/receipt.schema.json",
   "academy/scenario.schema.json",
 ]
-"share/arbiter-academy/academy/actions" = ["academy/actions/*.json"]
+"share/arbiter-academy/academy/actions" = [
+  "academy/actions/home.json",
+  "academy/actions/recovery.json",
+  "academy/actions/F01-fork-clone-doctor.json",
+  "academy/actions/F02-orient-to-state.json",
+  "academy/actions/F03-work-the-board.json",
+  "academy/actions/F04-fix-with-evidence.json",
+  "academy/actions/P01-feature-through-plan.json",
+  "academy/actions/P02-commit-review-pr.json",
+  "academy/actions/P03-record-an-adr.json",
+  "academy/actions/P04-review-a-dependency.json",
+  "academy/actions/P05-checkpoint-remediation.json",
+  "academy/actions/P06-context-drift-recovery.json",
+  "academy/actions/P07-threat-model.json",
+  "academy/actions/P08-repository-hygiene.json",
+]
 "share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
-"share/arbiter-academy/academy/checkpoints" = ["academy/checkpoints/*.json"]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.12.json"]
+"share/arbiter-academy/academy/checkpoints" = [
+  "academy/checkpoints/F01-fork-clone-doctor.json",
+  "academy/checkpoints/F02-orient-to-state.json",
+  "academy/checkpoints/F03-work-the-board.json",
+  "academy/checkpoints/F04-fix-with-evidence.json",
+  "academy/checkpoints/P01-feature-through-plan.json",
+  "academy/checkpoints/P02-commit-review-pr.json",
+  "academy/checkpoints/P03-record-an-adr.json",
+  "academy/checkpoints/P04-review-a-dependency.json",
+  "academy/checkpoints/P05-checkpoint-remediation.json",
+  "academy/checkpoints/P06-context-drift-recovery.json",
+  "academy/checkpoints/P07-threat-model.json",
+  "academy/checkpoints/P08-repository-hygiene.json",
+]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.13.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
@@ -83,18 +111,3 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/scenarios/P07-threat-model/files" = ["academy/scenarios/P07-threat-model/files/*"]
 "share/arbiter-academy/academy/scenarios/P08-repository-hygiene" = ["academy/scenarios/P08-repository-hygiene/manifest.json"]
 "share/arbiter-academy/academy/scenarios/P08-repository-hygiene/files" = ["academy/scenarios/P08-repository-hygiene/files/*"]
-"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint" = ["academy/scenarios/U01-autonomous-sprint/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U01-autonomous-sprint/files" = ["academy/scenarios/U01-autonomous-sprint/files/*"]
-"share/arbiter-academy/academy/scenarios/U02-override-audit-metrics" = ["academy/scenarios/U02-override-audit-metrics/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U02-override-audit-metrics/files" = ["academy/scenarios/U02-override-audit-metrics/files/*"]
-"share/arbiter-academy/academy/scenarios/U03-refactor-chore-release" = ["academy/scenarios/U03-refactor-chore-release/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U03-refactor-chore-release/files" = ["academy/scenarios/U03-refactor-chore-release/files/*"]
-"share/arbiter-academy/academy/scenarios/U04-initialize-projects" = ["academy/scenarios/U04-initialize-projects/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U04-initialize-projects/files" = ["academy/scenarios/U04-initialize-projects/files/*"]
-"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict" = ["academy/scenarios/U05-debug-spike-conflict/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U05-debug-spike-conflict/files" = ["academy/scenarios/U05-debug-spike-conflict/files/*"]
-"share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces" = ["academy/scenarios/U06-preview-and-advanced-surfaces/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces/files" = ["academy/scenarios/U06-preview-and-advanced-surfaces/files/scenario.json"]
-"share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces/files/docs" = ["academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"]
-"share/arbiter-academy/academy/scenarios/U07-capstone" = ["academy/scenarios/U07-capstone/manifest.json"]
-"share/arbiter-academy/academy/scenarios/U07-capstone/files" = ["academy/scenarios/U07-capstone/files/*"]
