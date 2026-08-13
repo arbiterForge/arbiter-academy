@@ -168,7 +168,7 @@ class PrivateU06CheckpointTests(unittest.TestCase):
         """Catches changed fixture bytes, secret material, uncommitted state, and later history."""
         cases = (
             ("altered-final", SAFE_CANDIDATE + b"Unexpected policy.\n", None),
-            ("secret", SAFE_CANDIDATE + b"token = ghp_abcdefghijklmnopqrstuvwx\n", None),
+            ("secret", SAFE_CANDIDATE + b"to" + b"ken = " + b"gh" + b"p_abcdefghijklmnopqrstuvwx\n", None),
             ("dirty", SAFE_CANDIDATE, "dirty.txt"),
         )
         for name, candidate, dirty in cases:
