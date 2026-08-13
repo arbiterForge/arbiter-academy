@@ -3728,6 +3728,14 @@ def _semantic(context: _SemanticContext) -> bool:
         board = _changed_document(context, str(data["board"]))
         observation = _text(root, attempt.prepared, str(data["observation"]))
         commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
+        board_before = (
+            _text(root, f"{commits[0]}^", str(data["board"])) if commits is not None else None
+        )
+        board_delta = (
+            board.removeprefix(board_before)
+            if board is not None and board_before is not None and board.startswith(board_before)
+            else None
+        )
         status = run_git(
             root,
             ["status", "--porcelain", "--untracked-files=all"],
@@ -3747,16 +3755,21 @@ def _semantic(context: _SemanticContext) -> bool:
         ).stdout.strip()
         return bool(
             observation
-            and _headings(observation, ("Observed behavior", "Reproduction", "Expected behavior"))
+            and _headings(
+                observation,
+                ("Observed behavior", "Reproduction", "Expected behavior", "Spike question"),
+            )
             and "debug.note" not in observation
             and _headings(spike, ("Question", "What tried", "Answer", "Implication"))
-            and board
+            and board_delta is not None
             and commits is not None
             and _commit_paths(root, commits[0]) == (str(data["board"]),)
             and _commit_paths(root, commits[1]) == (str(data["spike"]),)
-            and re.search(
-                r"(?m)^- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n  - Desc: .+$",
-                board,
+            and re.fullmatch(
+                r"## In-flight\n"
+                r"- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n"
+                r"  - Desc: [^\n]+\n",
+                board_delta,
             )
             and not spike_refs
             and status.returncode == 0

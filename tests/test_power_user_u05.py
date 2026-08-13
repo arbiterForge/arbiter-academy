@@ -41,19 +41,28 @@ class U05PluginContractTests(unittest.TestCase):
         leave_untracked_spike_code: bool = False,
         split_debug_metadata: bool = False,
         include_observation: bool = True,
+        include_spike_question: bool = True,
+        include_extra_debug_note: bool = False,
         collapse_evidence_into_one_commit: bool = False,
     ) -> _SemanticContext:
         (root / ".codearbiter/spikes").mkdir(parents=True)
-        (root / ".codearbiter/open-tasks.md").write_text("# Open tasks\n", encoding="utf-8")
+        initial_board = (
+            "# Open tasks\n\n## Queued\n\n"
+            "- [ ] academy.fixture.0001 - preserve this prepared task\n"
+            "  - Desc: Academy control state\n"
+        )
+        (root / ".codearbiter/open-tasks.md").write_text(initial_board, encoding="utf-8")
         if include_observation:
             (root / "docs").mkdir()
-            (root / "docs/U05-cache-key-observation.md").write_text(
+            observation = (
                 "# U05 cache-key observation\n\n"
                 "## Observed behavior\nFixture observation.\n\n"
                 "## Reproduction\nRead-only evidence.\n\n"
-                "## Expected behavior\nNo code change.\n",
-                encoding="utf-8",
+                "## Expected behavior\nNo code change.\n"
             )
+            if include_spike_question:
+                observation += "\n## Spike question\nWhich cache key is stale?\n"
+            (root / "docs/U05-cache-key-observation.md").write_text(observation, encoding="utf-8")
         self.git(root, "init", "-b", "main")
         self.git(root, "config", "user.name", "Academy Learner")
         self.git(root, "config", "user.email", "learner@example.invalid")
@@ -61,8 +70,8 @@ class U05PluginContractTests(unittest.TestCase):
         self.git(root, "commit", "-m", "academy: prepare U05")
         prepared = self.git(root, "rev-parse", "HEAD")
         self.git(root, "switch", "-c", "academy/U05-debug-spike-conflict/1")
-        board = (
-            "# Open tasks\n\n## In-flight\n\n"
+        board = initial_board + (
+            "## In-flight\n"
             "- [ ] debug.note.0001 - U05 cache-key investigation closed without code changes\n"
             "  - Desc: cited read-only trace\n"
         )
@@ -73,7 +82,12 @@ class U05PluginContractTests(unittest.TestCase):
                 "  - Context: cited read-only trace\n"
                 "- [ ] maintenance.note.0001 - unrelated work closed without code changes\n"
                 "  - Desc: unrelated maintenance\n"
-        )
+            )
+        elif include_extra_debug_note:
+            board += (
+                "- [ ] debug.note.0002 - unrelated investigation closed without code changes\n"
+                "  - Desc: unrelated evidence\n"
+            )
         (root / ".codearbiter/open-tasks.md").write_text(board, encoding="utf-8")
         if collapse_evidence_into_one_commit:
             (root / ".codearbiter/spikes/u05-cache-key.md").write_text(
@@ -138,6 +152,14 @@ class U05PluginContractTests(unittest.TestCase):
     def test_rejects_a_generic_spike_and_board_without_the_prepared_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             self.assertFalse(_semantic(self.context(Path(directory), include_observation=False)))
+
+    def test_rejects_an_observation_without_the_declared_spike_question(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(_semantic(self.context(Path(directory), include_spike_question=False)))
+
+    def test_rejects_a_second_taskwrite_shaped_debug_note(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertFalse(_semantic(self.context(Path(directory), include_extra_debug_note=True)))
 
     def test_rejects_debug_and_spike_evidence_collapsed_into_one_commit(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
