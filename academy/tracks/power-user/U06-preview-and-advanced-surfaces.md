@@ -15,7 +15,7 @@ next_lab: U07-capstone
 
 ## Know before you begin
 
-U06 is a private source lesson. Academy Preview 0.15 is the installed public release, and it does
+U06 is a private source lesson. Academy Preview 0.16 is the installed public release, and it does
 not publish U06 yet. Its Prepare, Check, and Reset commands must refuse this lab. That is a release
 boundary, not a missing prerequisite you should work around.
 
@@ -58,7 +58,7 @@ by hand in an ordinary checkout.
 
 {{action:U06-run-read-only-preview}}
 
-The two names are easy to confuse. Academy Preview 0.15 names an installed release and its public
+The two names are easy to confuse. Academy Preview 0.16 names an installed release and its public
 availability boundary. `ca-preview` is a host-native, advisory review of the current diff. It does
 not stage, commit, push, create a release, or give the agent authority to enlarge the change.
 
@@ -105,7 +105,7 @@ committed bytes; neither the record nor Check claims that `ca-preview` ran or pe
 
 **Check limit:** source Check verifies committed repository facts. It cannot establish that you ran
 `ca-preview`, understood its result, or consciously chose not to execute an advanced command. The
-installed Academy Preview 0.15 Check still refuses U06 until an accepted release carries this source
+installed Academy Preview 0.16 Check still refuses U06 until an accepted release carries this source
 contract.
 
 ## Recover or continue

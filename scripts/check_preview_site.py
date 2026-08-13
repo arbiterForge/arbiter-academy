@@ -112,10 +112,11 @@ _LABS = (
     "P08-repository-hygiene",
     "U01-autonomous-sprint",
     "U02-override-audit-metrics",
+    "U03-refactor-chore-release",
 )
 _COMING_NEXT = (
-    "U03-refactor-chore-release", "U04-initialize-projects",
-    "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone",
+    "U04-initialize-projects", "U05-debug-spike-conflict",
+    "U06-preview-and-advanced-surfaces", "U07-capstone",
 )
 _RUNNABLE_LINK_LABELS = (
     "F01 \u2014 Fork, clone, and Doctor safety",
@@ -132,8 +133,9 @@ _RUNNABLE_LINK_LABELS = (
     "P08: Classify repository hygiene without destructive cleanup",
     "U01: Govern an autonomous sprint without outsourcing approval",
     "U02: Record a scoped override with local audit evidence",
+    "U03: Refactor, chore, and local release evidence",
 )
-_COMING_NEXT_ENTRIES = (("Power User: U03 through U07. Guided rewrites are in progress.", False),)
+_COMING_NEXT_ENTRIES = (("Power User: U04 through U07. Guided rewrites are in progress.", False),)
 _PUBLIC_PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
     "Git 2.39 or newer.",
@@ -142,8 +144,8 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, U01, and U02 are the guided lessons published in Preview 0.15.",
-    "U03-U07 remain unavailable in Preview 0.15.",
+    "F01-F04, P01-P08, and U01-U03 are the guided lessons published in Preview 0.16.",
+    "U04-U07 remain unavailable in Preview 0.16.",
     "Graduation is unavailable until the complete 19-lab course is published.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -278,6 +280,13 @@ _EXPECTED_ACTION_IDS = {
         "U02-log-override", "U02-inspect-log", "U02-run-audit", "U02-run-metrics",
         "U02-write-evidence", "U02-review-evidence-boundary", "U02-stage-evidence",
         "U02-commit-evidence", "U02-check", "U02-reset",
+    ),
+    Path("labs/U03-refactor-chore-release/index.html"): (
+        "U03-read-boundary", "U03-prepare", "U03-confirm-prepared", "U03-review-sealed-brief",
+        "U03-run-refactor", "U03-inspect-refactor", "U03-review-refactor", "U03-stage-refactor",
+        "U03-commit-refactor", "U03-run-chore", "U03-inspect-chore", "U03-review-chore",
+        "U03-stage-chore", "U03-commit-chore", "U03-run-release", "U03-review-release",
+        "U03-inspect-tag", "U03-check", "U03-reset",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -567,7 +576,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.15"
+        or data.get("release") != "preview-0.16"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -582,7 +591,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.15 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.16 provenance contract")
     return data["release"]
 
 
@@ -615,16 +624,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.15 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.16 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.15 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.16 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.15 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.16 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -644,13 +653,14 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             Path("labs/P08-repository-hygiene/index.html"),
             Path("labs/U01-autonomous-sprint/index.html"),
             Path("labs/U02-override-audit-metrics/index.html"),
+            Path("labs/U03-refactor-chore-release/index.html"),
         }:
             expected_statuses = (_GUIDED_STATUS,)
         else:
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.15 contract: "
+                "generated publication status does not match the exact Preview 0.16 contract: "
                 f"{relative.as_posix()}"
             )
 
