@@ -293,6 +293,18 @@ class AcademyCliTrustTests(unittest.TestCase):
             discussion_url="https://github.com/arbiterForge/arbiter-academy/discussions",
             catalog_sha256="a" * 64,
         )
+        incomplete_manifest = PreviewManifest(
+            release="academy-incomplete",
+            lesson_contract_version=1,
+            available_labs=tuple(lab.id for lab in full_catalog.labs[:-1]),
+            runnable_labs=tuple(lab.id for lab in full_catalog.labs[:-1]),
+            guided_labs=tuple(lab.id for lab in full_catalog.labs[:-1]),
+            coming_next=(full_catalog.labs[-1].id,),
+            prerequisites=(),
+            known_limits=(),
+            discussion_url="https://github.com/arbiterForge/arbiter-academy/discussions",
+            catalog_sha256="a" * 64,
+        )
 
         preview_output, errors = StringIO(), StringIO()
         with patch(
@@ -300,6 +312,9 @@ class AcademyCliTrustTests(unittest.TestCase):
         ), patch(
             "academy_engine.cli._verifier_publication_root",
             return_value=REPOSITORY,
+        ), patch(
+            "academy_engine.preview.load_preview_manifest",
+            return_value=incomplete_manifest,
         ), patch(
             "academy_engine.cli.validate_repository_git_config"
         ) as git_config, patch(
