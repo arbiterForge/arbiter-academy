@@ -16,7 +16,7 @@ next_lab: U02-override-audit-metrics
 ## Know before you begin
 
 U01 has a reviewed source scenario and positive Check contract, but it is not public or runnable in
-Preview 0.12. The website remains the primary lesson surface. Academy CLI is only the future helper
+Preview 0.13. The website remains the primary lesson surface. Academy CLI is only the future helper
 for Prepare, Check, and Reset. The installed public verifier deliberately refuses those operations
 until the lesson has an accepted public release boundary.
 
@@ -105,7 +105,7 @@ recording progress before the installed verifier includes this accepted contract
 
 {{action:U01-reset-retry}}
 
-U02 is also private in Preview 0.12. Do not use unpublished source exercises as a substitute for a
+U02 is also private in Preview 0.13. Do not use unpublished source exercises as a substitute for a
 published Academy lesson.
 
 ## Understand the mechanism

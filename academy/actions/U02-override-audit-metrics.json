@@ -27,13 +27,13 @@
       "rationale": "Prepare gives this exercise its own numbered attempt and scenario before any override evidence exists.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true}
       ],
-      "expected_result": "Preview 0.12 refuses U02 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.13 refuses U02 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Treat the refusal as the current public boundary. Do not retry with another command, edit local state, or simulate an attempt.",
-      "evidence": "A future private release may prepare an attempt. The current Preview 0.12 command does not create one."
+      "evidence": "A future private release may prepare an attempt. The current Preview 0.13 command does not create one."
     },
     {
       "id": "U02-read-scenario",
@@ -41,7 +41,7 @@
       "title": "Confirm the refusal left no attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "After the current Preview 0.12 refusal, inspect the worktree in a native terminal. These are direct terminal commands and never begin with !.",
+      "instruction": "After the current Preview 0.13 refusal, inspect the worktree in a native terminal. These are direct terminal commands and never begin with !.",
       "rationale": "The learner must distinguish an unavailable lesson from a prepared local starting condition.",
       "resources": [],
       "variants": [
@@ -49,7 +49,7 @@
         {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
         {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
       ],
-      "expected_result": "Preview 0.12 has refused U02 and the worktree remains unchanged.",
+      "expected_result": "Preview 0.13 has refused U02 and the worktree remains unchanged.",
       "recovery": "If the worktree changed, investigate that unrelated state separately. Do not create a U02 scenario file by hand.",
       "evidence": "No current public U02 scenario is prepared. A future private scenario would still describe local input, not a hosted state."
     },
@@ -59,7 +59,7 @@
       "title": "Decide whether the scoped training override is appropriate",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "In a future private prepared attempt, decide for yourself whether the safe-training-gate exercise justifies one narrow override. Name the gate and reason before asking the host to record it. A log entry is not a substitute for your decision. Do not run this future-only step in Preview 0.12.",
+      "instruction": "In a future private prepared attempt, decide for yourself whether the safe-training-gate exercise justifies one narrow override. Name the gate and reason before asking the host to record it. A log entry is not a substitute for your decision. Do not run this future-only step in Preview 0.13.",
       "rationale": "The record should follow a specific scope decision, never manufacture one.",
       "resources": [],
       "variants": [],
@@ -73,7 +73,7 @@
       "title": "Record one scoped override through CodeArbiter",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only in a future private prepared attempt and after your own scope decision, invoke the host-native override command. It is a CodeArbiter command, never a ! terminal passthrough command. Do not invoke it from Preview 0.12 U02 refusal flow.",
+      "instruction": "Only in a future private prepared attempt and after your own scope decision, invoke the host-native override command. It is a CodeArbiter command, never a ! terminal passthrough command. Do not invoke it from Preview 0.13 U02 refusal flow.",
       "rationale": "The governed command records the operator identity, gate, and reason in the append-only local log.",
       "resources": [],
       "variants": [
@@ -223,11 +223,11 @@
       "rationale": "Check validates the prepared-attempt delta and deterministic local evidence contract.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true}
       ],
-      "expected_result": "Preview 0.12 refuses U02 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.13 refuses U02 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Treat the refusal as the current public boundary. A future private Check may validate named local evidence, but do not invent a current pass.",
       "evidence": "The current public command does not report a U02 pass. A future private result would still not confirm a hosted fact or authenticate human approval."
     },
@@ -241,11 +241,11 @@
       "rationale": "Reset preserves the earlier attempt rather than hiding an invalid override record through history rewriting.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.12\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.12/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.13\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.13/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true}
       ],
-      "expected_result": "Preview 0.12 refuses U02 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.13 refuses U02 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Treat the refusal as the current public boundary. Do not use destructive Git commands to imitate a reset or erase unrelated state.",
       "evidence": "A future private Reset may preserve attempt history; the current public command creates no U02 archive."
     }
