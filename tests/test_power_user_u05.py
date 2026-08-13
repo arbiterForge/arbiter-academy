@@ -114,7 +114,8 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertIn("debug.note.0001", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
-        self.assertIn("PR 685", by_id["U05-run-spike"].instruction)
+        self.assertIn("released CodeArbiter build", by_id["U05-run-spike"].instruction)
+        self.assertIn("PR 687", by_id["U05-run-spike"].instruction)
         self.assertIn("stop", by_id["U05-halt-for-conflict"].expected_result.casefold())
         for action_id in ("U05-prepare-attempt", "U05-check-status"):
             self.assertIn("not published", by_id[action_id].expected_result.casefold())
