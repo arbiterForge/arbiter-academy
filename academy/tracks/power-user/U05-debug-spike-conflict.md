@@ -60,6 +60,8 @@ taskwriter shape and clean tree, not a claimed command invocation.
 
 {{action:U05-run-spike}}
 
+{{action:U05-confirm-spike-question}}
+
 {{action:U05-transfer-findings}}
 
 {{action:U05-review-findings}}

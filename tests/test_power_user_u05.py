@@ -158,7 +158,7 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertEqual(tuple(by_id), (
             "U05-confirm-private-boundary", "U05-prepare-attempt", "U05-read-observation",
             "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
-            "U05-run-spike", "U05-transfer-findings", "U05-review-findings",
+            "U05-run-spike", "U05-confirm-spike-question", "U05-transfer-findings", "U05-review-findings",
             "U05-commit-findings", "U05-delete-spike", "U05-halt-for-conflict",
             "U05-check-status",
         ))
@@ -167,6 +167,9 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
         self.assertIn(U05_RELEASED_INTEGRATION, by_id["U05-run-spike"].instruction)
         self.assertIn("PR 687", by_id["U05-run-spike"].instruction)
+        self.assertIn("confirm", by_id["U05-confirm-spike-question"].instruction.casefold())
+        self.assertIn("pauses before creating", by_id["U05-run-spike"].expected_result)
+        self.assertIn("commits only .codearbiter/spikes/u05-cache-key.md", by_id["U05-confirm-spike-question"].expected_result)
         self.assertIn("git restore --source spike/u05-cache-key", by_id["U05-transfer-findings"].variants[0].command)
         self.assertIn("git branch -D spike/u05-cache-key", by_id["U05-delete-spike"].variants[0].command)
         self.assertNotIn("git merge", by_id["U05-transfer-findings"].instruction.casefold())
