@@ -323,7 +323,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.11.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.14.json").read_text(
                 encoding="utf-8"
             )
         )
