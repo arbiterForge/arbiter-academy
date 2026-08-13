@@ -1956,6 +1956,52 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("github.com/arbiterForge/arbiter-academy/blob/main/academy/tracks", content)
         self.assertNotIn("{{action:", content)
 
+    def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
+        """U06 may render from source, but Preview 0.12 must not publish its route."""
+        lab_id = "U06-preview-and-advanced-surfaces"
+        guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
+        source = (self.root / guide_path).read_text(encoding="utf-8")
+        manifest = load_action_manifest(self.root, lab_id)
+        document = preview_site._read_markdown_document(
+            self.root,
+            guide_path,
+            lab_id,
+            require_h1=True,
+        )
+        content = str(document["content"])
+
+        self.assertNotIn("```", source)
+        self.assertEqual(
+            document["referenced_actions"],
+            tuple(action.id for action in manifest.actions),
+        )
+        self.assertEqual(content.count('class="lesson-action"'), len(manifest.actions))
+        self.assertEqual(
+            content.count('class="action-role"'),
+            sum(len(action.variants) or 1 for action in manifest.actions),
+        )
+        self.assertEqual(
+            content.count('class="command-copy"'),
+            sum(variant.copy for action in manifest.actions for variant in action.variants),
+        )
+        self.assertNotIn("{{action:", content)
+        for action in manifest.actions:
+            with self.subTest(action=action.id):
+                self.assertIn(f'data-action-id="{action.id}"', content)
+                self.assertIn('class="action-expected"', preview_site._render_action(action))
+                self.assertIn('class="action-recovery"', preview_site._render_action(action))
+                for variant in action.variants:
+                    self.assertIn(
+                        f'data-surface="{variant.surface}"',
+                        preview_site._render_action(action),
+                    )
+
+        public = load_preview_manifest(self.root)
+        for inventory in (public.available_labs, public.runnable_labs, public.guided_labs):
+            self.assertNotIn(lab_id, inventory)
+        build_preview_site(self.root, self.out, release_sha="a" * 40)
+        self.assertFalse((self.out / "labs" / lab_id / "index.html").exists())
+
     def test_guided_documents_require_one_to_one_action_references(self) -> None:
         """Catches ambiguous, missing, duplicated, or prose-injected action bindings."""
         action = preview_site.LessonAction(

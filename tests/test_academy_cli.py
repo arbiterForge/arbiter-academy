@@ -202,6 +202,54 @@ class AcademyCliTrustTests(unittest.TestCase):
                 git_config.assert_not_called()
                 authority.assert_not_called()
 
+    def test_installed_preview_refuses_private_u06_lifecycle_without_mutation(self) -> None:
+        """U06 stays source-only until a reviewed release explicitly publishes it."""
+        lab_id = "U06-preview-and-advanced-surfaces"
+        expected_error = "error: U06-preview-and-advanced-surfaces is not guided in Academy Preview 0.12\n"
+        with tempfile.TemporaryDirectory() as directory:
+            learner = (Path(directory) / "learner").resolve()
+            learner.mkdir()
+            sentinel = learner / "keep.txt"
+            sentinel.write_text("unchanged\n", encoding="utf-8")
+            initial_files = {
+                path.relative_to(learner).as_posix(): path.read_bytes()
+                for path in learner.rglob("*")
+                if path.is_file()
+            }
+            for command, dispatch_name in (
+                ("prepare", "prepare_lab"),
+                ("check", "evaluate_checkpoint"),
+                ("reset", "reset_lab"),
+            ):
+                output, errors = StringIO(), StringIO()
+                with self.subTest(command=command), patch(
+                    "academy_engine.cli.repository_root", return_value=learner
+                ), patch(
+                    "academy_engine.cli._verifier_publication_root", return_value=REPOSITORY
+                ), patch(f"academy_engine.cli.{dispatch_name}") as dispatch, patch(
+                    "academy_engine.cli.validate_repository_git_config"
+                ) as git_config, patch(
+                    "academy_engine.cli.ensure_authoritative_verifier"
+                ) as authority, redirect_stdout(output), redirect_stderr(errors):
+                    exit_code = main(
+                        ["--repository", str(learner), command, lab_id]
+                    )
+
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(output.getvalue(), "")
+                self.assertEqual(errors.getvalue(), expected_error)
+                dispatch.assert_not_called()
+                git_config.assert_not_called()
+                authority.assert_not_called()
+                self.assertEqual(
+                    {
+                        path.relative_to(learner).as_posix(): path.read_bytes()
+                        for path in learner.rglob("*")
+                        if path.is_file()
+                    },
+                    initial_files,
+                )
+
     def test_graduation_dispatch_requires_the_complete_published_catalog(self) -> None:
         """Catches Preview issuing a credential before every catalog lab is published."""
         receipt = SimpleNamespace(

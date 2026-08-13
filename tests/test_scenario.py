@@ -424,6 +424,52 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(git(root, "branch", "--list", "academy/P06-context-drift-recovery/1"))
         self.assertEqual(context_path.read_bytes(), context_before)
 
+    def test_prepare_u06_rejects_altered_frozen_candidate_before_branch_creation(self) -> None:
+        """Catches a learner checkout replacing the exact U06 candidate under review."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = root / "academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"
+        source.write_bytes(b"# U06 preview candidate\n\nAttacker-controlled policy.\n")
+        git(root, "add", source.relative_to(root).as_posix())
+        git(root, "commit", "-m", "replace U06 candidate seed")
+        before = git(root, "rev-parse", "HEAD")
+
+        with self.assertRaisesRegex(PreparationError, "trusted protected overlay"):
+            prepare_lab(root, "U06-preview-and-advanced-surfaces")
+
+        self.assertEqual(git(root, "rev-parse", "HEAD"), before)
+        self.assertFalse(git(root, "branch", "--list", "academy/U06-preview-and-advanced-surfaces/1"))
+        self.assertFalse((root / "docs/U06-preview-candidate.md").exists())
+
+    def test_prepare_u06_rolls_back_candidate_after_post_validation_source_swap(self) -> None:
+        """Catches a seed race that would leave a partial U06 candidate after Prepare fails."""
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        source = root / "academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"
+        attacker_bytes = b"# U06 preview candidate\n\nChanged after validation.\n"
+        original_head = git(root, "rev-parse", "HEAD")
+        real_run_git = scenario_module.run_git
+        swapped = False
+
+        def swap_after_branch(repository: Path, args, *, check: bool = True):
+            nonlocal swapped
+            result = real_run_git(repository, args, check=check)
+            if tuple(args[:2]) == ("switch", "-c") and not swapped:
+                source.write_bytes(attacker_bytes)
+                swapped = True
+            return result
+
+        with patch.object(scenario_module, "run_git", side_effect=swap_after_branch):
+            with self.assertRaisesRegex(PreparationError, "changed after validation"):
+                prepare_lab(root, "U06-preview-and-advanced-surfaces")
+
+        self.assertTrue(swapped)
+        self.assertEqual(git(root, "branch", "--show-current"), "main")
+        self.assertEqual(git(root, "rev-parse", "HEAD"), original_head)
+        self.assertFalse(git(root, "branch", "--list", "academy/U06-preview-and-advanced-surfaces/1"))
+        self.assertFalse((root / "docs/U06-preview-candidate.md").exists())
+        self.assertEqual(source.read_bytes(), attacker_bytes)
+
     def test_prepare_p06_rejects_protected_source_swap_after_validation(self) -> None:
         """Catches a hash-to-use race replacing trusted P06 bytes after preflight."""
         temporary, root = p06_academy_git_fixture()

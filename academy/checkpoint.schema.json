@@ -24,7 +24,7 @@
               "checkpoint_remediation", "provenance_recovery", "stride_model",
               "hygiene_snapshot", "sprint_decisions", "override_audit_metrics",
               "refactor_chore_release", "initialized_fixture", "debug_spike_conflict",
-              "preview_evidence", "capstone"
+              "preview_evidence", "u06_preview_evidence", "capstone"
             ]
           },
           "artifact": {"$ref": "#/$defs/path"},
@@ -42,6 +42,7 @@
           "review": {"$ref": "#/$defs/path"},
           "project": {"$ref": "#/$defs/path"},
           "report": {"$ref": "#/$defs/path"},
+          "candidate": {"$ref": "#/$defs/path"},
           "handoff": {"$ref": "#/$defs/path"},
           "source": {"$ref": "#/$defs/path"},
           "preserved_path": {"$ref": "#/$defs/path"},

@@ -149,6 +149,37 @@ P03_CHOICES = (
     "Use structured JSON for Workshop Queue summaries.",
 )
 P08_DOCUMENT_ID = "P08-repository-hygiene"
+U06_DOCUMENT_ID = "U06-preview-and-advanced-surfaces"
+U06_ACTION_IDS = (
+    "U06-confirm-private-boundary",
+    "U06-prepare-attempt",
+    "U06-inspect-scenario",
+    "U06-inspect-seeded-candidate",
+    "U06-create-contained-diff",
+    "U06-inspect-preview-input",
+    "U06-run-read-only-preview",
+    "U06-assess-preview-output",
+    "U06-stage-candidate",
+    "U06-commit-candidate",
+    "U06-classify-advanced-surfaces",
+    "U06-write-binding-report",
+    "U06-inspect-binding-report",
+    "U06-stage-report",
+    "U06-commit-report",
+    "U06-confirm-clean",
+    "U06-check-status",
+    "U06-reset-retry",
+)
+U06_HEADINGS = (
+    "Know before you begin",
+    "What you will prove",
+    "Prepare safely",
+    "Create a contained preview",
+    "Read the preview",
+    "Record evidence",
+    "Check the boundary",
+    "Recover or continue",
+)
 P08_ACTION_IDS = (
     "P08-prepare",
     "P08-inventory-native",
@@ -1864,6 +1895,108 @@ class LessonActionTests(unittest.TestCase):
                     ("pi", f"/skill:ca-{command}"),
                 ),
             )
+
+    def test_private_u06_manifest_teaches_preview_without_executing_advanced_surfaces(self) -> None:
+        """Catches U06 losing its private boundary, command ownership, or evidence sequence."""
+        root = Path(__file__).parents[1]
+        manifest = load_action_manifest(root, U06_DOCUMENT_ID)
+        manifest_source = (root / "academy/actions/U06-preview-and-advanced-surfaces.json").read_text(encoding="utf-8")
+        guide = (root / "academy/tracks/power-user/U06-preview-and-advanced-surfaces.md").read_text(encoding="utf-8")
+
+        self.assertEqual(tuple(action.id for action in manifest.actions), U06_ACTION_IDS)
+        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 19)))
+        self.assertEqual(
+            tuple(re.findall(r"^## (.+)$", guide, flags=re.MULTILINE)),
+            U06_HEADINGS,
+        )
+        self.assertEqual(
+            tuple(re.findall(r"^\{\{action:([^}]+)\}\}$", guide, flags=re.MULTILINE)),
+            U06_ACTION_IDS,
+        )
+        self.assertNotIn("```", guide)
+
+        by_id = {action.id: action for action in manifest.actions}
+        self.assertEqual((by_id["U06-confirm-private-boundary"].actor, by_id["U06-confirm-private-boundary"].surface), ("learner", "browser"))
+        self.assertEqual(by_id["U06-create-contained-diff"].actor, "agent")
+        exact_candidate = (
+            "# U06 preview candidate\n\n"
+            "## Read-only documentation policy\n\n"
+            "Preview may inspect the prepared attempt and report predicted reviewers. "
+            "It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
+            "## Evidence\n\n"
+            "Record the reviewed commit, candidate tree, exact changed path, and "
+            "repository bindings in the U06 Academy record.\n"
+        )
+        writer = by_id["U06-create-contained-diff"]
+        self.assertEqual(
+            tuple((variant.id, variant.host) for variant in writer.variants),
+            (("claude", "claude-code"), ("codex", "codex"), ("pi-direct", "pi"), ("pi-fallback", "pi")),
+        )
+        for variant in writer.variants:
+            with self.subTest(writer_variant=variant.id):
+                marker = "Write this exact UTF-8 body, including final LF:\n"
+                body = variant.command.partition(marker)[2].partition(
+                    "\nDo not stage, commit, create a report, or run any advanced surface."
+                )[0]
+                self.assertEqual(body, exact_candidate)
+        self.assertEqual(by_id["U06-assess-preview-output"].surface, "active-harness")
+        self.assertEqual(by_id["U06-classify-advanced-surfaces"].actor, "learner")
+        self.assertEqual(by_id["U06-classify-advanced-surfaces"].surface, "active-harness")
+
+        for action_id in (
+            "U06-prepare-attempt", "U06-inspect-scenario", "U06-inspect-seeded-candidate",
+            "U06-inspect-preview-input", "U06-stage-candidate", "U06-inspect-binding-report",
+            "U06-stage-report", "U06-confirm-clean", "U06-check-status", "U06-reset-retry",
+        ):
+            variants = by_id[action_id].variants
+            with self.subTest(action=action_id):
+                self.assertEqual(tuple(variant.operating_system for variant in variants), ("windows", "macos", "linux"))
+                self.assertTrue(all(variant.surface == "native-terminal" and variant.host == "none" and variant.copy for variant in variants))
+                self.assertFalse(any(variant.command.startswith("!") for variant in variants))
+
+        preview = by_id["U06-run-read-only-preview"]
+        self.assertEqual(preview.actor, "agent")
+        self.assertEqual(
+            tuple((variant.host, variant.command) for variant in preview.variants),
+            (("claude-code", "/ca:preview"), ("codex", "$ca-preview"), ("pi", "/ca-preview"), ("pi", "/skill:ca-preview")),
+        )
+        self.assertTrue(all(variant.language == "codearbiter" and not variant.command.startswith("!") for variant in preview.variants))
+        report_writer = by_id["U06-write-binding-report"]
+        self.assertTrue(
+            all("predicted_reviewers" not in variant.command for variant in report_writer.variants)
+        )
+        self.assertTrue(
+            all("secret_scan" not in variant.command for variant in report_writer.variants)
+        )
+        self.assertNotIn("reviewers [docs]", "\n".join(variant.command for variant in report_writer.variants))
+        for action_id in ("U06-commit-candidate", "U06-commit-report"):
+            self.assertEqual(
+                tuple((variant.host, variant.command) for variant in by_id[action_id].variants),
+                (("claude-code", "/ca:commit"), ("codex", "$ca-commit"), ("pi", "/ca-commit"), ("pi", "/skill:ca-commit")),
+            )
+
+        commands = "\n".join(variant.command for action in manifest.actions for variant in action.variants)
+        for forbidden in ("ca-sandbox", "ca-new-skill", "ca-watch", "ca-tribunal"):
+            self.assertNotIn(forbidden, commands)
+            self.assertIn(forbidden, guide)
+        classifications = by_id["U06-classify-advanced-surfaces"]
+        self.assertIn("Do not execute", classifications.instruction)
+        self.assertIn("not run here", classifications.expected_result)
+        for action in manifest.actions:
+            for variant in action.variants:
+                with self.subTest(action=action.id, variant=variant.id):
+                    if variant.surface == "native-terminal" or variant.language == "codearbiter":
+                        self.assertFalse(variant.command.startswith("!"))
+        self.assertIn("Academy Preview 0.12", guide)
+        self.assertIn("`ca-preview`", guide)
+        self.assertIn("not `ca-preview` output", guide)
+        self.assertIn("whether a secret scan ran", guide)
+        self.assertNotIn("reports `docs` as the reviewer", guide)
+        self.assertIn("No committed record preserves this advisory output", manifest_source)
+        self.assertNotRegex(manifest_source, r"\bdocs(?:-reviewed| reviewer)\b")
+        self.assertNotRegex(guide, r"\bdocs(?:-reviewed| reviewer)\b")
+        self.assertIn("not run here", guide)
+        self.assertIn("Check limit", guide)
 
 
 if __name__ == "__main__":

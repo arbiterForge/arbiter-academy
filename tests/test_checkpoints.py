@@ -1306,6 +1306,49 @@ class WorkshopQueueCliTests:
         with self.assertRaisesRegex(CheckpointError, "exactly one"):
             load_checkpoint(self.path)
 
+    def test_u06_profile_requires_the_frozen_candidate_and_report_paths(self):
+        """Catches a U06 checkpoint that retains the old report-only preview contract."""
+        self.write(
+            {
+                "schema_version": 2,
+                "id": "U06-preview-and-advanced-surfaces",
+                "predicates": [
+                    {
+                        "id": "preview_advanced_evidence",
+                        "type": "lab_semantics",
+                        "profile": "u06_preview_evidence",
+                        "candidate": "docs/U06-preview-candidate.md",
+                        "report": ".codearbiter/reports/academy/U06-preview.json",
+                    }
+                ],
+            }
+        )
+        predicate = load_checkpoint(self.path).predicates[0]
+        self.assertEqual(
+            predicate.data,
+            {
+                "profile": "u06_preview_evidence",
+                "candidate": "docs/U06-preview-candidate.md",
+                "report": ".codearbiter/reports/academy/U06-preview.json",
+            },
+        )
+        self.write(
+            {
+                "schema_version": 2,
+                "id": "U06-preview-and-advanced-surfaces",
+                "predicates": [
+                    {
+                        "id": "preview_advanced_evidence",
+                        "type": "lab_semantics",
+                        "profile": "u06_preview_evidence",
+                        "report": ".codearbiter/reports/academy/U06-preview.json",
+                    }
+                ],
+            }
+        )
+        with self.assertRaises(CheckpointError):
+            load_checkpoint(self.path)
+
     def test_wrong_branch_fails_recomputed_git_evidence(self):
         subprocess.run(["git", "init"], cwd=self.root, check=True, capture_output=True, text=True)
         subprocess.run(["git", "switch", "-c", "wrong-branch"], cwd=self.root, check=True, capture_output=True, text=True)
