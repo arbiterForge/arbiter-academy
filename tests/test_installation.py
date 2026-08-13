@@ -157,6 +157,48 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
+    def test_u06_nested_scenario_seed_is_declared_as_wheel_data(self) -> None:
+        """Catches U06's nested candidate being omitted or flattened in the wheel."""
+        repository = Path(__file__).resolve().parents[1]
+        package = (repository / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn(
+            '"academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"',
+            package,
+        )
+        wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
+        expected = (
+            "workshop_queue-0.1.0.data/data/share/arbiter-academy/academy/"
+            "scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            scratch = Path(temporary_directory)
+            source = scratch / "source"
+            copy_indexed_source(repository, source)
+            wheel_directory = scratch / "wheel"
+            wheel_directory.mkdir()
+            build = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "wheel",
+                    "--no-index",
+                    "--find-links",
+                    str(wheelhouse),
+                    "--no-deps",
+                    "--wheel-dir",
+                    str(wheel_directory),
+                    str(source),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+            wheel = next(wheel_directory.glob("workshop_queue-*.whl"))
+            with zipfile.ZipFile(wheel) as contents:
+                self.assertIn(expected, set(contents.namelist()))
+
     def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
         """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
         wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))

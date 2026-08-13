@@ -59,6 +59,11 @@ _TRUSTED_PROTECTED_OVERLAY_SHA256 = {
         "CONTEXT.provenance.json",
         ".codearbiter/.provenance/CONTEXT.json",
     ): "4831a0db68f47f7f63fd6d0925942184488ce65231fb3acb747b753aae38a915",
+    (
+        "U06-preview-and-advanced-surfaces",
+        "docs/U06-preview-candidate.md",
+        "docs/U06-preview-candidate.md",
+    ): "2ca4e51b8014ad06a816a5841fd788a886b1de7c3dd6627c19fe677be7644d0f",
 }
 _P02_STATE_REACHABLE_LABS = frozenset(
     {

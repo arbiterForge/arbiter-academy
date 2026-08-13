@@ -10,6 +10,7 @@ from pathlib import Path
 
 from academy_engine.checkpoints import CheckpointError, Predicate, _Attempt, _SemanticContext, _semantic, load_checkpoint
 from academy_engine.scenario import prepare_lab
+from tests._temporary import RetryingTemporaryDirectory
 
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -31,7 +32,7 @@ def git(root: Path, *arguments: str, env: dict[str, str] | None = None) -> str:
 class P01PreparationSemanticsTests(unittest.TestCase):
     def test_feature_checkpoint_accepts_one_bounded_final_commit_without_executing_learner_code(self) -> None:
         """Catches a feature checkpoint that cannot verify the native one-commit contract."""
-        with tempfile.TemporaryDirectory() as directory:
+        with RetryingTemporaryDirectory() as directory:
             root = Path(directory) / "learner"
             root.mkdir()
             for path in ("academy", ".codearbiter", "data", "workshop_queue"):
@@ -175,7 +176,7 @@ class P01PreparationSemanticsTests(unittest.TestCase):
 
     def test_prepare_materializes_the_complete_immutable_p01_semantic_inputs(self) -> None:
         """Catches a P01 prepare that omits the verifier-owned exercise inputs."""
-        with tempfile.TemporaryDirectory() as directory:
+        with RetryingTemporaryDirectory() as directory:
             root = Path(directory) / "learner"
             root.mkdir()
             shutil.copytree(SOURCE / "academy", root / "academy")

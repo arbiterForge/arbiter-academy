@@ -24,10 +24,11 @@
               "checkpoint_remediation", "provenance_recovery", "stride_model",
               "hygiene_snapshot", "sprint_decisions", "override_audit_metrics",
               "refactor_chore_release", "initialized_fixture", "initialized_projects", "debug_spike_conflict",
-              "preview_evidence", "capstone"
+              "preview_evidence", "u06_preview_evidence", "capstone"
             ]
           },
           "artifact": {"$ref": "#/$defs/path"},
+          "candidate": {"$ref": "#/$defs/path"},
           "context": {"$ref": "#/$defs/path"},
           "board": {"$ref": "#/$defs/path"},
           "audit": {"$ref": "#/$defs/path"},

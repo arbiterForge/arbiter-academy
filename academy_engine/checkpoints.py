@@ -141,6 +141,22 @@ _P06_NOTE = (
     b"# Unrelated learner note\n\n"
     b"Keep this note unchanged while recovering the interrupted summary-format context.\n"
 )
+_U06_SEED_CANDIDATE = b"# U06 preview candidate\n\nThis draft is intentionally incomplete.\n"
+_U06_SAFE_CANDIDATE = (
+    b"# U06 preview candidate\n\n"
+    b"## Read-only documentation policy\n\n"
+    b"Preview may inspect the prepared attempt and report predicted reviewers. "
+    b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
+    b"## Evidence\n\n"
+    b"Record the reviewed commit, candidate tree, exact changed path, and a "
+    b"repository bindings in the U06 Academy record.\n"
+)
+_U06_ADVANCED_SURFACES = {
+    "ca-sandbox": "not-executed",
+    "ca-new-skill": "not-executed",
+    "ca-watch": "not-executed",
+    "ca-tribunal": "not-executed",
+}
 _PROFILES = {
     "remote_doctor": ("artifact",),
     "orientation": ("artifact", "context"),
@@ -176,6 +192,7 @@ _PROFILES = {
     "initialized_projects": ("greenfield", "brownfield", "report"),
     "debug_spike_conflict": ("spike", "board"),
     "preview_evidence": ("report",),
+    "u06_preview_evidence": ("candidate", "report"),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
 _REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "capstone"})
@@ -197,7 +214,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.3.0", "release_tag": "academy-v0.3.0", "release_message": "Academy private exercise: academy-private-training 0.3.0"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
-    "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "preview_evidence", {"report": ".codearbiter/reports/academy/U06-preview.json"}),
+    "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "u06_preview_evidence", {"candidate": "docs/U06-preview-candidate.md", "report": ".codearbiter/reports/academy/U06-preview.json"}),
     "U07-capstone": ("capstone_governed_range", "capstone", {"spec": ".codearbiter/specs/capstone.md", "plan": ".codearbiter/plans/capstone.md", "adr": ".codearbiter/decisions/0004-capstone.md", "review": ".codearbiter/reports/academy/U07-review.json", "pr_receipt": ".codearbiter/reports/academy/U07-pr-receipt.json", "audit": ".codearbiter/reports/academy/U07-audit.json", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
 
@@ -590,33 +607,38 @@ def _path_commits(root: Path, start: str, head: str, *paths: str) -> tuple[str, 
 
 
 def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
-    return tuple(
-        run_git(
-            root,
-            ["diff-tree", "--no-commit-id", "--name-only", "-r", commit],
-            check=False,
-        ).stdout.splitlines()
+    result = run_git(
+        root,
+        ["diff-tree", "--no-commit-id", "--name-only", "-r", commit],
+        check=False,
     )
+    return tuple(result.stdout.splitlines()) if result.returncode == 0 else ()
 
 
 def _exact_two_commit_range(
     root: Path, prepared: str, head: str
 ) -> tuple[str, str] | None:
+    oid_pattern = _repository_oid_pattern(root)
+    if oid_pattern is None:
+        return None
     result = run_git(
         root,
         ["rev-list", "--reverse", f"{prepared}..{head}"],
         check=False,
     )
     commits = tuple(
-        line for line in result.stdout.splitlines() if _SHA40.fullmatch(line)
+        line for line in result.stdout.splitlines() if oid_pattern.fullmatch(line)
     )
     if result.returncode or len(commits) != 2:
         return None
     expected_parent = prepared
     for commit in commits:
-        parents = run_git(
+        parent_result = run_git(
             root, ["rev-list", "--parents", "-n", "1", commit], check=False
-        ).stdout.split()
+        )
+        if parent_result.returncode:
+            return None
+        parents = parent_result.stdout.split()
         if parents != [commit, expected_parent]:
             return None
         expected_parent = commit
@@ -3539,6 +3561,60 @@ def _semantic(context: _SemanticContext) -> bool:
             and status.returncode == 0
             and not status.stdout
             and changed_paths == {str(data["spike"]), str(data["board"])}
+        )
+    if profile == "u06_preview_evidence":
+        candidate_path, report_path = (str(data[key]) for key in ("candidate", "report"))
+        commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
+        if commits is None:
+            return False
+        candidate_commit, report_commit = commits
+        candidate_blob = _git_blob(root, candidate_commit, candidate_path)
+        report_blob = _git_blob(root, report_commit, report_path)
+        if candidate_blob is None or report_blob is None or not blob_is_secret_free(candidate_blob) or not blob_is_secret_free(report_blob):
+            return False
+        try:
+            report = _object(json.loads(report_blob.decode("utf-8")), "U06 report")
+        except (UnicodeDecodeError, json.JSONDecodeError, CheckpointError):
+            return False
+        status = run_git(
+            root, ["status", "--porcelain", "--untracked-files=all"], check=False
+        )
+        tracked_index = run_git(root, ["ls-files", "-v"], check=False)
+        candidate_tree_result = run_git(
+            root, ["rev-parse", f"{candidate_commit}^{{tree}}"], check=False
+        )
+        candidate_tree = candidate_tree_result.stdout.strip()
+        oid_pattern = _repository_oid_pattern(root)
+        return bool(
+            status.returncode == 0
+            and not status.stdout
+            and tracked_index.returncode == 0
+            and bool(tracked_index.stdout.splitlines())
+            and all(line.startswith("H ") for line in tracked_index.stdout.splitlines())
+            and candidate_tree_result.returncode == 0
+            and oid_pattern is not None
+            and oid_pattern.fullmatch(candidate_tree)
+            and _git_blob(root, attempt.prepared, candidate_path) == _U06_SEED_CANDIDATE
+            and _git_blob(root, attempt.prepared, report_path) is None
+            and candidate_blob == _U06_SAFE_CANDIDATE
+            and _git_blob(root, attempt.head, candidate_path) == _U06_SAFE_CANDIDATE
+            and set(_commit_paths(root, candidate_commit)) == {candidate_path}
+            and set(_commit_paths(root, report_commit)) == {report_path}
+            and report_blob == canonical_json(report)
+            and set(report) == {
+                "schema_version", "prepared_commit", "candidate_commit", "candidate_tree",
+                "candidate_path", "candidate_sha256", "changed_paths", "read_only",
+                "advanced_surfaces",
+            }
+            and _version(report["schema_version"], 1)
+            and report["prepared_commit"] == attempt.prepared
+            and report["candidate_commit"] == candidate_commit
+            and report["candidate_tree"] == candidate_tree
+            and report["candidate_path"] == candidate_path
+            and report["candidate_sha256"] == _raw_digest(candidate_blob)
+            and report["changed_paths"] == [candidate_path]
+            and report["read_only"] is True
+            and report["advanced_surfaces"] == _U06_ADVANCED_SURFACES
         )
     if profile == "preview_evidence":
         report_path = str(data["report"])
