@@ -78,6 +78,7 @@ class CatalogExportTests(unittest.TestCase):
                 "P08-repository-hygiene",
                 "U01-autonomous-sprint",
                 "U04-initialize-projects",
+                "U05-debug-spike-conflict",
         }
         self.assertEqual({lab_id for lab_id, status in statuses.items() if status == "authored"}, authored)
         self.assertTrue(
