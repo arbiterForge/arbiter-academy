@@ -46,7 +46,7 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 **Current release inventory.** The runnable lesson catalog below is generated from the exact public release manifest. Every listed lesson has an explicit actor, surface, expected result, recovery path, and evidence boundary.
 
-**Course boundary.** Power User lessons are not part of this release. Graduation remains unavailable until the complete 19-lab course is published.
+**Course boundary.** U01 is published in this release. U02-U07 remain unavailable until each guided rewrite and acceptance boundary is complete. Graduation remains unavailable until the complete 19-lab course is published.
 
 ## Get help
 

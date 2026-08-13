@@ -5,12 +5,12 @@
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.13"},
+    "release": {"const": "preview-0.14"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 13,
+      "maxItems": 13,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -24,13 +24,14 @@
         {"const": "P05-checkpoint-remediation"},
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"},
-        {"const": "P08-repository-hygiene"}
+        {"const": "P08-repository-hygiene"},
+        {"const": "U01-autonomous-sprint"}
       ]
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 13,
+      "maxItems": 13,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -44,13 +45,14 @@
         {"const": "P05-checkpoint-remediation"},
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"},
-        {"const": "P08-repository-hygiene"}
+        {"const": "P08-repository-hygiene"},
+        {"const": "U01-autonomous-sprint"}
       ]
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 13,
+      "maxItems": 13,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -64,15 +66,23 @@
         {"const": "P05-checkpoint-remediation"},
         {"const": "P06-context-drift-recovery"},
         {"const": "P07-threat-model"},
-        {"const": "P08-repository-hygiene"}
+        {"const": "P08-repository-hygiene"},
+        {"const": "U01-autonomous-sprint"}
       ]
     },
     "coming_next": {
       "type": "array",
-      "minItems": 0,
-      "maxItems": 0,
+      "minItems": 6,
+      "maxItems": 6,
       "items": false,
-      "prefixItems": []
+      "prefixItems": [
+        {"const": "U02-override-audit-metrics"},
+        {"const": "U03-refactor-chore-release"},
+        {"const": "U04-initialize-projects"},
+        {"const": "U05-debug-spike-conflict"},
+        {"const": "U06-preview-and-advanced-surfaces"},
+        {"const": "U07-capstone"}
+      ]
     },
     "prerequisites": {
       "type": "array",
@@ -93,8 +103,8 @@
       "maxItems": 3,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04 and P01-P08 are the guided lessons published in Preview 0.13."},
-        {"const": "The Power User track is not published in Preview 0.13."},
+        {"const": "F01-F04, P01-P08, and U01 are the guided lessons published in Preview 0.14."},
+        {"const": "U02-U07 remain unavailable in Preview 0.14."},
         {"const": "Graduation is unavailable until the complete 19-lab course is published."}
       ]
     },

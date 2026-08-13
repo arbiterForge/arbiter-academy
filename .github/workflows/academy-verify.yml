@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      CA_VISUAL_RELEASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CA_VISUAL_RELEASE_SHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     steps:
       - name: Check out the exact Academy candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

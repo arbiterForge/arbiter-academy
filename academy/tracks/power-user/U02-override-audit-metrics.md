@@ -23,7 +23,7 @@ Keep a native terminal and one supported CodeArbiter harness at the same clone. 
 
 ## What you will prove
 
-Preview 0.13 refuses U02 because the Power User track is unavailable and not published there. Prepare, Check, and Reset must leave the repository unchanged. Do not create an attempt, evidence files, or an override record to simulate a published lesson.
+Preview 0.14 refuses U02 because the Power User track is unavailable and not published there. Prepare, Check, and Reset must leave the repository unchanged. Do not create an attempt, evidence files, or an override record to simulate a published lesson.
 
 The remaining cards specify the future private prepared-attempt contract. In that future private surface, the learner can record one scoped override for the `safe-training-gate` exercise, inspect the append-only local entry, review local audit and metrics output, and commit only the derived evidence boundary.
 
@@ -31,7 +31,7 @@ The checkpoint verifies deterministic local artifacts: new well-formed override 
 
 ## Prepare safely
 
-### Current Preview 0.13 refusal
+### Current Preview 0.14 refusal
 
 {{action:U02-prepare}}
 
@@ -41,7 +41,7 @@ The checkpoint verifies deterministic local artifacts: new well-formed override 
 
 ### Future private prepared-attempt contract
 
-Do not run the following actions from Preview 0.13. They document the private course contract only after a future private surface has prepared an attempt.
+Do not run the following actions from Preview 0.14. They document the private course contract only after a future private surface has prepared an attempt.
 
 {{action:U02-decide-scope}}
 
@@ -69,7 +69,7 @@ No card asks you to treat a generated log, audit packet, metric glance, commit, 
 
 ## Check
 
-Preview 0.13 still refuses the U02 checkpoint action and leaves the repository unchanged. In a future private prepared attempt, its local checkpoint would validate the deterministic evidence contract, but it would not prove a human or hosted fact.
+Preview 0.14 still refuses the U02 checkpoint action and leaves the repository unchanged. In a future private prepared attempt, its local checkpoint would validate the deterministic evidence contract, but it would not prove a human or hosted fact.
 
 {{action:U02-check}}
 

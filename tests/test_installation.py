@@ -463,11 +463,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.13.json"
+                        "share/arbiter-academy/academy/publication/preview-0.14.json"
                     )
                     for name in names
                 ),
-                "preview-0.13.json",
+                "preview-0.14.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -479,14 +479,17 @@ class InstalledWheelTests(unittest.TestCase):
                 {name for name in action_sources if name.startswith("P03")},
                 {"P03-record-an-adr.json"},
             )
+            self.assertTrue(
+                any(name.endswith("/academy/actions/U01-autonomous-sprint.json") for name in names),
+                "the public wheel must distribute the accepted U01 action contract",
+            )
             self.assertFalse(
                 any(
-                    "/share/arbiter-academy/academy/"
-                    in name
-                    and "/U0" in name
+                    "/share/arbiter-academy/academy/" in name
+                    and any(f"/U0{number}" in name for number in range(2, 8))
                     for name in names
                 ),
-                "the public wheel must not distribute unpublished Power User material",
+                "the public wheel must not distribute unpublished U02-U07 material",
             )
             self.assertEqual(
                 sum(
@@ -494,7 +497,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                12,
+                13,
             )
             self.assertEqual(
                 sum(
@@ -502,7 +505,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                12,
+                13,
             )
             self.assertEqual(
                 sum(
@@ -510,7 +513,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                12,
+                13,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]
@@ -554,7 +557,7 @@ class InstalledWheelTests(unittest.TestCase):
                 if "/share/arbiter-academy/academy/tracks/power-user/" in name
                 and name.endswith(".md")
             }
-            self.assertEqual(power_user_sources, set())
+            self.assertEqual(power_user_sources, {"U01-autonomous-sprint.md"})
 
             venv = scratch / "venv"
             subprocess.run(
