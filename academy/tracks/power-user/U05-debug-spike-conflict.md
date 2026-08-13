@@ -23,8 +23,7 @@ for U05. Do not substitute an Academy-only branch, report, or made-up command fo
 
 ## What you will prove
 
-The future private walkthrough requires released CodeArbiter 2.15.1 (Claude), ca-codex 0.7.1
-(Codex), or ca-pi 0.8.1 (Pi), each containing the
+The future private walkthrough requires a matching released integration: CodeArbiter 2.15.1 (Claude); ca-codex 0.7.1 (Codex); or ca-pi 0.8.1 (Pi), each containing the
 [findings-only spike contract](https://github.com/arbiterForge/codeArbiter/pull/687): `$ca-spike` uses `spike/<slug>`, retains only
 `.codearbiter/spikes/<slug>.md` on the parent, and deletes the spike branch. `$ca-debug` changes no
 code and may close with its actual queued `debug.note` board entry. `$ca-conflict` stops, presents
