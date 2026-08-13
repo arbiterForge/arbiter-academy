@@ -157,6 +157,15 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
+    def test_u06_nested_scenario_seed_is_declared_as_wheel_data(self) -> None:
+        """Catches the package-data glob treating U06's nested docs directory as a file."""
+        repository = Path(__file__).resolve().parents[1]
+        package = (repository / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn(
+            '"academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"',
+            package,
+        )
+
     def test_p04_candidate_bytes_survive_source_sdist_wheel_and_install_without_runtime_dependency(self) -> None:
         """Catches opaque P04 evidence being omitted, transformed, or promoted to an Academy dependency."""
         wheelhouse = verified_wheelhouse(os.environ.get("WORKSHOP_QUEUE_TEST_WHEELHOUSE"))
