@@ -27,9 +27,9 @@
       "rationale": "Prepare creates the attempt branch and freezes the brief before learner work begins.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.19\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.20\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true}
       ],
       "expected_result": "Prepare creates academy/U03-refactor-chore-release/1 with the sealed brief and declared release target, then reports its prepared commit.",
       "recovery": "If Prepare refuses or reports a dirty repository, preserve existing work and make the clone clean before retrying. Next safe step: inspect the prepared branch and brief.",
@@ -304,9 +304,9 @@
       "rationale": "Check evaluates the prepared attempt's bounded local evidence.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.19\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.20\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true}
       ],
       "expected_result": "Academy Check reports U03 passed after it verifies the three commits, declared target, generated changelog, annotated tag, and clean worktree.",
       "recovery": "If Check fails, preserve the failure and correct only the named local boundary. Do not add a remote tag or release record. Next safe step: rerun Check after the stated correction.",
@@ -322,9 +322,9 @@
       "rationale": "Reset archives an attempt before restoring the prepared state instead of erasing learner evidence.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.19\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.19/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.20\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.20/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true}
       ],
       "expected_result": "Academy Reset archives the failed U03 attempt and restores the sealed prepared state without rewriting history in place.",
       "recovery": "If Reset refuses, preserve the reported state and do not delete commits or tags by hand. Next safe step: resolve the stated reset boundary or return to Check.",

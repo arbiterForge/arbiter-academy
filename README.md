@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.19
+## Preview 0.20
 
-Preview 0.19 publishes seventeen guided labs:
+Preview 0.20 publishes all nineteen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -50,10 +50,13 @@ Preview 0.19 publishes seventeen guided labs:
 - **U05 is guided and runnable.** Its lesson records a real no-action debug
   note, transfers only committed spike findings to the parent branch, then
   deletes the disposable spike without merging it.
+- **U06 is guided and runnable.** Its lesson keeps CodeArbiter preview advice
+  separate from durable repository evidence and does not fabricate telemetry.
+- **U07 is guided and runnable.** Its capstone follows the real feature lane,
+  preserves local behavior evidence, and opens a real hosted pull request.
 
-U06-U07 remain unavailable in Preview 0.19 while their guided rewrites and
-acceptance boundaries are completed. Graduation is unavailable until the
-complete 19-lab course through U07 is published.
+All 19 Academy lessons through U07 are public in Preview 0.20. Graduation is
+available after all 19 Academy Checks pass in the same repository.
 
 ## Start the course
 
@@ -75,6 +78,8 @@ complete 19-lab course through U07 is published.
 - [Continue to U03 - Refactor, chore, and cut a local release](https://arbiterforge.github.io/arbiter-academy/labs/U03-refactor-chore-release/)
 - [Continue to U04 - Initialize a greenfield and a brownfield project](https://arbiterforge.github.io/arbiter-academy/labs/U04-initialize-projects/)
 - [Continue to U05 - Debug, spike, and stop for a real conflict](https://arbiterforge.github.io/arbiter-academy/labs/U05-debug-spike-conflict/)
+- [Continue to U06 - Preview a bounded change without turning advice into authority](https://arbiterforge.github.io/arbiter-academy/labs/U06-preview-and-advanced-surfaces/)
+- [Complete U07 - Complete a bounded feature capstone](https://arbiterforge.github.io/arbiter-academy/labs/U07-capstone/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 
 Start on the Academy Home page even if you have never forked a repository. It

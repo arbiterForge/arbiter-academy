@@ -45,3 +45,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: retain invented reviewer/scan fields; keep U06 private; publish the accepted two-commit candidate and Academy binding record while explicitly excluding invocation and telemetry claims.
 - SMARTS: Reliable, Testable, and Securable favor the bounded repository record because it can be reproduced from committed state without claiming a host result. Available and Maintainable favor the existing installed Prepare/Check/Reset lifecycle and explicit public package inventory.
 - Chosen: publish U06 in Preview 0.19 with real host-native ca-preview guidance, a public route, deterministic package assets, and U07 as the sole non-linking coming-next lesson.
+
+## SD-ACA-009 - Promote the accepted U07 capstone as the complete course - confidence: high
+- Date: 2026-08-13
+- Point: Whether Preview 0.20 should keep U07 non-routable or publish the accepted real feature capstone and enable the complete course boundary.
+- Options: keep a false unavailable status; expose a synthetic local PR receipt; publish U07 with the real feature lane, browser PR evidence, local-only Check boundary, and the immutable 19-lab release.
+- SMARTS: Reliable and Testable favor the accepted guide, scenario, semantic Check, and public route because Check validates only durable repository facts while the guide labels the hosted PR as browser evidence. Available favors shipping the completed course without a new service. Securable favors fork-first remotes, preserved retries, and no fabricated hosted telemetry. Maintainable favors one versioned manifest and deterministic release assets.
+- Chosen: publish U07 in Preview 0.20, make all 19 labs guided and runnable, enable graduation only after all 19 Checks pass in one repository, and preserve Preview 0.19 as immutable history.
