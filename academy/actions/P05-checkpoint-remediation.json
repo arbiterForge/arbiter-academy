@@ -27,9 +27,9 @@
       "rationale": "Prepare creates the verifier-owned attempt branch and stages the real blocked-ticket summary defect before any learner work begins.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P05-checkpoint-remediation","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation","copy":true}
       ],
       "expected_result": "Academy prints academy/P05-checkpoint-remediation/ATTEMPT_NUMBER and prepares a blocked ticket whose summary count is intentionally wrong.",
       "recovery": "Preserve the exact error. Resolve only the named clean-worktree or branch condition; do not force-reset main or delete an earlier attempt.",
@@ -290,9 +290,9 @@
       "rationale": "Check independently reconstructs the prepared fixture, commit ancestry, exact path roles, regression, repair, receipt, and live worktree.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P05-checkpoint-remediation","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation","copy":true}
       ],
       "expected_result": "Check prints checkpoint P05-checkpoint-remediation: passed and records progress in .academy/progress.json.",
       "recovery": "If Check fails, preserve the committed attempt and read the failed predicate. Start a new numbered attempt with Reset instead of rewriting committed evidence.",
@@ -308,9 +308,9 @@
       "rationale": "Reset preserves the failed or incomplete attempt for inspection before creating the next numbered baseline.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P05-checkpoint-remediation","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P05-checkpoint-remediation","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation","copy":true}
       ],
       "expected_result": "Academy preserves the earlier attempt and prints the next academy/P05-checkpoint-remediation/ATTEMPT_NUMBER branch.",
       "recovery": "If Reset stops, preserve its message and resolve only the named repository condition. Never force-reset or delete a prior attempt.",

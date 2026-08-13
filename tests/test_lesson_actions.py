@@ -286,10 +286,10 @@ class LessonActionTests(unittest.TestCase):
         for action_id in current_preview_ids:
             action = actions[action_id]
             with self.subTest(action=action_id):
-                self.assertIn("Preview 0.14 refuses U04", action.expected_result)
+                self.assertIn("Preview 0.15 refuses U04", action.expected_result)
                 self.assertTrue(
                     action.expected_result.endswith(
-                        "Next safe step: stop and use a published Preview 0.14 lab."
+                        "Next safe step: stop and use a published Preview 0.15 lab."
                     )
                 )
 
@@ -307,9 +307,9 @@ class LessonActionTests(unittest.TestCase):
 
         writer = actions["U04-write-binding-report"]
         self.assertEqual((writer.surface, writer.variants), ("active-harness", ()))
-        self.assertIn("canonical writer is unavailable in Preview 0.14", writer.instruction)
+        self.assertIn("canonical writer is unavailable in Preview 0.15", writer.instruction)
         self.assertIn("future accepted U04 tooling", writer.instruction)
-        self.assertIn("No report is written in Preview 0.14", writer.expected_result)
+        self.assertIn("No report is written in Preview 0.15", writer.expected_result)
 
         for action_id in ("U04-check-status", "U04-reset-retry"):
             action = actions[action_id]
@@ -383,7 +383,7 @@ class LessonActionTests(unittest.TestCase):
                 if action.id in current_preview_ids:
                     self.assertTrue(
                         action.expected_result.endswith(
-                            "Next safe step: stop and use a published Preview 0.14 lab."
+                            "Next safe step: stop and use a published Preview 0.15 lab."
                         )
                     )
                 else:
@@ -2178,7 +2178,7 @@ class LessonActionTests(unittest.TestCase):
                 with self.subTest(action=action.id, variant=variant.id):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
-        self.assertIn("Academy Preview 0.14", guide)
+        self.assertIn("Academy Preview 0.15", guide)
         self.assertIn("`ca-preview`", guide)
         self.assertIn("not `ca-preview` output", guide)
         self.assertIn("whether a secret scan ran", guide)
@@ -2271,14 +2271,9 @@ class PrivateU02LessonActionTests(unittest.TestCase):
         boundary = actions["U02-read-boundary"]
         self.assertIn("does not prove", boundary.evidence or "")
         self.assertIn("human approval", boundary.evidence or "")
-        for action_id in ("U02-prepare", "U02-check", "U02-reset"):
-            with self.subTest(action=action_id):
-                action = actions[action_id]
-                self.assertIn("Preview 0.14", action.expected_result)
-                self.assertIn("refuses", action.expected_result)
-                self.assertIn("unchanged", action.expected_result)
-                self.assertNotIn("creates", action.expected_result)
-                self.assertNotIn("passed", action.expected_result)
+        self.assertIn("numbered U02 attempt branch", actions["U02-prepare"].expected_result)
+        self.assertIn("one clean evidence commit", actions["U02-check"].expected_result)
+        self.assertIn("archives the failed U02 attempt", actions["U02-reset"].expected_result)
 
         evidence = actions["U02-write-evidence"]
         self.assertEqual((evidence.actor, evidence.surface), ("learner", "active-harness"))
@@ -2419,7 +2414,7 @@ class PrivateU03LessonActionTests(unittest.TestCase):
 
         for action_id in ("U03-prepare", "U03-check", "U03-reset"):
             with self.subTest(action=action_id):
-                self.assertIn("Preview 0.14 refuses U03", actions[action_id].expected_result)
+                self.assertIn("Preview 0.15 refuses U03", actions[action_id].expected_result)
                 self.assertIn("unchanged", actions[action_id].expected_result)
 
         self.assertIn("workshop_queue/store.py", actions["U03-stage-refactor"].instruction)

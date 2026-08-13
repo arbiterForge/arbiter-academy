@@ -23,7 +23,7 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 BUILDER = REPOSITORY / "scripts" / "build_release_assets.py"
-RELEASE = "preview-0.14"
+RELEASE = "preview-0.15"
 ARCHIVE = f"arbiter-academy-{RELEASE}.zip"
 EPOCH = 1_786_924_800
 EXPECTED_ASSETS = {
@@ -129,17 +129,17 @@ def release_builder_module() -> object:
 
 
 class ReleaseAssetBuilderTests(unittest.TestCase):
-    def test_preview_zero_thirteen_is_the_only_current_candidate_identity(self) -> None:
+    def test_preview_zero_fifteen_is_the_only_current_candidate_identity(self) -> None:
         """Catches current assets drifting while Preview 0.9 history remains intact."""
-        self.assertEqual(RELEASE, "preview-0.14")
+        self.assertEqual(RELEASE, "preview-0.15")
         self.assertEqual(EPOCH, 1_786_924_800)
         publication = REPOSITORY / "academy" / "publication"
         self.assertFalse((publication / "preview-0.7.json").exists())
         self.assertFalse((publication / "preview-0.8.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
-        self.assertTrue((publication / "preview-0.14.json").is_file())
+        self.assertTrue((publication / "preview-0.15.json").is_file())
         package = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertIn("academy/publication/preview-0.14.json", package)
+        self.assertIn("academy/publication/preview-0.15.json", package)
         self.assertNotIn("academy/publication/preview-0.7.json", package)
 
     def test_preview_zero_nine_retains_its_reviewed_immutable_history(self) -> None:
@@ -161,7 +161,7 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
             self.assertEqual(immutable_release_tag_commit(RELEASE), expected)
         self.assertEqual(
             run.call_args.args[0],
-            ["git", "rev-parse", "--verify", "refs/tags/preview-0.14^{commit}"],
+            ["git", "rev-parse", "--verify", "refs/tags/preview-0.15^{commit}"],
         )
 
     def test_immutable_tag_resolution_uses_the_tag_namespace(self) -> None:
@@ -1230,7 +1230,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "#!/bin/sh\n"
             "printf 'arg1=%s arg2=%s arg3=%s\\n' \"${1:-}\" \"${2:-}\" \"${3:-}\" >>\"$ATTACK_EVENT\"\n"
             "case \"${2:-}\" in\n"
-            "*/preview-0.14)\n"
+            "*/preview-0.15)\n"
             "  rm -f -- \"$2/.academy-install-owner\"\n"
             "  rmdir -- \"$2\"\n"
             "  ln -s -- \"$ATTACK_TARGET\" \"$2\"\n"
@@ -1287,7 +1287,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             "$function = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-TrustedReleaseRedirect' }, $true)\n"
             "if ($null -eq $function) { throw 'missing redirect validator' }\n"
             ". ([ScriptBlock]::Create($function.Extent.Text))\n"
-            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.14/file.zip'\n"
+            "$github = [Uri]'https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.15/file.zip'\n"
             "$cdn = [Uri]'https://release-assets.githubusercontent.com/path?sig=x'\n"
             "$badPort = [Uri]'https://release-assets.githubusercontent.com:444/path?sig=x'\n"
             "$badHost = [Uri]'https://evil.example/path'\n"

@@ -9,31 +9,31 @@
       "title": "Read the private evidence boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "This source-only lesson is not runnable in Preview 0.14. Its future private contract is limited to an exact refactor of workshop_queue/store.py, a later docs-only README.md commit, an unchanged pre-existing tests/test_store.py, a clean worktree, and the declared annotated academy-v0.3.0 tag at the attempt head. Do not substitute your own scope, target, or release metadata.",
+      "instruction": "This source-only lesson is not runnable in Preview 0.15. Its future private contract is limited to an exact refactor of workshop_queue/store.py, a later docs-only README.md commit, an unchanged pre-existing tests/test_store.py, a clean worktree, and the declared annotated academy-v0.3.0 tag at the attempt head. Do not substitute your own scope, target, or release metadata.",
       "rationale": "A narrow contract makes the difference between repository evidence and a broader release claim visible.",
       "resources": [],
       "variants": [],
-      "expected_result": "You can name the future private boundaries and know that Preview 0.14 does not prepare this lesson.",
-      "recovery": "If you need a runnable exercise today, return to an available Preview 0.14 lesson. Do not create U03 state files by hand.",
+      "expected_result": "You can name the future private boundaries and know that Preview 0.15 does not prepare this lesson.",
+      "recovery": "If you need a runnable exercise today, return to an available Preview 0.15 lesson. Do not create U03 state files by hand.",
       "evidence": "A future Check can observe repository bytes, commit topology, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, CodeArbiter command execution, SemVer derivation, CHANGELOG or manifest update, tag push, or publication."
     },
     {
       "id": "U03-prepare",
       "sequence": 2,
-      "title": "Ask Preview 0.14 to prepare U03",
+      "title": "Ask Preview 0.15 to prepare U03",
       "actor": "learner",
       "surface": null,
       "instruction": "At the clean Academy clone root, run Prepare in a native terminal. Native-terminal commands go directly into that terminal and never begin with !.",
       "rationale": "The refusal distinguishes unavailable training material from a prepared attempt.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U03-refactor-chore-release","copy":true}
       ],
-      "expected_result": "Preview 0.14 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.15 refuses U03 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Treat the refusal as the public boundary. Do not retry with another command or simulate a prepared attempt.",
-      "evidence": "Preview 0.14 creates no U03 attempt, scenario, commit, tag, or release record."
+      "evidence": "Preview 0.15 creates no U03 attempt, scenario, commit, tag, or release record."
     },
     {
       "id": "U03-confirm-refusal",
@@ -49,7 +49,7 @@
         {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
         {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
       ],
-      "expected_result": "Preview 0.14 refuses U03 and the worktree remains unchanged.",
+      "expected_result": "Preview 0.15 refuses U03 and the worktree remains unchanged.",
       "recovery": "If unrelated work is already present, preserve it and resolve that work separately. Do not hand-author a U03 scenario.",
       "evidence": "An empty status output only confirms the local worktree state you inspected."
     },
@@ -297,38 +297,38 @@
     {
       "id": "U03-check",
       "sequence": 18,
-      "title": "Ask Preview 0.14 to check U03",
+      "title": "Ask Preview 0.15 to check U03",
       "actor": "learner",
       "surface": null,
       "instruction": "Run Check in a native terminal. Native-terminal commands never begin with !.",
       "rationale": "The current refusal keeps incomplete private material out of the public course boundary.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U03-refactor-chore-release","copy":true}
       ],
-      "expected_result": "Preview 0.14 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.15 refuses U03 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Keep the refusal as evidence of the public boundary. Do not imitate a passing U03 result.",
-      "evidence": "Preview 0.14 cannot attest to the future private U03 contract."
+      "evidence": "Preview 0.15 cannot attest to the future private U03 contract."
     },
     {
       "id": "U03-reset",
       "sequence": 19,
-      "title": "Ask Preview 0.14 to reset U03",
+      "title": "Ask Preview 0.15 to reset U03",
       "actor": "learner",
       "surface": null,
       "instruction": "Run Reset in a native terminal. Native-terminal commands never begin with !.",
-      "rationale": "The current refusal confirms that no U03 attempt exists to reset in Preview 0.14.",
+      "rationale": "The current refusal confirms that no U03 attempt exists to reset in Preview 0.15.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.14\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U03-refactor-chore-release","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.14/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.15\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U03-refactor-chore-release","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.15/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U03-refactor-chore-release","copy":true}
       ],
-      "expected_result": "Preview 0.14 refuses U03 as unavailable or not published and leaves the repository unchanged.",
+      "expected_result": "Preview 0.15 refuses U03 as unavailable or not published and leaves the repository unchanged.",
       "recovery": "Do not use Reset as a substitute for deleting or rewriting private attempt history. The current public release has none.",
-      "evidence": "Preview 0.14 creates no reset archive for an unavailable U03 lesson."
+      "evidence": "Preview 0.15 creates no reset archive for an unavailable U03 lesson."
     }
   ]
 }

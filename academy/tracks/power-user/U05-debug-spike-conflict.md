@@ -15,7 +15,7 @@ next_lab: U06-preview-and-advanced-surfaces
 
 ## Know before you begin
 
-U05 is a private source contract, not public or runnable in Preview 0.14. The website remains the
+U05 is a private source contract, not public or runnable in Preview 0.15. The website remains the
 primary lesson surface. Current Preview commands refuse to prepare, Check, reset, or write evidence
 for U05. Do not substitute an Academy-only branch, report, or made-up command for CodeArbiter.
 

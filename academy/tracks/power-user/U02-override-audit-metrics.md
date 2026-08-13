@@ -15,7 +15,7 @@ next_lab: U03-refactor-chore-release
 
 ## Know before you begin
 
-The Power User track remains private. This guide is source material for the shared website action renderer, not a published Preview lesson. The action cards are the primary route; the Academy CLI is only the local Prepare, Check, and Reset helper.
+U02 is a published Power User lesson in Preview 0.15. The action cards are the primary route; the Academy CLI is the local Prepare, Check, and Reset helper.
 
 Keep a native terminal and one supported CodeArbiter harness at the same clone. Native shell commands never begin with `!`. Harness shell commands begin with exactly one `!`. Host CodeArbiter commands never begin with `!`.
 
@@ -23,15 +23,15 @@ Keep a native terminal and one supported CodeArbiter harness at the same clone. 
 
 ## What you will prove
 
-Preview 0.14 refuses U02 because the Power User track is unavailable and not published there. Prepare, Check, and Reset must leave the repository unchanged. Do not create an attempt, evidence files, or an override record to simulate a published lesson.
+Prepare creates a numbered U02 branch with a committed scenario overlay. The learner then records one narrow, safe override through CodeArbiter, reads the real audit and metrics output, and commits only the two durable CodeArbiter artifacts.
 
-The remaining cards specify the future private prepared-attempt contract. In that future private surface, the learner can record one scoped override for the `safe-training-gate` exercise, inspect the append-only local entry, read the local audit and metrics output, and commit only the real CodeArbiter artifacts.
+The prepared attempt is deliberately narrow: one `safe-training-gate` override, its append-only local entry, one exact dated audit packet, and the read-only metrics glance. Do not turn either read-only command into a learner-authored receipt.
 
 The checkpoint verifies deterministic local artifacts: one new well-formed override line and the exact `$ca-audit` packet that quotes it. `$ca-metrics` is a read-only, three-line terminal glance; it writes no artifact, and Check does not treat a learner-written transcript or JSON file as metrics output. Check does not prove that a human approved an override or that any hosted service accepted, ran, or reported anything.
 
 ## Prepare safely
 
-### Current Preview 0.14 refusal
+### Create the prepared U02 attempt
 
 {{action:U02-prepare}}
 
@@ -39,9 +39,7 @@ The checkpoint verifies deterministic local artifacts: one new well-formed overr
 
 ## Practice
 
-### Future private prepared-attempt contract
-
-Do not run the following actions from Preview 0.14. They document the private course contract only after a future private surface has prepared an attempt.
+### Work the prepared U02 attempt
 
 {{action:U02-decide-scope}}
 
@@ -63,25 +61,25 @@ Do not run the following actions from Preview 0.14. They document the private co
 
 ## Recognize success
 
-The future private attempt stages exactly two paths: `.codearbiter/overrides.log` and the exact dated audit packet path printed by this attempt's audit command. Historical audit packets may remain unstaged. The new, well-formed `safe-training-gate` override line appears verbatim in that printed packet. The learner reads the `$ca-metrics` glance for context, but does not preserve a transcript, JSON summary, or claim that it proves the command ran.
+The prepared attempt stages exactly two paths: `.codearbiter/overrides.log` and the exact dated audit packet path printed by this attempt's audit command. Historical audit packets may remain unstaged. The new, well-formed `safe-training-gate` override line appears verbatim in that printed packet. The learner reads the `$ca-metrics` glance for context, but does not preserve a transcript, JSON summary, or claim that it proves the command ran.
 
 No card asks you to treat a generated log, audit packet, metric glance, commit, or checkpoint result as proof of your own approval, another person's approval, or a hosted fact.
 
 ## Check
 
-Preview 0.14 still refuses the U02 checkpoint action and leaves the repository unchanged. In a future private prepared attempt, its local checkpoint would validate the deterministic evidence contract, but it would not prove a human or hosted fact.
+Check validates the deterministic local evidence contract for this prepared attempt. It does not prove a human or hosted fact.
 
 {{action:U02-check}}
 
 ## Recover or continue
 
-In the future private contract, if Check reports a missing boundary, correct only that local evidence. Never change prior override lines, make up a digest, or rewrite an attempt to hide a failed check.
+If Check reports a missing boundary, correct only that local evidence. Never change prior override lines, make up a transcript or digest, or rewrite an attempt to hide a failed check.
 
-**Hint 1.** Re-read the local override lines and include exactly one line added after the future private Prepare step whose gate is exactly `safe-training-gate` and that contains `| BY:` and `| REASON:`.
+**Hint 1.** Re-read the local override lines and include exactly one line added after Prepare whose gate is exactly `safe-training-gate` and that contains `| BY:` and `| REASON:`.
 
 **Hint 2.** The audit packet must quote the qualifying new line verbatim; do not add an Academy digest or metric summary beside it.
 
-**Hint 3.** A future private Reset is only for an attempt that cannot be corrected within its evidence boundary. It preserves rather than erases the earlier attempt.
+**Hint 3.** Reset is only for an attempt that cannot be corrected within its evidence boundary. It preserves rather than erases the earlier attempt.
 
 {{action:U02-reset}}
 
