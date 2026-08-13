@@ -168,7 +168,7 @@ _PROFILES = {
     "override_audit_metrics": ("overrides", "audit", "metrics"),
     "refactor_chore_release": ("code", "test", "chore", "tag_prefix"),
     "initialized_fixture": ("workspace", "report"),
-    "debug_spike_conflict": ("debug", "spike", "conflict"),
+    "debug_spike_conflict": ("spike", "board"),
     "preview_evidence": ("report",),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
@@ -190,7 +190,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "tag_prefix": "academy-v"}),
     "U04-initialize-projects": ("initialized_secondary_fixture", "initialized_fixture", {"workspace": ".academy/workspaces/U04-secondary", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
-    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"debug": ".codearbiter/reports/academy/U05-debug.md", "spike": ".codearbiter/reports/academy/U05-spike.md", "conflict": ".codearbiter/reports/academy/U05-conflict.md"}),
+    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "preview_evidence", {"report": ".codearbiter/reports/academy/U06-preview.json"}),
     "U07-capstone": ("capstone_governed_range", "capstone", {"spec": ".codearbiter/specs/capstone.md", "plan": ".codearbiter/plans/capstone.md", "adr": ".codearbiter/decisions/0004-capstone.md", "review": ".codearbiter/reports/academy/U07-review.json", "pr_receipt": ".codearbiter/reports/academy/U07-pr-receipt.json", "audit": ".codearbiter/reports/academy/U07-audit.json", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
@@ -3231,23 +3231,28 @@ def _semantic(context: _SemanticContext) -> bool:
             )
         )
     if profile == "debug_spike_conflict":
-        debug, spike, conflict = (_changed_document(context, str(data[key])) for key in ("debug", "spike", "conflict"))
+        spike = _changed_document(context, str(data["spike"]))
+        board = _changed_document(context, str(data["board"]))
+        changed_paths = set(
+            run_git(
+                root,
+                ["diff", "--no-ext-diff", "--name-only", attempt.prepared, attempt.head],
+                check=False,
+            ).stdout.splitlines()
+        )
         spike_refs = run_git(
             root,
-            ["for-each-ref", "--format=%(refname:short)%00%(objectname)", "refs/heads/academy/spike/U05-"],
+            ["for-each-ref", "--format=%(refname:short)", "refs/heads/spike/u05-cache-key"],
             check=False,
-        ).stdout.splitlines()
-        linked_spike = any(
-            "\x00" in item
-            and item.split("\x00", 1)[0] in (spike or "")
-            and item.split("\x00", 1)[1] in (spike or "")
-            for item in spike_refs
-        )
+        ).stdout.strip()
         return bool(
-            _headings(debug, ("Symptom", "Root cause", "Disposition"))
-            and _headings(spike, ("Question", "Experiment", "Finding", "Disposable branch"))
-            and _headings(conflict, ("Rule A", "Rule B", "Resolution", "Attribution"))
-            and linked_spike
+            _headings(spike, ("Question", "What tried", "Answer", "Implication"))
+            and board
+            and re.search(r"(?m)^- \[ \] debug\.note\.\d{4} - .+$", board)
+            and re.search(r"(?m)^  - Desc: .+$", board)
+            and "closed without code changes" in board
+            and not spike_refs
+            and changed_paths == {str(data["spike"]), str(data["board"])}
         )
     if profile == "preview_evidence":
         report_path = str(data["report"])
