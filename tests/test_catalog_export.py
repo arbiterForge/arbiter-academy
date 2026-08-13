@@ -79,6 +79,7 @@ class CatalogExportTests(unittest.TestCase):
                 "P07-threat-model",
                 "P08-repository-hygiene",
                 "U01-autonomous-sprint",
+                "U04-initialize-projects",
                 "U05-debug-spike-conflict",
             },
         )
@@ -87,7 +88,11 @@ class CatalogExportTests(unittest.TestCase):
                 status == "pending"
                 for lab_id, status in statuses.items()
                 if lab_id.startswith("U0")
-                and lab_id not in {"U01-autonomous-sprint", "U05-debug-spike-conflict"}
+                and lab_id not in {
+                    "U01-autonomous-sprint",
+                    "U04-initialize-projects",
+                    "U05-debug-spike-conflict",
+                }
             )
         )
         self.assertTrue(all(item["contract_path"] == "academy/contracts.json" for item in payload["labs"]))
