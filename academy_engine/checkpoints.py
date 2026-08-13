@@ -174,7 +174,7 @@ _PROFILES = {
     ),
     "initialized_fixture": ("workspace", "report"),
     "initialized_projects": ("greenfield", "brownfield", "report"),
-    "debug_spike_conflict": ("debug", "spike", "conflict"),
+    "debug_spike_conflict": ("spike", "board"),
     "preview_evidence": ("report",),
     "capstone": ("spec", "plan", "adr", "review", "pr_receipt", "audit", "code", "test"),
 }
@@ -196,7 +196,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit": ".codearbiter/reports/academy/U02-audit.md", "metrics": ".codearbiter/reports/academy/U02-metrics.json", "audit_packets": ".codearbiter/audits"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.3.0", "release_tag": "academy-v0.3.0", "release_message": "Academy private exercise: academy-private-training 0.3.0"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
-    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"debug": ".codearbiter/reports/academy/U05-debug.md", "spike": ".codearbiter/reports/academy/U05-spike.md", "conflict": ".codearbiter/reports/academy/U05-conflict.md"}),
+    "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md"}),
     "U06-preview-and-advanced-surfaces": ("preview_advanced_evidence", "preview_evidence", {"report": ".codearbiter/reports/academy/U06-preview.json"}),
     "U07-capstone": ("capstone_governed_range", "capstone", {"spec": ".codearbiter/specs/capstone.md", "plan": ".codearbiter/plans/capstone.md", "adr": ".codearbiter/decisions/0004-capstone.md", "review": ".codearbiter/reports/academy/U07-review.json", "pr_receipt": ".codearbiter/reports/academy/U07-pr-receipt.json", "audit": ".codearbiter/reports/academy/U07-audit.json", "code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
 }
@@ -3509,23 +3509,36 @@ def _semantic(context: _SemanticContext) -> bool:
     if profile == "initialized_fixture":
         return _initialized_fixture(context)
     if profile == "debug_spike_conflict":
-        debug, spike, conflict = (_changed_document(context, str(data[key])) for key in ("debug", "spike", "conflict"))
+        spike = _changed_document(context, str(data["spike"]))
+        board = _changed_document(context, str(data["board"]))
+        status = run_git(
+            root,
+            ["status", "--porcelain", "--untracked-files=all"],
+            check=False,
+        )
+        changed_paths = set(
+            run_git(
+                root,
+                ["diff", "--no-ext-diff", "--name-only", attempt.prepared, attempt.head],
+                check=False,
+            ).stdout.splitlines()
+        )
         spike_refs = run_git(
             root,
-            ["for-each-ref", "--format=%(refname:short)%00%(objectname)", "refs/heads/academy/spike/U05-"],
+            ["for-each-ref", "--format=%(refname:short)", "refs/heads/spike/u05-cache-key"],
             check=False,
-        ).stdout.splitlines()
-        linked_spike = any(
-            "\x00" in item
-            and item.split("\x00", 1)[0] in (spike or "")
-            and item.split("\x00", 1)[1] in (spike or "")
-            for item in spike_refs
-        )
+        ).stdout.strip()
         return bool(
-            _headings(debug, ("Symptom", "Root cause", "Disposition"))
-            and _headings(spike, ("Question", "Experiment", "Finding", "Disposable branch"))
-            and _headings(conflict, ("Rule A", "Rule B", "Resolution", "Attribution"))
-            and linked_spike
+            _headings(spike, ("Question", "What tried", "Answer", "Implication"))
+            and board
+            and re.search(
+                r"(?m)^- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n  - Desc: .+$",
+                board,
+            )
+            and not spike_refs
+            and status.returncode == 0
+            and not status.stdout
+            and changed_paths == {str(data["spike"]), str(data["board"])}
         )
     if profile == "preview_evidence":
         report_path = str(data["report"])
