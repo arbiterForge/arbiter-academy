@@ -25,9 +25,9 @@ Keep a native terminal and one supported CodeArbiter harness at the same clone. 
 
 Preview 0.14 refuses U02 because the Power User track is unavailable and not published there. Prepare, Check, and Reset must leave the repository unchanged. Do not create an attempt, evidence files, or an override record to simulate a published lesson.
 
-The remaining cards specify the future private prepared-attempt contract. In that future private surface, the learner can record one scoped override for the `safe-training-gate` exercise, inspect the append-only local entry, review local audit and metrics output, and commit only the derived evidence boundary.
+The remaining cards specify the future private prepared-attempt contract. In that future private surface, the learner can record one scoped override for the `safe-training-gate` exercise, inspect the append-only local entry, read the local audit and metrics output, and commit only the real CodeArbiter artifacts.
 
-The checkpoint verifies deterministic local artifacts: new well-formed override lines, their SHA-256 digests in the U02 audit, and exact JSON keys and counts in the U02 metrics file. It does not prove that a human approved an override. It also does not prove that any hosted service accepted, ran, or reported anything.
+The checkpoint verifies deterministic local artifacts: one new well-formed override line and the exact `$ca-audit` packet that quotes it. `$ca-metrics` is a read-only, three-line terminal glance; it writes no artifact, and Check does not treat a learner-written transcript or JSON file as metrics output. Check does not prove that a human approved an override or that any hosted service accepted, ran, or reported anything.
 
 ## Prepare safely
 
@@ -63,7 +63,7 @@ Do not run the following actions from Preview 0.14. They document the private co
 
 ## Recognize success
 
-The future private attempt stages exactly four paths: `.codearbiter/overrides.log`, the exact dated audit packet path printed by this attempt's audit command, `.codearbiter/reports/academy/U02-audit.md`, and `.codearbiter/reports/academy/U02-metrics.json`. Historical audit packets may remain unstaged. The new, well-formed `safe-training-gate` override line appears in that printed packet and has its SHA-256 digest in the U02 audit. The metrics JSON has only `schema_version`, `override_count`, and `low_confidence_count`; its override count is one and its low-confidence count is a nonnegative integer.
+The future private attempt stages exactly two paths: `.codearbiter/overrides.log` and the exact dated audit packet path printed by this attempt's audit command. Historical audit packets may remain unstaged. The new, well-formed `safe-training-gate` override line appears verbatim in that printed packet. The learner reads the `$ca-metrics` glance for context, but does not preserve a transcript, JSON summary, or claim that it proves the command ran.
 
 No card asks you to treat a generated log, audit packet, metric glance, commit, or checkpoint result as proof of your own approval, another person's approval, or a hosted fact.
 
@@ -79,7 +79,7 @@ In the future private contract, if Check reports a missing boundary, correct onl
 
 **Hint 1.** Re-read the local override lines and include exactly one line added after the future private Prepare step whose gate is exactly `safe-training-gate` and that contains `| BY:` and `| REASON:`.
 
-**Hint 2.** The audit needs the SHA-256 digest of every qualifying new line, not a prose summary of the line.
+**Hint 2.** The audit packet must quote the qualifying new line verbatim; do not add an Academy digest or metric summary beside it.
 
 **Hint 3.** A future private Reset is only for an attempt that cannot be corrected within its evidence boundary. It preserves rather than erases the earlier attempt.
 
@@ -87,4 +87,4 @@ In the future private contract, if Check reports a missing boundary, correct onl
 
 ## Understand the mechanism
 
-The guide and action manifest are one contract. The renderer turns each action reference into the same website card, with the correct operating-system, harness, and copy control. The checkpoint remains the local deterministic authority for file shapes and counts; the renderer does not claim that a command was invoked or that an approval happened.
+The guide and action manifest are one contract. The renderer turns each action reference into the same website card, with the correct operating-system, harness, and copy control. The checkpoint remains the local deterministic authority for the real artifact boundary; the renderer does not claim that a command was invoked or that an approval happened.

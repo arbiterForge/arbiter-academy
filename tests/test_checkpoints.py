@@ -1967,6 +1967,8 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         extra_path: bool = False,
         dirty: bool = False,
         audit_packet: bool = False,
+        audit_receipt: bool = True,
+        metrics_receipt: bool = True,
         override_lines: int = 1,
     ) -> _SemanticContext:
         root = self.root / f"u02-{len(tuple(self.root.iterdir()))}"
@@ -2002,28 +2004,30 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         override_path.write_text("".join(final_lines), encoding="utf-8", newline="\n")
 
         audit_path = root / ".codearbiter" / "reports" / "academy" / "U02-audit.md"
-        audit_path.parent.mkdir(parents=True)
-        hashed_lines = final_lines if tamper_prefix else new_lines
-        audit_path.write_text(
-            "\n".join(hashlib.sha256(line.rstrip("\n").encode("utf-8")).hexdigest() for line in hashed_lines)
-            + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
-        metrics_path = audit_path.with_name("U02-metrics.json")
-        metrics_path.write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "override_count": len(new_lines),
-                    "low_confidence_count": 0,
-                },
-                sort_keys=True,
+        if audit_receipt:
+            audit_path.parent.mkdir(parents=True)
+            hashed_lines = final_lines if tamper_prefix else new_lines
+            audit_path.write_text(
+                "\n".join(hashlib.sha256(line.rstrip("\n").encode("utf-8")).hexdigest() for line in hashed_lines)
+                + "\n",
+                encoding="utf-8",
+                newline="\n",
             )
-            + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        metrics_path = audit_path.with_name("U02-metrics.json")
+        if metrics_receipt:
+            metrics_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "override_count": len(new_lines),
+                        "low_confidence_count": 0,
+                    },
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
         audit_packet_path = root / ".codearbiter" / "audits" / "2026-08-12.md"
         if audit_packet:
             audit_packet_path.parent.mkdir(parents=True)
@@ -2034,11 +2038,11 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
                 encoding="utf-8",
                 newline="\n",
             )
-        paths = (
-            ".codearbiter/overrides.log",
-            ".codearbiter/reports/academy/U02-audit.md",
-            ".codearbiter/reports/academy/U02-metrics.json",
-        )
+        paths = (".codearbiter/overrides.log",)
+        if audit_receipt:
+            paths = (*paths, ".codearbiter/reports/academy/U02-audit.md")
+        if metrics_receipt:
+            paths = (*paths, ".codearbiter/reports/academy/U02-metrics.json")
         if audit_packet:
             paths = (*paths, ".codearbiter/audits/2026-08-12.md")
         if extra_path:
@@ -2066,8 +2070,19 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
             ),
         )
 
-    def test_u02_accepts_exact_append_only_safe_training_evidence(self) -> None:
-        self.assertTrue(_semantic(self._semantic_context(audit_packet=True)))
+    def test_u02_rejects_synthetic_audit_and_metrics_receipts(self) -> None:
+        """A learner-written receipt must not be accepted as CodeArbiter output."""
+        self.assertFalse(_semantic(self._semantic_context(audit_packet=True)))
+
+    def test_u02_accepts_real_override_and_audit_artifacts_without_metrics_receipt(self) -> None:
+        """Metrics output is read-only advice, not a fabricated committed receipt."""
+        self.assertTrue(
+            _semantic(
+                self._semantic_context(
+                    audit_packet=True, audit_receipt=False, metrics_receipt=False
+                )
+            )
+        )
 
     def test_u02_checkpoint_definition_loads_the_audit_packet_directory_contract(self) -> None:
         """Catches direct predicate tests bypassing an unregistered checkpoint field."""

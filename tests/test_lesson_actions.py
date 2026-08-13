@@ -2281,24 +2281,23 @@ class PrivateU02LessonActionTests(unittest.TestCase):
                 self.assertNotIn("passed", action.expected_result)
 
         evidence = actions["U02-write-evidence"]
-        self.assertEqual((evidence.actor, evidence.surface), ("agent", "active-harness"))
-        self.assertIn("SHA-256", evidence.instruction)
-        self.assertIn("override_count", evidence.instruction)
-        self.assertIn("low_confidence_count", evidence.instruction)
+        self.assertEqual((evidence.actor, evidence.surface), ("learner", "active-harness"))
+        self.assertIn("do not create", evidence.instruction)
+        self.assertIn("metrics receipt", evidence.instruction)
         self.assertIn("Do not stage, commit, or push", evidence.instruction)
         review = actions["U02-review-evidence-boundary"]
         self.assertEqual((review.actor, review.surface), ("learner", "active-harness"))
         self.assertIn("overrides.log", review.instruction)
         self.assertIn("printed by the audit command", review.instruction)
-        self.assertIn("U02-audit.md", review.instruction)
-        self.assertIn("U02-metrics.json", review.instruction)
-        self.assertIn("four-path", review.expected_result)
-        self.assertIn("four-path", review.recovery)
+        self.assertNotIn("U02-audit.md", review.instruction)
+        self.assertNotIn("U02-metrics.json", review.instruction)
+        self.assertIn("two-path", review.expected_result)
+        self.assertIn("two-path", review.recovery)
         self.assertIn("Do not stage, commit, or push", review.instruction)
         stage = actions["U02-stage-evidence"]
         self.assertIn("exact path printed by the audit command", stage.instruction)
         self.assertNotIn("exactly one audit packet", stage.instruction)
-        self.assertIn("Exactly four paths", stage.expected_result)
+        self.assertIn("Exactly two paths", stage.expected_result)
         self.assertTrue(
             all("Paste the exact audit packet path" in variant.command for variant in stage.variants)
         )

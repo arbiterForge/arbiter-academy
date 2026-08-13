@@ -151,16 +151,16 @@
     {
       "id": "U02-write-evidence",
       "sequence": 9,
-      "title": "Draft the local U02 evidence artifacts",
-      "actor": "agent",
+      "title": "Keep the metrics glance out of committed evidence",
+      "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Only in a future private prepared attempt, draft .codearbiter/reports/academy/U02-audit.md from observed local override lines and their SHA-256 digests, then draft .codearbiter/reports/academy/U02-metrics.json with exactly schema_version, override_count, and low_confidence_count. Set override_count to the observed number of new well-formed lines and use an observed nonnegative integer for low_confidence_count. Do not stage, commit, or push.",
-      "rationale": "The agent drafts local evidence from observed values; the learner reviews its exact file boundary before any staging.",
+      "instruction": "Only in a future private prepared attempt, do not create an Academy audit receipt, metrics receipt, transcript, or JSON summary. $ca-audit already wrote the durable packet; $ca-metrics is a read-only terminal glance. Do not stage, commit, or push.",
+      "rationale": "A committed learner-written summary would falsely look like proof of an advisory command that writes nothing.",
       "resources": [],
       "variants": [],
-      "expected_result": "For a future private attempt, two unstaged evidence drafts describe the observed local record without invented approval or hosted-service claims.",
-      "recovery": "If the agent cannot derive a value from the local log or read-only output, stop and correct the evidence rather than guessing.",
-      "evidence": "Check validates file changes, hashes, keys, and counts. It cannot prove who drafted the files or approved the override."
+      "expected_result": "The only durable evidence remains the actual override log and the actual audit packet; the metrics glance is not committed.",
+      "recovery": "If a draft receipt already exists, remove only that untracked draft before staging. Do not alter the override log or audit packet to imitate command output.",
+      "evidence": "Check validates repository artifacts, not a transcript, human approval, or invocation of the read-only metrics command."
     },
     {
       "id": "U02-review-evidence-boundary",
@@ -168,12 +168,12 @@
       "title": "Review the exact drafted evidence boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "In a future private prepared attempt, inspect the four-path evidence boundary: .codearbiter/overrides.log, the exact dated .codearbiter/audits packet printed by the audit command, .codearbiter/reports/academy/U02-audit.md, and .codearbiter/reports/academy/U02-metrics.json. Confirm the packet quotes the one new override line, every digest and count came from observed local values, and none of the files makes an approval or hosted-service claim. Do not stage, commit, or push.",
-      "rationale": "The learner reviews the exact files that will become deterministic checkpoint evidence.",
+      "instruction": "In a future private prepared attempt, inspect the two-path evidence boundary: .codearbiter/overrides.log and the exact dated .codearbiter/audits packet printed by the audit command. Confirm the packet quotes the one new override line and neither file makes an approval or hosted-service claim. Do not stage, commit, or push.",
+      "rationale": "The learner reviews only real CodeArbiter artifacts before committing them.",
       "resources": [],
       "variants": [],
-      "expected_result": "You can accept the narrow four-path evidence boundary or identify the exact value that needs correction.",
-      "recovery": "If a value is invented, stale, or outside the four-path boundary, ask the agent to revise only the drafts and review them again. Historical audit packets may remain; do not substitute one for the exact path printed by this attempt's audit command.",
+      "expected_result": "You can accept the narrow two-path evidence boundary or identify the exact artifact that needs correction.",
+      "recovery": "If an artifact is invented, stale, or outside the two-path boundary, remove only the untracked invention and review again. Historical audit packets may remain; do not substitute one for the exact path printed by this attempt's audit command.",
       "evidence": "Review remains a learner action; no artifact can prove that it occurred."
     },
     {
@@ -182,15 +182,15 @@
       "title": "Stage only the U02 evidence boundary",
       "actor": "learner",
       "surface": null,
-      "instruction": "Only after the learner accepts future private evidence drafts, stage the override log, the exact path printed by the audit command for its dated packet, and the two U02 evidence files in a native terminal. Paste that exact path when the command prompts; do not search .codearbiter/audits or choose among historical packets. Native-terminal commands never begin with !.",
-      "rationale": "A four-file staged boundary retains the real audit-command output instead of leaving an untracked packet that Check must reject.",
+      "instruction": "Only after the learner accepts the future private real-artifact boundary, stage the override log and the exact path printed by the audit command for its dated packet in a native terminal. Paste that exact path when the command prompts; do not search .codearbiter/audits or choose among historical packets. Native-terminal commands never begin with !.",
+      "rationale": "A two-file staged boundary retains the real audit-command output without fabricating an Academy receipt.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$auditPacket = Read-Host \"Paste the exact audit packet path printed by the earlier audit command\"\nif ($auditPacket -notmatch '^\\.codearbiter/audits/.+\\.md$' -or -not (Test-Path -LiteralPath $auditPacket -PathType Leaf)) { throw \"The pasted audit packet path is not the dated packet printed by the audit command.\" }\ngit add -- .codearbiter/overrides.log $auditPacket .codearbiter/reports/academy/U02-audit.md .codearbiter/reports/academy/U02-metrics.json\ngit diff --cached --name-only","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\" .codearbiter/reports/academy/U02-audit.md .codearbiter/reports/academy/U02-metrics.json\ngit diff --cached --name-only","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\" .codearbiter/reports/academy/U02-audit.md .codearbiter/reports/academy/U02-metrics.json\ngit diff --cached --name-only","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$auditPacket = Read-Host \"Paste the exact audit packet path printed by the earlier audit command\"\nif ($auditPacket -notmatch '^\\.codearbiter/audits/.+\\.md$' -or -not (Test-Path -LiteralPath $auditPacket -PathType Leaf)) { throw \"The pasted audit packet path is not the dated packet printed by the audit command.\" }\ngit add -- .codearbiter/overrides.log $auditPacket\ngit diff --cached --name-only","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\"\ngit diff --cached --name-only","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\"\ngit diff --cached --name-only","copy":true}
       ],
-      "expected_result": "Exactly four paths are staged: the override log, one dated audit packet, and the U02 audit and metrics files.",
+      "expected_result": "Exactly two paths are staged: the override log and the exact dated audit packet.",
       "recovery": "If the printed audit packet path is absent or another path is staged, unstage only the unexpected path and inspect again. Do not reset or rewrite the attempt history.",
       "evidence": "The staged diff is a local scope check, not evidence of a human review."
     },
