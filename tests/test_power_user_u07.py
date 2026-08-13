@@ -13,9 +13,9 @@ U07 = "U07-capstone"
 
 
 class U07PrivateCapstoneContractTests(unittest.TestCase):
-    """The capstone is source-only until its deterministic verifier is complete."""
+    """The capstone stays refusal-only until a real feature-compatible fixture is accepted."""
 
-    def test_private_guide_uses_shared_actions_and_never_claims_a_hosted_pr(self) -> None:
+    def test_private_guide_exposes_only_the_current_refusal_boundary(self) -> None:
         manifest = load_action_manifest(SOURCE, U07)
         action_ids = tuple(action.id for action in manifest.actions)
         self.assertEqual(
@@ -23,24 +23,22 @@ class U07PrivateCapstoneContractTests(unittest.TestCase):
             (
                 "U07-read-private-boundary",
                 "U07-prepare-refusal",
-                "U07-read-capstone-brief",
-                "U07-run-governed-feature",
-                "U07-record-architecture-decision",
-                "U07-run-local-review",
                 "U07-check-refusal",
             ),
         )
         by_id = {action.id: action for action in manifest.actions}
         self.assertIn("not published", by_id["U07-prepare-refusal"].expected_result.casefold())
-        self.assertIn("read-only", by_id["U07-run-local-review"].expected_result.casefold())
-        self.assertIn("hosted pull-request", by_id["U07-run-governed-feature"].evidence.casefold())
         guide_path = SOURCE / "academy/tracks/power-user/U07-capstone.md"
         guide = guide_path.read_text(encoding="utf-8")
         self.assertEqual(curriculum._parse_lab(guide_path).id, U07)
         self.assertIn("private source material", guide.casefold())
-        self.assertIn("cannot prove", guide.casefold())
-        self.assertIn("$ca-review", guide)
-        self.assertIn("read-only", guide.casefold())
+        self.assertIn("accepted fixture", guide.casefold())
+        self.assertIn("real CodeArbiter feature and pull-request terminal", guide)
+        self.assertNotIn("{{action:U07-run-governed-feature}}", guide)
+        self.assertNotIn("{{action:U07-record-architecture-decision}}", guide)
+        self.assertNotIn("{{action:U07-run-local-review}}", guide)
+        self.assertNotIn("$ca-feature", guide)
+        self.assertNotIn("$ca-review", guide)
         self.assertNotIn("$ca-audit", guide)
         self.assertNotIn("GitHub PR exists", guide)
         self.assertNotIn("U07-review.json", guide)
