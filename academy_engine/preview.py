@@ -221,7 +221,7 @@ def _validate_catalog_schema_lock(root: Path, catalog: Catalog) -> None:
 def validate_preview_manifest(
     root: Path, data: Mapping[str, object] | None = None
 ) -> PreviewManifest:
-    """Validate an in-memory Preview 0.17 manifest against the raw Academy catalog."""
+    """Validate an in-memory current Preview manifest against the raw Academy catalog."""
     if data is None:
         return load_preview_manifest(root)
 
@@ -255,16 +255,16 @@ def validate_preview_manifest(
         raise ValueError("preview manifest runnable_labs must not overlap coming_next")
     _validate_known_ordered_closure(catalog, runnable_labs)
     if runnable_labs != _RUNNABLE_LABS:
-        raise ValueError("preview manifest runnable_labs contains lab(s) not eligible for Preview 0.17")
+        raise ValueError(f"preview manifest runnable_labs contains lab(s) not eligible for {_RELEASE}")
     _validate_guided_labs(catalog, runnable_labs, guided_labs)
     if guided_labs != _RUNNABLE_LABS:
-        raise ValueError("preview manifest guided_labs must list only the reviewed F01 through F04, P01 through P08, and U01 through U04 lessons")
+        raise ValueError("preview manifest guided_labs must list only the reviewed public lessons")
     if coming_next != _COMING_NEXT:
         raise ValueError("preview manifest coming_next must name the reviewed guided-rewrite sequence")
     if prerequisites != _PREREQUISITES:
-        raise ValueError("preview manifest prerequisites must match the reviewed Preview 0.17 onboarding contract")
+        raise ValueError(f"preview manifest prerequisites must match the reviewed {_RELEASE} onboarding contract")
     if known_limits != _KNOWN_LIMITS:
-        raise ValueError("preview manifest known_limits must match the reviewed Preview 0.17 public limits")
+        raise ValueError(f"preview manifest known_limits must match the reviewed {_RELEASE} public limits")
 
     return PreviewManifest(
         release,
@@ -281,7 +281,7 @@ def validate_preview_manifest(
 
 
 def load_preview_manifest(root: Path) -> PreviewManifest:
-    """Load and validate the checked-in Preview 0.17 public eligibility manifest."""
+    """Load and validate the checked-in current Preview eligibility manifest."""
     path = root / "academy" / "publication" / f"{_RELEASE}.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -294,7 +294,10 @@ def require_runnable_lab(root: Path, lab_id: str) -> None:
     """Fail closed unless *lab_id* is runnable in the reviewed public release."""
     manifest = load_preview_manifest(root)
     if lab_id not in manifest.runnable_labs:
-        raise ValueError(f"{lab_id} is not runnable in Academy Preview 0.17")
+        raise ValueError(
+            f"{lab_id} is not runnable in Academy Preview "
+            f"{manifest.release.removeprefix('preview-')}"
+        )
 
 
 def require_guided_lab(root: Path, lab_id: str) -> None:

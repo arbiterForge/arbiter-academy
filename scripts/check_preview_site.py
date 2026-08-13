@@ -616,7 +616,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.17 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.18 provenance contract")
     return data["release"]
 
 
@@ -649,16 +649,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.17 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.18 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.17 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.18 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.17 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.18 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -687,7 +687,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.17 contract: "
+                "generated publication status does not match the exact Preview 0.18 contract: "
                 f"{relative.as_posix()}"
             )
 
