@@ -408,6 +408,10 @@ def _parse_lab(path: Path) -> CurriculumLab:
     sections = _sections(body, path, guided_sections if guided else _REQUIRED_SECTIONS)
     if guided:
         manifest = load_action_manifest(path.parents[3], action_document_id)
+        refusal_only = all(
+            action.id.endswith("-refusal") or action.id.endswith("-private-boundary")
+            for action in manifest.actions
+        )
         host_action = next(
             (
                 action
@@ -422,20 +426,23 @@ def _parse_lab(path: Path) -> CurriculumLab:
             ),
             None,
         )
-        if host_action is None:
+        if host_action is None and not refusal_only:
             raise CurriculumError(
                 f"{path.name} is missing a guided CodeArbiter action for all three hosts."
             )
-        host_commands = {
-            host: "\n".join(
-                variant.command
-                for variant in host_action.variants
-                if variant.host == host and variant.language == "codearbiter"
-            )
-            for host in ("claude-code", "codex", "pi")
-        }
-        if any(not command for command in host_commands.values()):
-            raise CurriculumError(f"{path.name} must provide all three guided host forms.")
+        if host_action is not None:
+            host_commands = {
+                host: "\n".join(
+                    variant.command
+                    for variant in host_action.variants
+                    if variant.host == host and variant.language == "codearbiter"
+                )
+                for host in ("claude-code", "codex", "pi")
+            }
+            if any(not command for command in host_commands.values()):
+                raise CurriculumError(f"{path.name} must provide all three guided host forms.")
+        else:
+            host_commands = {}
         hint_source = sections["Recover or continue"]
     else:
         hosts = _subsections(sections["Use your host"], path, "host")
