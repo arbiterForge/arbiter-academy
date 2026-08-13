@@ -374,11 +374,16 @@ class LessonActionTests(unittest.TestCase):
             )
             with self.subTest(action=action.id):
                 self.assertFalse(any(fragment in guidance for fragment in generic_fragments))
+                self.assertNotEqual(
+                    action.rationale,
+                    "This step preserves the real repository lifecycle.",
+                )
                 self.assertTrue(
                     action.expected_result.endswith(
                         f"Next safe step: {next_steps[action.id]}."
                     )
                 )
+        self.assertEqual(len({action.rationale for action in manifest.actions}), len(manifest.actions))
 
         prepare = actions["U04-prepare-attempt"]
         self.assertIn("creates clean", prepare.expected_result)

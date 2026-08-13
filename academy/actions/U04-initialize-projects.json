@@ -10,7 +10,7 @@
       "actor": "learner",
       "surface": "active-harness",
       "instruction": "Confirm that this is the Academy attempt root. U04 creates two child repositories under .academy/workspaces/; do not initialize CodeArbiter in the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "It distinguishes the controller repository from the two child repositories before any tool writes state.",
       "resources": [],
       "variants": [],
       "expected_result": "You know the Academy root controls the attempt and the two child paths are .academy/workspaces/U04-greenfield and .academy/workspaces/U04-brownfield. Next safe step: prepare attempt.",
@@ -24,7 +24,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "From the clean Academy root, run installed Academy Prepare. Native commands never begin with !.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Prepare is the only supported way to create the bounded attempt and its two clean child repositories.",
       "resources": [],
       "variants": [
         {
@@ -66,7 +66,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Inspect the two prepared child repositories. Do not initialize the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "It proves the prepared paths are separate children rather than accidental work in the Academy root.",
       "resources": [],
       "variants": [
         {
@@ -108,7 +108,7 @@
       "actor": "learner",
       "surface": "active-harness",
       "instruction": "Use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The visible host root prevents a greenfield command from being sent to the parent or the brownfield child.",
       "resources": [],
       "variants": [],
       "expected_result": "The host visibly names .academy/workspaces/U04-greenfield as its project root; merely changing a terminal directory is not sufficient. Next safe step: run greenfield init.",
@@ -122,7 +122,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-init; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Initialization belongs in the greenfield child so its governance state starts from the real plugin entry point.",
       "resources": [],
       "variants": [
         {
@@ -173,7 +173,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-decompose; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Decomposition creates the greenfield planning artifacts that reconciliation will evaluate.",
       "resources": [],
       "variants": [
         {
@@ -224,7 +224,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Read .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md, .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md, and .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Reading all three plans makes the later reconciliation a deliberate decision rather than an opaque command.",
       "resources": [],
       "variants": [
         {
@@ -266,7 +266,7 @@
       "actor": "learner",
       "surface": "active-harness",
       "instruction": "Review the three greenfield plan inputs, resolve decisions or stop on [CONFIRM-NN], then use Open Folder or the workspace switcher to visibly return to .academy/workspaces/U04-greenfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Reconciliation must use learner-resolved decisions and stop on unresolved confirmation markers.",
       "resources": [],
       "variants": [],
       "expected_result": "Each plan decision has an explicit learner answer, no unresolved [CONFIRM-NN] remains, and the host is visibly rooted at U04-greenfield. Next safe step: run greenfield reconcile.",
@@ -280,7 +280,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only after the three plans and learner decisions exist, while visibly rooted at .academy/workspaces/U04-greenfield, run ca-reconcile; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Running reconcile only after its inputs exist keeps the plan-to-decision flow truthful.",
       "resources": [],
       "variants": [
         {
@@ -331,7 +331,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Inspect greenfield status and unstaged governance diff before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "An unstaged inspection lets the learner see exactly what the greenfield plugin flow produced.",
       "resources": [],
       "variants": [
         {
@@ -373,7 +373,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After review, stage only greenfield generated governance changes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Selective staging keeps generated greenfield governance files separate from unrelated parent or child work.",
       "resources": [],
       "variants": [
         {
@@ -415,7 +415,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-greenfield.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Cached-diff review proves the exact greenfield commit boundary before the commit gate runs.",
       "resources": [],
       "variants": [
         {
@@ -457,7 +457,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only after learner review while visibly rooted at .academy/workspaces/U04-greenfield, run ca-commit; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The child-local commit gate records the reviewed greenfield governance change in its own history.",
       "resources": [],
       "variants": [
         {
@@ -508,7 +508,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After greenfield ca-commit succeeds, confirm its status is empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "A clean greenfield status is required before its committed facts can bind the parent report.",
       "resources": [],
       "variants": [
         {
@@ -550,7 +550,7 @@
       "actor": "learner",
       "surface": "active-harness",
       "instruction": "After greenfield is committed and clean, use Open Folder or the workspace switcher to visibly root the host at .academy/workspaces/U04-brownfield. A terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Switching deliberately to brownfield keeps its existing-source workflow distinct from greenfield decomposition.",
       "resources": [],
       "variants": [],
       "expected_result": "The greenfield remains committed and clean while the host visibly names .academy/workspaces/U04-brownfield as its new project root. Next safe step: run brownfield init.",
@@ -564,7 +564,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-init; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Brownfield initialization starts governance in the existing child, never in the Academy root.",
       "resources": [],
       "variants": [
         {
@@ -615,7 +615,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-create-context; a terminal cd does not change the host root. Keep this route bound to existing source and do not use ca-decompose on the brownfield. ca-create-context does not create the three ca-reconcile plan inputs.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Create-context is the genuine brownfield route and does not invent greenfield plan artifacts.",
       "resources": [],
       "variants": [
         {
@@ -666,7 +666,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Inspect brownfield status and unstaged governance diff before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Inspecting the brownfield diff exposes the exact context artifacts before they become committed evidence.",
       "resources": [],
       "variants": [
         {
@@ -708,7 +708,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After review, stage only brownfield generated governance changes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Selective staging confines the brownfield commit to generated governance state.",
       "resources": [],
       "variants": [
         {
@@ -750,7 +750,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Review the full cached diff, then use Open Folder or the workspace switcher to keep the host visibly rooted at .academy/workspaces/U04-brownfield.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Cached-diff review catches an incorrect brownfield boundary before a durable child commit.",
       "resources": [],
       "variants": [
         {
@@ -792,7 +792,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only after learner review while visibly rooted at .academy/workspaces/U04-brownfield, run ca-commit; a terminal cd does not change the host root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The brownfield child must pass its own commit gate so its history is independently verifiable.",
       "resources": [],
       "variants": [
         {
@@ -843,7 +843,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After brownfield ca-commit succeeds, confirm its status is empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "A clean brownfield status proves no uncommitted state is hidden behind the parent binding.",
       "resources": [],
       "variants": [
         {
@@ -885,7 +885,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Only after both child ca-commit gates succeed and both statuses are empty, inspect committed heads, trees, context digests, and statuses.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The parent report may bind only committed child heads and trees, so inspect those immutable facts first.",
       "resources": [],
       "variants": [
         {
@@ -927,7 +927,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After both children are committed and clean, run the supported canonical writer from the Academy root. Never hand-author verifier-sensitive report bytes.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The supported writer derives canonical report bytes from live child repositories instead of trusting a hand-written claim.",
       "resources": [],
       "variants": [
         {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.17\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path write-report U04-initialize-projects", "copy": true},
@@ -945,7 +945,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Inspect the canonical parent report before staging.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Inspecting the generated report verifies its binding facts before it enters the parent commit.",
       "resources": [],
       "variants": [
         {
@@ -987,7 +987,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "After review, stage only the canonical parent report.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Staging only the canonical report prevents child content or unrelated parent files from entering the binding commit.",
       "resources": [],
       "variants": [
         {
@@ -1029,7 +1029,7 @@
       "actor": "learner",
       "surface": "active-harness",
       "instruction": "Confirm only the report is staged and both children are clean. Then use Open Folder or the workspace switcher to return to the Academy root.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The parent cached diff must contain only the report while both child repositories remain clean.",
       "resources": [],
       "variants": [],
       "expected_result": "The parent index contains only U04-initialization.md, both child statuses remain empty, and the host visibly shows the Academy root. Next safe step: run commit gate.",
@@ -1043,7 +1043,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Only at the visibly confirmed Academy root, run ca-commit; do not run it in either child.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "The Academy-root commit gate preserves the separation between parent evidence and child governance history.",
       "resources": [],
       "variants": [
         {
@@ -1094,7 +1094,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Confirm parent, greenfield, and brownfield status are empty.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Three clean statuses prove the complete evidence topology is settled before acceptance.",
       "resources": [],
       "variants": [
         {
@@ -1136,7 +1136,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "From the clean Academy root, run installed Academy Check after committing the canonical parent report.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Check validates durable child and parent facts, not an unobservable claim that a host command was invoked.",
       "resources": [],
       "variants": [
         {
@@ -1178,7 +1178,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "If you need to recover, invoke installed Academy Reset only to read its preservation diagnostic. U04 Reset intentionally refuses until Academy can archive both child histories.",
-      "rationale": "This step preserves the real repository lifecycle.",
+      "rationale": "Reset must refuse rather than discard child history until a supported archival path exists.",
       "resources": [],
       "variants": [
         {
