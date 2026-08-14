@@ -34,7 +34,6 @@ workshop_queue = ["seed/tickets.json"]
   "academy/actions/recovery.json",
   "academy/actions/F01-fork-clone-doctor.json",
   "academy/actions/F02-orient-to-state.json",
-  "academy/actions/F03-work-the-board.json",
   "academy/actions/F04-fix-with-evidence.json",
   "academy/actions/P01-feature-through-plan.json",
   "academy/actions/P02-commit-review-pr.json",
@@ -56,7 +55,6 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/checkpoints" = [
   "academy/checkpoints/F01-fork-clone-doctor.json",
   "academy/checkpoints/F02-orient-to-state.json",
-  "academy/checkpoints/F03-work-the-board.json",
   "academy/checkpoints/F04-fix-with-evidence.json",
   "academy/checkpoints/P01-feature-through-plan.json",
   "academy/checkpoints/P02-commit-review-pr.json",
@@ -74,7 +72,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/checkpoints/U06-preview-and-advanced-surfaces.json",
   "academy/checkpoints/U07-capstone.json",
 ]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.23.json"]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.24.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
@@ -87,7 +85,6 @@ workshop_queue = ["seed/tickets.json"]
   "academy/tracks/foundations/index.md",
   "academy/tracks/foundations/F01-fork-clone-doctor.md",
   "academy/tracks/foundations/F02-orient-to-state.md",
-  "academy/tracks/foundations/F03-work-the-board.md",
   "academy/tracks/foundations/F04-fix-with-evidence.md",
 ]
 "share/arbiter-academy/academy/tracks/practitioner" = [
@@ -114,8 +111,6 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
 "share/arbiter-academy/academy/scenarios/F02-orient-to-state" = ["academy/scenarios/F02-orient-to-state/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F02-orient-to-state/files" = ["academy/scenarios/F02-orient-to-state/files/*"]
-"share/arbiter-academy/academy/scenarios/F03-work-the-board" = ["academy/scenarios/F03-work-the-board/manifest.json"]
-"share/arbiter-academy/academy/scenarios/F03-work-the-board/files" = ["academy/scenarios/F03-work-the-board/files/*"]
 "share/arbiter-academy/academy/scenarios/F04-fix-with-evidence" = ["academy/scenarios/F04-fix-with-evidence/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F04-fix-with-evidence/files" = ["academy/scenarios/F04-fix-with-evidence/files/*"]
 "share/arbiter-academy/academy/scenarios/P01-feature-through-plan" = ["academy/scenarios/P01-feature-through-plan/manifest.json"]

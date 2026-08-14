@@ -1181,6 +1181,7 @@ class LessonActionTests(unittest.TestCase):
     def test_all_action_command_variants_bind_to_their_release_boundary(self) -> None:
         """Catches release-bound commands retaining stale paths or missing a planned boundary."""
         root = Path(__file__).parents[1]
+        guided = set(load_preview_manifest(root).guided_labs)
         for path in sorted((root / "academy" / "actions").glob("*.json")):
             document_id = path.stem
             with self.subTest(document_id=document_id):
@@ -1191,14 +1192,16 @@ class LessonActionTests(unittest.TestCase):
                     for variant in action.variants
                 )
                 self.assertNotIn("preview-0.5", commands)
-                if "preview-" in commands:
+                if document_id in guided and "preview-" in commands:
                     self.assertIn(load_preview_manifest(root).release, commands)
                     for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
                         self.assertNotIn(stale, commands)
 
-    def test_checked_in_f03_manifest_guides_the_exact_board_lifecycle(self) -> None:
-        """Catches F03 losing its exact board-only route or Preview 0.8 learner commands."""
-        manifest = load_action_manifest(Path(__file__).parents[1], F03_DOCUMENT_ID)
+    def test_checked_in_f03_manifest_stays_source_only_while_withheld(self) -> None:
+        """Catches the invalid board-only F03 path re-entering the public release."""
+        root = Path(__file__).parents[1]
+        self.assertNotIn(F03_DOCUMENT_ID, load_preview_manifest(root).guided_labs)
+        manifest = load_action_manifest(root, F03_DOCUMENT_ID)
 
         self.assertEqual(tuple(action.id for action in manifest.actions), F03_ACTION_IDS)
         self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
@@ -1211,7 +1214,6 @@ class LessonActionTests(unittest.TestCase):
                     tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
                     (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
                 )
-                self.assertTrue(all(CURRENT_RELEASE in variant.command for variant in action.variants))
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
 
         for action_id, command in (

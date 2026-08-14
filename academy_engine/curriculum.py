@@ -533,12 +533,11 @@ def load_track(root: Path, track_id: str) -> CurriculumTrack:
             or actual.prerequisites != expected.prerequisites
         ):
             raise CurriculumError(f"{actual.id} source disagrees with the canonical catalog.")
-        expected_next = (
-            catalog.labs[catalog.labs.index(expected) + 1].id
-            if catalog.labs.index(expected) + 1 < len(catalog.labs)
-            else "graduation"
-        )
-        if actual.next_lab != expected_next:
+        following = catalog.labs[catalog.labs.index(expected) + 1 :]
+        expected_next = following[0].id if following else "graduation"
+        if actual.next_lab != "graduation" and actual.next_lab not in {lab.id for lab in following}:
+            raise CurriculumError(f"{actual.id} next_lab disagrees with catalog order.")
+        if actual.next_lab == "graduation" and expected_next != "graduation":
             raise CurriculumError(f"{actual.id} next_lab disagrees with catalog order.")
         expected_scenario = _SCENARIO_COMMANDS.get(
             actual.id, f"python scripts/academy.py prepare {actual.id}"
