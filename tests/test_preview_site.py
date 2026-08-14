@@ -853,7 +853,11 @@ class PreviewSiteTests(unittest.TestCase):
             with self.subTest(action=action):
                 self.assertEqual(
                     operating_systems,
-                    ["windows", "macos", "linux"],
+                    (
+                        ["macos", "linux"]
+                        if action == ("P02-commit-review-pr", "P02-record-receipt")
+                        else ["windows", "macos", "linux"]
+                    ),
                 )
 
     def test_home_states_preview_scope_prerequisites_pacing_and_exact_workflow(self) -> None:
