@@ -15,7 +15,7 @@ next_lab: U02-override-audit-metrics
 
 ## Know before you begin
 
-U01 is a guided, runnable lesson in Preview 0.19. The website remains the primary lesson surface.
+U01 is a guided, runnable lesson in Preview 0.20. The website remains the primary lesson surface.
 Academy CLI prepares the reviewed attempt, checks its local evidence boundary, and creates a
 non-destructive numbered retry when recovery is needed.
 
@@ -107,7 +107,7 @@ artifact content. Preserve the attempt and use Reset only after returning safely
 
 {{action:U01-reset-retry}}
 
-U02 is published in Preview 0.19. Continue through its published Academy lesson rather than using
+U02 is published in Preview 0.20. Continue through its published Academy lesson rather than using
 unpublished source exercises as a substitute for a guided route.
 
 ## Understand the mechanism
