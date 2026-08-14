@@ -62,7 +62,7 @@
         "id": {"$ref": "#/$defs/id"},
         "surface": {"enum": ["browser", "native-terminal", "harness", "academy-console"]},
         "operating_system": {"enum": ["all", "windows", "macos", "linux"]},
-        "host": {"enum": ["none", "claude-code", "codex", "pi"]},
+        "host": {"enum": ["none", "selected", "claude-code", "codex", "pi"]},
         "language": {"enum": ["none", "powershell", "sh", "text", "codearbiter"]},
         "command": {
           "type": "string",

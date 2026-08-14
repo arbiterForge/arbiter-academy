@@ -43,8 +43,8 @@ def _is_approved_external_url(target: str) -> bool:
         return False
     return True
 _ASSET_SHA256 = {
-    Path("assets/academy.css"): "22672c75e0764b5f4cdac2741e536eba34a0af0a3814dbdef44cb59f103a40d1",
-    Path("assets/academy.js"): "c2bf4256af8a8ca3db53ec06ff547f41a7e09258d3b08dcc95c8b8e59c6fe113",
+    Path("assets/academy.css"): "ecd327758ad2d08529fabe942f8c3e27a55720a0187a46fcf5039b97977688b0",
+    Path("assets/academy.js"): "92f31b44830bb18efb9e0176b048ea28b8344ad46eff85add4de8843627405dd",
     Path("assets/favicon.svg"): "49e2ee37ad5d86b700a4d10f74bd9586afe5dcd8dfbe8823a23a9c0f0088b018",
     Path("assets/fonts/jetbrains-mono-latin-wght-normal.woff2"): (
         "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
@@ -133,7 +133,7 @@ _RUNNABLE_LINK_LABELS = (
     "P07 - Threat-model the path-handling boundary",
     "P08: Classify repository hygiene without destructive cleanup",
     "U01: Govern an autonomous sprint without outsourcing approval",
-    "U02: Record a scoped override with local audit evidence",
+    "U02: Observe an audit guard without changing the audit trail",
     "U03: Refactor, chore, and local release evidence",
     "U04: Initialize a greenfield and a brownfield project",
     "U05: Debug, spike, and conflict without inventing evidence",
@@ -280,10 +280,10 @@ _EXPECTED_ACTION_IDS = {
         "U01-check-status", "U01-return-base", "U01-reset-retry",
     ),
     Path("labs/U02-override-audit-metrics/index.html"): (
-        "U02-read-boundary", "U02-prepare", "U02-read-scenario", "U02-decide-scope",
-        "U02-log-override", "U02-inspect-log", "U02-run-audit", "U02-run-metrics",
-        "U02-write-evidence", "U02-review-evidence-boundary", "U02-stage-evidence",
-        "U02-commit-evidence", "U02-check", "U02-reset",
+        "U02-read-boundary", "U02-prepare", "U02-inspect-baseline",
+        "U02-attempt-guarded-restore", "U02-record-observation",
+        "U02-review-observation-boundary", "U02-stage-observation",
+        "U02-commit-observation", "U02-check", "U02-reset",
     ),
     Path("labs/U03-refactor-chore-release/index.html"): (
         "U03-read-boundary", "U03-prepare", "U03-confirm-prepared", "U03-review-sealed-brief",

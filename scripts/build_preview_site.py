@@ -470,7 +470,7 @@ def _table_cells(lab_id: str, line: str) -> tuple[str, str]:
 
 def _execution_label(action: LessonAction, *, surface: str, host: str, operating_system: str) -> str:
     actor = {"learner": "You", "academy": "Academy", "agent": "Your agent"}[action.actor]
-    if surface == "harness":
+    if surface == "harness" and host not in {"none", "selected"}:
         surface_label = {
             "claude-code": "Claude Code harness",
             "codex": "Codex harness",
@@ -482,6 +482,7 @@ def _execution_label(action: LessonAction, *, surface: str, host: str, operating
             "native-terminal": "Native terminal",
             "academy-console": "Academy console",
             "active-harness": "Active CodeArbiter harness",
+            "harness": "Selected CodeArbiter harness",
         }[surface]
     os_label = {
         "all": "All operating systems",

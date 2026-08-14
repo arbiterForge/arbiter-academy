@@ -676,6 +676,14 @@ h1 + p {
   cursor: pointer;
 }
 
+[data-action-id="U02-record-observation"] .command-shell {
+  align-items: start;
+}
+
+[data-action-id="U02-record-observation"] .command-copy {
+  align-self: start;
+}
+
 .command-copy:hover {
   color: var(--ca-accent);
 }

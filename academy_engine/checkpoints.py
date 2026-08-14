@@ -191,7 +191,7 @@ _PROFILES = {
     "hygiene_snapshot": ("snapshot",),
     "p08_authenticated": (),
     "sprint_decisions": ("spec", "plan", "sprint_log", "brief", "deliverable"),
-    "override_audit_metrics": ("overrides", "audit_packets"),
+    "audit_guard_observation": ("overrides", "observation"),
     "refactor_chore_release": (
         "scenario", "code", "test", "chore", "release_target", "release_version",
         "release_tag", "release_changelog", "release_targets",
@@ -218,7 +218,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
     "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
-    "U02-override-audit-metrics": ("linked_override_audit_metrics", "override_audit_metrics", {"overrides": ".codearbiter/overrides.log", "audit_packets": ".codearbiter/audits"}),
+    "U02-override-audit-metrics": ("bound_audit_guard_observation", "audit_guard_observation", {"overrides": ".codearbiter/overrides.log", "observation": ".codearbiter/reports/academy/U02-observation.md"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.0.1", "release_tag": "academy-v0.0.1", "release_changelog": "CHANGELOG.md", "release_targets": ".codearbiter/release-targets.md"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
     "U05-debug-spike-conflict": ("debug_spike_conflict_artifacts", "debug_spike_conflict", {"spike": ".codearbiter/spikes/u05-cache-key.md", "board": ".codearbiter/open-tasks.md", "observation": "docs/U05-cache-key-observation.md"}),
@@ -3669,10 +3669,8 @@ def _semantic(context: _SemanticContext) -> bool:
             return False
     if profile == "sprint_decisions":
         return _u01_sprint_decisions(context)
-    if profile == "override_audit_metrics":
-        overrides, audit_packets = (
-            str(data[key]) for key in ("overrides", "audit_packets")
-        )
+    if profile == "audit_guard_observation":
+        overrides, observation = (str(data[key]) for key in ("overrides", "observation"))
         prepared_overrides = _git_blob(root, attempt.prepared, overrides)
         final_overrides = _git_blob(root, attempt.head, overrides)
         object_ids = _repository_oid_pattern(root)
@@ -3682,36 +3680,39 @@ def _semantic(context: _SemanticContext) -> bool:
             ).stdout.splitlines() if object_ids is not None and object_ids.fullmatch(line)
         )
         commit_parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
-        expected_paths = {overrides}
+        expected_paths = {observation}
         changed_paths = set(_commit_paths(root, attempt.head))
-        audit_packet_name = re.compile(
-            rf"^{re.escape(audit_packets)}/\d{{4}}-\d{{2}}-\d{{2}}(?:-\d+)?\.md$"
-        )
-        audit_packet_paths = {path for path in changed_paths if audit_packet_name.fullmatch(path)}
         status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
         if (
             prepared_overrides is None or final_overrides is None
-            or not prepared_overrides.endswith(b"\n") or not final_overrides.startswith(prepared_overrides)
+            or final_overrides != prepared_overrides
             or commits != (attempt.head,) or commit_parents != [attempt.head, attempt.prepared]
-            or len(audit_packet_paths) != 1 or changed_paths != expected_paths | audit_packet_paths
+            or changed_paths != expected_paths
             or status.returncode != 0 or status.stdout
         ):
             return False
+        raw = _git_blob(root, attempt.head, observation)
+        if raw is None or raw.startswith(b"\xef\xbb\xbf") or b"\r" in raw or not raw.endswith(b"\n"):
+            return False
         try:
-            new_lines = final_overrides[len(prepared_overrides):].decode("utf-8").splitlines()
+            lines = raw.decode("utf-8").splitlines()
         except UnicodeDecodeError:
             return False
-        override_line = re.compile(r"^\[[^\]\r\n]+\] \| BY: [^|\r\n]+ \| GATE: safe-training-gate \| REASON: [^\r\n]+$")
-        audit_packet = _text(root, attempt.head, next(iter(audit_packet_paths)))
+        if len(lines) != 8 or lines[:4] != [
+            "# U02 audit-guard observation", "", "event: H-05 guarded restore refusal",
+            "target: .codearbiter/overrides.log",
+        ]:
+            return False
+        baseline_prefix = "baseline_sha256: "
+        event_digest_prefix = "event_sha256: "
+        event_prefix = "event_line: "
+        event_line = lines[6].removeprefix(event_prefix)
         return bool(
-            len(new_lines) == 1
-            and all(override_line.fullmatch(line) for line in new_lines)
-            and audit_packet is not None
-            and re.search(r"(?m)^## Overrides\s*$", audit_packet)
-            and all(
-                re.search(rf"(?m)^{re.escape(line)}$", audit_packet)
-                for line in new_lines
-            )
+            lines[4] == baseline_prefix + hashlib.sha256(prepared_overrides).hexdigest()
+            and lines[5] == event_digest_prefix + hashlib.sha256(event_line.encode("utf-8")).hexdigest()
+            and lines[6].startswith(event_prefix)
+            and re.fullmatch(r"BLOCKED \[H-05\]: [^\r\n]+", event_line)
+            and lines[7] == "limitation: This record cannot prove the refusal chronology; manual imitation remains possible."
         )
     if profile == "refactor_chore_release":
         return _u03_refactor_chore_release(root, attempt, data)

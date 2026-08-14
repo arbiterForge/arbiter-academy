@@ -83,6 +83,34 @@ for (const [lesson, name] of [
   });
 }
 
+test("U02 keeps its selected-harness observation prompt compact and copyable", async ({ page }, testInfo) => {
+  await page.goto("/labs/U02-override-audit-metrics/index.html", { waitUntil: "networkidle" });
+  await stabilize(page);
+  const action = page.locator('[data-action-id="U02-record-observation"]');
+  await action.scrollIntoViewIfNeeded();
+  await expect(action).toBeInViewport();
+  const variants = action.locator('.command-variant[data-host="selected"]');
+  await expect(variants).toHaveCount(1);
+  const variant = variants.first();
+  const copy = variant.locator(".command-copy");
+  await expect(copy).toBeVisible();
+  await expect(copy).toHaveCount(1);
+  await expect(variant.locator("pre")).toContainText("# U02 audit-guard observation");
+  await expect(variant.locator("pre")).toContainText("baseline_sha256:");
+  await expect(variant.locator("pre")).toContainText("event_sha256:");
+  await expect
+    .poll(() => variant.locator("pre").evaluate((node) => node.scrollWidth <= node.clientWidth))
+    .toBe(true);
+  await expect
+    .poll(() => copy.evaluate((node) => node.getBoundingClientRect().height <= 48))
+    .toBe(true);
+  await expect(variant).toHaveScreenshot(`u02-observation-${testInfo.project.name}.png`, {
+    animations: "disabled",
+    caret: "hide",
+    scale: "css",
+  });
+});
+
 for (const colorScheme of ["dark", "light"]) {
   test(`F04 proof milestones remain legible in ${colorScheme} mode`, async ({ page }) => {
     await page.goto("/labs/F04-fix-with-evidence/index.html", { waitUntil: "networkidle" });
