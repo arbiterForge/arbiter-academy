@@ -213,7 +213,7 @@ class U05PluginContractTests(unittest.TestCase):
                 tuple(variant.operating_system for variant in by_id[action_id].variants),
                 ("windows", "macos", "linux"),
             )
-            self.assertTrue(all("preview-0.24" in variant.command for variant in by_id[action_id].variants))
+            self.assertTrue(all("preview-0.25" in variant.command for variant in by_id[action_id].variants))
         check_variants = {variant.id: variant for variant in by_id["U05-check-status"].variants}
         self.assertEqual(set(check_variants), {"windows", "macos", "linux"})
         self.assertIn("check U05-debug-spike-conflict", check_variants["linux"].command)

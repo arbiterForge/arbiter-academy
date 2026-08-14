@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"U02-override-audit-metrics","operation":"override_audit_metrics","target":"safe-training-gate","starting_condition":"override-not-taken"}
+{"schema_version":1,"lab_id":"U02-override-audit-metrics","operation":"audit_guard_observation","target":".codearbiter/overrides.log","guard":"H-05","probe":"git-restore-head","starting_condition":"bound-head-equality"}

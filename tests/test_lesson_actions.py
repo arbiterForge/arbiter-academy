@@ -2276,9 +2276,9 @@ class LessonActionTests(unittest.TestCase):
                     )
 
 
-class PrivateU02LessonActionTests(unittest.TestCase):
-    def test_private_u02_manifest_keeps_override_evidence_and_command_surfaces_distinct(self) -> None:
-        """Catches U02 blurring an override record with human approval or shell routing."""
+class PublicU02LessonActionTests(unittest.TestCase):
+    def test_u02_observes_the_real_h05_guard_without_an_override(self) -> None:
+        """Catches the public lesson teaching a fictional gate or a real audit-log mutation."""
         manifest = load_action_manifest(
             Path(__file__).parents[1], "U02-override-audit-metrics"
         )
@@ -2289,28 +2289,23 @@ class PrivateU02LessonActionTests(unittest.TestCase):
             (
                 "U02-read-boundary",
                 "U02-prepare",
-                "U02-read-scenario",
-                "U02-decide-scope",
-                "U02-log-override",
-                "U02-inspect-log",
-                "U02-run-audit",
-                "U02-run-metrics",
-                "U02-write-evidence",
-                "U02-review-evidence-boundary",
-                "U02-stage-evidence",
-                "U02-commit-evidence",
+                "U02-inspect-baseline",
+                "U02-attempt-guarded-restore",
+                "U02-record-observation",
+                "U02-review-observation-boundary",
+                "U02-stage-observation",
+                "U02-commit-observation",
                 "U02-check",
                 "U02-reset",
             ),
         )
         self.assertEqual(
-            tuple(action.sequence for action in manifest.actions), tuple(range(1, 15))
+            tuple(action.sequence for action in manifest.actions), tuple(range(1, 11))
         )
 
         native_actions = (
             "U02-prepare",
-            "U02-read-scenario",
-            "U02-stage-evidence",
+            "U02-stage-observation",
             "U02-check",
             "U02-reset",
         )
@@ -2325,66 +2320,59 @@ class PrivateU02LessonActionTests(unittest.TestCase):
                     any(variant.command.startswith("!") for variant in action.variants)
                 )
 
-        inspect_log = actions["U02-inspect-log"]
-        self.assertEqual(inspect_log.actor, "learner")
-        self.assertTrue(all(variant.surface == "harness" for variant in inspect_log.variants))
-        self.assertTrue(all(variant.command.startswith("!") for variant in inspect_log.variants))
-        self.assertFalse(any(variant.command.startswith("!!") for variant in inspect_log.variants))
-
-        for action_id, command in (
-            (
-                "U02-log-override",
-                'override "safe-training-gate: record one scoped training override"',
-            ),
-            ("U02-run-audit", "audit --since-checkpoint"),
-            ("U02-run-metrics", "metrics"),
-            ("U02-commit-evidence", "commit"),
-        ):
-            with self.subTest(action=action_id):
-                variants = actions[action_id].variants
-                self.assertEqual(
-                    tuple((variant.host, variant.command) for variant in variants),
-                    (
-                        ("claude-code", f"/ca:{command}"),
-                        ("codex", f"$ca-{command}"),
-                        ("pi", f"/ca-{command}"),
-                        ("pi", f"/skill:ca-{command}"),
-                    ),
-                )
-                self.assertTrue(all(variant.language == "codearbiter" for variant in variants))
-                self.assertFalse(any(variant.command.startswith("!") for variant in variants))
-
         boundary = actions["U02-read-boundary"]
-        self.assertIn("does not prove", boundary.evidence or "")
-        self.assertIn("human approval", boundary.evidence or "")
-        self.assertIn("numbered U02 attempt branch", actions["U02-prepare"].expected_result)
-        self.assertIn("one clean evidence commit", actions["U02-check"].expected_result)
+        self.assertIn("cannot prove", boundary.evidence or "")
+        self.assertIn("manual imitation", boundary.evidence or "")
+        self.assertIn("numbered U02 attempt", actions["U02-prepare"].expected_result)
+        self.assertIn("observation-note commit", actions["U02-check"].expected_result)
         self.assertIn("archives the failed U02 attempt", actions["U02-reset"].expected_result)
 
-        evidence = actions["U02-write-evidence"]
-        self.assertEqual((evidence.actor, evidence.surface), ("learner", "active-harness"))
-        self.assertIn("do not create", evidence.instruction)
-        self.assertIn("metrics receipt", evidence.instruction)
+        guarded_restore = actions["U02-attempt-guarded-restore"]
+        self.assertEqual(guarded_restore.actor, "learner")
+        self.assertTrue(all(variant.surface == "harness" for variant in guarded_restore.variants))
+        self.assertTrue(all(variant.command == "!git restore --source=HEAD -- .codearbiter/overrides.log" for variant in guarded_restore.variants))
+        self.assertIn("H-05", guarded_restore.expected_result)
+        self.assertNotIn("override", guarded_restore.title.casefold())
+
+        baseline_variants = actions["U02-inspect-baseline"].variants
+        self.assertEqual(
+            tuple((variant.operating_system, variant.command) for variant in baseline_variants if variant.host == "codex"),
+            (
+                ("windows", "!Get-FileHash .codearbiter\\overrides.log -Algorithm SHA256"),
+                ("macos", "!shasum -a 256 .codearbiter/overrides.log"),
+                ("linux", "!sha256sum .codearbiter/overrides.log"),
+            ),
+        )
+
+        evidence = actions["U02-record-observation"]
+        self.assertEqual((evidence.actor, evidence.surface), ("agent", None))
+        self.assertIn("SHA-256", evidence.instruction)
+        self.assertIn("event_line", evidence.instruction)
         self.assertIn("Do not stage, commit, or push", evidence.instruction)
-        review = actions["U02-review-evidence-boundary"]
-        self.assertEqual((review.actor, review.surface), ("learner", "active-harness"))
+        self.assertEqual(tuple(variant.host for variant in evidence.variants), ("claude-code", "codex", "pi"))
+        self.assertTrue(all(variant.copy for variant in evidence.variants))
+        self.assertTrue(all(".codearbiter/reports/academy/U02-observation.md" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("Do not stage, commit, push, or edit .codearbiter/overrides.log." in variant.command for variant in evidence.variants))
+        self.assertTrue(all("# U02 audit-guard observation" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("event: H-05 guarded restore refusal" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("target: .codearbiter/overrides.log" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("baseline_sha256:" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("event_sha256:" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("event_line:" in variant.command for variant in evidence.variants))
+        self.assertTrue(all("limitation: This record cannot prove the refusal chronology; manual imitation remains possible." in variant.command for variant in evidence.variants))
+        self.assertTrue(all("UTF-8" in variant.command for variant in evidence.variants))
+
+        review = actions["U02-review-observation-boundary"]
+        self.assertEqual((review.actor, review.surface), ("learner", "browser"))
         self.assertIn("overrides.log", review.instruction)
-        self.assertIn("printed by the audit command", review.instruction)
-        self.assertNotIn("U02-audit.md", review.instruction)
-        self.assertNotIn("U02-metrics.json", review.instruction)
-        self.assertIn("two-path", review.expected_result)
-        self.assertIn("two-path", review.recovery)
-        self.assertIn("Do not stage, commit, or push", review.instruction)
-        stage = actions["U02-stage-evidence"]
-        self.assertIn("exact path printed by the audit command", stage.instruction)
-        self.assertNotIn("exactly one audit packet", stage.instruction)
-        self.assertIn("Exactly two paths", stage.expected_result)
-        self.assertTrue(
-            all("Paste the exact audit packet path" in variant.command for variant in stage.variants)
-        )
-        self.assertTrue(
-            all("Get-ChildItem .codearbiter" not in variant.command for variant in stage.variants)
-        )
+        self.assertIn("U02-observation.md", review.instruction)
+        self.assertIn("one-path", review.expected_result)
+        self.assertIn("another path", review.recovery)
+        stage = actions["U02-stage-observation"]
+        self.assertIn("observation note", stage.instruction)
+        self.assertIn("Exactly one path", stage.expected_result)
+        self.assertTrue(all("U02-observation.md" in variant.command for variant in stage.variants))
+        self.assertNotIn("$ca-override", "\n".join(variant.command for action in manifest.actions for variant in action.variants))
 
 
 class U03LessonActionTests(unittest.TestCase):

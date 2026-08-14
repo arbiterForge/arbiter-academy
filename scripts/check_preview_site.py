@@ -131,7 +131,7 @@ _RUNNABLE_LINK_LABELS = (
     "P07 - Threat-model the path-handling boundary",
     "P08: Classify repository hygiene without destructive cleanup",
     "U01: Govern an autonomous sprint without outsourcing approval",
-    "U02: Record a scoped override with local audit evidence",
+    "U02: Observe an audit-log guard without changing the audit trail",
     "U03: Refactor, chore, and local release evidence",
     "U04: Initialize a greenfield and a brownfield project",
     "U05: Debug, spike, and conflict without inventing evidence",
@@ -147,7 +147,7 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.24.",
+    "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.25.",
     "Graduation is unavailable until the withheld F03 lesson has a complete accepted guided path.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -263,10 +263,10 @@ _EXPECTED_ACTION_IDS = {
         "U01-check-status", "U01-return-base", "U01-reset-retry",
     ),
     Path("labs/U02-override-audit-metrics/index.html"): (
-        "U02-read-boundary", "U02-prepare", "U02-read-scenario", "U02-decide-scope",
-        "U02-log-override", "U02-inspect-log", "U02-run-audit", "U02-run-metrics",
-        "U02-write-evidence", "U02-review-evidence-boundary", "U02-stage-evidence",
-        "U02-commit-evidence", "U02-check", "U02-reset",
+        "U02-read-boundary", "U02-prepare", "U02-inspect-baseline",
+        "U02-attempt-guarded-restore", "U02-record-observation",
+        "U02-review-observation-boundary", "U02-stage-observation",
+        "U02-commit-observation", "U02-check", "U02-reset",
     ),
     Path("labs/U03-refactor-chore-release/index.html"): (
         "U03-read-boundary", "U03-prepare", "U03-confirm-prepared", "U03-review-sealed-brief",
@@ -599,7 +599,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.24"
+        or data.get("release") != "preview-0.25"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -614,7 +614,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.24 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.25 provenance contract")
     return data["release"]
 
 
@@ -647,16 +647,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.24 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.25 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.24 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.25 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.24 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.25 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -686,7 +686,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.24 contract: "
+                "generated publication status does not match the exact Preview 0.25 contract: "
                 f"{relative.as_posix()}"
             )
 
