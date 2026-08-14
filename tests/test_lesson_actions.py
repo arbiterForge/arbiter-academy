@@ -73,19 +73,18 @@ PUBLIC_PREVIEW_0_8_DOCUMENT_IDS = frozenset(
     }
 )
 F03_ACTION_IDS = (
+    "F03-private-boundary",
     "F03-prepare",
     "F03-read-target-task",
     "F03-start-task",
     "F03-inspect-started-task",
-    "F03-complete-task",
-    "F03-inspect-final-diff",
-    "F03-stage-board",
-    "F03-review-commit-boundary",
-    "F03-run-commit-gate",
+    "F03-read-contract",
+    "F03-run-docs-chore",
+    "F03-review-co-commit-boundary",
+    "F03-choose-keep-branch",
     "F03-confirm-clean",
     "F03-check",
     "F03-reset-retry",
-    "F03-return-base",
 )
 P01_DOCUMENT_ID = "P01-feature-through-plan"
 P01_ACTION_IDS = (
@@ -1198,7 +1197,7 @@ class LessonActionTests(unittest.TestCase):
                         self.assertNotIn(stale, commands)
 
     def test_checked_in_f03_manifest_stays_source_only_while_withheld(self) -> None:
-        """Catches the invalid board-only F03 path re-entering the public release."""
+        """Catches the future F03 walkthrough being represented as runnable in 0.25."""
         root = Path(__file__).parents[1]
         self.assertNotIn(F03_DOCUMENT_ID, load_preview_manifest(root).guided_labs)
         manifest = load_action_manifest(root, F03_DOCUMENT_ID)
@@ -1207,33 +1206,96 @@ class LessonActionTests(unittest.TestCase):
         self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
         by_id = {action.id: action for action in manifest.actions}
 
+        boundary = by_id["F03-private-boundary"]
+        boundary_copy = "\n".join(
+            (boundary.instruction, boundary.expected_result, boundary.recovery, boundary.evidence or "")
+        )
+        self.assertIn("Future private-source walkthrough only", boundary_copy)
+        self.assertIn("Preview 0.25 does not publish F03", boundary_copy)
+        for lifecycle_command in ("Prepare", "Check", "Reset"):
+            self.assertIn(lifecycle_command, boundary_copy)
+        self.assertIn("refuse", boundary_copy)
+
         for action_id in ("F03-prepare", "F03-check", "F03-reset-retry"):
             action = by_id[action_id]
             with self.subTest(action=action_id):
-                self.assertEqual(
-                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
-                    (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
-                )
-                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+                self.assertEqual(action.variants, ())
+                self.assertIn("Future private-source walkthrough only", action.instruction)
+                self.assertIn("refuses", action.expected_result)
 
-        for action_id, command in (
-            ("F03-start-task", "task start academy.feature.0001"),
-            ("F03-complete-task", "task done academy.feature.0001"),
-            ("F03-run-commit-gate", "commit"),
-        ):
+        expected_agent_commands = {
+            "F03-start-task": (
+                ("claude-code", "/ca:task start academy.docs.0001"),
+                ("codex", "$ca-task start academy.docs.0001"),
+                ("pi", "/ca-task start academy.docs.0001"),
+                ("pi", "/skill:ca-task start academy.docs.0001"),
+            ),
+            "F03-run-docs-chore": (
+                (
+                    "claude-code",
+                    "/ca:chore docs Correct claimant visibility in docs/ticket-list-contract.md",
+                ),
+                (
+                    "codex",
+                    "$ca-chore docs Correct claimant visibility in docs/ticket-list-contract.md",
+                ),
+                (
+                    "pi",
+                    "/ca-chore docs Correct claimant visibility in docs/ticket-list-contract.md",
+                ),
+                (
+                    "pi",
+                    "/skill:ca-chore docs Correct claimant visibility in docs/ticket-list-contract.md",
+                ),
+            ),
+        }
+        for action_id, expected_commands in expected_agent_commands.items():
             action = by_id[action_id]
             with self.subTest(action=action_id):
                 self.assertEqual(action.actor, "agent")
                 self.assertEqual(
                     tuple((variant.host, variant.command) for variant in action.variants),
-                    (
-                        ("claude-code", "/ca:" + command),
-                        ("codex", "$ca-" + command),
-                        ("pi", "/ca-" + command),
-                        ("pi", "/skill:ca-" + command),
-                    ),
+                    expected_commands,
                 )
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
+
+        commands = "\n".join(
+            variant.command for action in manifest.actions for variant in action.variants
+        )
+        self.assertNotIn("git commit", commands)
+        self.assertNotIn("ca-commit", commands)
+        self.assertNotIn("ca:commit", commands)
+        self.assertNotIn("task done", commands)
+        self.assertNotIn("prepare F03-work-the-board", commands)
+        self.assertNotIn("check F03-work-the-board", commands)
+        self.assertNotIn("reset F03-work-the-board", commands)
+
+        review_copy = "\n".join(
+            part
+            for part in (
+                by_id["F03-review-co-commit-boundary"].instruction,
+                by_id["F03-review-co-commit-boundary"].expected_result,
+                by_id["F03-review-co-commit-boundary"].recovery,
+                by_id["F03-review-co-commit-boundary"].evidence or "",
+            )
+        )
+        self.assertIn(".codearbiter/open-tasks.md", review_copy)
+        self.assertIn("docs/ticket-list-contract.md", review_copy)
+        self.assertIn("staged", review_copy)
+        self.assertIn("[~]", review_copy)
+        self.assertIn("one commit", review_copy)
+
+        finish_copy = "\n".join(
+            part
+            for part in (
+                by_id["F03-choose-keep-branch"].instruction,
+                by_id["F03-choose-keep-branch"].expected_result,
+                by_id["F03-choose-keep-branch"].recovery,
+                by_id["F03-choose-keep-branch"].evidence or "",
+            )
+        )
+        self.assertIn("Keep the branch as-is", finish_copy)
+        self.assertIn("no hosted pull request", finish_copy)
 
         check_copy = "\n".join(
             part
@@ -1244,8 +1306,8 @@ class LessonActionTests(unittest.TestCase):
                 by_id["F03-check"].evidence or "",
             )
         )
-        self.assertIn("cannot prove the agent command ran", check_copy)
-        self.assertIn("cannot prove the learner observed the transient [~] state", check_copy)
+        self.assertIn("cannot prove `$ca-task` ran", check_copy)
+        self.assertIn("cannot prove `$ca-chore` ran", check_copy)
         self.assertNotIn("reconstruct an agent invocation", check_copy)
 
         clean_copy = "\n".join(
@@ -1258,7 +1320,7 @@ class LessonActionTests(unittest.TestCase):
             )
         )
         self.assertIn("no non-ignored worktree state", clean_copy)
-        self.assertIn(".codearbiter/open-tasks.md.lock", clean_copy)
+        self.assertIn("one post-Prepare commit", clean_copy)
 
     def test_checked_in_f02_manifest_encodes_the_complete_ordered_lifecycle(self) -> None:
         manifest = load_action_manifest(Path(__file__).parents[1], F02_DOCUMENT_ID)

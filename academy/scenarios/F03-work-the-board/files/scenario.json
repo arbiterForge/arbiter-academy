@@ -1,1 +1,1 @@
-{"schema_version":1,"lab_id":"F03-work-the-board","operation":"task_transition","target":"academy.feature.0001","starting_condition":"queued"}
+{"schema_version":1,"lab_id":"F03-work-the-board","operation":"task_start_co_commit","target":"academy.docs.0001","starting_condition":"queued"}

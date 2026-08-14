@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"F03-work-the-board","predicates":[{"id":"canonical_board_transition","type":"lab_semantics","profile":"task_transition","board":".codearbiter/open-tasks.md","task_id":"academy.feature.0001"}]}
+{"schema_version":2,"id":"F03-work-the-board","predicates":[{"id":"task_start_co_commit","type":"lab_semantics","profile":"task_start_co_commit","board":".codearbiter/open-tasks.md","task_id":"academy.docs.0001","work_file":"docs/ticket-list-contract.md"}]}

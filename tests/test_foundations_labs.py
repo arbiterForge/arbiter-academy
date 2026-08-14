@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from academy_engine.checkpoints import _f04_has_uncommitted_learner_changes, evaluate_checkpoint
+from academy_engine.checkpoints import _f04_has_uncommitted_learner_changes, evaluate_checkpoint, load_checkpoint
 from academy_engine.curriculum import CurriculumError, _subsections, load_track, verify_track
 from academy_engine.doctor import inspect_doctor, record_foundations_doctor
 from academy_engine.paths import PathBoundaryError
@@ -180,13 +180,19 @@ def pinned_task_writer() -> tuple[Path, str]:
     return writer, digest
 
 
-def run_task_writer(fixture: AcademyRepository, verb: str, day: str) -> None:
+def run_task_writer(
+    fixture: AcademyRepository,
+    verb: str,
+    day: str,
+    *,
+    task_id: str = "academy.docs.0001",
+) -> None:
     writer, _ = pinned_task_writer()
     environment = os.environ.copy()
     environment["CLAUDE_PROJECT_DIR"] = str(fixture.root)
     environment["CLAUDE_PLUGIN_ROOT"] = str(writer.parents[2])
     result = subprocess.run(
-        [sys.executable, str(writer), verb, "academy.feature.0001", "--date", day],
+        [sys.executable, str(writer), verb, task_id, "--date", day],
         cwd=fixture.root,
         env=environment,
         text=True,
@@ -332,6 +338,20 @@ class PinnedTaskWriterTests(unittest.TestCase):
 
 
 class FoundationsCurriculumTests(unittest.TestCase):
+    def test_f03_seed_declares_the_bounded_docs_start_contract(self) -> None:
+        """Catches F03 drifting back to a board-only or feature-task scenario."""
+        scenario = SOURCE / "academy/scenarios/F03-work-the-board/files/scenario.json"
+        self.assertEqual(
+            json.loads(scenario.read_text(encoding="utf-8")),
+            {
+                "schema_version": 1,
+                "lab_id": "F03-work-the-board",
+                "operation": "task_start_co_commit",
+                "target": "academy.docs.0001",
+                "starting_condition": "queued",
+            },
+        )
+
     def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
         text = path.read_text(encoding="utf-8")
@@ -348,7 +368,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
         self.assertNotIn("```", text)
 
     def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
-        """F03 must teach the real board route with action cards, not prose fences."""
+        """F03 must keep its real future docs lifecycle explicit and source-only."""
         path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"
         text = path.read_text(encoding="utf-8")
         body = text.split("---", 2)[2]
@@ -367,10 +387,11 @@ class FoundationsCurriculumTests(unittest.TestCase):
             ),
         )
         action_ids = (
-            "F03-prepare", "F03-read-target-task", "F03-start-task",
-            "F03-inspect-started-task", "F03-complete-task", "F03-inspect-final-diff",
-            "F03-stage-board", "F03-review-commit-boundary", "F03-run-commit-gate",
-            "F03-confirm-clean", "F03-check", "F03-reset-retry", "F03-return-base",
+            "F03-private-boundary", "F03-prepare", "F03-read-target-task",
+            "F03-start-task", "F03-inspect-started-task", "F03-read-contract",
+            "F03-run-docs-chore", "F03-review-co-commit-boundary",
+            "F03-choose-keep-branch", "F03-confirm-clean", "F03-check",
+            "F03-reset-retry",
         )
         for action_id in action_ids:
             self.assertEqual(body.count("{{action:" + action_id + "}}"), 1, action_id)
@@ -381,11 +402,30 @@ class FoundationsCurriculumTests(unittest.TestCase):
         self.assertEqual(
             lab.host_commands,
             {
-                "claude-code": "/ca:task start academy.feature.0001",
-                "codex": "$ca-task start academy.feature.0001",
-                "pi": "/ca-task start academy.feature.0001\n/skill:ca-task start academy.feature.0001",
+                "claude-code": "/ca:task start academy.docs.0001",
+                "codex": "$ca-task start academy.docs.0001",
+                "pi": "/ca-task start academy.docs.0001\n/skill:ca-task start academy.docs.0001",
             },
         )
+        self.assertIn("Preview 0.25 does not publish F03", body)
+        self.assertIn("Future private-source walkthrough", body)
+        self.assertIn("Prepare, Check, and Reset refuse F03", body)
+        self.assertIn("$ca-chore docs", body)
+        self.assertIn("academy.docs.0001", body)
+        self.assertIn("docs/ticket-list-contract.md", body)
+        self.assertIn("[~]", body)
+        self.assertIn("Keep the branch as-is", body)
+        self.assertIn("no hosted pull request", body)
+        self.assertIn("cannot prove that `$ca-task` ran", body)
+        self.assertIn("cannot prove that `$ca-chore` ran", body)
+        for unavailable_command in (
+            "prepare F03-work-the-board",
+            "check F03-work-the-board",
+            "reset F03-work-the-board",
+            "preview-0.25",
+        ):
+            self.assertNotIn(unavailable_command, body)
+        self.assertNotIn("git commit", body)
 
     def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F02-orient-to-state.md"
@@ -918,6 +958,58 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
         prepare_lab(fixture.root, lab_id)
         return fixture
 
+    def test_f03_prepare_seeds_only_the_queued_docs_task_and_contract_note(self) -> None:
+        """Catches a board-only F03 prepare or an accidental broader task fixture."""
+        fixture = self._prepared(FOUNDATIONS[2])
+        self.addCleanup(fixture.close)
+
+        self.assertEqual(
+            (fixture.root / ".codearbiter/open-tasks.md").read_text(encoding="utf-8"),
+            """# Open tasks - F03 Academy fixture
+
+All dates, statuses, and roles below are fictional Academy fixtures.
+
+## Queued
+
+- [ ] academy.docs.0001 - Clarify claimant visibility in ticket list output
+  - Desc: Correct the prepared contract so claimed tickets show their claimant while open tickets do not.
+  - Done when: The local contract distinguishes claimant visibility for claimed and open tickets without exposing storage internals.
+  - Boundaries: docs/ticket-list-contract.md
+  - Curriculum lane: docs
+  - Evidence: [ticket list contract](../docs/ticket-list-contract.md)
+""",
+        )
+        self.assertEqual(
+            (fixture.root / "docs/ticket-list-contract.md").read_text(encoding="utf-8"),
+            """# Ticket list contract
+
+## Claimant visibility
+
+Ticket list output shows a claimant for every ticket.
+""",
+        )
+        self.assertEqual(
+            git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout,
+            "",
+        )
+
+    def test_f03_checkpoint_declares_the_task_start_co_commit_binding(self) -> None:
+        """Catches metadata/schema drift from the bounded board-plus-document proof."""
+        checkpoint = load_checkpoint(
+            SOURCE / "academy/checkpoints/F03-work-the-board.json"
+        )
+
+        self.assertEqual(checkpoint.predicates[0].id, "task_start_co_commit")
+        self.assertEqual(
+            checkpoint.predicates[0].data,
+            {
+                "profile": "task_start_co_commit",
+                "board": ".codearbiter/open-tasks.md",
+                "task_id": "academy.docs.0001",
+                "work_file": "docs/ticket-list-contract.md",
+            },
+        )
+
     def _record_f01(self, fixture: AcademyRepository) -> str:
         path = fixture.root / ".codearbiter/reports/academy/F01-doctor.json"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1113,191 +1205,229 @@ class FoundationsCheckpointMatrixTests(unittest.TestCase):
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[1])
                 self.assertFalse(result.passed)
 
-    def _write_done_board(
+    def _write_f03_work_file(
         self,
         fixture: AcademyRepository,
         *,
-        stamp: str = "  (done 2026-07-31)",
-        task_id: str = "academy.feature.0001",
+        sentence: str = (
+            "Ticket list output shows the claimant for a claimed ticket and no claimant "
+            "for an open ticket."
+        ),
+        append: str = "",
+    ) -> None:
+        work_file = fixture.root / "docs/ticket-list-contract.md"
+        text = work_file.read_text(encoding="utf-8")
+        work_file.write_text(
+            text.replace(
+                "Ticket list output shows a claimant for every ticket.",
+                sentence,
+                1,
+            )
+            + append,
+            encoding="utf-8",
+        )
+
+    def _commit_f03_boundary(
+        self,
+        fixture: AcademyRepository,
+        *,
+        day: str = "2026-08-02",
+        extra_paths: tuple[str, ...] = (),
+    ) -> str:
+        return fixture.commit(
+            "start bounded claimant visibility docs task",
+            ".codearbiter/open-tasks.md",
+            "docs/ticket-list-contract.md",
+            *extra_paths,
+            commit_date=f"{day}T12:00:00-04:00",
+        )
+
+    def _manually_start_f03_board(
+        self,
+        fixture: AcademyRepository,
+        *,
+        task_id: str = "academy.docs.0001",
+        stamp: str = "  (started 2026-08-02)",
+        title: str = "Clarify claimant visibility in ticket list output",
     ) -> None:
         board = fixture.root / ".codearbiter/open-tasks.md"
         text = board.read_text(encoding="utf-8")
-        text = text.replace(
-            f"- [ ] {task_id} -",
-            f"- [x] {task_id} -",
-            1,
+        queued = (
+            "- [ ] academy.docs.0001 - "
+            "Clarify claimant visibility in ticket list output"
         )
-        line, separator, remainder = text.partition("\n")
-        if task_id not in line:
-            prefix, target, suffix = text.partition(f"- [x] {task_id} -")
-            target_line, newline, tail = suffix.partition("\n")
-            text = prefix + f"- [x] {task_id} -" + target_line + stamp + newline + tail
-        else:
-            text = line + stamp + separator + remainder
-        board.write_text(text, encoding="utf-8")
+        started = f"- [~] {task_id} - {title}{stamp}"
+        board.write_text(text.replace(queued, started, 1), encoding="utf-8")
 
-    def test_f03_accepts_only_the_canonical_task_line_transition(self) -> None:
-        cases = (
-            "untouched",
-            "started",
-            "checkbox-only",
-            "malformed-date",
-            "wrong-id",
-            "unrelated-edit",
-            "uncommitted",
-        )
-        for case in cases:
+    def test_f03_accepts_one_clean_dated_board_and_contract_commit_from_real_writer(
+        self,
+    ) -> None:
+        for day in ("2026-08-02", "2026-08-13"):
+            with self.subTest(day=day):
+                fixture = self._prepared(FOUNDATIONS[2])
+                self.addCleanup(fixture.close)
+                run_task_writer(fixture, "start", day)
+                self._write_f03_work_file(fixture)
+                self._commit_f03_boundary(fixture, day=day)
+
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+
+                self.assertTrue(result.passed, result.failed_predicates)
+
+    def test_f03_rejects_executable_board_or_work_file_tree_entry(self) -> None:
+        """Catches valid F03 content being accepted with non-ordinary Git modes."""
+        for executable_path in (
+            ".codearbiter/open-tasks.md",
+            "docs/ticket-list-contract.md",
+        ):
+            with self.subTest(executable_path=executable_path):
+                fixture = self._prepared(FOUNDATIONS[2])
+                self.addCleanup(fixture.close)
+                git(fixture.root, "config", "core.filemode", "false")
+                run_task_writer(fixture, "start", "2026-08-02")
+                self._write_f03_work_file(fixture)
+                git(
+                    fixture.root,
+                    "add",
+                    "--",
+                    ".codearbiter/open-tasks.md",
+                    "docs/ticket-list-contract.md",
+                )
+                git(
+                    fixture.root,
+                    "update-index",
+                    "--chmod=+x",
+                    "--",
+                    executable_path,
+                )
+                fixture.commit(
+                    "start bounded claimant visibility docs task",
+                    commit_date="2026-08-02T12:00:00-04:00",
+                )
+                self.assertTrue(
+                    git(fixture.root, "ls-tree", "HEAD", "--", executable_path).stdout.startswith(
+                        "100755 blob "
+                    )
+                )
+                self.assertEqual(
+                    git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout,
+                    "",
+                )
+
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+
+                self.assertFalse(result.passed)
+                self.assertEqual(result.failed_predicates, ("task_start_co_commit",))
+
+    def test_f03_rejects_manual_or_malformed_task_start_content(self) -> None:
+        cases = {
+            "checkbox-without-date": {"stamp": ""},
+            "malformed-date": {"stamp": "  (started yesterday)"},
+            "completed-instead": {"stamp": "  (done 2026-08-02)"},
+            "wrong-task": {"task_id": "academy.docs.9999"},
+            "changed-task-body": {"title": "Rewrite all ticket output documentation"},
+            "changed-continuation": {},
+            "date-not-author-date": {"stamp": "  (started 2026-08-01)"},
+        }
+        for case, transition in cases.items():
             with self.subTest(case=case):
                 fixture = self._prepared(FOUNDATIONS[2])
                 self.addCleanup(fixture.close)
-                board = fixture.root / ".codearbiter/open-tasks.md"
-                if case == "untouched":
-                    fixture.commit("leave task queued", allow_empty=True)
-                elif case == "started":
+                self._manually_start_f03_board(fixture, **transition)
+                if case == "completed-instead":
+                    board = fixture.root / ".codearbiter/open-tasks.md"
+                    board.write_text(
+                        board.read_text(encoding="utf-8").replace("- [~]", "- [x]", 1),
+                        encoding="utf-8",
+                    )
+                elif case == "changed-continuation":
+                    board = fixture.root / ".codearbiter/open-tasks.md"
                     board.write_text(
                         board.read_text(encoding="utf-8").replace(
-                            "- [ ] academy.feature.0001 -",
-                            "- [~] academy.feature.0001 -",
+                            "Correct the prepared contract",
+                            "Rewrite the prepared contract",
                             1,
                         ),
                         encoding="utf-8",
                     )
-                    fixture.commit("start task", str(board.relative_to(fixture.root)))
-                elif case == "checkbox-only":
-                    self._write_done_board(fixture, stamp="")
-                    fixture.commit("hand flip checkbox", str(board.relative_to(fixture.root)))
-                elif case == "malformed-date":
-                    self._write_done_board(fixture, stamp="  (done yesterday)")
-                    fixture.commit("malformed completion", str(board.relative_to(fixture.root)))
-                elif case == "wrong-id":
-                    self._write_done_board(fixture, task_id="academy.security.0004")
-                    fixture.commit("complete wrong task", str(board.relative_to(fixture.root)))
-                elif case == "unrelated-edit":
-                    self._write_done_board(fixture)
-                    board.write_text(
-                        board.read_text(encoding="utf-8").replace(
-                            "Prepare Academy fixture release notes",
-                            "Rewrite Academy fixture release notes",
-                        ),
-                        encoding="utf-8",
-                    )
-                    fixture.commit("complete task and rewrite another", str(board.relative_to(fixture.root)))
-                elif case == "uncommitted":
-                    self._write_done_board(fixture)
-                    fixture.commit("leave completion uncommitted", allow_empty=True)
-                else:
-                    raise AssertionError(case)
+                self._write_f03_work_file(fixture)
+                self._commit_f03_boundary(fixture)
 
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+
                 self.assertFalse(result.passed)
+                self.assertEqual(result.failed_predicates, ("task_start_co_commit",))
 
-    def test_f03_intended_and_equivalent_routes_use_the_real_pinned_task_writer(self) -> None:
-        routes = (
-            ("intended", "2026-07-31", "2026-07-31"),
-            ("equivalent", "2026-08-01", "2026-08-02"),
-        )
-        for route, started, done in routes:
-            with self.subTest(route=route):
-                fixture = self._prepared(FOUNDATIONS[2])
-                self.addCleanup(fixture.close)
-                run_task_writer(fixture, "start", started)
-                board = fixture.root / ".codearbiter/open-tasks.md"
-                self.assertIn(f"(started {started})", board.read_text(encoding="utf-8"))
-                run_task_writer(fixture, "done", done)
-                fixture.commit(
-                    f"complete governed task through {route} route",
-                    str(board.relative_to(fixture.root)),
-                    commit_date=f"{done}T12:00:00-04:00",
-                )
-
-                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
-                self.assertTrue(result.passed, result.failed_predicates)
-
-    def test_f03_real_task_writer_lock_is_the_only_ignored_clean_sidecar(self) -> None:
-        """The pinned writer lock is valid evidence hygiene, not a broad ignore escape."""
+    def test_f03_accepts_the_real_task_writer_lock_as_ignored_clean_state(self) -> None:
         fixture = self._prepared(FOUNDATIONS[2])
         self.addCleanup(fixture.close)
-        run_task_writer(fixture, "start", "2026-08-01")
-        run_task_writer(fixture, "done", "2026-08-02")
-        board = fixture.root / ".codearbiter/open-tasks.md"
-        fixture.commit(
-            "complete governed task through the pinned writer",
-            str(board.relative_to(fixture.root)),
-            commit_date="2026-08-02T12:00:00-04:00",
-        )
+        run_task_writer(fixture, "start", "2026-08-02")
+        self._write_f03_work_file(fixture)
+        self._commit_f03_boundary(fixture)
         sidecar = fixture.root / ".codearbiter/open-tasks.md.lock"
         self.assertTrue(sidecar.is_file())
-        self.assertIn(
-            ".codearbiter/open-tasks.md.lock\n",
-            (fixture.root / ".gitignore").read_text(encoding="utf-8"),
-        )
-        self.assertEqual(
-            git(
-                fixture.root,
-                "check-ignore",
-                "-v",
-                "--",
-                str(sidecar.relative_to(fixture.root)),
-            ).returncode,
-            0,
-        )
         self.assertEqual(
             git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout,
             "",
         )
-        result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
-        self.assertTrue(result.passed, result.failed_predicates)
+        self.assertTrue(evaluate_checkpoint(fixture.root, FOUNDATIONS[2]).passed)
 
-    def test_f03_rejects_an_arbitrary_untracked_file_after_real_task_writer_completion(self) -> None:
-        """F03 must reject nonignored dirt after the otherwise valid board commit."""
-        fixture = self._prepared(FOUNDATIONS[2])
-        self.addCleanup(fixture.close)
-        run_task_writer(fixture, "start", "2026-08-01")
-        run_task_writer(fixture, "done", "2026-08-02")
-        board = fixture.root / ".codearbiter/open-tasks.md"
-        fixture.commit(
-            "complete governed task through the pinned writer",
-            str(board.relative_to(fixture.root)),
-            commit_date="2026-08-02T12:00:00-04:00",
-        )
-        (fixture.root / "real-untracked.txt").write_text(
-            "must make Check fail\n", encoding="utf-8"
-        )
-        result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
-        self.assertFalse(result.passed)
-
-    def test_f03_rejects_extra_commit_and_co_committed_path_after_valid_completion(
-        self,
-    ) -> None:
-        """The final board bytes alone cannot bypass F03's exact evidence boundary."""
-        for case in ("additional-commit", "co-committed-path"):
+    def test_f03_rejects_missing_wrong_or_broader_contract_correction(self) -> None:
+        cases = {
+            "unchanged-work": "Ticket list output shows a claimant for every ticket.",
+            "missing-text": "",
+            "wrong": "Ticket list output shows a claimant for claimed and open tickets.",
+            "broader": (
+                "Ticket list output shows the claimant for a claimed ticket and no claimant "
+                "for an open ticket."
+            ),
+        }
+        for case, sentence in cases.items():
             with self.subTest(case=case):
                 fixture = self._prepared(FOUNDATIONS[2])
                 self.addCleanup(fixture.close)
-                run_task_writer(fixture, "start", "2026-08-01")
-                run_task_writer(fixture, "done", "2026-08-02")
-                board = fixture.root / ".codearbiter/open-tasks.md"
-                if case == "additional-commit":
-                    fixture.commit(
-                        "complete governed task through the pinned writer",
-                        str(board.relative_to(fixture.root)),
-                        commit_date="2026-08-02T12:00:00-04:00",
-                    )
-                    fixture.commit("unrelated learner history", allow_empty=True)
-                else:
-                    note = fixture.root / "learner-notes.md"
-                    note.write_text("This must stay outside F03 evidence.\n", encoding="utf-8")
-                    fixture.commit(
-                        "complete governed task with unrelated note",
-                        str(board.relative_to(fixture.root)),
-                        str(note.relative_to(fixture.root)),
-                        commit_date="2026-08-02T12:00:00-04:00",
-                    )
+                run_task_writer(fixture, "start", "2026-08-02")
+                self._write_f03_work_file(
+                    fixture,
+                    sentence=sentence,
+                    append="\nBroader documentation rewrite.\n" if case == "broader" else "",
+                )
+                self._commit_f03_boundary(fixture)
+
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+
+                self.assertFalse(result.passed)
+                self.assertEqual(result.failed_predicates, ("task_start_co_commit",))
+
+    def test_f03_rejects_wider_history_or_dirty_worktree(self) -> None:
+        for case in ("wider-commit", "extra-commit", "dirt"):
+            with self.subTest(case=case):
+                fixture = self._prepared(FOUNDATIONS[2])
+                self.addCleanup(fixture.close)
+                run_task_writer(fixture, "start", "2026-08-02")
+                self._write_f03_work_file(fixture)
+                if case == "wider-commit":
+                    note = fixture.root / "learner-notes.md"
+                    note.write_text("Outside the F03 boundary.\n", encoding="utf-8")
+                    self._commit_f03_boundary(
+                        fixture,
+                        extra_paths=(str(note.relative_to(fixture.root)),),
+                    )
+                else:
+                    self._commit_f03_boundary(fixture)
+                    if case == "extra-commit":
+                        fixture.commit("unrelated learner history", allow_empty=True)
+                    else:
+                        (fixture.root / "uncommitted-note.md").write_text(
+                            "The worktree is dirty.\n", encoding="utf-8"
+                        )
+
+                result = evaluate_checkpoint(fixture.root, FOUNDATIONS[2])
+
                 self.assertFalse(result.passed)
                 self.assertEqual(
                     result.failed_predicates,
-                    ("canonical_board_transition",),
+                    ("task_start_co_commit",),
                 )
 
     def test_f04_requires_regression_commit_before_a_later_service_repair(self) -> None:

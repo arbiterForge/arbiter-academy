@@ -2,31 +2,38 @@
 id: F03-work-the-board
 track: foundations
 order: 3
-title: Work the governed board
-outcome: Move the exact queued Academy task through the sanctioned start and done transitions.
+title: Start a task with its work
+outcome: Start the prepared docs task and co-locate its in-progress board transition with the bounded documentation correction.
 prerequisites: F02-orient-to-state
-estimated_minutes: 15
+estimated_minutes: 20
 scenario_command: {{action:F03-prepare}}
 checkpoint_command: {{action:F03-check}}
 next_lab: F04-fix-with-evidence
 ---
 
-# F03: Work the governed board
+# F03: Start a task with its work
 
 ## Know before you begin
 
-Complete F02 first. Open a native terminal and your active CodeArbiter harness at the prepared
-arbiter-academy clone. Start on a clean `main` branch. Native-terminal commands have no `!`.
-CodeArbiter commands are not shell commands and never begin with `!`.
+Preview 0.25 does not publish F03. Prepare, Check, and Reset refuse F03 in the current release. The
+detailed lifecycle below is a **Future private-source walkthrough**, not a runnable Preview 0.25
+lesson. It includes no current F03 Academy lifecycle command.
 
-F03 changes only the `academy.feature.0001` lifecycle in `.codearbiter/open-tasks.md`. It does not
-implement the feature named by that task, change another task, or create a general board cleanup.
+{{action:F03-private-boundary}}
+
+The future walkthrough begins from a clean numbered attempt with `academy.docs.0001` queued and
+`docs/ticket-list-contract.md` seeded. Keep a native terminal and one active CodeArbiter host at that
+same repository. Agent commands do not run in the shell.
 
 ## What you will prove
 
-You will move one queued task through its sanctioned started and done states, then create one
-board-only governed commit. The completed attempt remains available if Check fails, so do not amend,
-force-push, force-reset, or delete it.
+The future attempt will use `$ca-task start academy.docs.0001`, then `$ca-chore docs`, to create one
+post-Prepare commit. That commit must contain both `.codearbiter/open-tasks.md` and
+`docs/ticket-list-contract.md`. The task remains `[~]`; this lesson starts bounded work but does not
+mark it done.
+
+The docs chore ends at its normal branch-completion handoff. Choose **Keep the branch as-is (I'll
+handle it later)**. This exercise stays local, with no push and no hosted pull request.
 
 ## Prepare safely
 
@@ -34,7 +41,8 @@ force-push, force-reset, or delete it.
 
 {{action:F03-read-target-task}}
 
-`ATTEMPT_NUMBER` means the number Academy prints. Do not type the word or angle brackets literally.
+Read the task's description, done condition, boundary, lane, and evidence link. Do not substitute a
+similarly named task or broaden the correction.
 
 ## Practice
 
@@ -42,55 +50,66 @@ force-push, force-reset, or delete it.
 
 {{action:F03-inspect-started-task}}
 
-{{action:F03-complete-task}}
+The task writer's change stays uncommitted while you do the work it started.
 
-{{action:F03-inspect-final-diff}}
+{{action:F03-read-contract}}
 
-{{action:F03-stage-board}}
+{{action:F03-run-docs-chore}}
 
-{{action:F03-review-commit-boundary}}
+When the docs chore pauses at its commit gate, inspect the staged state before you approve it.
 
-{{action:F03-run-commit-gate}}
+{{action:F03-review-co-commit-boundary}}
+
+After the commit gate succeeds, use the normal branch-completion handoff.
+
+{{action:F03-choose-keep-branch}}
 
 {{action:F03-confirm-clean}}
 
 ## Recognize success
 
-The attempt has one post-Prepare learner commit, and that commit changes only
-`.codearbiter/open-tasks.md`. The target's full original task text remains present, its marker is
-`[x]`, and the task writer supplied its done date. Every other board line is byte-for-byte unchanged.
-No non-ignored worktree state remains. Academy ignores the sole task-writer sidecar exception,
-`.codearbiter/open-tasks.md.lock`.
+The future numbered attempt is clean and has exactly one learner commit after Prepare. Its changed
+path set is exactly `.codearbiter/open-tasks.md` plus `docs/ticket-list-contract.md`. The board keeps
+the original `academy.docs.0001` task text, changes its marker from `[ ]` to `[~]`, and records the
+started date that matches the commit date.
+
+The contract note has one correction: claimed tickets show their claimant, while open tickets show
+no claimant. No other content changes. The branch remains local and checked out after **Keep the
+branch as-is**. There is no hosted pull request.
 
 ## Check
 
 {{action:F03-check}}
 
-Check compares the prepared board blob, committed board blob, one board-only commit boundary, and
-non-ignored worktree state. It cannot prove the agent command ran or prove that the learner observed
-the transient `[~]` state. A hand-edited checkbox, malformed date, unrelated board edit, extra commit,
-or non-ignored worktree change fails.
+A future Check can compare the prepared board and document blobs with the one post-Prepare commit. It
+can validate the exact task transition, correction, commit parent, commit date, changed paths, and
+clean worktree. It cannot prove that `$ca-task` ran, and it cannot prove that `$ca-chore` ran. Those
+are agent invocations, not authenticated repository facts.
 
 ## Recover or continue
 
-Preserve the failed attempt and read the failed predicate before choosing a retry.
+The current release has no runnable F03 retry path. Keep private-source attempts unchanged.
 
-**Hint 1.** Confirm that `academy.feature.0001`, not a similarly named task, was queued before Start.
+**Hint 1.** The target is `academy.docs.0001`, and its only work file is
+`docs/ticket-list-contract.md`.
 
-**Hint 2.** Inspect the `[~]` state before Done. It is a required transition, not a decoration.
+**Hint 2.** The task must remain `[~]`. A done transition belongs to later work, not this co-commit.
 
-**Hint 3.** Review the staged path list before the commit gate. Only `.codearbiter/open-tasks.md`
-belongs in the commit.
+**Hint 3.** Review the staged path list before authorizing the docs chore's commit gate. A board-only
+commit and a document-only commit both fail the boundary.
 
 {{action:F03-reset-retry}}
 
-{{action:F03-return-base}}
-
-After a passing Check, return to `main`. The next Academy lesson appears on the course home only after its guided rewrite. Keep every completed or failed attempt branch intact for later verification.
+Wait for an atomic publication that adds F03 to a later release before using Academy lifecycle
+commands. F04 remains independently available from F02 in Preview 0.25.
 
 ## Understand the mechanism
 
-The task writer owns the observable start and done transitions. Check can compare durable board bytes,
-the commit boundary, and non-ignored worktree state, but it cannot prove the agent command ran or that
-the learner observed the transient `[~]` state. Those limits keep the exercise honest while the
-preserved attempt supplies reviewable evidence.
+`$ca-task start` records that work began. `$ca-chore docs` performs the bounded non-behavioral change
+and carries the dirty board transition through the same governed commit. Co-locating those paths
+prevents a board-only commit from claiming progress without work and prevents a document-only commit
+from hiding that the task entered progress.
+
+The local Git result is deliberately narrower than the workflow that produced it. Future Check can
+verify the one commit and its bytes, but not either agent invocation, the learner's review, or the
+branch-handoff choice. The guide states those limits instead of treating durable state as telemetry.

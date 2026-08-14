@@ -25,6 +25,7 @@ _EXACT_LABS = (
 )
 _PROTECTED_SCENARIO_PARTS = frozenset({".git", ".academy", ".codearbiter", "academy"})
 _CONTROL_STATE_SEED_TARGETS = {
+    "F03-work-the-board": frozenset({".codearbiter/open-tasks.md"}),
     "P01-feature-through-plan": frozenset({".codearbiter/open-tasks.md"}),
 }
 _PROTECTED_OVERLAY_BINDINGS = {
