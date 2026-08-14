@@ -3499,7 +3499,11 @@ def _u03_refactor_chore_release(root: Path, attempt: _Attempt, data: dict[str, o
         rf"(?s)^# Changelog\n\n(## \[{re.escape(version)}\] — (\d{{4}}-\d{{2}}-\d{{2}})\n.*)\Z",
         changelog_text,
     )
-    if not section or not re.search(r"(?m)^CHANGELOG:\s*.+$", refactor_message):
+    if (
+        not section
+        or not re.search(r"\Arefactor(?:\([^\n)]+\))?: .+\n", refactor_message)
+        or not re.search(r"(?m)^CHANGELOG:\s*.+$", refactor_message)
+    ):
         return False
     release_date = section.group(2)
     status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)

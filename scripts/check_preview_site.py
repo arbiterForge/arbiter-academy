@@ -288,7 +288,9 @@ _EXPECTED_ACTION_IDS = {
     Path("labs/U03-refactor-chore-release/index.html"): (
         "U03-read-boundary", "U03-prepare", "U03-confirm-prepared", "U03-review-sealed-brief",
         "U03-run-refactor", "U03-inspect-refactor", "U03-review-refactor", "U03-stage-refactor",
-        "U03-commit-refactor", "U03-run-chore", "U03-inspect-chore", "U03-review-chore",
+        "U03-commit-refactor", "U03-dry-run-release", "U03-review-release-blocker",
+        "U03-approve-refactor-footer", "U03-amend-refactor-message", "U03-verify-amended-refactor",
+        "U03-run-chore", "U03-inspect-chore", "U03-review-chore",
         "U03-stage-chore", "U03-commit-chore", "U03-run-release", "U03-review-release",
         "U03-inspect-tag", "U03-check", "U03-reset",
     ),

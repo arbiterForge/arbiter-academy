@@ -2405,6 +2405,11 @@ class U03LessonActionTests(unittest.TestCase):
                 "U03-review-refactor",
                 "U03-stage-refactor",
                 "U03-commit-refactor",
+                "U03-dry-run-release",
+                "U03-review-release-blocker",
+                "U03-approve-refactor-footer",
+                "U03-amend-refactor-message",
+                "U03-verify-amended-refactor",
                 "U03-run-chore",
                 "U03-inspect-chore",
                 "U03-review-chore",
@@ -2418,7 +2423,7 @@ class U03LessonActionTests(unittest.TestCase):
             ),
         )
         self.assertEqual(
-            tuple(action.sequence for action in manifest.actions), tuple(range(1, 20))
+            tuple(action.sequence for action in manifest.actions), tuple(range(1, 25))
         )
 
         for action_id in (
@@ -2509,6 +2514,20 @@ class U03LessonActionTests(unittest.TestCase):
 
         self.assertIn("workshop_queue/store.py", actions["U03-stage-refactor"].instruction)
         self.assertIn("README.md", actions["U03-stage-chore"].instruction)
+        ids = tuple(actions)
+        self.assertLess(ids.index("U03-dry-run-release"), ids.index("U03-run-chore"))
+        self.assertLess(ids.index("U03-amend-refactor-message"), ids.index("U03-run-chore"))
+        self.assertEqual(actions["U03-commit-refactor"].variants[1].command, "$ca-commit")
+        self.assertIn("unpublished HEAD", actions["U03-amend-refactor-message"].instruction)
+        self.assertTrue(
+            all(
+                "git merge-base --is-ancestor HEAD origin/main" in variant.command
+                for variant in actions["U03-amend-refactor-message"].variants
+            )
+        )
+        dry_run = actions["U03-dry-run-release"]
+        self.assertIn("already has the approved footer", dry_run.expected_result)
+        self.assertIn("skip the amend", actions["U03-review-release-blocker"].recovery)
         tag = actions["U03-inspect-tag"]
         self.assertIn("academy-v0.0.1", tag.instruction)
         self.assertIn("generated 0.0.1 changelog section", tag.instruction)
