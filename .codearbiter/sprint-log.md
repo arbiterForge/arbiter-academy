@@ -66,3 +66,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: repoint Preview 0.22; defer learners to the stale artifact; publish Preview 0.23 with unchanged 19-lab inventory and reproduced offline installers.
 - SMARTS: Reliable and Testable favor a new tag because the exact commit, manifest, archive, installer checksums, and Pages output can be reproduced together. Available favors promptly exposing the accepted learner fixes. Securable favors retaining the immutable Preview 0.22 artifact and its pinned digest. Maintainable favors one current identity across the site, command cards, package data, workflow, and installer paths.
 - Chosen: publish Preview 0.23 as the immutable maintenance release with the unchanged accepted inventory, no runtime network dependency, and preserved Preview 0.22 history.
+
+## SD-ACA-012 - Record reproducible build-wheel provenance - confidence: high
+- Date: 2026-08-14
+- Point: Whether the build-only setuptools wheel should retain only an internal review label or expose its reproducible upstream provenance beside its existing digest.
+- Options: retain the internal label alone; add unverified third-party references; record the official PyPI release and wheel URLs, the verified upstream tag, and the existing local review record.
+- SMARTS: Reliable and Testable favor origin URLs paired with the already-pinned size and SHA-256, so maintainers can independently compare the bundled byte. Securable favors the verified upstream tag and does not add an acquisition path to learner execution. Available and Maintainable favor concise static documentation with no runtime dependency or network change.
+- Chosen: document the official PyPI release, immutable wheel URL, upstream signed tag, and existing local review record in the build-only wheelhouse README.
