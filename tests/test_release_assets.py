@@ -138,6 +138,7 @@ class ReleaseAssetBuilderTests(unittest.TestCase):
         self.assertFalse((publication / "preview-0.8.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
         self.assertTrue((publication / "preview-0.21.json").is_file())
+        self.assertTrue((publication / "preview-0.24.json").is_file())
         self.assertTrue((publication / "preview-0.25.json").is_file())
         package = (REPOSITORY / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn("academy/publication/preview-0.25.json", package)

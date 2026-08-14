@@ -2331,6 +2331,10 @@ class PublicU02LessonActionTests(unittest.TestCase):
         self.assertEqual(guarded_restore.actor, "learner")
         self.assertTrue(all(variant.surface == "harness" for variant in guarded_restore.variants))
         self.assertTrue(all(variant.command == "!git restore --source=HEAD -- .codearbiter/overrides.log" for variant in guarded_restore.variants))
+        self.assertEqual(
+            tuple((variant.operating_system, variant.host) for variant in guarded_restore.variants),
+            (("all", "claude-code"), ("all", "codex"), ("all", "pi")),
+        )
         self.assertIn("H-05", guarded_restore.expected_result)
         self.assertNotIn("override", guarded_restore.title.casefold())
 

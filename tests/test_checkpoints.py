@@ -2015,6 +2015,7 @@ class U02AuditGuardObservationTests(unittest.TestCase):
         extra_path: bool = False,
         dirty: bool = False,
         duplicate_event: bool = False,
+        omit_observation: bool = False,
         commits: int = 1,
     ) -> _SemanticContext:
         root = self.root / f"u02-{len(tuple(self.root.iterdir()))}"
@@ -2055,15 +2056,21 @@ class U02AuditGuardObservationTests(unittest.TestCase):
         ]
         if duplicate_event:
             lines.append("event_line: " + event)
-        observation_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-        paths = [".codearbiter/reports/academy/U02-observation.md"]
+        if not omit_observation:
+            observation_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        paths: list[str] = []
+        if not omit_observation:
+            paths.append(".codearbiter/reports/academy/U02-observation.md")
         if tamper_log:
             paths.append(".codearbiter/overrides.log")
         if extra_path:
             (root / "extra.txt").write_text("decoy\n", encoding="utf-8", newline="\n")
             paths.append("extra.txt")
-        self._git(root, "add", "--", *paths)
-        self._git(root, "commit", "-m", "record U02 observation")
+        if paths:
+            self._git(root, "add", "--", *paths)
+            self._git(root, "commit", "-m", "record U02 observation")
+        else:
+            self._git(root, "commit", "--allow-empty", "-m", "record U02 observation")
         for index in range(1, commits):
             self._git(root, "commit", "--allow-empty", "-m", f"extra U02 commit {index}")
         head = self._git(root, "rev-parse", "HEAD")
@@ -2110,7 +2117,12 @@ class U02AuditGuardObservationTests(unittest.TestCase):
                 self.assertFalse(_semantic(self._semantic_context(**arguments)))
 
     def test_u02_rejects_missing_or_duplicate_refusal_evidence(self) -> None:
-        self.assertFalse(_semantic(self._semantic_context(duplicate_event=True)))
+        for name, arguments in {
+            "missing": {"omit_observation": True},
+            "duplicate": {"duplicate_event": True},
+        }.items():
+            with self.subTest(name=name):
+                self.assertFalse(_semantic(self._semantic_context(**arguments)))
 
 class P04NativeDependencyReviewTests(unittest.TestCase):
     """Exercise P04 against immutable candidate blobs and real learner Git history."""
