@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.19 publication manifest",
+  "title": "Arbiter Academy Preview 0.20 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.19"},
+    "release": {"const": "preview-0.20"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -30,13 +30,14 @@
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
         {"const": "U05-debug-spike-conflict"},
-        {"const": "U06-preview-and-advanced-surfaces"}
+        {"const": "U06-preview-and-advanced-surfaces"},
+        {"const": "U07-capstone"}
       ]
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -56,13 +57,14 @@
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
         {"const": "U05-debug-spike-conflict"},
-        {"const": "U06-preview-and-advanced-surfaces"}
+        {"const": "U06-preview-and-advanced-surfaces"},
+        {"const": "U07-capstone"}
       ]
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
@@ -82,17 +84,16 @@
         {"const": "U03-refactor-chore-release"},
         {"const": "U04-initialize-projects"},
         {"const": "U05-debug-spike-conflict"},
-        {"const": "U06-preview-and-advanced-surfaces"}
+        {"const": "U06-preview-and-advanced-surfaces"},
+        {"const": "U07-capstone"}
       ]
     },
     "coming_next": {
       "type": "array",
-      "minItems": 1,
-      "maxItems": 1,
+      "minItems": 0,
+      "maxItems": 0,
       "items": false,
-      "prefixItems": [
-        {"const": "U07-capstone"}
-      ]
+      "prefixItems": []
     },
     "prerequisites": {
       "type": "array",
@@ -109,13 +110,12 @@
     },
     "known_limits": {
       "type": "array",
-      "minItems": 3,
-      "maxItems": 3,
+      "minItems": 2,
+      "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04, P01-P08, and U01-U06 are the guided lessons published in Preview 0.19."},
-        {"const": "U07 remains unavailable in Preview 0.19."},
-        {"const": "Graduation is unavailable until the complete 19-lab course is published."}
+        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.20."},
+        {"const": "Graduation is available after all 19 Academy Checks pass in the same repository."}
       ]
     },
     "discussion_url": {

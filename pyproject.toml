@@ -50,6 +50,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/actions/U04-initialize-projects.json",
   "academy/actions/U05-debug-spike-conflict.json",
   "academy/actions/U06-preview-and-advanced-surfaces.json",
+  "academy/actions/U07-capstone.json",
 ]
 "share/arbiter-academy/academy/guides" = ["academy/guides/*.md"]
 "share/arbiter-academy/academy/checkpoints" = [
@@ -71,8 +72,9 @@ workshop_queue = ["seed/tickets.json"]
   "academy/checkpoints/U04-initialize-projects.json",
   "academy/checkpoints/U05-debug-spike-conflict.json",
   "academy/checkpoints/U06-preview-and-advanced-surfaces.json",
+  "academy/checkpoints/U07-capstone.json",
 ]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.19.json"]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.20.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
@@ -106,6 +108,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/tracks/power-user/U04-initialize-projects.md",
   "academy/tracks/power-user/U05-debug-spike-conflict.md",
   "academy/tracks/power-user/U06-preview-and-advanced-surfaces.md",
+  "academy/tracks/power-user/U07-capstone.md",
 ]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor" = ["academy/scenarios/F01-fork-clone-doctor/manifest.json"]
 "share/arbiter-academy/academy/scenarios/F01-fork-clone-doctor/files" = ["academy/scenarios/F01-fork-clone-doctor/files/*"]
@@ -144,3 +147,5 @@ workshop_queue = ["seed/tickets.json"]
 "share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces" = ["academy/scenarios/U06-preview-and-advanced-surfaces/manifest.json"]
 "share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces/files" = ["academy/scenarios/U06-preview-and-advanced-surfaces/files/scenario.json"]
 "share/arbiter-academy/academy/scenarios/U06-preview-and-advanced-surfaces/files/docs" = ["academy/scenarios/U06-preview-and-advanced-surfaces/files/docs/U06-preview-candidate.md"]
+"share/arbiter-academy/academy/scenarios/U07-capstone" = ["academy/scenarios/U07-capstone/manifest.json"]
+"share/arbiter-academy/academy/scenarios/U07-capstone/files" = ["academy/scenarios/U07-capstone/files/scenario.json"]

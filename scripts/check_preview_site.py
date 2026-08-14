@@ -116,10 +116,9 @@ _LABS = (
     "U04-initialize-projects",
     "U05-debug-spike-conflict",
     "U06-preview-and-advanced-surfaces",
-)
-_COMING_NEXT = (
     "U07-capstone",
 )
+_COMING_NEXT: tuple[str, ...] = ()
 _RUNNABLE_LINK_LABELS = (
     "F01 \u2014 Fork, clone, and Doctor safety",
     "F02 \u2014 Orient to live governance state",
@@ -139,8 +138,9 @@ _RUNNABLE_LINK_LABELS = (
     "U04: Initialize a greenfield and a brownfield project",
     "U05: Debug, spike, and conflict without inventing evidence",
     "U06: Preview a bounded change without turning advice into authority",
+    "U07: Complete a bounded feature capstone",
 )
-_COMING_NEXT_ENTRIES = (("Power User: U07. Guided rewrite is in progress.", False),)
+_COMING_NEXT_ENTRIES: tuple[tuple[str, bool], ...] = ()
 _PUBLIC_PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
     "Git 2.39 or newer.",
@@ -149,9 +149,8 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U06 are the guided lessons published in Preview 0.19.",
-    "U07 remains unavailable in Preview 0.19.",
-    "Graduation is unavailable until the complete 19-lab course is published.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.20.",
+    "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _EXPECTED_ACTION_IDS = {
     Path("index.html"): (
@@ -322,6 +321,9 @@ _EXPECTED_ACTION_IDS = {
         "U06-commit-candidate", "U06-classify-advanced-surfaces", "U06-write-binding-report",
         "U06-inspect-binding-report", "U06-stage-report", "U06-commit-report", "U06-confirm-clean",
         "U06-check-status", "U06-reset-retry",
+    ),
+    Path("labs/U07-capstone/index.html"): (
+        "U07-prepare", "U07-run-feature", "U07-open-pr", "U07-check", "U07-reset-retry",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -611,7 +613,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.19"
+        or data.get("release") != "preview-0.20"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -626,7 +628,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.19 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.20 provenance contract")
     return data["release"]
 
 
@@ -659,16 +661,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.19 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.20 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.19 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.20 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.19 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.20 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -692,13 +694,14 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             Path("labs/U04-initialize-projects/index.html"),
             Path("labs/U05-debug-spike-conflict/index.html"),
             Path("labs/U06-preview-and-advanced-surfaces/index.html"),
+            Path("labs/U07-capstone/index.html"),
         }:
             expected_statuses = (_GUIDED_STATUS,)
         else:
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.19 contract: "
+                "generated publication status does not match the exact Preview 0.20 contract: "
                 f"{relative.as_posix()}"
             )
 

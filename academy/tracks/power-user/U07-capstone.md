@@ -15,10 +15,9 @@ next_lab: none
 
 ## Know before you begin
 
-U07 is private source material while Academy completes its acceptance and release work. The lesson is
-shown here for review, not as a Preview route. When it is published, start at your Academy fork and
-clone on `main` with an empty `git status --short`. Keep a native terminal at the clone root and one
-CodeArbiter harness opened at the same repository.
+U07 is the capstone in the public Academy course. Start at your Academy fork and clone on `main` with
+an empty `git status --short`. Keep a native terminal at the clone root and one CodeArbiter harness
+opened at the same repository.
 
 This capstone uses the real CodeArbiter feature lane. Its terminal offers a real hosted pull request.
 Academy can inspect local Git state, but it cannot authenticate a harness invocation, browser event,
@@ -89,7 +88,7 @@ If the branch is beyond repair, use the preserved retry action.
 **Hint 3.** If Check rejects the attempt, repair the named committed path and rerun it. Reset is for a new baseline, not a way to hide a failed branch.
 
 After a pass, continue the actual hosted pull request through its normal review and merge process.
-There is no next Academy lab in this draft.
+There is no next Academy lab in this course.
 
 ## Understand the mechanism
 

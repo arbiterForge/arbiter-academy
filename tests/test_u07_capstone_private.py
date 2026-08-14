@@ -122,7 +122,7 @@ class U07PrivateCapstoneTests(unittest.TestCase):
         fixture.commit("feature: unrelated transfer", "README.md")
         self.assertFalse(evaluate_checkpoint(fixture.root, LAB).passed)
 
-    def test_private_source_renders_for_review_but_is_excluded_from_every_preview_lifecycle_inventory(self) -> None:
+    def test_public_source_renders_as_the_complete_preview_capstone(self) -> None:
         document = preview_site._read_markdown_document(
             SOURCE,
             Path("academy/tracks/power-user/U07-capstone.md"),
@@ -133,16 +133,14 @@ class U07PrivateCapstoneTests(unittest.TestCase):
         self.assertIn('data-action-id="U07-open-pr"', document["content"])
         manifest = load_preview_manifest(SOURCE)
         for inventory in (manifest.available_labs, manifest.runnable_labs, manifest.guided_labs):
-            self.assertNotIn(LAB, inventory)
-        self.assertIn(LAB, manifest.coming_next)
-        with self.assertRaisesRegex(ValueError, "not runnable"):
-            require_runnable_lab(SOURCE, LAB)
-        with self.assertRaisesRegex(ValueError, "not guided"):
-            require_guided_lab(SOURCE, LAB)
+            self.assertIn(LAB, inventory)
+        self.assertNotIn(LAB, manifest.coming_next)
+        require_runnable_lab(SOURCE, LAB)
+        require_guided_lab(SOURCE, LAB)
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "site"
             build_preview_site(SOURCE, output, release_sha="7" * 40)
-            self.assertFalse((output / "power-user/U07-capstone/index.html").exists())
+            self.assertTrue((output / "labs/U07-capstone/index.html").is_file())
             lifecycle = json.loads((output / "release.json").read_text(encoding="utf-8"))
-            self.assertNotIn(LAB, lifecycle["guided_labs"])
-            self.assertIn(LAB, lifecycle["coming_next"])
+            self.assertIn(LAB, lifecycle["guided_labs"])
+            self.assertNotIn(LAB, lifecycle["coming_next"])
