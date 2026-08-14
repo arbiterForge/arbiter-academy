@@ -4,40 +4,30 @@
   "document_id": "F03-work-the-board",
   "actions": [
     {
-      "id": "F03-private-boundary",
-      "sequence": 1,
-      "title": "Read the withheld lesson boundary",
-      "actor": "learner",
-      "surface": "browser",
-      "instruction": "Future private-source walkthrough only: read this source lesson without trying to run it. Preview 0.25 does not publish F03, so its Prepare, Check, and Reset routes refuse this lesson.",
-      "rationale": "A checked-in draft and a published guided lesson are different product states.",
-      "resources": [],
-      "variants": [],
-      "expected_result": "You know that Preview 0.25 does not publish F03 and that Prepare, Check, and Reset refuse it today.",
-      "recovery": "If a current Preview 0.25 command offers to run F03, stop and preserve its output because that contradicts the release boundary.",
-      "evidence": "Future private-source walkthrough only. The Preview 0.25 manifest remains the authority for current public availability."
-    },
-    {
       "id": "F03-prepare",
-      "sequence": 2,
-      "title": "Understand the future prepared attempt",
+      "sequence": 1,
+      "title": "Prepare a runnable attempt",
       "actor": "learner",
-      "surface": "browser",
-      "instruction": "Future private-source walkthrough only: a later release may prepare a numbered F03 attempt with academy.docs.0001 queued and docs/ticket-list-contract.md seeded. There is no current F03 Prepare command to copy from this card.",
+      "surface": null,
+      "instruction": "From clean main, run the installed Preview 0.26 Academy Prepare command for your operating system.",
       "rationale": "The prepared commit must bind the original board line and contract sentence before learner work begins.",
       "resources": [],
-      "variants": [],
-      "expected_result": "Preview 0.25 refuses F03 Prepare; the future attempt described here would start from one clean prepared commit.",
-      "recovery": "Do not synthesize the fixture or bypass the refusal. Wait for a release that publishes F03.",
-      "evidence": "A future prepared commit would establish the comparison base. This source card does not create one."
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Academy creates a clean numbered F03 attempt with academy.docs.0001 queued and docs/ticket-list-contract.md seeded.",
+      "recovery": "If Prepare reports an existing attempt or dirty checkout, return to clean main or use Reset before trying again.",
+      "evidence": "The prepared commit establishes the comparison base."
     },
     {
       "id": "F03-read-target-task",
-      "sequence": 3,
+      "sequence": 2,
       "title": "Read the bounded docs task",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: on a supported prepared attempt, read academy.docs.0001 and its continuation lines before changing anything. Its boundary is docs/ticket-list-contract.md, and the task must remain in progress.",
+      "instruction": "On the prepared attempt, read academy.docs.0001 and its continuation lines before changing anything. Its boundary is docs/ticket-list-contract.md, and the task must remain in progress.",
       "rationale": "The exact task text defines the work file, evidence, and prohibition on completing the task in this lesson.",
       "resources": [],
       "variants": [
@@ -47,15 +37,15 @@
       ],
       "expected_result": "The prepared board shows academy.docs.0001 as [ ] and names docs/ticket-list-contract.md as its sole work boundary.",
       "recovery": "If the task is absent, already started, completed, or points elsewhere, stop. Do not substitute another task or edit the board by hand.",
-      "evidence": "The prepared task line and continuation fields identify the future exercise boundary."
+      "evidence": "The prepared task line and continuation fields identify this exercise boundary."
     },
     {
       "id": "F03-start-task",
-      "sequence": 4,
+      "sequence": 3,
       "title": "Start the docs task through CodeArbiter",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: in a supported prepared attempt, use the host-native task command to start academy.docs.0001. This is an agent command, not a shell command.",
+      "instruction": "In the prepared attempt, use the host-native task command to start academy.docs.0001. This is an agent command, not a shell command.",
       "rationale": "The task writer owns the canonical [~] transition and started date.",
       "resources": [],
       "variants": [
@@ -70,11 +60,11 @@
     },
     {
       "id": "F03-inspect-started-task",
-      "sequence": 5,
+      "sequence": 4,
       "title": "Inspect the in-progress transition",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: inspect the task writer's diff before starting the docs chore. Confirm that only academy.docs.0001 moved to [~] with a started date.",
+      "instruction": "Inspect the task writer's diff before starting the docs chore. Confirm that only academy.docs.0001 moved to [~] with a started date.",
       "rationale": "The board transition must ride the work commit, so it remains unstaged and uncommitted at this point.",
       "resources": [],
       "variants": [
@@ -84,15 +74,15 @@
       ],
       "expected_result": "The board diff contains one queued-to-started line change for academy.docs.0001, and no commit exists after Prepare yet.",
       "recovery": "If another task or continuation line changed, stop before the docs lane. Preserve the diff for diagnosis.",
-      "evidence": "The reviewed unstaged diff shows the candidate board half of the future co-commit."
+      "evidence": "The reviewed unstaged diff shows the candidate board half of the co-commit."
     },
     {
       "id": "F03-read-contract",
-      "sequence": 6,
+      "sequence": 5,
       "title": "Read the exact contract correction",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: read docs/ticket-list-contract.md. The bounded correction replaces its false sentence with: Ticket list output shows the claimant for a claimed ticket and no claimant for an open ticket.",
+      "instruction": "Read docs/ticket-list-contract.md. The bounded correction replaces its false sentence with: Ticket list output shows the claimant for a claimed ticket and no claimant for an open ticket.",
       "rationale": "The docs chore needs one exact factual correction, not a broad rewrite or implementation change.",
       "resources": [],
       "variants": [
@@ -102,15 +92,15 @@
       ],
       "expected_result": "You can state the one replacement sentence and the rule it records: claimed tickets show a claimant; open tickets do not.",
       "recovery": "If the prepared sentence already differs, stop. Do not adapt the correction to a different document version.",
-      "evidence": "The prepared document supplies the original byte boundary for the future Check."
+      "evidence": "The prepared document supplies the original byte boundary for Check."
     },
     {
       "id": "F03-run-docs-chore",
-      "sequence": 7,
+      "sequence": 6,
       "title": "Run the real docs chore",
       "actor": "agent",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: invoke the host-native docs chore. When the host asks for scope, supply only the approved claimant-visibility correction in docs/ticket-list-contract.md. Keep academy.docs.0001 at [~].",
+      "instruction": "Invoke the host-native docs chore. When the host asks for scope, supply only the approved claimant-visibility correction in docs/ticket-list-contract.md. Keep academy.docs.0001 at [~].",
       "rationale": "The docs lane applies its normal review, anti-slop, commit-gate, and branch-completion workflow to the bounded correction.",
       "resources": [],
       "variants": [
@@ -125,11 +115,11 @@
     },
     {
       "id": "F03-review-co-commit-boundary",
-      "sequence": 8,
+      "sequence": 7,
       "title": "Review the staged co-commit",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only: when the docs chore pauses before commit, review the staged path list and staged diff. Authorize its commit gate only if .codearbiter/open-tasks.md and docs/ticket-list-contract.md are the complete staged path set, the task remains [~], and the document contains only the approved sentence replacement.",
+      "instruction": "When the docs chore pauses before commit, review the staged path list and staged diff. Authorize its commit gate only if .codearbiter/open-tasks.md and docs/ticket-list-contract.md are the complete staged path set, the task remains [~], and the document contains only the approved sentence replacement.",
       "rationale": "Starting the task and doing its bounded work belong in one commit. A board-only commit or a document-only commit breaks that rule.",
       "resources": [],
       "variants": [],
@@ -139,12 +129,12 @@
     },
     {
       "id": "F03-choose-keep-branch",
-      "sequence": 9,
+      "sequence": 8,
       "title": "Keep the attempt branch local",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Future private-source walkthrough only: after the docs chore's normal commit gate succeeds and its branch-completion handoff appears, choose Keep the branch as-is (I'll handle it later).",
-      "rationale": "The future Academy attempt needs its local evidence branch intact and does not need remote publication.",
+      "instruction": "After the docs chore's normal commit gate succeeds and its branch-completion handoff appears, choose Keep the branch as-is (I'll handle it later).",
+      "rationale": "The Academy attempt needs its local evidence branch intact and does not need remote publication.",
       "resources": [],
       "variants": [],
       "expected_result": "The numbered attempt stays checked out and clean with one local co-commit, no push, and no hosted pull request.",
@@ -153,12 +143,12 @@
     },
     {
       "id": "F03-confirm-clean",
-      "sequence": 10,
+      "sequence": 9,
       "title": "Confirm the one-commit result",
       "actor": "learner",
       "surface": null,
-      "instruction": "Future private-source walkthrough only: inspect status, the latest commit, and its changed paths after choosing Keep the branch as-is.",
-      "rationale": "The future Check requires one post-Prepare commit, the exact two-path co-commit, and no non-ignored worktree state.",
+      "instruction": "Inspect status, the latest commit, and its changed paths after choosing Keep the branch as-is.",
+      "rationale": "Check requires one post-Prepare commit, the exact two-path co-commit, and no non-ignored worktree state.",
       "resources": [],
       "variants": [
         {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short\ngit log --oneline --decorate -1\ngit diff-tree --no-commit-id --name-only -r HEAD","copy":true},
@@ -171,31 +161,39 @@
     },
     {
       "id": "F03-check",
-      "sequence": 11,
-      "title": "Understand the future Check boundary",
+      "sequence": 10,
+      "title": "Check the durable co-commit",
       "actor": "learner",
-      "surface": "browser",
-      "instruction": "Future private-source walkthrough only: a later published F03 Check will compare prepared and committed Git state. There is no current F03 Check command to copy from this card.",
+      "surface": null,
+      "instruction": "From the retained attempt branch, run the installed Preview 0.26 Academy Check command for your operating system.",
       "rationale": "Repository evidence can validate content and history without claiming agent telemetry.",
       "resources": [],
-      "variants": [],
-      "expected_result": "Preview 0.25 refuses F03 Check. A future Check would accept only the exact one-commit, two-path, clean result with academy.docs.0001 still [~].",
-      "recovery": "Do not manufacture a Check result. Keep the local branch unchanged until F03 is published.",
-      "evidence": "A future Check can inspect board bytes, document bytes, commit topology, commit date, changed paths, and worktree cleanliness. It cannot prove `$ca-task` ran and cannot prove `$ca-chore` ran."
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Check accepts only the exact one-commit, two-path, clean result with academy.docs.0001 still [~].",
+      "recovery": "Read the named durable-state mismatch, repair only that mismatch, and run Check again.",
+      "evidence": "Check can inspect board bytes, document bytes, commit topology, commit date, changed paths, and worktree cleanliness. It cannot prove `$ca-task` ran and cannot prove `$ca-chore` ran."
     },
     {
       "id": "F03-reset-retry",
-      "sequence": 12,
-      "title": "Understand the future retry boundary",
+      "sequence": 11,
+      "title": "Reset for a fresh retry",
       "actor": "learner",
-      "surface": "browser",
-      "instruction": "Future private-source walkthrough only: a later published Reset may archive a failed F03 attempt before creating a new numbered attempt. There is no current F03 Reset command to copy from this card.",
+      "surface": null,
+      "instruction": "From the clean retained F03 attempt branch, not main, run the installed Preview 0.26 Academy Reset command for your operating system when you need a fresh F03 attempt.",
       "rationale": "A new attempt must preserve failed evidence instead of rewriting the one-commit history.",
       "resources": [],
-      "variants": [],
-      "expected_result": "Preview 0.25 refuses F03 Reset. No retry occurs from this source-only lesson.",
-      "recovery": "Keep the branch as-is. Do not force-reset, rebase, delete it, or imitate Academy attempt bookkeeping.",
-      "evidence": "The current local branch remains the only available evidence until a published F03 lifecycle exists."
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
+      ],
+      "expected_result": "Reset archives the failed prepared attempt before a new numbered attempt is created.",
+      "recovery": "Keep work you need intact; do not force-reset, rebase, or delete the branch to imitate Academy attempt bookkeeping.",
+      "evidence": "Reset preserves failed evidence before a new attempt begins."
     }
   ]
 }

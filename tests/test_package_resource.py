@@ -32,6 +32,7 @@ class PackageResourceTests(unittest.TestCase):
                 "academy/actions/recovery.json",
                 "academy/actions/F01-fork-clone-doctor.json",
                 "academy/actions/F02-orient-to-state.json",
+                "academy/actions/F03-work-the-board.json",
                 "academy/actions/F04-fix-with-evidence.json",
                 "academy/actions/P01-feature-through-plan.json",
                 "academy/actions/P02-commit-review-pr.json",

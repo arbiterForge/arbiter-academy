@@ -78,6 +78,7 @@ test("F01 keeps its table of contents before the mobile lesson body", async ({ p
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],
+  ["F03-work-the-board", "f03"],
   ["F04-fix-with-evidence", "f04"],
   ["P01-feature-through-plan", "p01"],
   ["P02-commit-review-pr", "p02"],

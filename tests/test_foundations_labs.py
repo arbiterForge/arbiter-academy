@@ -367,8 +367,8 @@ class FoundationsCurriculumTests(unittest.TestCase):
             self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
         self.assertNotIn("```", text)
 
-    def test_f03_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
-        """F03 must keep its real future docs lifecycle explicit and source-only."""
+    def test_f03_uses_the_public_guided_lesson_anatomy_and_all_actions_once(self) -> None:
+        """F03 must expose its runnable docs co-commit workflow without private-source copy."""
         path = SOURCE / "academy/tracks/foundations/F03-work-the-board.md"
         text = path.read_text(encoding="utf-8")
         body = text.split("---", 2)[2]
@@ -387,7 +387,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
             ),
         )
         action_ids = (
-            "F03-private-boundary", "F03-prepare", "F03-read-target-task",
+            "F03-prepare", "F03-read-target-task",
             "F03-start-task", "F03-inspect-started-task", "F03-read-contract",
             "F03-run-docs-chore", "F03-review-co-commit-boundary",
             "F03-choose-keep-branch", "F03-confirm-clean", "F03-check",
@@ -407,24 +407,21 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 "pi": "/ca-task start academy.docs.0001\n/skill:ca-task start academy.docs.0001",
             },
         )
-        self.assertIn("Preview 0.25 does not publish F03", body)
-        self.assertIn("Future private-source walkthrough", body)
-        self.assertIn("Prepare, Check, and Reset refuse F03", body)
+        self.assertIn("Preview 0.26", body)
         self.assertIn("$ca-chore docs", body)
         self.assertIn("academy.docs.0001", body)
+        self.assertIn("clean retained F03 attempt branch", body)
+        self.assertNotIn("Reset\nfrom clean main", body)
         self.assertIn("docs/ticket-list-contract.md", body)
         self.assertIn("[~]", body)
         self.assertIn("Keep the branch as-is", body)
         self.assertIn("no hosted pull request", body)
         self.assertIn("cannot prove that `$ca-task` ran", body)
         self.assertIn("cannot prove that `$ca-chore` ran", body)
-        for unavailable_command in (
-            "prepare F03-work-the-board",
-            "check F03-work-the-board",
-            "reset F03-work-the-board",
-            "preview-0.25",
-        ):
-            self.assertNotIn(unavailable_command, body)
+        self.assertNotIn("F03-private-boundary", body)
+        self.assertNotIn("Future private-source walkthrough", body)
+        self.assertNotIn("refuse F03", body)
+        self.assertNotIn("preview-0.25", body)
         self.assertNotIn("git commit", body)
 
     def test_f02_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:

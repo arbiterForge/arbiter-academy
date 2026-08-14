@@ -7,14 +7,16 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.25
+## Preview 0.26
 
-Preview 0.25 publishes eighteen guided labs:
+Preview 0.26 publishes nineteen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
 - **F02 is guided and runnable.** Its lesson turns live CodeArbiter state into a
   bounded, committed orientation record without changing the context it proves.
+- **F03 is guided and runnable.** Its lesson starts one queued task with the real
+  task writer and co-commits one precise documentation correction.
 - **F04 is guided and runnable.** Its lesson carries a real red-to-green repair
   through two reviewable commits, ending in an independent Check.
 - **P01 is guided and runnable.** Its lesson turns an approved feature specification
@@ -53,15 +55,15 @@ Preview 0.25 publishes eighteen guided labs:
 - **U07 is guided and runnable.** Its capstone follows the real feature lane,
   preserves local behavior evidence, and opens a real hosted pull request.
 
-F03 is withheld while its guided path is rebuilt around a complete accepted
-feature lifecycle. Graduation is unavailable until the withheld F03 lesson has
-a complete accepted guided path.
+Graduation is available after all 19 Academy Checks pass in the same
+repository.
 
 ## Start the course
 
 - [Open Arbiter Academy](https://arbiterforge.github.io/arbiter-academy/)
 - [Begin F01 after Home setup - Fork, clone, and Doctor safety](https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/)
 - [Continue to F02 - Orient to live governance state](https://arbiterforge.github.io/arbiter-academy/labs/F02-orient-to-state/)
+- [Continue to F03 - Start a task with its work](https://arbiterforge.github.io/arbiter-academy/labs/F03-work-the-board/)
 - [Continue to F04 - Fix with executable evidence](https://arbiterforge.github.io/arbiter-academy/labs/F04-fix-with-evidence/)
 - [Continue to P01 - Feature through an approved specification](https://arbiterforge.github.io/arbiter-academy/labs/P01-feature-through-plan/)
 - [Continue to P02 - Review, commit, push, and record an offline-local receipt](https://arbiterforge.github.io/arbiter-academy/labs/P02-commit-review-pr/)

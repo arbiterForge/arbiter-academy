@@ -112,7 +112,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
                 self.assertTrue(
-                    all("preview-0.25" in variant.command for variant in action.variants)
+                    all("preview-0.26" in variant.command for variant in action.variants)
                 )
 
         inspect = by_id["U01-inspect-scenario"]
