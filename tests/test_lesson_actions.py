@@ -2120,6 +2120,10 @@ class LessonActionTests(unittest.TestCase):
             self.assertTrue(all("$academy" in command for command in commands))
             self.assertTrue(all(command.splitlines()[0].startswith("academy=") or command.splitlines()[0].startswith("$academy =") for command in commands))
         recorder = by_id["P02-record-receipt"]
+        self.assertEqual(
+            tuple(variant.operating_system for variant in recorder.variants),
+            ("macos", "linux"),
+        )
         commands = tuple(variant.command for variant in recorder.variants)
         self.assertTrue(all("record P02-commit-review-pr --review-declared-cleared" in command for command in commands))
         self.assertNotIn("git add", "\n".join(commands))
