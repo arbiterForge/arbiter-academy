@@ -80,6 +80,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         self.assertIn("A passing Check does not make a deletion safe", normalized_guide)
         self.assertIn("The agent drafts the report; you review it", normalized_guide)
+        self.assertIn("Next safe course step: start U01, Autonomous sprint.", guide)
+        self.assertNotIn("remains a source exercise", guide)
         self.assertLess(guide.index("{{action:P08-review-report}}"), guide.index("{{action:P08-stage-report}}"))
         self.assertLess(guide.index("{{action:P08-stage-report}}"), guide.index("{{action:P08-review-commit-boundary}}"))
         for destructive in ("git worktree remove", "git branch -D", "git prune", "git gc", "git reset --hard"):
