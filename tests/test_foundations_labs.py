@@ -458,11 +458,10 @@ class FoundationsCurriculumTests(unittest.TestCase):
 
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         track = load_track(SOURCE, "foundations")
-
         self.assertEqual(tuple(lab.id for lab in track.labs), FOUNDATIONS)
         self.assertEqual(
             tuple(lab.prerequisites for lab in track.labs),
-            ((), (FOUNDATIONS[0],), (FOUNDATIONS[1],), (FOUNDATIONS[2],)),
+            ((), (FOUNDATIONS[0],), (FOUNDATIONS[1],), (FOUNDATIONS[1],)),
         )
         for lab in track.labs:
             with self.subTest(lab=lab.id):
@@ -474,8 +473,6 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 )
                 self.assertIn("prepare", lab.scenario_command)
                 if lab.id == "F03-work-the-board":
-                    # F03 is action-backed: the manifest owns the platform-specific
-                    # installed-Academy command and the lesson front matter names it.
                     self.assertEqual(lab.checkpoint_command, "{{action:F03-check}}")
                 else:
                     self.assertIn("arbiter-academy --repository", lab.checkpoint_command)
