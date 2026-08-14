@@ -17,7 +17,7 @@
         {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true},
         {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true}
       ],
-      "expected_result": "Academy prints academy/U07-capstone/ATTEMPT_NUMBER. The branch is clean and tests/test_service.py contains the prepared control-character case that currently passes.",
+      "expected_result": "Academy prints academy/U07-capstone/ATTEMPT_NUMBER. The branch is clean and tests/test_service.py contains a passing case that shows the existing resolution behavior accepts a control character. The feature lane will add the missing resolution regression.",
       "recovery": "If Prepare names a dirty-worktree, branch, or remote problem, preserve the message and repair only that condition. Do not force-reset main or borrow another lesson's history.",
       "evidence": "Keep the printed attempt branch and verify that git status --short is empty before entering the feature lane."
     },
@@ -27,7 +27,7 @@
       "title": "Run the real feature lane",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the selected CodeArbiter harness at that clone, invoke the copied feature command. Review the proposed spec before approval. It must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py.",
+      "instruction": "In the selected CodeArbiter harness at that clone, invoke the copied feature command. Review the proposed spec before approval. It must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
       "rationale": "The real feature lane owns specification, planning, test-first execution, its commit gate, and the terminal decision.",
       "resources": [],
       "variants": [

@@ -81,7 +81,7 @@ If the branch is beyond repair, use the preserved retry action.
 
 {{action:U07-reset-retry}}
 
-**Hint 1.** Read the prepared test before approving the feature scope. It identifies the one caller-visible defect this capstone changes.
+**Hint 1.** Read the prepared test before approving the feature scope. It shows the existing resolution behavior accepts a control character. Add the missing resolution regression through the real feature lane.
 
 **Hint 2.** A clean local branch and a browser-visible pull request are separate facts. Keep evidence for both, but do not turn either into a fabricated receipt.
 
