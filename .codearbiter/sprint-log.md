@@ -52,3 +52,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: keep a false unavailable status; expose a synthetic local PR receipt; publish U07 with the real feature lane, browser PR evidence, local-only Check boundary, and the immutable 19-lab release.
 - SMARTS: Reliable and Testable favor the accepted guide, scenario, semantic Check, and public route because Check validates only durable repository facts while the guide labels the hosted PR as browser evidence. Available favors shipping the completed course without a new service. Securable favors fork-first remotes, preserved retries, and no fabricated hosted telemetry. Maintainable favors one versioned manifest and deterministic release assets.
 - Chosen: publish U07 in Preview 0.20, make all 19 labs guided and runnable, enable graduation only after all 19 Checks pass in one repository, and preserve Preview 0.19 as immutable history.
+
+## SD-ACA-010 - Rebind the complete course to an immutable maintenance release - confidence: high
+- Date: 2026-08-14
+- Point: Whether the Preview 0.20 copy correction should remain undeployed under a stale immutable tag or receive a new release identity with reproduced assets.
+- Options: weaken the existing tag gate; leave current main unavailable; publish an exact Preview 0.21 release with the unchanged 19-lab inventory and deterministic installers.
+- SMARTS: Reliable and Testable favor a new annotated tag because the release gate can compare its exact commit and six assets with a clean rebuild. Available favors making the corrected learner-facing copy installable. Securable favors preserving immutable 0.20 bytes and the existing authenticated asset verification. Maintainable favors one current release identity across manifests, commands, installers, tests, and site metadata.
+- Chosen: publish Preview 0.21 with the existing accepted inventory, a new manifest, canonical bundle digest, and no runtime dependency or command-surface expansion.
