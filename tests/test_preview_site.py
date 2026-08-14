@@ -649,7 +649,7 @@ class PreviewSiteTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             r"^home (?:runnable lab links|coming-next entries) do not match the exact "
-        r"(?:guided )?Preview 0\.20 (?:inventory|guided-rewrite sequence)$",
+        r"(?:guided )?Preview 0\.21 (?:inventory|guided-rewrite sequence)$",
         ):
             check_preview_site(self.out)
 
