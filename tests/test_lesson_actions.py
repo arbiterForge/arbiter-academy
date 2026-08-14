@@ -2170,7 +2170,7 @@ class LessonActionTests(unittest.TestCase):
                 with self.subTest(action=action.id, variant=variant.id):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
-        self.assertIn("Academy Preview 0.19", guide)
+        self.assertIn(f"Academy Preview {CURRENT_RELEASE.removeprefix('preview-')}", guide)
         self.assertIn("`ca-preview`", guide)
         self.assertIn("not `ca-preview` output", guide)
         self.assertIn("whether a secret scan ran", guide)
@@ -2180,6 +2180,29 @@ class LessonActionTests(unittest.TestCase):
         self.assertNotRegex(guide, r"\bdocs(?:-reviewed| reviewer)\b")
         self.assertIn("not run here", guide)
         self.assertIn("Check limit", guide)
+
+    def test_published_lesson_copy_uses_the_installed_release_identity(self) -> None:
+        """A public guide must not send a newcomer to an older installed Preview."""
+        root = Path(__file__).parents[1]
+        public = load_preview_manifest(root)
+        expected = f"Preview {CURRENT_RELEASE.removeprefix('preview-')}"
+        preview_name = re.compile(r"(?:Academy )?Preview 0\.\d+")
+
+        for document_id in public.guided_labs:
+            guide_path = next((root / "academy" / "tracks").glob(f"*/{document_id}.md"))
+            for source_path in (
+                root / "academy" / "actions" / f"{document_id}.json",
+                guide_path,
+            ):
+                source = source_path.read_text(encoding="utf-8")
+                with self.subTest(document_id=document_id, source=source_path):
+                    self.assertTrue(
+                        all(
+                            found.removeprefix("Academy ") == expected
+                            for found in preview_name.findall(source)
+                        ),
+                        preview_name.findall(source),
+                    )
 
 
 class PrivateU02LessonActionTests(unittest.TestCase):

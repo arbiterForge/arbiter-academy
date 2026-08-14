@@ -1377,7 +1377,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
-        """Catches stale release identity or a changed public inventory in Preview 0.19 output."""
+        """Catches stale release identity or a changed public inventory in Preview 0.20 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -2077,7 +2077,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
 
     def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U06 renders as a complete public lesson in Preview 0.19."""
+        """U06 renders as a complete public lesson in Preview 0.20."""
         lab_id = "U06-preview-and-advanced-surfaces"
         guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
         source = (self.root / guide_path).read_text(encoding="utf-8")
@@ -3283,7 +3283,7 @@ class PrivateU02PreviewContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("does not prove that a human approved", guide)
         self.assertIn("or that any hosted service", guide)
-        self.assertIn("U02 is a published Power User lesson in Preview 0.19", guide)
+        self.assertIn("U02 is a published Power User lesson in Preview 0.20", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
         self.assertIn("Prepare creates a numbered U02 branch", guide)
