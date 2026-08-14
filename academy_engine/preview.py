@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.21"
+_RELEASE = "preview-0.22"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -44,7 +44,7 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.21.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.22.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"

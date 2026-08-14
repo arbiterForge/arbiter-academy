@@ -162,7 +162,7 @@ jobs:
     outputs:
       verified: ${{ steps.release-assets.outputs.verified }}
     env:
-      RELEASE_TAG: preview-0.21
+      RELEASE_TAG: preview-0.22
       RELEASE_EPOCH: 1786665600
       CANDIDATE_SHA: ${{ github.sha }}
       GITHUB_TOKEN: ${{ github.token }}
@@ -209,8 +209,8 @@ jobs:
               "install.ps1.sha256",
               "install.sh",
               "install.sh.sha256",
-              "arbiter-academy-preview-0.21.zip",
-              "arbiter-academy-preview-0.21.zip.sha256",
+              "arbiter-academy-preview-0.22.zip",
+              "arbiter-academy-preview-0.22.zip.sha256",
           )
           release = json.loads(Path("release.json").read_text(encoding="utf-8"))
           if release.get("tag_name") != os.environ["RELEASE_TAG"]:
@@ -288,7 +288,7 @@ jobs:
           mkdir -p "$public_dir"
           while IFS=$'\t' read -r asset_name asset_id; do
             case "$asset_name" in
-              install.ps1|install.ps1.sha256|install.sh|install.sh.sha256|arbiter-academy-preview-0.21.zip|arbiter-academy-preview-0.21.zip.sha256) ;;
+              install.ps1|install.ps1.sha256|install.sh|install.sh.sha256|arbiter-academy-preview-0.22.zip|arbiter-academy-preview-0.22.zip.sha256) ;;
               *) echo "ERROR: unexpected release asset name." >&2; exit 1 ;;
             esac
             asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
@@ -311,7 +311,7 @@ jobs:
           checksum_targets = {
               "install.ps1.sha256": "install.ps1",
               "install.sh.sha256": "install.sh",
-              "arbiter-academy-preview-0.21.zip.sha256": "arbiter-academy-preview-0.21.zip",
+              "arbiter-academy-preview-0.22.zip.sha256": "arbiter-academy-preview-0.22.zip",
           }
           checksum_pattern = re.compile(rb"[0-9a-f]{64}  ([A-Za-z0-9._-]+)\n")
           for manifest, target in checksum_targets.items():
@@ -322,7 +322,7 @@ jobs:
 
           sha256sum --check install.ps1.sha256
           sha256sum --check install.sh.sha256
-          sha256sum --check arbiter-academy-preview-0.21.zip.sha256
+          sha256sum --check arbiter-academy-preview-0.22.zip.sha256
 
           test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$CANDIDATE_SHA"
           reproduced_dir="$RUNNER_TEMP/academy-reproduced-release"
