@@ -15,7 +15,7 @@ next_lab: U07-capstone
 
 ## Know before you begin
 
-U06 is a guided, runnable lesson in Academy Preview 0.23. Use its installed Prepare, Check, and
+U06 is a guided, runnable lesson in Academy Preview 0.24. Use its installed Prepare, Check, and
 Reset commands from this page; do not substitute repository-local source execution.
 
 The website is the course interface. Academy CLI is a setup, Check, and recovery helper when a
@@ -56,7 +56,7 @@ attempt branch by hand.
 
 {{action:U06-run-read-only-preview}}
 
-The two names are easy to confuse. Academy Preview 0.23 names an installed release and its public
+The two names are easy to confuse. Academy Preview 0.24 names an installed release and its public
 availability boundary. `ca-preview` is a host-native, advisory review of the current diff. It does
 not stage, commit, push, create a release, or give the agent authority to enlarge the change.
 
@@ -103,7 +103,7 @@ committed bytes; neither the record nor Check claims that `ca-preview` ran or pe
 
 **Check limit:** source Check verifies committed repository facts. It cannot establish that you ran
 `ca-preview`, understood its result, or consciously chose not to execute an advanced command. The
-installed Academy Preview 0.23 Check evaluates this accepted source contract.
+installed Academy Preview 0.24 Check evaluates this accepted source contract.
 
 ## Recover or continue
 

@@ -27,9 +27,9 @@
       "rationale": "Prepare gives this exercise its own numbered attempt and scenario before any override evidence exists.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.24\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true}
       ],
       "expected_result": "Academy creates the next numbered U02 attempt branch and commits the U02 scenario overlay.",
       "recovery": "If Prepare stops before naming a numbered attempt, preserve its message and correct only the named setup problem. Do not create the Academy branch or scenario file by hand.",
@@ -223,9 +223,9 @@
       "rationale": "Check validates the prepared-attempt delta and deterministic local evidence contract.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.24\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true}
       ],
       "expected_result": "Check reports whether the prepared attempt has one clean evidence commit containing only the override log and exact audit packet.",
       "recovery": "If Check rejects an artifact, correct only that named local boundary and run Check again. Do not invent a transcript, approval, or hosted result.",
@@ -241,9 +241,9 @@
       "rationale": "Reset preserves the earlier attempt rather than hiding an invalid override record through history rewriting.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.24\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.24/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true}
       ],
       "expected_result": "Academy archives the failed U02 attempt and prepares a new numbered attempt without rewriting the earlier branch.",
       "recovery": "If Reset stops, preserve its message and do not use destructive Git commands to imitate a reset or erase unrelated state.",
