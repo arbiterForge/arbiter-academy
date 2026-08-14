@@ -1,21 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.23 publication manifest",
+  "title": "Arbiter Academy Preview 0.24 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.23"},
+    "release": {"const": "preview-0.24"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
-      "minItems": 19,
-      "maxItems": 19,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
         {"const": "F02-orient-to-state"},
-        {"const": "F03-work-the-board"},
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
@@ -36,13 +35,12 @@
     },
     "runnable_labs": {
       "type": "array",
-      "minItems": 19,
-      "maxItems": 19,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
         {"const": "F02-orient-to-state"},
-        {"const": "F03-work-the-board"},
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
@@ -63,13 +61,12 @@
     },
     "guided_labs": {
       "type": "array",
-      "minItems": 19,
-      "maxItems": 19,
+      "minItems": 18,
+      "maxItems": 18,
       "items": false,
       "prefixItems": [
         {"const": "F01-fork-clone-doctor"},
         {"const": "F02-orient-to-state"},
-        {"const": "F03-work-the-board"},
         {"const": "F04-fix-with-evidence"},
         {"const": "P01-feature-through-plan"},
         {"const": "P02-commit-review-pr"},
@@ -114,8 +111,8 @@
       "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.23."},
-        {"const": "Graduation is available after all 19 Academy Checks pass in the same repository."}
+        {"const": "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.24."},
+        {"const": "Graduation is unavailable until the withheld F03 lesson has a complete accepted guided path."}
       ]
     },
     "discussion_url": {

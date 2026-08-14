@@ -4,7 +4,7 @@ track: foundations
 order: 4
 title: Fix with evidence
 outcome: Preserve a failing claimant-label regression in Git before a later minimal production repair.
-prerequisites: F03-work-the-board
+prerequisites: F02-orient-to-state
 estimated_minutes: 30
 scenario_command: python scripts/academy.py prepare F04-fix-with-evidence
 checkpoint_command: arbiter-academy --repository <learner-repository> check F04-fix-with-evidence

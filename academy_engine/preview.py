@@ -13,11 +13,10 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.23"
+_RELEASE = "preview-0.24"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
-    "F03-work-the-board",
     "F04-fix-with-evidence",
     "P01-feature-through-plan",
     "P02-commit-review-pr",
@@ -44,8 +43,8 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.23.",
-    "Graduation is available after all 19 Academy Checks pass in the same repository.",
+    "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.24.",
+    "Graduation is unavailable until the withheld F03 lesson has a complete accepted guided path.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"
 _DISCUSSIONS_PATH = "/arbiterForge/arbiter-academy/discussions"
