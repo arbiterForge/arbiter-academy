@@ -52,6 +52,18 @@ The following cards operate on the prepared attempt. The sealed brief supplies t
 
 {{action:U03-commit-refactor}}
 
+The bare commit gate does not take a fabricated footer argument. Before the docs chore, the real release dry run either diagnoses a missing footer without writing release artifacts or recognizes that the commit already has the approved footer. Only the documented missing-footer result permits the narrow HEAD-only amend; otherwise skip that card. It is never a reason to rewrite public history.
+
+{{action:U03-dry-run-release}}
+
+{{action:U03-review-release-blocker}}
+
+{{action:U03-approve-refactor-footer}}
+
+{{action:U03-amend-refactor-message}}
+
+{{action:U03-verify-amended-refactor}}
+
 {{action:U03-run-chore}}
 
 {{action:U03-inspect-chore}}

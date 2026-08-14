@@ -152,12 +152,95 @@
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
       "expected_result": "The attempt has one committed refactor boundary before the later docs-only work.",
-      "recovery": "If the gate reports a finding, preserve it and correct only the stated boundary. Do not amend or rewrite the attempt history. Next safe step: start the docs chore route.",
+      "recovery": "If the gate reports a finding, preserve it and correct only the stated boundary. The next dry run has one documented unpublished-HEAD recovery for its release-footer blocker; do not otherwise rewrite the attempt. Next safe step: run the local release dry run.",
       "evidence": "A commit can show ordered paths and bytes. It does not prove a human approval or a successful host conversation."
     },
     {
-      "id": "U03-run-chore",
+      "id": "U03-dry-run-release",
       "sequence": 10,
+      "title": "Ask the release lane to diagnose the local commit log",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "Before any docs chore, invoke the host-native release dry run for the declared target. The real lane either reports its read-only missing-CHANGELOG-footer block, or recognizes that the bare refactor already has the approved footer. It writes no CHANGELOG, tag, or commit in either case.",
+      "rationale": "The release lane, not invented commit arguments, identifies the missing release metadata.",
+      "resources": [],
+      "variants": [
+        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:release --dry-run academy-private-training","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-release --dry-run academy-private-training","copy":true},
+        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-release --dry-run academy-private-training","copy":true},
+        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-release --dry-run academy-private-training","copy":true}
+      ],
+      "expected_result": "The dry run either blocks on the missing CHANGELOG footer or reports that HEAD already has the approved footer; both outcomes leave the worktree, commit count, CHANGELOG.md, and tags unchanged.",
+      "recovery": "If the dry run reports a different blocker, preserve its text and stop; do not guess a repair. Next safe step: review whether the documented footer block appeared or the approved footer was already present.",
+      "evidence": "The dry-run output is advisory. Check can later observe only the amended local commit message and release artifacts."
+    },
+    {
+      "id": "U03-review-release-blocker",
+      "sequence": 11,
+      "title": "Inspect the documented release blocker",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Confirm that the dry run either named the missing CHANGELOG footer on the just-created refactor commit or showed that exact approved footer already exists, and that it produced no release write. Do not treat another failure as permission to edit history.",
+      "rationale": "The narrowly documented repair applies only to this precise unpublished-HEAD failure.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You can distinguish the expected missing-footer block, an already-complete approved footer, and an unrelated release failure.",
+      "recovery": "If the approved footer already exists, skip the amend and continue to the docs chore. If the message does not name the footer, stop and preserve the output for diagnosis. Next safe step: amend only after the documented footer block, otherwise start the docs chore.",
+      "evidence": "The learner's interpretation is not authenticated by Check."
+    },
+    {
+      "id": "U03-approve-refactor-footer",
+      "sequence": 12,
+      "title": "Approve the sealed factual release footer",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Review and explicitly approve this factual footer for the sealed refactor: `CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.` This approval is limited to the unpublished HEAD refactor and does not authorize a remote rewrite, tag change, push, or publication.",
+      "rationale": "The learner supplies the release summary that the bare commit gate could not know at commit time.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "You either stop, or approve this one footer for the sealed local refactor only.",
+      "recovery": "If the footer is not accurate, stop instead of substituting a different release claim. Next safe step: amend only after approving the exact footer.",
+      "evidence": "Check cannot prove the approval; it can only inspect the later local message."
+    },
+    {
+      "id": "U03-amend-refactor-message",
+      "sequence": 13,
+      "title": "Amend the unpublished HEAD refactor with the approved footer",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Only after the dry run reports the missing-footer block, and only while the sealed refactor is the unpublished HEAD before any later commit, tag, or push, amend its message in a native terminal with the approved footer. Each command verifies that HEAD is not already contained in origin/main before it amends. This is the release lane's documented HEAD-only recovery; never use it to rewrite public history or teach rebase.",
+      "rationale": "The recovery repairs exactly the release metadata that the dry run diagnosed without adding a fourth learner commit.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git log -1 --format=%B\ngit merge-base --is-ancestor HEAD origin/main\n$contained = $LASTEXITCODE\nif ($contained -eq 0) { Write-Error \"STOP: HEAD is already contained in origin/main\"; exit 1 }\nif ($contained -ne 1) { exit $contained }\ngit commit --amend -m \"refactor: clarify store boundary\" -m \"Preserve behavior while clarifying the ticket-read boundary.\" -m \"CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.\"\ngit status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git log -1 --format=%B\ngit merge-base --is-ancestor HEAD origin/main\ncontained=$?\nif [ \"$contained\" -eq 0 ]; then echo \"STOP: HEAD is already contained in origin/main\" >&2; exit 1; fi\nif [ \"$contained\" -ne 1 ]; then exit \"$contained\"; fi\ngit commit --amend -m \"refactor: clarify store boundary\" -m \"Preserve behavior while clarifying the ticket-read boundary.\" -m \"CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.\"\ngit status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git log -1 --format=%B\ngit merge-base --is-ancestor HEAD origin/main\ncontained=$?\nif [ \"$contained\" -eq 0 ]; then echo \"STOP: HEAD is already contained in origin/main\" >&2; exit 1; fi\nif [ \"$contained\" -ne 1 ]; then exit \"$contained\"; fi\ngit commit --amend -m \"refactor: clarify store boundary\" -m \"Preserve behavior while clarifying the ticket-read boundary.\" -m \"CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.\"\ngit status --short","copy":true}
+      ],
+      "expected_result": "The same local refactor boundary remains HEAD with its approved CHANGELOG footer; no new commit, tag, push, or publication occurs.",
+      "recovery": "If the refactor is no longer the unpublished HEAD, stop. Do not rebase, force-push, rewrite a tag, or edit public history; use Academy Reset for a fresh sealed attempt. Next safe step: verify the amended local message.",
+      "evidence": "Check can read the final local commit message and path topology, not prove this command was used."
+    },
+    {
+      "id": "U03-verify-amended-refactor",
+      "sequence": 14,
+      "title": "Verify the amended local refactor boundary",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "In a native terminal, verify the amended HEAD message and its one-file boundary before starting the docs chore. These direct terminal commands never begin with !.",
+      "rationale": "A local read shows whether the narrow repair still names a refactor and changes only the sealed code path.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git log -1 --format=%B\ngit diff --name-only HEAD^ HEAD\ngit status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git log -1 --format=%B\ngit diff --name-only HEAD^ HEAD\ngit status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git log -1 --format=%B\ngit diff --name-only HEAD^ HEAD\ngit status --short","copy":true}
+      ],
+      "expected_result": "HEAD is a refactor message with the approved footer, changes only workshop_queue/store.py, and leaves the worktree clean.",
+      "recovery": "If the message or path boundary differs, stop before the docs chore and use Academy Reset rather than editing later history. Next safe step: start the docs chore only after this local check matches.",
+      "evidence": "This terminal output is local inspection, not proof of an approved host interaction."
+    },
+    {
+      "id": "U03-run-chore",
+      "sequence": 15,
       "title": "Start the host-native docs chore route",
       "actor": "agent",
       "surface": null,
@@ -176,7 +259,7 @@
     },
     {
       "id": "U03-inspect-chore",
-      "sequence": 11,
+      "sequence": 16,
       "title": "Inspect the proposed docs-only boundary",
       "actor": "learner",
       "surface": null,
@@ -194,7 +277,7 @@
     },
     {
       "id": "U03-review-chore",
-      "sequence": 12,
+      "sequence": 17,
       "title": "Decide whether the docs-only boundary is acceptable",
       "actor": "learner",
       "surface": "active-harness",
@@ -208,7 +291,7 @@
     },
     {
       "id": "U03-stage-chore",
-      "sequence": 13,
+      "sequence": 18,
       "title": "Stage only the approved README change",
       "actor": "learner",
       "surface": null,
@@ -226,7 +309,7 @@
     },
     {
       "id": "U03-commit-chore",
-      "sequence": 14,
+      "sequence": 19,
       "title": "Commit the accepted docs-only boundary",
       "actor": "agent",
       "surface": null,
@@ -245,7 +328,7 @@
     },
     {
       "id": "U03-run-release",
-      "sequence": 15,
+      "sequence": 20,
       "title": "Start the host-native release route",
       "actor": "agent",
       "surface": null,
@@ -264,7 +347,7 @@
     },
     {
       "id": "U03-review-release",
-      "sequence": 16,
+      "sequence": 21,
       "title": "Review the local tag boundary",
       "actor": "learner",
       "surface": "active-harness",
@@ -278,7 +361,7 @@
     },
     {
       "id": "U03-inspect-tag",
-      "sequence": 17,
+      "sequence": 22,
       "title": "Inspect the declared annotated tag at HEAD",
       "actor": "learner",
       "surface": null,
@@ -296,7 +379,7 @@
     },
     {
       "id": "U03-check",
-      "sequence": 18,
+      "sequence": 23,
       "title": "Check the completed U03 evidence",
       "actor": "learner",
       "surface": null,
@@ -314,7 +397,7 @@
     },
     {
       "id": "U03-reset",
-      "sequence": 19,
+      "sequence": 24,
       "title": "Reset a failed U03 attempt safely",
       "actor": "learner",
       "surface": null,

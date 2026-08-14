@@ -105,7 +105,13 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         git(self.root, "commit", "-m", message)
         return git(self.root, "rev-parse", "HEAD")
 
-    def _complete_three_commit_attempt(self, *, mutate_test: bool = False, extra_path: bool = False) -> str:
+    def _complete_three_commit_attempt(
+        self,
+        *,
+        mutate_test: bool = False,
+        extra_path: bool = False,
+        first_subject: str = "refactor: clarify store boundary",
+    ) -> str:
         (self.root / self._CODE).write_text("def read_ticket():\n    return 'open'  # refactored\n", encoding="utf-8")
         paths = [self._CODE]
         if mutate_test:
@@ -115,7 +121,7 @@ class PrivateU03CheckpointTests(unittest.TestCase):
             (self.root / "unapproved.txt").write_text("outside the brief\n", encoding="utf-8")
             paths.append("unapproved.txt")
         self._commit(
-            "refactor: clarify store boundary\n\n"
+            f"{first_subject}\n\n"
             "CHANGELOG: Preserve ticket-read behavior while clarifying its boundary.",
             *paths,
         )
@@ -206,6 +212,15 @@ class PrivateU03CheckpointTests(unittest.TestCase):
         (self.root / self._CHANGELOG).write_text("# Changelog\n\n" + self._section(), encoding="utf-8")
         head = self._commit("chore: prepare academy release", self._CHANGELOG)
         message = Path(self.temporary.name) / "reversed-tag-message.txt"
+        message.write_text(self._tag_message(), encoding="utf-8")
+        git(self.root, "tag", "-a", self._TAG, "-F", str(message), "--cleanup=verbatim", head)
+
+        self.assertFalse(_semantic(self._context(head)))
+
+    def test_rejects_a_footer_bearing_non_refactor_first_commit(self) -> None:
+        """Catches accepting a release footer on a commit outside the refactor lane."""
+        head = self._complete_three_commit_attempt(first_subject="docs: clarify store boundary")
+        message = Path(self.temporary.name) / "tag-message.txt"
         message.write_text(self._tag_message(), encoding="utf-8")
         git(self.root, "tag", "-a", self._TAG, "-F", str(message), "--cleanup=verbatim", head)
 
