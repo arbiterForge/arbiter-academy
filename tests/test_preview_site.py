@@ -1047,15 +1047,17 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIsNotNone(minutes)
         assert minutes is not None
         mutated_minutes = str(int(minutes.group(1)) + 1)
+        before = read_home(source, self.out)
         lesson.write_text(
             text[:minutes.start(1)] + mutated_minutes + text[minutes.end(1):],
             encoding="utf-8",
         )
 
-        html = read_home(source, self.out)
+        after = read_home(source, self.out)
 
-        self.assertIn("Each lesson appears here only after its guided rewrite", html)
-        self.assertNotIn(f"{mutated_minutes} to 60 minutes", html)
+        self.assertIn("Each lesson appears here only after its guided rewrite", before)
+        self.assertEqual(after, before)
+        self.assertNotIn(f"{mutated_minutes} to 60 minutes", after)
 
     def test_feedback_url_is_https_github_discussions_and_is_rendered(self) -> None:
         """Catches feedback being hidden or routed away from the reviewed Discussions boundary."""
