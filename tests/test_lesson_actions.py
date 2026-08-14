@@ -1262,6 +1262,8 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("check F03-work-the-board", commands)
         self.assertIn("reset F03-work-the-board", commands)
         self.assertIn("preview-0.26", commands)
+        self.assertIn("From the clean retained F03 attempt branch", by_id["F03-reset-retry"].instruction)
+        self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
 
         action_copy = "\n".join(
             part for action in manifest.actions

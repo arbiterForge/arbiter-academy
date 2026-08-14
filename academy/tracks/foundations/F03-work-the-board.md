@@ -82,9 +82,9 @@ are agent invocations, not authenticated repository facts.
 
 ## Recover or continue
 
-If Check reports a durable-state mismatch, repair only that mismatch and run Check again. Use Reset
-from clean main when you need a fresh numbered attempt; it preserves failed evidence rather than
-rewriting the retained branch.
+If Check reports a durable-state mismatch, repair only that mismatch and run Check again. Stay on the
+clean retained F03 attempt branch, not `main`, when you use Reset for a fresh numbered attempt; it
+preserves failed evidence rather than rewriting the retained branch.
 
 **Hint 1.** The target is `academy.docs.0001`, and its only work file is
 `docs/ticket-list-contract.md`.

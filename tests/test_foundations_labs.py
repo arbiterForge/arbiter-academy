@@ -410,6 +410,8 @@ class FoundationsCurriculumTests(unittest.TestCase):
         self.assertIn("Preview 0.26", body)
         self.assertIn("$ca-chore docs", body)
         self.assertIn("academy.docs.0001", body)
+        self.assertIn("clean retained F03 attempt branch", body)
+        self.assertNotIn("Reset\nfrom clean main", body)
         self.assertIn("docs/ticket-list-contract.md", body)
         self.assertIn("[~]", body)
         self.assertIn("Keep the branch as-is", body)

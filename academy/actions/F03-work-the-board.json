@@ -183,7 +183,7 @@
       "title": "Reset for a fresh retry",
       "actor": "learner",
       "surface": null,
-      "instruction": "From clean main, run the installed Preview 0.26 Academy Reset command for your operating system when you need a fresh F03 attempt.",
+      "instruction": "From the clean retained F03 attempt branch, not main, run the installed Preview 0.26 Academy Reset command for your operating system when you need a fresh F03 attempt.",
       "rationale": "A new attempt must preserve failed evidence instead of rewriting the one-commit history.",
       "resources": [],
       "variants": [
