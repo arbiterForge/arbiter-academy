@@ -15,7 +15,7 @@ next_lab: P01-feature-through-plan
 
 ## Know before you begin
 
-Complete F03 first, then start from a clean `main` branch in the same Academy clone.
+Complete F02 first, then start from a clean `main` branch in the same Academy clone.
 Keep two surfaces open at the clone root: a native terminal for Academy and shell commands, and your
 Claude Code, Codex, or Pi harness for messages to your agent and CodeArbiter commands.
 

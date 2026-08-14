@@ -335,6 +335,8 @@ class FoundationsCurriculumTests(unittest.TestCase):
     def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
         text = path.read_text(encoding="utf-8")
+        self.assertIn("Complete F02 first", text)
+        self.assertNotIn("Complete F03 first", text)
         self.assertEqual(
             tuple(line[3:] for line in text.splitlines() if line.startswith("## ")),
             ("Know before you begin", "What you will prove", "Prepare safely", "Practice", "Recognize success", "Check", "Recover or continue", "Understand the mechanism"),
