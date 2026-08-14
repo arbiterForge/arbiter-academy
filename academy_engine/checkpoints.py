@@ -168,7 +168,7 @@ _U06_ADVANCED_SURFACES = {
 _PROFILES = {
     "remote_doctor": ("artifact",),
     "orientation": ("artifact", "context"),
-    "task_transition": ("board", "task_id"),
+    "task_start_co_commit": ("board", "task_id", "work_file"),
     "tdd_history": ("code", "test"),
     "feature_spec_plan": (
         "spec",
@@ -207,7 +207,7 @@ _REMOTE_PROFILES = frozenset({"remote_doctor", "refactor_chore_release", "featur
 _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F01-fork-clone-doctor": ("remote_and_doctor", "remote_doctor", {"artifact": ".codearbiter/reports/academy/F01-doctor.json"}),
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
-    "F03-work-the-board": ("canonical_board_transition", "task_transition", {"board": ".codearbiter/open-tasks.md", "task_id": "academy.feature.0001"}),
+    "F03-work-the-board": ("task_start_co_commit", "task_start_co_commit", {"board": ".codearbiter/open-tasks.md", "task_id": "academy.docs.0001", "work_file": "docs/ticket-list-contract.md"}),
     "F04-fix-with-evidence": ("red_then_fix_history", "tdd_history", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
     "P01-feature-through-plan": ("feature_spec_plan_commit", "feature_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md", "test": "tests/test_cli.py", "code": "workshop_queue/cli.py", "fixture": "data/p01-unresolved-tickets.json", "source_identity": "training_scenarios/P01-codearbiter-source.json", "task_id": "academy.feature.0002"}),
     "P02-commit-review-pr": ("review_pr_commit_range", "pr_receipt", {"receipt": ".codearbiter/reports/academy/P02-pr-receipt.json"}),
@@ -3593,13 +3593,45 @@ def _semantic(context: _SemanticContext) -> bool:
             and match
             and artifact["stage"] == int(match.group(1))
         )
-    if profile == "task_transition":
-        board, task_id = str(data["board"]), str(data["task_id"])
-        before, after = _text(root, attempt.prepared, board), _changed_document(context, board)
-        if not before or not after:
+    if profile == "task_start_co_commit":
+        board = str(data["board"])
+        task_id = str(data["task_id"])
+        work_file = str(data["work_file"])
+
+        def tree_mode(ref: str, path: str) -> str | None:
+            result = run_git(root, ["ls-tree", ref, "--", path], check=False)
+            metadata, separator, entry_path = result.stdout.rstrip("\n").partition("\t")
+            fields = metadata.split()
+            if (
+                result.returncode
+                or not separator
+                or entry_path != path
+                or len(fields) != 3
+                or fields[1] != "blob"
+            ):
+                return None
+            return fields[0]
+
+        prepared_modes = tuple(
+            tree_mode(attempt.prepared, path) for path in (board, work_file)
+        )
+        head_modes = tuple(tree_mode(attempt.head, path) for path in (board, work_file))
+        if prepared_modes != ("100644", "100644") or head_modes != prepared_modes:
             return False
-        before_lines = before.splitlines(keepends=True)
-        after_lines = after.splitlines(keepends=True)
+        board_before = _git_blob(root, attempt.prepared, board)
+        board_after = _git_blob(root, attempt.head, board)
+        work_before = _git_blob(root, attempt.prepared, work_file)
+        work_after = _git_blob(root, attempt.head, work_file)
+        if any(
+            value is None
+            for value in (board_before, board_after, work_before, work_after)
+        ):
+            return False
+        try:
+            before_lines = board_before.decode("utf-8").splitlines(keepends=True)
+            after_lines = board_after.decode("utf-8").splitlines(keepends=True)
+        except UnicodeDecodeError:
+            return False
         if len(before_lines) != len(after_lines):
             return False
         changed = [
@@ -3614,9 +3646,12 @@ def _semantic(context: _SemanticContext) -> bool:
             rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old_line
         )
         new_match = re.fullmatch(
-            rf"- \[x\] {re.escape(task_id)} - (?P<body>.+?)  \(done (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)",
+            rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)",
             new_line,
         )
+        oid_pattern = _repository_oid_pattern(root)
+        if oid_pattern is None:
+            return False
         learner_commits = tuple(
             line
             for line in run_git(
@@ -3624,15 +3659,28 @@ def _semantic(context: _SemanticContext) -> bool:
                 ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"],
                 check=False,
             ).stdout.splitlines()
-            if _SHA40.fullmatch(line)
+            if oid_pattern.fullmatch(line)
         )
+        parents = run_git(
+            root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False
+        ).stdout.split()
         exact_commit_boundary = bool(
             learner_commits == (attempt.head,)
-            and _commit_paths(root, attempt.head) == (board,)
+            and parents == [attempt.head, attempt.prepared]
+            and set(_commit_paths(root, attempt.head)) == {board, work_file}
         )
         commit_date = run_git(
             root, ["show", "-s", "--format=%as", attempt.head], check=False
         ).stdout.strip()
+        old_sentence = b"Ticket list output shows a claimant for every ticket."
+        required_sentence = (
+            b"Ticket list output shows the claimant for a claimed ticket and no claimant "
+            b"for an open ticket."
+        )
+        exact_work_correction = bool(
+            work_before.count(old_sentence) == 1
+            and work_after == work_before.replace(old_sentence, required_sentence, 1)
+        )
         clean = not run_git(
             root, ["status", "--porcelain", "--untracked-files=all"], check=False
         ).stdout
@@ -3641,6 +3689,7 @@ def _semantic(context: _SemanticContext) -> bool:
             and new_match
             and old_match.group("body") == new_match.group("body")
             and new_match.group("date") == commit_date
+            and exact_work_correction
             and exact_commit_boundary
             and clean
         )

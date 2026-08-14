@@ -193,9 +193,11 @@ class PreviewSiteTests(unittest.TestCase):
             tuple(action.id for action in manifest.actions),
         )
         self.assertEqual(html.count('class="lesson-action"'), len(manifest.actions))
+        self.assertIn('data-action-id="F03-private-boundary"', html)
         self.assertIn('data-action-id="F03-start-task"', html)
-        self.assertIn('data-copy-target="command-F03-prepare-windows"', html)
+        self.assertNotIn('data-copy-target="command-F03-prepare-windows"', html)
         self.assertIn("Your agent · Codex harness", html)
+        self.assertIn("You · Browser · All operating systems", html)
         self.assertIn("You · Native terminal · Windows", html)
         self.assertNotIn("{{action:", html)
 
@@ -1041,16 +1043,21 @@ class PreviewSiteTests(unittest.TestCase):
         source = self._copy_public_source()
         lesson = source / "academy" / "tracks" / "foundations" / "F03-work-the-board.md"
         text = lesson.read_text(encoding="utf-8")
-        self.assertIn("estimated_minutes: 15", text)
+        minutes = re.search(r"(?m)^estimated_minutes: (\d+)$", text)
+        self.assertIsNotNone(minutes)
+        assert minutes is not None
+        mutated_minutes = str(int(minutes.group(1)) + 1)
+        before = read_home(source, self.out)
         lesson.write_text(
-            text.replace("estimated_minutes: 15", "estimated_minutes: 12", 1),
+            text[:minutes.start(1)] + mutated_minutes + text[minutes.end(1):],
             encoding="utf-8",
         )
 
-        html = read_home(source, self.out)
+        after = read_home(source, self.out)
 
-        self.assertIn("Each lesson appears here only after its guided rewrite", html)
-        self.assertNotIn("12 to 60 minutes", html)
+        self.assertIn("Each lesson appears here only after its guided rewrite", before)
+        self.assertEqual(after, before)
+        self.assertNotIn(f"{mutated_minutes} to 60 minutes", after)
 
     def test_feedback_url_is_https_github_discussions_and_is_rendered(self) -> None:
         """Catches feedback being hidden or routed away from the reviewed Discussions boundary."""

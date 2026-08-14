@@ -113,7 +113,7 @@ _HOST_HEADINGS = {
 _FOUNDATIONS_SCENARIOS = {
     "F01-fork-clone-doctor": ("remote_configuration", "git-config", "fork-routing-unverified"),
     "F02-orient-to-state": ("context_orientation", ".codearbiter/CONTEXT.md", "orientation-not-recorded"),
-    "F03-work-the-board": ("task_transition", "academy.feature.0001", "queued"),
+    "F03-work-the-board": ("task_start_co_commit", "academy.docs.0001", "queued"),
     "F04-fix-with-evidence": ("regression_first_fix", "workshop_queue/service.py", "defect-staged"),
 }
 _PRACTITIONER_SCENARIOS = {

@@ -19,7 +19,7 @@
           "type": {"const": "lab_semantics"},
           "profile": {
             "enum": [
-              "remote_doctor", "orientation", "task_transition", "tdd_history",
+              "remote_doctor", "orientation", "task_start_co_commit", "tdd_history",
               "approved_spec_plan", "pr_receipt", "accepted_adr", "dependency_review",
               "checkpoint_remediation", "provenance_recovery", "stride_model",
               "hygiene_snapshot", "sprint_decisions", "audit_guard_observation",
@@ -33,6 +33,7 @@
           "board": {"$ref": "#/$defs/path"},
           "audit": {"$ref": "#/$defs/path"},
           "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$"},
+          "work_file": {"$ref": "#/$defs/path"},
           "code": {"$ref": "#/$defs/path"},
           "test": {"$ref": "#/$defs/path"},
           "spec": {"$ref": "#/$defs/path"},
