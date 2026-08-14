@@ -7,9 +7,9 @@ real Git history, repository state, tasks, decisions, reviews, and recovery
 without risking one of your own projects. The website is the course; this
 README records the release boundary and points you to the right starting place.
 
-## Preview 0.20
+## Preview 0.21
 
-Preview 0.20 publishes all nineteen guided labs:
+Preview 0.21 publishes all nineteen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
@@ -55,7 +55,7 @@ Preview 0.20 publishes all nineteen guided labs:
 - **U07 is guided and runnable.** Its capstone follows the real feature lane,
   preserves local behavior evidence, and opens a real hosted pull request.
 
-All 19 Academy lessons through U07 are public in Preview 0.20. Graduation is
+All 19 Academy lessons through U07 are public in Preview 0.21. Graduation is
 available after all 19 Academy Checks pass in the same repository.
 
 ## Start the course
