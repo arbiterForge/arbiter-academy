@@ -135,8 +135,7 @@ decision to accept the bounded evidence, even when the agent prepared the file.
 {{action:P08-reset-retry}}
 
 After a passing Check, return to `main` only when the worktree is clean and leave the completed
-attempt intact. U01 remains a source exercise until its own guided Academy lesson is published.
-Do not treat it as the next public Academy lesson.
+attempt intact. Next safe course step: start U01, Autonomous sprint.
 
 ## Understand the mechanism
 

@@ -218,6 +218,14 @@ class U05PluginContractTests(unittest.TestCase):
         self.assertEqual(set(check_variants), {"windows", "macos", "linux"})
         self.assertIn("check U05-debug-spike-conflict", check_variants["linux"].command)
         self.assertNotIn("prepare U05-debug-spike-conflict", check_variants["linux"].command)
+        self.assertIn(
+            "Next safe step: continue to U06.",
+            by_id["U05-check-status"].expected_result,
+        )
+        self.assertNotIn(
+            "when it is published",
+            by_id["U05-check-status"].expected_result,
+        )
 
     def test_public_guide_keeps_the_real_plugin_boundary_visible(self) -> None:
         guide = (SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md").read_text(encoding="utf-8")
