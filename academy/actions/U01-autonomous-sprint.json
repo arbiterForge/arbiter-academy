@@ -9,13 +9,13 @@
       "title": "Confirm the fork-first lesson boundary",
       "actor": "learner",
       "surface": "browser",
-      "instruction": "Read the Preview 0.22 release limits before using any command. U01 is public only in your personal fork with origin as the fork, upstream fetch-only, and origin as the effective push remote.",
+      "instruction": "Read the Preview 0.23 release limits before using any command. U01 is public only in your personal fork with origin as the fork, upstream fetch-only, and origin as the effective push remote.",
       "rationale": "The scenario and sprint can create commits, a fork branch, and a pull request; keeping upstream non-pushable is the exercise's safety boundary.",
       "resources": [],
       "variants": [],
       "expected_result": "You are in a clean forked checkout that completed P08 and can safely create a U01 attempt.",
       "recovery": "If origin can push to arbiterForge or the topology is incomplete, stop and return to P08. Do not rewrite remotes or bypass the safety check for this lesson.",
-      "evidence": "The public Preview 0.22 manifest lists U01, while the Prepare preflight independently validates the live fork topology."
+      "evidence": "The public Preview 0.23 manifest lists U01, while the Prepare preflight independently validates the live fork topology."
     },
     {
       "id": "U01-prepare-attempt",
@@ -27,9 +27,9 @@
       "rationale": "Prepare installs only reviewed scenario bytes after validating the fork/upstream push boundary, so the sprint begins from an inspectable base.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true}
       ],
       "expected_result": "Academy reports the numbered attempt branch and preparation commit; training_scenarios/U01-autonomous-sprint.json and U01-sprint-brief.json are committed on that branch.",
       "recovery": "If remote validation or preparation fails, preserve the error and return to P08. Do not copy scenario files or create an academy attempt branch yourself.",
@@ -116,9 +116,9 @@
       "rationale": "The installed release accepts only the reviewed sprint-evidence contract and fails closed for altered scope or unsafe remotes.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true}
       ],
       "expected_result": "Academy Check reports pass only when the prepared brief, exact artifact scope, safe remote topology, one learner commit, and clean worktree all match; otherwise it reports a nonzero failure.",
       "recovery": "Do not edit progress or release data to change the result. Inspect the reported repository boundary, preserve the attempt, then Reset for a numbered retry if needed.",
@@ -152,9 +152,9 @@
       "rationale": "A retry must preserve the prior evidence while creating an independent, inspectable scenario branch.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true}
       ],
       "expected_result": "Academy reports academy/U01-autonomous-sprint/N+1 and a new preparation commit; the earlier attempt branch remains reachable.",
       "recovery": "Do not simulate Reset with destructive Git commands. If Reset refuses because the current attempt is dirty or still active, inspect and preserve it before retrying.",

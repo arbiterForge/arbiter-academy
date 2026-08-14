@@ -59,3 +59,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: weaken the existing tag gate; leave current main unavailable; publish an exact Preview 0.21 release with the unchanged 19-lab inventory and deterministic installers.
 - SMARTS: Reliable and Testable favor a new annotated tag because the release gate can compare its exact commit and six assets with a clean rebuild. Available favors making the corrected learner-facing copy installable. Securable favors preserving immutable 0.20 bytes and the existing authenticated asset verification. Maintainable favors one current release identity across manifests, commands, installers, tests, and site metadata.
 - Chosen: publish Preview 0.21 with the existing accepted inventory, a new manifest, canonical bundle digest, and no runtime dependency or command-surface expansion.
+
+## SD-ACA-011 - Publish visual and successor-guidance maintenance as a new immutable Preview - confidence: high
+- Date: 2026-08-14
+- Point: Whether to leave the accepted mobile navigation and successor-guidance fixes only on main or publish them under a new immutable Academy Preview identity.
+- Options: repoint Preview 0.22; defer learners to the stale artifact; publish Preview 0.23 with unchanged 19-lab inventory and reproduced offline installers.
+- SMARTS: Reliable and Testable favor a new tag because the exact commit, manifest, archive, installer checksums, and Pages output can be reproduced together. Available favors promptly exposing the accepted learner fixes. Securable favors retaining the immutable Preview 0.22 artifact and its pinned digest. Maintainable favors one current identity across the site, command cards, package data, workflow, and installer paths.
+- Chosen: publish Preview 0.23 as the immutable maintenance release with the unchanged accepted inventory, no runtime network dependency, and preserved Preview 0.22 history.
