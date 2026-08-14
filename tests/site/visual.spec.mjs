@@ -46,6 +46,35 @@ test("Academy Home keeps the verify-first installer usable", async ({ page }, te
   });
 });
 
+test("F01 keeps its table of contents before the mobile lesson body", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "mobile layout contract");
+  await page.goto("/labs/F01-fork-clone-doctor/index.html", { waitUntil: "networkidle" });
+  await stabilize(page);
+
+  const toc = page.locator(".lab-toc");
+  const article = page.locator(".academy-content");
+  await expect(toc).toBeVisible();
+  await expect(toc).toBeInViewport();
+  await expect(toc.locator("a")).toHaveText([
+    "Know before you begin",
+    "What you will prove",
+    "Prepare safely",
+    "Practice",
+    "Recognize success",
+    "Check",
+    "Recover or continue",
+    "Hint 1",
+    "Hint 2",
+    "Hint 3",
+    "Understand the mechanism",
+  ]);
+
+  const [tocBox, articleBox] = await Promise.all([toc.boundingBox(), article.boundingBox()]);
+  expect(tocBox).not.toBeNull();
+  expect(articleBox).not.toBeNull();
+  expect(tocBox.y).toBeLessThan(articleBox.y);
+});
+
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],
