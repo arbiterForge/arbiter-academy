@@ -195,6 +195,8 @@ class U05PluginContractTests(unittest.TestCase):
         ))
         self.assertIn("taskwrite", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
+        self.assertIn("taskwrite", by_id["U05-commit-debug-board"].evidence or "")
+        self.assertNotIn("debug-note", by_id["U05-commit-debug-board"].evidence or "")
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
         self.assertIn("CodeArbiter 2.15.1", by_id["U05-confirm-readiness"].instruction)
         self.assertIn("ca-codex 0.7.2", by_id["U05-confirm-readiness"].instruction)

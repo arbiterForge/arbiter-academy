@@ -327,7 +327,7 @@
     {
       "id": "U04-record-greenfield-adr",
       "sequence": 10,
-      "title": "record the accepted greenfield ADR",
+      "title": "record the proposed greenfield ADR",
       "actor": "agent",
       "surface": null,
       "instruction": "While visibly rooted at .academy/workspaces/U04-greenfield, state the exact learner-selected greenfield decision and explicit learner attribution, then invoke ca-adr. The host assigns the number and writes the proposed ADR; do not ask ca-reconcile to author it.",

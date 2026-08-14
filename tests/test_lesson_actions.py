@@ -278,6 +278,10 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(Path(__file__).parents[1], U04_DOCUMENT_ID)
         actions = {action.id: action for action in manifest.actions}
         self.assertEqual(tuple(actions), U04_ACTION_IDS)
+        self.assertEqual(
+            tuple(action.sequence for action in manifest.actions),
+            tuple(range(1, len(U04_ACTION_IDS) + 1)),
+        )
 
         prepare = actions["U04-prepare-attempt"]
         self.assertIn("Academy root", prepare.instruction)
@@ -412,6 +416,7 @@ class LessonActionTests(unittest.TestCase):
             )
         )
         self.assertIn("explicit learner attribution", adr.instruction)
+        self.assertEqual(adr.title, "record the proposed greenfield ADR")
         self.assertIn("proposed", adr.expected_result)
         self.assertEqual(accept_adr.actor, "learner")
         self.assertEqual(accept_adr.surface, "active-harness")
