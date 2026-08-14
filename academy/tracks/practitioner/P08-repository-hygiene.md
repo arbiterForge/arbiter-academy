@@ -62,7 +62,7 @@ actual inventory. Do not merge partial output from memory or from a previous att
 
 {{action:P08-run-standup}}
 
-Standup begins with `git fetch`, so it may refresh remote-tracking refs before it organizes the inspection. It is not mutation authority: decline any offered `--ff-only` pull and every cleanup proposal, keep all local refs and worktrees intact, and then capture the post-fetch inventory for the report.
+Standup begins with `git fetch`, so it may refresh remote-tracking refs before it organizes the inspection. It is not mutation authority: decline any offered `--ff-only` pull and every cleanup proposal, keep all prepared local branch refs and worktrees intact, and then capture the post-fetch inventory for the report.
 
 {{action:P08-inventory-after-standup}}
 

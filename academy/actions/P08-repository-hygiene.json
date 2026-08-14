@@ -78,7 +78,7 @@
         {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-standup","copy":true}
       ],
-      "expected_result": "The agent refreshes remote-tracking information, then presents current repository state for review without pulling, deleting, pruning, or rewriting any local ref or worktree.",
+      "expected_result": "The agent refreshes remote-tracking information, then presents current repository state for review without pulling, deleting, pruning, or rewriting any prepared local branch ref or worktree.",
       "recovery": "If the response offers an --ff-only pull or cleanup, decline it. Preserve the current state and take the post-fetch inventory before any report draft.",
       "evidence": "The learner retains the before/after inventory comparison and the decision to accept or reject any later report draft."
     },

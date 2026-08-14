@@ -865,6 +865,8 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
         for path in finding_paths
         if re.fullmatch(r"\.codearbiter/checkpoints/\d{4}-\d{2}-\d{2}\.md", path)
     )
+    checkpoint_path = checkpoint_paths[0] if len(checkpoint_paths) == 1 else ""
+    checkpoint_date = checkpoint_path.removeprefix(".codearbiter/checkpoints/").removesuffix(".md")
     if (
         len(checkpoint_paths) != 1
         or set(finding_paths)
@@ -884,7 +886,10 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
     if (
         not _p05_finding_is_exact(finding_blob)
         or checkpoint_blob is None
-        or not checkpoint_blob.strip()
+        or re.fullmatch(
+            rf"# CodeArbiter Checkpoint - {re.escape(checkpoint_date)}\n(?:.|\n)*",
+            checkpoint_blob,
+        ) is None
         or checkpoint_baseline is None
         or re.fullmatch(r"\d+\n", checkpoint_baseline) is None
     ):

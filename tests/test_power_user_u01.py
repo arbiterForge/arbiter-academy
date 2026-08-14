@@ -89,6 +89,15 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual((plan_gate.actor, plan_gate.surface), ("learner", "active-harness"))
         self.assertIn("plan", plan_gate.instruction.casefold())
         self.assertIn("autonomous", plan_gate.expected_result.casefold())
+        self.assertIn("approve only", plan_gate.instruction.casefold())
+        self.assertIn(
+            "no product-code, test, dependency, or remote changes",
+            plan_gate.instruction.casefold(),
+        )
+        self.assertIn("fork-only pull-request terminal", plan_gate.instruction.casefold())
+        self.assertIn("approved plan", plan_gate.expected_result.casefold())
+        self.assertIn("plan revision", plan_gate.expected_result.casefold())
+        self.assertIn("proposed specification and derived plan", plan_gate.recovery.casefold())
 
         for action_id in ("U01-prepare-attempt", "U01-check-status", "U01-reset-retry"):
             action = by_id[action_id]

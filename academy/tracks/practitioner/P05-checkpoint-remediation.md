@@ -131,8 +131,9 @@ evidence; a rewritten one teaches the wrong habit.
 ### Hint 1
 
 When a path boundary is unclear, read the latest commit's path list before doing more work. The
-finding is one report path; RED is one test path; GREEN is one production path; and the receipt is
-one checkpoint path.
+finding contains the dated checkpoint report, `.codearbiter/last-checkpoint`, and
+`.codearbiter/reports/academy/P05-finding.md`; RED is one test path; GREEN is one production path;
+and the receipt is one checkpoint path.
 
 ### Hint 2
 

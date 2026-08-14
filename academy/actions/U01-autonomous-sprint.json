@@ -195,7 +195,7 @@
       "resources": [],
       "variants": [],
       "expected_result": "The host either records an explicit approved plan and begins autonomous execution, or stops with the requested plan revision visible.",
-      "recovery": "If the plan changes boundaries you did not intend, decline it. Preserve the proposal and use Reset only after reviewing the failed attempt.",
+      "recovery": "If the plan changes boundaries you did not intend, decline it. Preserve the proposed specification and derived plan, then use Reset only after reviewing the failed attempt.",
       "evidence": "Check inspects final repository facts. It does not verify either approval or a host conversation."
     },
     {

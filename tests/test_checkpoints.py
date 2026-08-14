@@ -339,6 +339,20 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(len(prepared), 64)
         self.assertTrue(self._p05_semantic(history))
 
+    def test_p05_rejects_a_checkpoint_report_with_a_mismatched_dated_header(self) -> None:
+        prepared_root, _, prepared = self._p05_prepared_repository()
+        history = self._p05_history(
+            prepared_root,
+            prepared,
+            "mismatched-checkpoint-header",
+            name="P05 Header Fixture",
+            email="p05-header@example.invalid",
+            timestamps=tuple(f"2026-08-02T12:2{minute}:00+00:00" for minute in range(4)),
+            checkpoint_heading_date="2026-08-03",
+        )
+
+        self.assertFalse(self._p05_semantic(history))
+
     def _p05_mutated_red(self, raw: bytes, mutation: str | None) -> bytes:
         if mutation is None:
             return raw
@@ -430,6 +444,7 @@ class CheckpointTests(unittest.TestCase):
         email: str,
         timestamps: tuple[str, str, str, str],
         red_mutation: str | None = None,
+        checkpoint_heading_date: str = "2026-08-02",
     ) -> dict[str, object]:
         root = self.root / f"p05-{label}"
         subprocess.run(
@@ -447,11 +462,14 @@ class CheckpointTests(unittest.TestCase):
         checkpoint_path = root / ".codearbiter/checkpoints/2026-08-02.md"
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         checkpoint_path.write_text(
-            "# CodeArbiter Checkpoint - 2026-08-02\n\n"
+            f"# CodeArbiter Checkpoint - {checkpoint_heading_date}\n\n"
             "ACADEMY-P05-BLOCKED-UNRESOLVED: blocked tickets omitted from unresolved summary.\n",
             encoding="utf-8",
+            newline="\n",
         )
-        (root / ".codearbiter/last-checkpoint").write_text("0\n", encoding="utf-8")
+        (root / ".codearbiter/last-checkpoint").write_text(
+            "0\n", encoding="utf-8", newline="\n"
+        )
         finding = self._p05_commit(
             root,
             _P05_ROLE_PATHS[0],

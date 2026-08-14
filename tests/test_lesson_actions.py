@@ -875,6 +875,14 @@ class LessonActionTests(unittest.TestCase):
             self.assertTrue(variant.command.endswith(suffix))
             scripts.append(variant.command[len(prefix) : -len(suffix)])
         self.assertEqual(scripts[1:], scripts[:1] * 2)
+        self.assertTrue(
+            all('git("rev-parse", "HEAD").strip()' in script for script in scripts)
+        )
+        self.assertTrue(
+            all("reference_oid" in script and "len(reference_oid)" in script for script in scripts)
+        )
+        self.assertTrue(all("show-object-format" not in script for script in scripts))
+        self.assertTrue(all("oid_length" not in script for script in scripts))
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = Path(temporary)
