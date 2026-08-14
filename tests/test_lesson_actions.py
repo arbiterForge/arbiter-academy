@@ -830,8 +830,12 @@ class LessonActionTests(unittest.TestCase):
         """Catches a prose sketch that cannot pass the strict P05 RED verifier."""
         manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
         action = next(action for action in manifest.actions if action.id == "P05-add-red-regression")
+        observation = next(action for action in manifest.actions if action.id == "P05-observe-red")
         marker = "Insert this exact method in WorkshopQueueCliTests:\n"
         terminator = "\nRun only the exact focused test"
+
+        self.assertIn("report, not a syntax", observation.instruction)
+        self.assertNotIn("\u00e2\u20ac\u201d", observation.instruction)
 
         for variant in action.variants:
             with self.subTest(variant=variant.id):

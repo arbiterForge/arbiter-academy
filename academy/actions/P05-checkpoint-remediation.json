@@ -345,7 +345,7 @@
       "title": "Recognize the meaningful RED result",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Read the focused test result. The important failure is the unresolved assertion after a successful claim, block, and reportâ€”not a syntax, import, fixture, or command failure.",
+      "instruction": "Read the focused test result. The important failure is the unresolved assertion after a successful claim, block, and report, not a syntax, import, fixture, or command failure.",
       "rationale": "A failing test demonstrates the product defect before the repair changes the report expression.",
       "resources": [],
       "variants": [],
