@@ -335,6 +335,8 @@ class FoundationsCurriculumTests(unittest.TestCase):
     def test_f04_uses_the_guided_lesson_anatomy_and_all_actions_once(self) -> None:
         path = SOURCE / "academy/tracks/foundations/F04-fix-with-evidence.md"
         text = path.read_text(encoding="utf-8")
+        self.assertIn("Complete F02 first", text)
+        self.assertNotIn("Complete F03 first", text)
         self.assertEqual(
             tuple(line[3:] for line in text.splitlines() if line.startswith("## ")),
             ("Know before you begin", "What you will prove", "Prepare safely", "Practice", "Recognize success", "Check", "Recover or continue", "Understand the mechanism"),
@@ -458,11 +460,10 @@ class FoundationsCurriculumTests(unittest.TestCase):
 
     def test_track_loader_exposes_the_exact_progression_and_action_contract(self) -> None:
         track = load_track(SOURCE, "foundations")
-
         self.assertEqual(tuple(lab.id for lab in track.labs), FOUNDATIONS)
         self.assertEqual(
             tuple(lab.prerequisites for lab in track.labs),
-            ((), (FOUNDATIONS[0],), (FOUNDATIONS[1],), (FOUNDATIONS[2],)),
+            ((), (FOUNDATIONS[0],), (FOUNDATIONS[1],), (FOUNDATIONS[1],)),
         )
         for lab in track.labs:
             with self.subTest(lab=lab.id):
@@ -474,8 +475,6 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 )
                 self.assertIn("prepare", lab.scenario_command)
                 if lab.id == "F03-work-the-board":
-                    # F03 is action-backed: the manifest owns the platform-specific
-                    # installed-Academy command and the lesson front matter names it.
                     self.assertEqual(lab.checkpoint_command, "{{action:F03-check}}")
                 else:
                     self.assertIn("arbiter-academy --repository", lab.checkpoint_command)

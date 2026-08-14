@@ -4,7 +4,7 @@ track: foundations
 order: 4
 title: Fix with evidence
 outcome: Preserve a failing claimant-label regression in Git before a later minimal production repair.
-prerequisites: F03-work-the-board
+prerequisites: F02-orient-to-state
 estimated_minutes: 30
 scenario_command: python scripts/academy.py prepare F04-fix-with-evidence
 checkpoint_command: arbiter-academy --repository <learner-repository> check F04-fix-with-evidence
@@ -15,7 +15,7 @@ next_lab: P01-feature-through-plan
 
 ## Know before you begin
 
-Complete F03 first, then start from a clean `main` branch in the same Academy clone.
+Complete F02 first, then start from a clean `main` branch in the same Academy clone.
 Keep two surfaces open at the clone root: a native terminal for Academy and shell commands, and your
 Claude Code, Codex, or Pi harness for messages to your agent and CodeArbiter commands.
 
