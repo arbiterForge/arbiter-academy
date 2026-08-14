@@ -228,7 +228,7 @@ class ProjectStateTests(unittest.TestCase):
             if line.startswith("[")
         ]
         post_checkpoint = override_records[int(marker.decode("utf-8").strip()):]
-        self.assertEqual(len(post_checkpoint), 21)
+        self.assertEqual(len(post_checkpoint), 22)
         for record in post_checkpoint[:15]:
             self.assertIn("BY: SUaDtL@users.noreply.github.com", record)
         self.assertIn("GATE: H-01", post_checkpoint[0])
@@ -276,6 +276,9 @@ class ProjectStateTests(unittest.TestCase):
         self.assertIn("lesson-availability correction and matching immutable installer digest", post_checkpoint[19])
         self.assertIn("BY: academy@example.invalid", post_checkpoint[20])
         self.assertIn("push the reviewed Preview 0.12 lesson-availability correction", post_checkpoint[20])
+        self.assertIn("BY: SUaDtL@users.noreply.github.com", post_checkpoint[21])
+        self.assertIn("GATE: H-05", post_checkpoint[21])
+        self.assertIn("SD-ACA-021", post_checkpoint[21])
 
     def test_append_only_fixture_logs_end_with_lf_and_can_accept_a_new_record(self):
         for relative in (

@@ -1,1 +1,1 @@
-{"schema_version":2,"id":"U02-override-audit-metrics","predicates":[{"id":"linked_override_audit_metrics","type":"lab_semantics","profile":"override_audit_metrics","overrides":".codearbiter/overrides.log","audit_packets":".codearbiter/audits"}]}
+{"schema_version":2,"id":"U02-override-audit-metrics","predicates":[{"id":"bound_audit_guard_observation","type":"lab_semantics","profile":"audit_guard_observation","overrides":".codearbiter/overrides.log","observation":".codearbiter/reports/academy/U02-observation.md"}]}

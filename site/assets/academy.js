@@ -23,7 +23,7 @@ export function selectVariant(root, os, host) {
   }
   for (const variant of root.querySelectorAll(".command-variant[data-os][data-host]")) {
     const osMatches = os === null || variant.dataset.os === "all" || variant.dataset.os === os;
-    const hostMatches = host === null || variant.dataset.host === "none" || variant.dataset.host === host;
+    const hostMatches = host === null || variant.dataset.host === "none" || variant.dataset.host === "selected" || variant.dataset.host === host;
     variant.hidden = !(osMatches && hostMatches);
   }
 }

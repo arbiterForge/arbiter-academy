@@ -19,7 +19,7 @@ ACTION_SURFACES = frozenset(
     {"browser", "native-terminal", "academy-console", "active-harness"}
 )
 OPERATING_SYSTEMS = frozenset({"all", "windows", "macos", "linux"})
-HOSTS = frozenset({"none", "claude-code", "codex", "pi"})
+HOSTS = frozenset({"none", "selected", "claude-code", "codex", "pi"})
 LANGUAGES = frozenset({"none", "powershell", "sh", "text", "codearbiter"})
 
 _SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,95}")
@@ -214,6 +214,14 @@ def _validate_execution_identity(
     elif surface == "harness":
         if host == "none":
             raise ValueError("harness variants require a named host")
+        if host == "selected" and language != "text":
+            raise ValueError("selected harness variants require text prompts")
+        if host == "selected" and command.lstrip().startswith(
+            ("!", "$ca-", "/ca:", "/ca-", "/skill:ca-")
+        ):
+            raise ValueError(
+                "selected harness text prompts must not start with an executable invocation"
+            )
     elif host != "none":
         raise ValueError(f"{surface} variants require host none")
 

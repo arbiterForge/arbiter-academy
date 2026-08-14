@@ -117,7 +117,7 @@ class PreviewSiteTests(unittest.TestCase):
             ("P07-threat-model", "P07-prepare"),
             ("P08-repository-hygiene", "P08-prepare"),
             ("U02-override-audit-metrics", "U02-prepare"),
-            ("U02-override-audit-metrics", "U02-log-override"),
+            ("U02-override-audit-metrics", "U02-attempt-guarded-restore"),
             ("U02-override-audit-metrics", "U02-check"),
             ("U03-refactor-chore-release", "U03-prepare"),
             ("U03-refactor-chore-release", "U03-run-release"),
@@ -3256,9 +3256,9 @@ raise SystemExit(result.returncode)
         self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
 
 
-class PrivateU02PreviewContractTests(unittest.TestCase):
-    def test_private_u02_guide_uses_shared_action_renderer_without_publication(self) -> None:
-        """Catches private U02 losing its website-first action contract or truth boundary."""
+class PublicU02PreviewContractTests(unittest.TestCase):
+    def test_public_u02_guide_uses_shared_action_renderer_for_the_real_guard(self) -> None:
+        """Catches public U02 rendering fictional override practice or losing copyable surfaces."""
         root = Path(__file__).parents[1]
         document = preview_site._read_markdown_document(
             root,
@@ -3276,21 +3276,32 @@ class PrivateU02PreviewContractTests(unittest.TestCase):
             document["referenced_actions"],
             tuple(action.id for action in manifest.actions),
         )
-        self.assertIn('data-action-id="U02-log-override"', content)
+        self.assertIn('data-action-id="U02-attempt-guarded-restore"', content)
         self.assertIn('data-action-id="U02-check"', content)
         self.assertIn('class="command-copy"', content)
+        observation = re.search(
+            r'<section class="lesson-action" data-action-id="U02-record-observation".*?</section>',
+            content,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(observation)
+        assert observation is not None
+        self.assertEqual(observation.group(0).count('class="command-variant"'), 1)
+        self.assertIn("Selected CodeArbiter harness", observation.group(0))
+        self.assertIn("# U02 audit-guard observation", observation.group(0))
+        self.assertIn("baseline_sha256:", observation.group(0))
         self.assertNotIn("{{action:", content)
         self.assertNotIn("```", guide)
-        self.assertIn("does not prove that a human approved", guide)
-        self.assertIn("or that any hosted service", guide)
+        self.assertIn("manually imitate", guide)
+        self.assertIn("cannot establish who caused a refusal", guide)
         self.assertIn("U02 is a published Power User lesson in Preview 0.21", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
-        self.assertIn("Prepare creates a numbered U02 branch", guide)
-        self.assertIn("Work the prepared U02 attempt", guide)
-        self.assertIn("stages exactly two paths", guide)
-        self.assertIn("does not preserve a transcript, JSON summary", guide)
-        self.assertNotIn("their SHA-256 digests in the U02 audit", guide)
+        self.assertIn("Prepare snapshots the exact `.codearbiter/overrides.log` bytes", guide)
+        self.assertIn("content-neutral", guide)
+        self.assertIn("The only learner commit", guide)
+        self.assertNotIn("safe-training-gate", guide)
+        self.assertNotIn("$ca-override", guide)
         self.assertIn("after Prepare", guide)
         self.assertIn("U02-override-audit-metrics", load_preview_manifest(root).guided_labs)
         self.assertEqual(

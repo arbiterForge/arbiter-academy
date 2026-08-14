@@ -1,253 +1,416 @@
 {
-  "schema_version": 1,
-  "lesson_contract_version": 1,
-  "document_id": "U02-override-audit-metrics",
-  "actions": [
-    {
-      "id": "U02-read-boundary",
-      "sequence": 1,
-      "title": "Read the override evidence boundary",
-      "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "U02 records one deliberately scoped training override, then binds local audit and metric evidence to that record. An override is exceptional and narrow. Do not use this lesson to bypass a security-critical, secret, crypto, destructive, or irreversible stop.",
-      "rationale": "An audit trail is useful only when it stays separate from the decision it records.",
-      "resources": [],
-      "variants": [],
-      "expected_result": "You know that the exercise concerns one safe-training-gate entry and locally derived evidence only.",
-      "recovery": "If the requested bypass is security-critical or irreversible, stop this lesson instead of recording an override.",
-      "evidence": "Check can bind changed local files and values. It does not prove human approval, that a host command ran, or any hosted fact."
-    },
-    {
-      "id": "U02-prepare",
-      "sequence": 2,
-      "title": "Prepare a numbered U02 attempt",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "At the clean Academy clone root, use a native terminal to prepare U02. Native-terminal commands go directly into that terminal and never begin with !.",
-      "rationale": "Prepare gives this exercise its own numbered attempt and scenario before any override evidence exists.",
-      "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics","copy":true}
-      ],
-      "expected_result": "Academy creates the next numbered U02 attempt branch and commits the U02 scenario overlay.",
-      "recovery": "If Prepare stops before naming a numbered attempt, preserve its message and correct only the named setup problem. Do not create the Academy branch or scenario file by hand.",
-      "evidence": "Record the attempt branch and prepared commit shown by Academy; those local refs bind Check to this attempt."
-    },
-    {
-      "id": "U02-read-scenario",
-      "sequence": 3,
-      "title": "Confirm the prepared attempt boundary",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "After Prepare names the U02 attempt, inspect the worktree in a native terminal. These are direct terminal commands and never begin with !.",
-      "rationale": "The learner confirms that the scenario overlay is committed before the real CodeArbiter commands change anything.",
-      "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git status --short","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git status --short","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git status --short","copy":true}
-      ],
-      "expected_result": "The active branch is the numbered U02 attempt, and `git status --short` is empty before the override.",
-      "recovery": "If the branch or worktree does not match Prepare output, stop and use Academy Reset; do not create a scenario file by hand.",
-      "evidence": "The branch name and clean status establish the local attempt boundary, not a hosted state."
-    },
-    {
-      "id": "U02-decide-scope",
-      "sequence": 4,
-      "title": "Decide whether the scoped training override is appropriate",
-      "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "In the prepared U02 attempt, decide for yourself whether the safe-training-gate exercise justifies one narrow override. Name the gate and reason before asking the host to record it. A log entry is not a substitute for your decision.",
-      "rationale": "The record should follow a specific scope decision, never manufacture one.",
-      "resources": [],
-      "variants": [],
-      "expected_result": "You have either stopped because the scope is unsafe or can state one limited training reason.",
-      "recovery": "If you cannot name a specific safe reason, do not invoke an override command. Reset the attempt or seek the appropriate governed lane.",
-      "evidence": "No generated file can authenticate the learner's reasoning or approval."
-    },
-    {
-      "id": "U02-log-override",
-      "sequence": 5,
-      "title": "Record one scoped override through CodeArbiter",
-      "actor": "agent",
-      "surface": null,
-      "instruction": "In the prepared U02 attempt and after your own scope decision, invoke the host-native override command. It is a CodeArbiter command, never a ! terminal passthrough command. ",
-      "rationale": "The governed command records the operator identity, gate, and reason in the append-only local log.",
-      "resources": [],
-      "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:override \"safe-training-gate: record one scoped training override\"","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-override \"safe-training-gate: record one scoped training override\"","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-override \"safe-training-gate: record one scoped training override\"","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-override \"safe-training-gate: record one scoped training override\"","copy":true}
-      ],
-      "expected_result": "One new append-only override line names the local training gate and reason.",
-      "recovery": "If the host asks for missing identity or rejects the reason, supply only the requested local detail or stop. Do not edit prior log entries.",
-      "evidence": "The line can show recorded text; it cannot prove who made a decision outside the repository."
-    },
-    {
-      "id": "U02-inspect-log",
-      "sequence": 6,
-      "title": "Inspect the new record through the selected harness shell",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "In the prepared U02 attempt, use the selected harness shell to inspect the local log. Harness shell commands begin with exactly one ! and are not CodeArbiter commands.",
-      "rationale": "This makes the shell boundary visible while keeping the recorded line separate from the host command that created it.",
-      "resources": [],
-      "variants": [
-        {"id":"claude-windows","surface":"harness","operating_system":"windows","host":"claude-code","language":"powershell","command":"!Get-Content .codearbiter\\overrides.log","copy":true},
-        {"id":"codex-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"!Get-Content .codearbiter\\overrides.log","copy":true},
-        {"id":"pi-windows","surface":"harness","operating_system":"windows","host":"pi","language":"powershell","command":"!Get-Content .codearbiter\\overrides.log","copy":true},
-        {"id":"claude-macos","surface":"harness","operating_system":"macos","host":"claude-code","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true},
-        {"id":"codex-macos","surface":"harness","operating_system":"macos","host":"codex","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true},
-        {"id":"pi-macos","surface":"harness","operating_system":"macos","host":"pi","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true},
-        {"id":"claude-linux","surface":"harness","operating_system":"linux","host":"claude-code","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true},
-        {"id":"codex-linux","surface":"harness","operating_system":"linux","host":"codex","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true},
-        {"id":"pi-linux","surface":"harness","operating_system":"linux","host":"pi","language":"sh","command":"!tail -n 20 .codearbiter/overrides.log","copy":true}
-      ],
-      "expected_result": "You can identify the new local line without changing it.",
-      "recovery": "If the line is absent or malformed, stop and reset the attempt. Do not hand-edit overrides.log to imitate a host action.",
-      "evidence": "Inspection shows current local text only; it does not prove the command chronology."
-    },
-    {
-      "id": "U02-run-audit",
-      "sequence": 7,
-      "title": "Assemble a read-only governance audit",
-      "actor": "agent",
-      "surface": null,
-      "instruction": "In the prepared U02 attempt, invoke the host-native audit command for the prepared range. It is a CodeArbiter command and never a ! terminal passthrough command.",
-      "rationale": "The audit packet supplies a local, read-only source for reviewing the recorded override.",
-      "resources": [],
-      "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:audit --since-checkpoint","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-audit --since-checkpoint","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-audit --since-checkpoint","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-audit --since-checkpoint","copy":true}
-      ],
-      "expected_result": "A dated local audit packet identifies the resolved range and the one recorded override line. Keep its printed path for the later staging boundary.",
-      "recovery": "If the command cannot resolve a range, preserve its message and provide an explicit local range only if the host requests one.",
-      "evidence": "The packet is local evidence; it does not attest to external hosting or approval."
-    },
-    {
-      "id": "U02-run-metrics",
-      "sequence": 8,
-      "title": "Read the governance metric glance",
-      "actor": "agent",
-      "surface": null,
-      "instruction": "In the prepared U02 attempt, invoke the host-native metrics command. It is a read-only CodeArbiter command and never a ! terminal passthrough command.",
-      "rationale": "Metrics summarize local governance trends without replacing the audit record.",
-      "resources": [],
-      "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:metrics","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-metrics","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-metrics","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-metrics","copy":true}
-      ],
-      "expected_result": "You see the three local metric values and their window.",
-      "recovery": "If the helper fails, preserve its error and stop rather than inventing metric values.",
-      "evidence": "The glance is read-only and cannot prove that any value reflects a hosted service."
-    },
-    {
-      "id": "U02-write-evidence",
-      "sequence": 9,
-      "title": "Keep the metrics glance out of committed evidence",
-      "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "In the prepared U02 attempt, do not create an Academy audit receipt, metrics receipt, transcript, or JSON summary. $ca-audit already wrote the durable packet; $ca-metrics is a read-only terminal glance. Do not stage, commit, or push.",
-      "rationale": "A committed learner-written summary would falsely look like proof of an advisory command that writes nothing.",
-      "resources": [],
-      "variants": [],
-      "expected_result": "The only durable evidence remains the actual override log and the actual audit packet; the metrics glance is not committed.",
-      "recovery": "If a draft receipt already exists, remove only that untracked draft before staging. Do not alter the override log or audit packet to imitate command output.",
-      "evidence": "Check validates repository artifacts, not a transcript, human approval, or invocation of the read-only metrics command."
-    },
-    {
-      "id": "U02-review-evidence-boundary",
-      "sequence": 10,
-      "title": "Review the exact drafted evidence boundary",
-      "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "In the prepared U02 attempt, inspect the two-path evidence boundary: .codearbiter/overrides.log and the exact dated .codearbiter/audits packet printed by the audit command. Confirm the packet quotes the one new override line and neither file makes an approval or hosted-service claim. Do not stage, commit, or push.",
-      "rationale": "The learner reviews only real CodeArbiter artifacts before committing them.",
-      "resources": [],
-      "variants": [],
-      "expected_result": "You can accept the narrow two-path evidence boundary or identify the exact artifact that needs correction.",
-      "recovery": "If an artifact is invented, stale, or outside the two-path boundary, remove only the untracked invention and review again. Historical audit packets may remain; do not substitute one for the exact path printed by this attempt's audit command.",
-      "evidence": "Review remains a learner action; no artifact can prove that it occurred."
-    },
-    {
-      "id": "U02-stage-evidence",
-      "sequence": 11,
-      "title": "Stage only the U02 evidence boundary",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "Only after the learner accepts the prepared U02 real-artifact boundary, stage the override log and the exact path printed by the audit command for its dated packet in a native terminal. Paste that exact path when the command prompts; do not search .codearbiter/audits or choose among historical packets. Native-terminal commands never begin with !.",
-      "rationale": "A two-file staged boundary retains the real audit-command output without fabricating an Academy receipt.",
-      "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$auditPacket = Read-Host \"Paste the exact audit packet path printed by the earlier audit command\"\nif ($auditPacket -notmatch '^\\.codearbiter/audits/.+\\.md$' -or -not (Test-Path -LiteralPath $auditPacket -PathType Leaf)) { throw \"The pasted audit packet path is not the dated packet printed by the audit command.\" }\ngit add -- .codearbiter/overrides.log $auditPacket\ngit diff --cached --name-only","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\"\ngit diff --cached --name-only","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"printf '%s\\n' 'Paste the exact audit packet path printed by the earlier audit command:' >&2\nIFS= read -r audit_packet\ncase \"$audit_packet\" in .codearbiter/audits/*.md) ;; *) echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1;; esac\n[ -f \"$audit_packet\" ] || { echo \"The pasted audit packet path is not the dated packet printed by the audit command.\" >&2; exit 1; }\ngit add -- .codearbiter/overrides.log \"$audit_packet\"\ngit diff --cached --name-only","copy":true}
-      ],
-      "expected_result": "Exactly two paths are staged: the override log and the exact dated audit packet.",
-      "recovery": "If the printed audit packet path is absent or another path is staged, unstage only the unexpected path and inspect again. Do not reset or rewrite the attempt history.",
-      "evidence": "The staged diff is a local scope check, not evidence of a human review."
-    },
-    {
-      "id": "U02-commit-evidence",
-      "sequence": 12,
-      "title": "Commit the local evidence through CodeArbiter",
-      "actor": "agent",
-      "surface": null,
-      "instruction": "After you review the staged boundary, invoke the host-native commit gate. It is a CodeArbiter command and never a ! terminal passthrough command.",
-      "rationale": "The final commit lets Check compare the changed local evidence with the prepared attempt.",
-      "resources": [],
-      "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-commit","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
-      ],
-      "expected_result": "The attempt gains a commit containing the scoped U02 evidence.",
-      "recovery": "If the gate blocks, preserve the finding and correct only the named evidence boundary. Do not amend or rewrite the attempt.",
-      "evidence": "A commit proves changed repository paths and bytes, not a human approval or host conversation."
-    },
-    {
-      "id": "U02-check",
-      "sequence": 13,
-      "title": "Run the local U02 checkpoint",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "Run Check in a native terminal. Native-terminal commands never begin with !.",
-      "rationale": "Check validates the prepared-attempt delta and deterministic local evidence contract.",
-      "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics","copy":true}
-      ],
-      "expected_result": "Check reports whether the prepared attempt has one clean evidence commit containing only the override log and exact audit packet.",
-      "recovery": "If Check rejects an artifact, correct only that named local boundary and run Check again. Do not invent a transcript, approval, or hosted result.",
-      "evidence": "A pass validates local Git paths and bytes; it does not authenticate human approval or confirm a hosted fact."
-    },
-    {
-      "id": "U02-reset",
-      "sequence": 14,
-      "title": "Reset this attempt safely",
-      "actor": "learner",
-      "surface": null,
-      "instruction": "If the attempt cannot be corrected within its evidence boundary, use Academy Reset in a native terminal. Native-terminal commands never begin with !.",
-      "rationale": "Reset preserves the earlier attempt rather than hiding an invalid override record through history rewriting.",
-      "resources": [],
-      "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics","copy":true}
-      ],
-      "expected_result": "Academy archives the failed U02 attempt and prepares a new numbered attempt without rewriting the earlier branch.",
-      "recovery": "If Reset stops, preserve its message and do not use destructive Git commands to imitate a reset or erase unrelated state.",
-      "evidence": "The archived ref and new attempt branch are local recovery evidence, not evidence that a hosted service acted."
-    }
-  ]
+    "schema_version": 1,
+    "lesson_contract_version": 1,
+    "document_id": "U02-override-audit-metrics",
+    "actions": [
+        {
+            "id": "U02-read-boundary",
+            "sequence": 1,
+            "title": "Read the audit-guard observation boundary",
+            "actor": "learner",
+            "surface": "browser",
+            "instruction": "This lesson observes a harmless blocked write to the existing append-only audit log. It does not ask you to execute an override, change an audit record, or claim that any person approved a bypass.",
+            "rationale": "An audit guard is useful only when a failed pre-write attempt and an actual override remain different events.",
+            "resources": [],
+            "variants": [],
+            "expected_result": "You know the exercise preserves `.codearbiter/overrides.log` exactly and records only one local observation note.",
+            "recovery": "If the requested action would change a real audit record, stop. U07 is the only capstone that may optionally practice an actual override.",
+            "evidence": "Check binds repository bytes and one local event-shaped note. It cannot prove the refusal chronology because a note can be manually imitated."
+        },
+        {
+            "id": "U02-prepare",
+            "sequence": 2,
+            "title": "Prepare the bound U02 baseline",
+            "actor": "academy",
+            "surface": null,
+            "instruction": "At the clean Academy clone root, run Academy Prepare in a native terminal. Native-terminal commands go directly into that terminal and never begin with `!`.",
+            "rationale": "Prepare commits the scenario and binds Check to the exact pre-observation bytes of the audit log.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U02-override-audit-metrics",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Academy creates one numbered U02 attempt with the baseline bound.",
+            "recovery": "If Prepare refuses or the clone is dirty, preserve its message and correct that setup condition; do not manufacture an attempt or scenario file.",
+            "evidence": "The prepared commit is the only source for the baseline digest used by Check."
+        },
+        {
+            "id": "U02-inspect-baseline",
+            "sequence": 3,
+            "title": "Inspect the bound audit-log baseline",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "In the prepared attempt, inspect the current audit log through your selected harness shell. Harness shell commands begin with exactly one `!`; they are shell commands, not CodeArbiter commands.",
+            "rationale": "You need to recognize the protected target before observing the guard that prevents its write.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows-claude",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "claude-code",
+                    "language": "powershell",
+                    "command": "!Get-FileHash .codearbiter\\overrides.log -Algorithm SHA256",
+                    "copy": true
+                },
+                {
+                    "id": "windows-codex",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "codex",
+                    "language": "powershell",
+                    "command": "!Get-FileHash .codearbiter\\overrides.log -Algorithm SHA256",
+                    "copy": true
+                },
+                {
+                    "id": "windows-pi",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "pi",
+                    "language": "powershell",
+                    "command": "!Get-FileHash .codearbiter\\overrides.log -Algorithm SHA256",
+                    "copy": true
+                },
+                {
+                    "id": "posix-claude",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "sh",
+                    "command": "!sha256sum .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "posix-codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "sh",
+                    "command": "!sha256sum .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "posix-pi",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "sh",
+                    "command": "!sha256sum .codearbiter/overrides.log",
+                    "copy": true
+                }
+            ],
+            "expected_result": "You see a local baseline digest without changing the log.",
+            "recovery": "If the log is missing or the worktree is not clean, stop and Reset the attempt; do not create or edit the log by hand.",
+            "evidence": "The displayed digest is for orientation. Check derives its own digest from the prepared commit."
+        },
+        {
+            "id": "U02-attempt-guarded-restore",
+            "sequence": 4,
+            "title": "Observe the H-05 guarded restore refusal",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Run exactly one `git restore --source=HEAD` request in the harness shell, so it begins with one `!`. Prepare has already proven the target equals HEAD; therefore, if the guard were absent, this request is content-neutral. Do not retry it and do not use an override command.",
+            "rationale": "The real H-05 shell guard blocks Git restore because it can rewrite an audit log; the prepared equality makes this observation safe even if enforcement is unavailable.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows-claude",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "claude-code",
+                    "language": "powershell",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "windows-codex",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "codex",
+                    "language": "powershell",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "windows-pi",
+                    "surface": "harness",
+                    "operating_system": "windows",
+                    "host": "pi",
+                    "language": "powershell",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "posix-claude",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "sh",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "posix-codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "sh",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                },
+                {
+                    "id": "posix-pi",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "sh",
+                    "command": "!git restore --source=HEAD -- .codearbiter/overrides.log",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The active host prints one `BLOCKED [H-05]: \u2026` line before Git runs; the audit log remains byte-for-byte unchanged.",
+            "recovery": "If the guard does not run, verify the log still equals HEAD, preserve the result, and stop for host-install investigation. Never edit the log to repair or hide the attempt.",
+            "evidence": "Capture the actual displayed H-05 line exactly. Its SHA-256 binds the note to that text, but the note cannot independently prove when the refusal happened."
+        },
+        {
+            "id": "U02-record-observation",
+            "sequence": 5,
+            "title": "Draft one constrained observation note",
+            "actor": "agent",
+            "surface": null,
+            "instruction": "Ask the agent to draft `.codearbiter/reports/academy/U02-observation.md` from the displayed H-05 line and the bound baseline. It must contain the exact target, baseline SHA-256, event SHA-256, event_line, and the chronology limitation. Do not stage, commit, or push.",
+            "rationale": "A constrained note preserves what the learner observed without touching the protected audit history.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "selected-harness",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "selected",
+                    "language": "text",
+                    "command": "Create only .codearbiter/reports/academy/U02-observation.md. Write exactly these eight lines, each followed by LF:\n# U02 audit-guard observation\n\nevent: H-05 guarded restore refusal\ntarget: .codearbiter/overrides.log\nbaseline_sha256: <SHA-256 of the unchanged current .codearbiter/overrides.log UTF-8 bytes; Prepare bound it to HEAD>\nevent_sha256: <SHA-256 of the exact displayed BLOCKED [H-05] refusal line as UTF-8 bytes>\nevent_line: <that exact displayed line>\nlimitation: This record cannot prove the refusal chronology; manual imitation remains possible.\n\nDo not stage, commit, push, or edit .codearbiter/overrides.log.",
+                    "copy": true
+                }
+            ],
+            "expected_result": "One unstaged observation note describes the local refusal and explicitly says that manual imitation remains possible.",
+            "recovery": "If the agent cannot derive a field from the prepared baseline or displayed refusal, stop rather than guessing.",
+            "evidence": "Check requires exact note bytes and the unchanged protected log; it does not authenticate the agent or the harness transcript."
+        },
+        {
+            "id": "U02-review-observation-boundary",
+            "sequence": 6,
+            "title": "Review the one-path observation boundary",
+            "actor": "learner",
+            "surface": "browser",
+            "instruction": "Review the draft before staging. The only learner commit path is `.codearbiter/reports/academy/U02-observation.md`; `.codearbiter/overrides.log` must remain unchanged. Audit and metrics commands are optional read-only observations, never input to Check's chronology proof.",
+            "rationale": "A one-path commit boundary prevents an observation exercise from mutating the audit trail it discusses.",
+            "resources": [],
+            "variants": [],
+            "expected_result": "You can accept the one-path note or identify the exact local field to correct.",
+            "recovery": "If another path changed, unstage it and correct only the note. Do not reset, amend, or rewrite audit history.",
+            "evidence": "Review is a learner action; no repository artifact can prove it occurred."
+        },
+        {
+            "id": "U02-stage-observation",
+            "sequence": 7,
+            "title": "Stage only the observation note",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "After your review, stage exactly the observation note in a native terminal. Native-terminal commands never begin with `!`.",
+            "rationale": "The staged diff makes the permissible one-path boundary visible before the governed commit.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "git add -- .codearbiter/reports/academy/U02-observation.md\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- .codearbiter/reports/academy/U02-observation.md\ngit diff --cached --name-only",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "git add -- .codearbiter/reports/academy/U02-observation.md\ngit diff --cached --name-only",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Exactly one path is staged: `.codearbiter/reports/academy/U02-observation.md`.",
+            "recovery": "If any other path is staged, unstage only that unexpected path and inspect again.",
+            "evidence": "The staged diff demonstrates scope, not the timing or cause of the refusal."
+        },
+        {
+            "id": "U02-commit-observation",
+            "sequence": 8,
+            "title": "Commit the observation through CodeArbiter",
+            "actor": "agent",
+            "surface": null,
+            "instruction": "After the learner approves the one-path staged diff, invoke the host-native commit gate. It is a CodeArbiter command and never a `!` shell passthrough.",
+            "rationale": "One child commit lets Check compare the exact local evidence against the prepared state.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "claude",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "codearbiter",
+                    "command": "/ca:commit",
+                    "copy": true
+                },
+                {
+                    "id": "codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "codearbiter",
+                    "command": "$ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-direct",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/ca-commit",
+                    "copy": true
+                },
+                {
+                    "id": "pi-fallback",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "codearbiter",
+                    "command": "/skill:ca-commit",
+                    "copy": true
+                }
+            ],
+            "expected_result": "The attempt gains exactly one observation-note commit.",
+            "recovery": "If the gate blocks, preserve its finding and correct only the named note boundary. Do not amend or rewrite the attempt.",
+            "evidence": "A commit proves local paths and bytes, not a human approval or a real-time harness event."
+        },
+        {
+            "id": "U02-check",
+            "sequence": 9,
+            "title": "Run the local U02 checkpoint",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "Run Check in a native terminal. Native-terminal commands never begin with `!`.",
+            "rationale": "Check validates the prepared baseline, protected-log preservation, exact note shape, one commit, and clean worktree.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U02-override-audit-metrics",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Check accepts only one clean observation-note commit with the protected audit log unchanged; it never claims refusal chronology.",
+            "recovery": "If Check reports a mismatch, correct only the note; never touch the protected log.",
+            "evidence": "A pass is local deterministic evidence, not proof of a hosted action or an unforgeable harness event."
+        },
+        {
+            "id": "U02-reset",
+            "sequence": 10,
+            "title": "Reset this attempt safely",
+            "actor": "learner",
+            "surface": null,
+            "instruction": "If the attempt cannot be corrected within its note boundary, use Academy Reset in a native terminal. Native-terminal commands never begin with `!`.",
+            "rationale": "Reset preserves the failed attempt rather than hiding it through history rewriting.",
+            "resources": [],
+            "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "macos",
+                    "surface": "native-terminal",
+                    "operating_system": "macos",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics",
+                    "copy": true
+                },
+                {
+                    "id": "linux",
+                    "surface": "native-terminal",
+                    "operating_system": "linux",
+                    "host": "none",
+                    "language": "sh",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U02-override-audit-metrics",
+                    "copy": true
+                }
+            ],
+            "expected_result": "Academy archives the failed U02 attempt before preparing a new numbered attempt.",
+            "recovery": "Do not use destructive Git commands to imitate Reset or erase unrelated state.",
+            "evidence": "The archive is local recovery state, not proof that the observed refusal happened."
+        }
+    ]
 }

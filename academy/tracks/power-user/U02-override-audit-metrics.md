@@ -2,87 +2,79 @@
 id: U02-override-audit-metrics
 track: power-user
 order: 2
-title: Record a scoped override with local audit evidence
-outcome: Record one safe training override and bind local audit and metrics evidence without claiming an approval or hosted result.
+title: Observe an audit guard without changing the audit trail
+outcome: Preserve a bound audit-log baseline, observe one harmless H-05 pre-write refusal, and commit one constrained local observation note.
 prerequisites: U01-autonomous-sprint
-estimated_minutes: 35
+estimated_minutes: 25
 scenario_command: {{action:U02-prepare}}
 checkpoint_command: {{action:U02-check}}
 next_lab: U03-refactor-chore-release
 ---
 
-# U02: Record a scoped override with local audit evidence
+# U02: Observe an audit guard without changing the audit trail
 
 ## Know before you begin
 
-U02 is a published Power User lesson in Preview 0.21. The action cards are the primary route; the Academy CLI is the local Prepare, Check, and Reset helper.
+U02 is a published Power User lesson in Preview 0.21. The website action cards are the primary route; the Academy CLI only prepares, checks, and resets the local attempt.
 
-Keep a native terminal and one supported CodeArbiter harness at the same clone. Native shell commands never begin with `!`. Harness shell commands begin with exactly one `!`. Host CodeArbiter commands never begin with `!`.
+Keep a native terminal and one supported CodeArbiter harness at the same clone. Native terminal commands never begin with `!`. Harness shell commands begin with exactly one `!`. Host CodeArbiter commands never begin with `!`.
 
 {{action:U02-read-boundary}}
 
 ## What you will prove
 
-Prepare creates a numbered U02 branch with a committed scenario overlay. The learner then records one narrow, safe override through CodeArbiter, reads the real audit and metrics output, and commits only the two durable CodeArbiter artifacts.
+Prepare snapshots the exact `.codearbiter/overrides.log` bytes and proves they equal `HEAD`. You then make one `git restore --source=HEAD` request. H-05 must refuse it before Git runs; without a guard, that request is content-neutral because the target already equals `HEAD`.
 
-The prepared attempt is deliberately narrow: one `safe-training-gate` override, its append-only local entry, one exact dated audit packet, and the read-only metrics glance. Do not turn either read-only command into a learner-authored receipt.
+The only learner commit is a constrained observation note. It records the protected target, baseline digest, the displayed refusal line, and that line's digest. It does not prove the refusal chronology: a learner can manually imitate the note, so Check must not present a pass as provenance for a live harness event, a human approval, or a hosted fact.
 
-The checkpoint verifies deterministic local artifacts: one new well-formed override line and the exact `$ca-audit` packet that quotes it. `$ca-metrics` is a read-only, three-line terminal glance; it writes no artifact, and Check does not treat a learner-written transcript or JSON file as metrics output. Check does not prove that a human approved an override or that any hosted service accepted, ran, or reported anything.
+Audit and metrics may be useful optional read-only observations, but they are not required and never feed the proof of chronology.
 
 ## Prepare safely
 
-### Create the prepared U02 attempt
-
 {{action:U02-prepare}}
 
-{{action:U02-read-scenario}}
+After Prepare has bound the scenario and baseline, inspect the protected file without touching it.
+
+{{action:U02-inspect-baseline}}
 
 ## Practice
 
-### Work the prepared U02 attempt
+Run the next card exactly once in the harness shell. It is intentionally a content-neutral restore request that the real H-05 shell guard blocks, not a workaround and not an override. If the guard does not refuse it, stop and preserve the resulting state for investigation.
 
-{{action:U02-decide-scope}}
+{{action:U02-attempt-guarded-restore}}
 
-{{action:U02-log-override}}
+Ask the agent to draft the note from the local values. Do not invent a result or change the audit log.
 
-{{action:U02-inspect-log}}
+{{action:U02-record-observation}}
 
-{{action:U02-run-audit}}
+{{action:U02-review-observation-boundary}}
 
-{{action:U02-run-metrics}}
+{{action:U02-stage-observation}}
 
-{{action:U02-write-evidence}}
-
-{{action:U02-review-evidence-boundary}}
-
-{{action:U02-stage-evidence}}
-
-{{action:U02-commit-evidence}}
+{{action:U02-commit-observation}}
 
 ## Recognize success
 
-The prepared attempt stages exactly two paths: `.codearbiter/overrides.log` and the exact dated audit packet path printed by this attempt's audit command. Historical audit packets may remain unstaged. The new, well-formed `safe-training-gate` override line appears verbatim in that printed packet. The learner reads the `$ca-metrics` glance for context, but does not preserve a transcript, JSON summary, or claim that it proves the command ran.
+The attempt has one child commit after Prepare and changes exactly `.codearbiter/reports/academy/U02-observation.md`. Its protected `.codearbiter/overrides.log` blob is identical to the prepared commit. The note contains the exact H-05-shaped event line plus matching SHA-256 values for the event and baseline.
 
-No card asks you to treat a generated log, audit packet, metric glance, commit, or checkpoint result as proof of your own approval, another person's approval, or a hosted fact.
+This is deliberately a local, deterministic evidence boundary. It cannot establish who caused a refusal, whether it happened in the asserted order, whether a reviewer agreed, or whether any hosted system observed it.
 
 ## Check
-
-Check validates the deterministic local evidence contract for this prepared attempt. It does not prove a human or hosted fact.
 
 {{action:U02-check}}
 
 ## Recover or continue
 
-If Check reports a missing boundary, correct only that local evidence. Never change prior override lines, make up a transcript or digest, or rewrite an attempt to hide a failed check.
+If Check reports a mismatch, correct only the observation note. Do not append, rewrite, or delete entries in the protected log. If the attempt itself is no longer trustworthy, use Reset instead of history rewriting.
 
-**Hint 1.** Re-read the local override lines and include exactly one line added after Prepare whose gate is exactly `safe-training-gate` and that contains `| BY:` and `| REASON:`.
+**Hint 1.** The `git restore --source=HEAD` request should be blocked by H-05. The HEAD-equality precondition makes a missing guard content-neutral, but it is still a host-install stop condition.
 
-**Hint 2.** The audit packet must quote the qualifying new line verbatim; do not add an Academy digest or metric summary beside it.
+**Hint 2.** The observation note has exactly one allowed commit path. Audit or metrics output is optional context, not a second artifact to stage.
 
-**Hint 3.** Reset is only for an attempt that cannot be corrected within its evidence boundary. It preserves rather than erases the earlier attempt.
+**Hint 3.** An actual override belongs only to the optional U07 capstone branch; U02 teaches why a guard exists before any later decision to bypass one.
 
 {{action:U02-reset}}
 
 ## Understand the mechanism
 
-The guide and action manifest are one contract. The renderer turns each action reference into the same website card, with the correct operating-system, harness, and copy control. The checkpoint remains the local deterministic authority for the real artifact boundary; the renderer does not claim that a command was invoked or that an approval happened.
+The guide and action manifest are one contract. The renderer turns each action reference into the same website card, selecting the right browser, native-terminal, harness, agent, and copy-control treatment. The checkpoint is the local deterministic authority for the prepared baseline, changed path, commit shape, and note bytes. It intentionally stops short of asserting perfect provenance for a manually reproducible observation.

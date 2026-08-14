@@ -1955,8 +1955,8 @@ class P03NativeEvidenceTests(unittest.TestCase):
         self.assertFalse(checkpoints._p03_accepted_adr(self.root, copied_attempt, adr_path, log_path))
 
 
-class U02OverrideAuditMetricTests(unittest.TestCase):
-    """Adversarial direct tests for the private U02 evidence predicate."""
+class U02AuditGuardObservationTests(unittest.TestCase):
+    """Adversarial direct tests for the public U02 guarded-restore predicate."""
 
     def setUp(self) -> None:
         self.temp = RetryingTemporaryDirectory()
@@ -1975,16 +1975,12 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
     def _semantic_context(
         self,
         *,
-        gate: str = "safe-training-gate",
-        tamper_prefix: bool = False,
+        event: str = "BLOCKED [H-05]: audit history is append-only",
+        tamper_log: bool = False,
         extra_path: bool = False,
         dirty: bool = False,
-        audit_packet: bool = False,
-        audit_receipt: bool = True,
-        metrics_receipt: bool = True,
-        override_lines: int = 1,
-        audit_packet_name: str = "2026-08-12.md",
-        audit_packet_prose_only: bool = False,
+        duplicate_event: bool = False,
+        commits: int = 1,
     ) -> _SemanticContext:
         root = self.root / f"u02-{len(tuple(self.root.iterdir()))}"
         root.mkdir()
@@ -2006,71 +2002,34 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
         prepared = self._git(root, "rev-parse", "HEAD")
         base = self._git(root, "rev-parse", "HEAD^")
 
-        self.assertGreaterEqual(override_lines, 1)
-        new_lines = [
-            "[2026-08-12T10:01:0"
-            f"{index}+00:00] | BY: u02@example.invalid | "
-            f"GATE: {gate} | REASON: scoped Academy exercise {index}\n"
-            for index in range(1, override_lines + 1)
+        if tamper_log:
+            override_path.write_text(
+                prepared_line.replace("prepared fixture", "tampered fixture"),
+                encoding="utf-8", newline="\n",
+            )
+        observation_path = root / ".codearbiter" / "reports" / "academy" / "U02-observation.md"
+        observation_path.parent.mkdir(parents=True)
+        lines = [
+            "# U02 audit-guard observation", "", "event: H-05 guarded restore refusal",
+            "target: .codearbiter/overrides.log",
+            "baseline_sha256: " + hashlib.sha256(prepared_line.encode("utf-8")).hexdigest(),
+            "event_sha256: " + hashlib.sha256(event.encode("utf-8")).hexdigest(),
+            "event_line: " + event,
+            "limitation: This record cannot prove the refusal chronology; manual imitation remains possible.",
         ]
-        final_lines = [prepared_line, *new_lines]
-        if tamper_prefix:
-            final_lines[0] = final_lines[0].replace("prepared fixture", "rewritten fixture")
-        override_path.write_text("".join(final_lines), encoding="utf-8", newline="\n")
-
-        audit_path = root / ".codearbiter" / "reports" / "academy" / "U02-audit.md"
-        if audit_receipt:
-            audit_path.parent.mkdir(parents=True)
-            hashed_lines = final_lines if tamper_prefix else new_lines
-            audit_path.write_text(
-                "\n".join(hashlib.sha256(line.rstrip("\n").encode("utf-8")).hexdigest() for line in hashed_lines)
-                + "\n",
-                encoding="utf-8",
-                newline="\n",
-            )
-        metrics_path = audit_path.with_name("U02-metrics.json")
-        if metrics_receipt:
-            metrics_path.write_text(
-                json.dumps(
-                    {
-                        "schema_version": 1,
-                        "override_count": len(new_lines),
-                        "low_confidence_count": 0,
-                    },
-                    sort_keys=True,
-                )
-                + "\n",
-                encoding="utf-8",
-                newline="\n",
-            )
-        audit_packet_path = root / ".codearbiter" / "audits" / audit_packet_name
-        if audit_packet:
-            audit_packet_path.parent.mkdir(parents=True)
-            audit_packet_path.write_text(
-                (
-                    "# Academy audit packet\n\n"
-                    "## Overrides\n"
-                    + "".join(new_lines)
-                    if not audit_packet_prose_only
-                    else "# Academy audit packet\n\n"
-                    + "The override record was: "
-                    + new_lines[0]
-                ),
-                encoding="utf-8",
-                newline="\n",
-            )
-        paths = (".codearbiter/overrides.log",)
-        if audit_receipt:
-            paths = (*paths, ".codearbiter/reports/academy/U02-audit.md")
-        if metrics_receipt:
-            paths = (*paths, ".codearbiter/reports/academy/U02-metrics.json")
-        if audit_packet:
-            paths = (*paths, f".codearbiter/audits/{audit_packet_name}")
+        if duplicate_event:
+            lines.append("event_line: " + event)
+        observation_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        paths = [".codearbiter/reports/academy/U02-observation.md"]
+        if tamper_log:
+            paths.append(".codearbiter/overrides.log")
         if extra_path:
             (root / "extra.txt").write_text("decoy\n", encoding="utf-8", newline="\n")
-            paths = (*paths, "extra.txt")
+            paths.append("extra.txt")
         self._git(root, "add", "--", *paths)
-        self._git(root, "commit", "-m", "record U02 evidence")
+        self._git(root, "commit", "-m", "record U02 observation")
+        for index in range(1, commits):
+            self._git(root, "commit", "--allow-empty", "-m", f"extra U02 commit {index}")
         head = self._git(root, "rev-parse", "HEAD")
         if dirty:
             (root / "untracked.txt").write_text("dirty\n", encoding="utf-8", newline="\n")
@@ -2079,68 +2038,45 @@ class U02OverrideAuditMetricTests(unittest.TestCase):
             root,
             _Attempt("academy/U02-override-audit-metrics/1", 1, prepared, base, head),
             Predicate(
-                "linked_override_audit_metrics",
+                "bound_audit_guard_observation",
                 "lab_semantics",
                 {
-                    "profile": "override_audit_metrics",
+                    "profile": "audit_guard_observation",
                     "overrides": ".codearbiter/overrides.log",
-                    "audit": ".codearbiter/reports/academy/U02-audit.md",
-                    "metrics": ".codearbiter/reports/academy/U02-metrics.json",
-                    "audit_packets": ".codearbiter/audits",
+                    "observation": ".codearbiter/reports/academy/U02-observation.md",
                 },
             ),
         )
 
-    def test_u02_rejects_synthetic_audit_and_metrics_receipts(self) -> None:
-        """A learner-written receipt must not be accepted as CodeArbiter output."""
-        self.assertFalse(_semantic(self._semantic_context(audit_packet=True)))
+    def test_u02_accepts_an_unchanged_log_and_exact_h05_observation_note(self) -> None:
+        """Catches the accepted one-path observation boundary becoming impossible."""
+        self.assertTrue(_semantic(self._semantic_context()))
 
-    def test_u02_accepts_real_override_and_audit_artifacts_without_metrics_receipt(self) -> None:
-        """Metrics output is read-only advice, not a fabricated committed receipt."""
-        self.assertTrue(
-            _semantic(
-                self._semantic_context(
-                    audit_packet=True, audit_receipt=False, metrics_receipt=False
-                )
-            )
-        )
-
-    def test_u02_checkpoint_definition_loads_the_audit_packet_directory_contract(self) -> None:
+    def test_u02_checkpoint_definition_loads_the_observation_contract(self) -> None:
         """Catches direct predicate tests bypassing an unregistered checkpoint field."""
         checkpoint = load_checkpoint(
             Path(__file__).parents[1]
             / "academy/checkpoints/U02-override-audit-metrics.json"
         )
         self.assertEqual(
-            checkpoint.predicates[0].data["audit_packets"], ".codearbiter/audits"
+            checkpoint.predicates[0].data["observation"], ".codearbiter/reports/academy/U02-observation.md"
         )
 
-    def test_u02_rejects_tampered_prefix_wrong_gate_extra_path_and_dirty_worktree(self) -> None:
+    def test_u02_rejects_wrong_event_modified_log_extra_path_dirty_tree_and_multiple_commits(self) -> None:
         cases = {
-            "prepared-log-prefix-tampered": {"tamper_prefix": True},
-            "wrong-gate": {"gate": "other-gate"},
+            "wrong-event": {"event": "BLOCKED [H-06]: wrong guard"},
+            "modified-audit-log": {"tamper_log": True},
             "extra-commit-path": {"extra_path": True},
             "dirty-worktree": {"dirty": True},
+            "multiple-learner-commits": {"commits": 2},
         }
         for name, arguments in cases.items():
             with self.subTest(name=name):
-                self.assertFalse(_semantic(self._semantic_context(audit_packet=True, **arguments)))
+                self.assertFalse(_semantic(self._semantic_context(**arguments)))
 
-    def test_u02_rejects_multiple_otherwise_valid_safe_training_overrides(self) -> None:
-        """Catches the lesson's one-override boundary becoming a permissive log batch."""
-        self.assertFalse(
-            _semantic(self._semantic_context(audit_packet=True, override_lines=2))
-        )
-
-    def test_u02_rejects_noncanonical_audit_packet_names_and_prose_only_quotes(self) -> None:
-        """A dated CodeArbiter packet quotes the record as an Overrides entry, not prose."""
-        cases = {
-            "alternate-packet-name": {"audit_packet_name": "override-summary.md"},
-            "prose-only-quote": {"audit_packet_prose_only": True},
-        }
-        for name, arguments in cases.items():
-            with self.subTest(name=name):
-                self.assertFalse(_semantic(self._semantic_context(audit_packet=True, **arguments)))
+    def test_u02_rejects_missing_or_duplicate_refusal_evidence(self) -> None:
+        """Catches permissive note parsing that would accept an invented chronology."""
+        self.assertFalse(_semantic(self._semantic_context(duplicate_event=True)))
 
 
 class P04NativeDependencyReviewTests(unittest.TestCase):

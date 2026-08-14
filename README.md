@@ -38,9 +38,9 @@ Preview 0.21 publishes all nineteen guided labs:
 - **U01 is guided and runnable.** Its lesson governs a real CodeArbiter sprint
   in the learner's fork: the learner approves scope, the sprint opens a fork
   pull request after its commit gate, and it never self-merges.
-- **U02 is guided and runnable.** Its lesson records one narrow override, keeps
-  the real audit packet as evidence, and treats the read-only metrics glance as
-  advice rather than a fabricated receipt.
+- **U02 is guided and runnable.** Its lesson observes the real H-05 guard with
+  a content-neutral restore request, preserves the audit log byte-for-byte,
+  and records one bounded local observation without claiming its chronology.
 - **U03 is guided and runnable.** Its lesson carries a behavior-preserving
   refactor, a docs-only chore, and a real local annotated release without
   claiming a remote tag or hosted publication.
@@ -74,7 +74,7 @@ available after all 19 Academy Checks pass in the same repository.
 - [Continue to P07 - Threat-model the path-handling boundary](https://arbiterforge.github.io/arbiter-academy/labs/P07-threat-model/)
 - [Continue to P08 - Classify repository hygiene without destructive cleanup](https://arbiterforge.github.io/arbiter-academy/labs/P08-repository-hygiene/)
 - [Continue to U01 - Govern an autonomous sprint without outsourcing approval](https://arbiterforge.github.io/arbiter-academy/labs/U01-autonomous-sprint/)
-- [Continue to U02 - Record a scoped override with local audit evidence](https://arbiterforge.github.io/arbiter-academy/labs/U02-override-audit-metrics/)
+- [Continue to U02 - Observe an audit guard without changing the audit trail](https://arbiterforge.github.io/arbiter-academy/labs/U02-override-audit-metrics/)
 - [Continue to U03 - Refactor, chore, and cut a local release](https://arbiterforge.github.io/arbiter-academy/labs/U03-refactor-chore-release/)
 - [Continue to U04 - Initialize a greenfield and a brownfield project](https://arbiterforge.github.io/arbiter-academy/labs/U04-initialize-projects/)
 - [Continue to U05 - Debug, spike, and stop for a real conflict](https://arbiterforge.github.io/arbiter-academy/labs/U05-debug-spike-conflict/)
