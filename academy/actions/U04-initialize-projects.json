@@ -320,13 +320,78 @@
           "copy": true
         }
       ],
-      "expected_result": "ca-reconcile converts the reviewed greenfield plans into coherent governance, including at least one accepted ADR, with no unresolved [CONFIRM-NN]. Next safe step: inspect greenfield changes.",
+      "expected_result": "ca-reconcile records the reviewed greenfield governance with no unresolved [CONFIRM-NN]. Next safe step: record greenfield ADR.",
       "recovery": "If reconciliation reports an unresolved variance or confirmation, preserve the transcript and stop; return to the named greenfield decision instead of staging partial governance.",
-      "evidence": "Preserve ca-reconcile output, the accepted ADR path, and the final plan and governance files that will be reviewed in the unstaged diff."
+      "evidence": "Preserve ca-reconcile output and the final plan and governance files that will be reviewed in the unstaged diff."
+    },
+    {
+      "id": "U04-record-greenfield-adr",
+      "sequence": 10,
+      "title": "record the accepted greenfield ADR",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "While visibly rooted at .academy/workspaces/U04-greenfield, state the exact learner-selected greenfield decision and explicit learner attribution, then invoke ca-adr. The host assigns the number and writes the proposed ADR; do not ask ca-reconcile to author it.",
+      "rationale": "ca-adr, not ca-reconcile, owns an accepted Architecture Decision Record and requires explicit learner attribution.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:adr Use local storage for U04 greenfield state",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-adr Use local storage for U04 greenfield state",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-adr Use local storage for U04 greenfield state",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-adr Use local storage for U04 greenfield state",
+          "copy": true
+        }
+      ],
+      "expected_result": "ca-adr writes the next numbered proposed greenfield ADR under .codearbiter/decisions/ with the learner-attributed decision. Next safe step: accept greenfield ADR.",
+      "recovery": "If the decision or attribution is not exact, stop before accepting the ADR. Correct the learner decision in the greenfield conversation; do not ask ca-reconcile to create or revise the ADR.",
+      "evidence": "Preserve the proposed ADR path and learner-attributed decision with the reconciled plan and governance files."
+    },
+    {
+      "id": "U04-accept-greenfield-adr",
+      "sequence": 11,
+      "title": "explicitly accept the greenfield ADR",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "Review the proposed greenfield ADR in the active ca-adr conversation. Only after confirming its decision and attribution, explicitly accept that ADR; the host must not advance its status on its own.",
+      "rationale": "ADR status transitions are an explicit learner decision, not an automatic result of reconciliation or drafting.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The reviewed learner-attributed ADR is accepted under .codearbiter/decisions/. Next safe step: inspect greenfield changes.",
+      "recovery": "If the ADR title, decision, or attribution is wrong, leave it proposed and correct it with the learner before accepting. Do not silently edit or auto-advance its status.",
+      "evidence": "The accepted ADR path, status, decision, and explicit learner attribution."
     },
     {
       "id": "U04-inspect-greenfield-changes",
-      "sequence": 10,
+      "sequence": 12,
       "title": "inspect greenfield changes",
       "actor": "learner",
       "surface": null,
@@ -368,7 +433,7 @@
     },
     {
       "id": "U04-stage-greenfield-changes",
-      "sequence": 11,
+      "sequence": 13,
       "title": "stage greenfield changes",
       "actor": "learner",
       "surface": null,
@@ -410,7 +475,7 @@
     },
     {
       "id": "U04-review-greenfield-commit-boundary",
-      "sequence": 12,
+      "sequence": 14,
       "title": "review greenfield commit boundary",
       "actor": "learner",
       "surface": null,
@@ -452,7 +517,7 @@
     },
     {
       "id": "U04-run-greenfield-commit-gate",
-      "sequence": 13,
+      "sequence": 15,
       "title": "run greenfield commit gate",
       "actor": "agent",
       "surface": null,
@@ -503,7 +568,7 @@
     },
     {
       "id": "U04-confirm-greenfield-clean",
-      "sequence": 14,
+      "sequence": 16,
       "title": "confirm greenfield clean",
       "actor": "learner",
       "surface": null,
@@ -545,7 +610,7 @@
     },
     {
       "id": "U04-inspect-brownfield",
-      "sequence": 15,
+      "sequence": 17,
       "title": "inspect brownfield",
       "actor": "learner",
       "surface": "active-harness",
@@ -559,7 +624,7 @@
     },
     {
       "id": "U04-run-brownfield-init",
-      "sequence": 16,
+      "sequence": 18,
       "title": "run brownfield init",
       "actor": "agent",
       "surface": null,
@@ -610,7 +675,7 @@
     },
     {
       "id": "U04-run-brownfield-create-context",
-      "sequence": 17,
+      "sequence": 19,
       "title": "run brownfield create context",
       "actor": "agent",
       "surface": null,
@@ -661,7 +726,7 @@
     },
     {
       "id": "U04-inspect-brownfield-changes",
-      "sequence": 18,
+      "sequence": 20,
       "title": "inspect brownfield changes",
       "actor": "learner",
       "surface": null,
@@ -703,7 +768,7 @@
     },
     {
       "id": "U04-stage-brownfield-changes",
-      "sequence": 19,
+      "sequence": 21,
       "title": "stage brownfield changes",
       "actor": "learner",
       "surface": null,
@@ -745,7 +810,7 @@
     },
     {
       "id": "U04-review-brownfield-commit-boundary",
-      "sequence": 20,
+      "sequence": 22,
       "title": "review brownfield commit boundary",
       "actor": "learner",
       "surface": null,
@@ -787,7 +852,7 @@
     },
     {
       "id": "U04-run-brownfield-commit-gate",
-      "sequence": 21,
+      "sequence": 23,
       "title": "run brownfield commit gate",
       "actor": "agent",
       "surface": null,
@@ -838,7 +903,7 @@
     },
     {
       "id": "U04-confirm-brownfield-clean",
-      "sequence": 22,
+      "sequence": 24,
       "title": "confirm brownfield clean",
       "actor": "learner",
       "surface": null,
@@ -880,7 +945,7 @@
     },
     {
       "id": "U04-inspect-project-evidence",
-      "sequence": 23,
+      "sequence": 25,
       "title": "inspect project evidence",
       "actor": "learner",
       "surface": null,
@@ -922,7 +987,7 @@
     },
     {
       "id": "U04-write-binding-report",
-      "sequence": 24,
+      "sequence": 26,
       "title": "write binding report",
       "actor": "learner",
       "surface": null,
@@ -940,7 +1005,7 @@
     },
     {
       "id": "U04-inspect-report",
-      "sequence": 25,
+      "sequence": 27,
       "title": "inspect report",
       "actor": "learner",
       "surface": null,
@@ -982,7 +1047,7 @@
     },
     {
       "id": "U04-stage-report",
-      "sequence": 26,
+      "sequence": 28,
       "title": "stage report",
       "actor": "learner",
       "surface": null,
@@ -1024,7 +1089,7 @@
     },
     {
       "id": "U04-review-commit-boundary",
-      "sequence": 27,
+      "sequence": 29,
       "title": "review commit boundary",
       "actor": "learner",
       "surface": "active-harness",
@@ -1038,7 +1103,7 @@
     },
     {
       "id": "U04-run-commit-gate",
-      "sequence": 28,
+      "sequence": 30,
       "title": "run commit gate",
       "actor": "agent",
       "surface": null,
@@ -1089,7 +1154,7 @@
     },
     {
       "id": "U04-confirm-clean",
-      "sequence": 29,
+      "sequence": 31,
       "title": "confirm clean",
       "actor": "learner",
       "surface": null,
@@ -1131,7 +1196,7 @@
     },
     {
       "id": "U04-check-status",
-      "sequence": 30,
+      "sequence": 32,
       "title": "check status",
       "actor": "learner",
       "surface": null,
@@ -1173,7 +1238,7 @@
     },
     {
       "id": "U04-reset-retry",
-      "sequence": 31,
+      "sequence": 33,
       "title": "reset retry",
       "actor": "learner",
       "surface": null,

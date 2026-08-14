@@ -22,8 +22,9 @@ This lesson uses the released CodeArbiter contract. The website gives the sequen
 ## What you will prove
 
 You will preserve two real outputs. The debug no-action exit records its cited conclusion through
-taskwrite. The spike preserves only its four-part findings file on the parent branch, then deletes
-the exploratory branch. Neither output proves a command transcript or invents a conflict receipt.
+taskwrite; its optional `debug.note` ID is not evidence. The spike preserves only its four-part
+findings file on the parent branch, then deletes the exploratory branch. Neither output proves a
+command transcript or invents a conflict receipt.
 
 ## Prepare safely
 
@@ -43,7 +44,8 @@ Keep the parent attempt clean between the two commits. The commands below state 
 
 {{action:U05-commit-debug-board}}
 
-The first parent commit contains only `.codearbiter/open-tasks.md`. Check verifies the resulting taskwrite shape and clean tree, not a claimed command invocation.
+The first parent commit contains only `.codearbiter/open-tasks.md`. Check verifies the resulting
+taskwrite-shaped U05 cache-key entry and clean tree, not a claimed command invocation or a fixed task ID.
 
 ## Spike: transfer only the answer
 
