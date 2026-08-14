@@ -2186,7 +2186,9 @@ class LessonActionTests(unittest.TestCase):
         root = Path(__file__).parents[1]
         public = load_preview_manifest(root)
         expected = f"Preview {CURRENT_RELEASE.removeprefix('preview-')}"
-        preview_name = re.compile(r"(?:Academy )?Preview 0\.\d+")
+        preview_name = re.compile(
+            r"(?:Academy )?Preview \d+\.\d+|preview-\d+\.\d+"
+        )
 
         for document_id in public.guided_labs:
             guide_path = next((root / "academy" / "tracks").glob(f"*/{document_id}.md"))
@@ -2195,13 +2197,17 @@ class LessonActionTests(unittest.TestCase):
                 guide_path,
             ):
                 source = source_path.read_text(encoding="utf-8")
+                matches = preview_name.findall(source)
                 with self.subTest(document_id=document_id, source=source_path):
                     self.assertTrue(
                         all(
-                            found.removeprefix("Academy ") == expected
-                            for found in preview_name.findall(source)
+                            found.removeprefix("Academy ").replace(
+                                "preview-", "Preview ", 1
+                            )
+                            == expected
+                            for found in matches
                         ),
-                        preview_name.findall(source),
+                        matches,
                     )
 
 
