@@ -246,7 +246,7 @@ _EXPECTED_ACTION_IDS = {
     Path("labs/P04-review-a-dependency/index.html"): (
         "P04-prepare", "P04-read-boundary", "P04-read-candidate-set",
         "P04-inspect-project-boundary", "P04-inspect-wheel-metadata", "P04-verify-wheel-hashes",
-        "P04-read-licenses", "P04-assess-provenance", "P04-compare-stdlib", "P04-draft-review",
+        "P04-read-licenses", "P04-assess-provenance", "P04-compare-stdlib", "P04-ask-context", "P04-draft-review",
         "P04-review-draft", "P04-select-reject", "P04-stage-review", "P04-commit-review",
         "P04-confirm-no-install", "P04-check", "P04-reset-retry",
     ),
@@ -269,14 +269,14 @@ _EXPECTED_ACTION_IDS = {
         "P07-check", "P07-reset",
     ),
     Path("labs/P08-repository-hygiene/index.html"): (
-        "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell", "P08-run-standup",
+        "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell", "P08-run-standup", "P08-inventory-after-standup",
         "P08-request-report-draft", "P08-review-report", "P08-stage-report",
         "P08-review-commit-boundary", "P08-run-commit-gate", "P08-confirm-clean", "P08-check",
         "P08-return-base", "P08-reset-retry",
     ),
     Path("labs/U01-autonomous-sprint/index.html"): (
         "U01-confirm-fork-boundary", "U01-prepare-attempt", "U01-inspect-scenario",
-        "U01-run-sprint", "U01-approve-or-decline-spec", "U01-inspect-artifacts",
+        "U01-run-sprint", "U01-approve-or-decline-spec", "U01-approve-or-decline-plan", "U01-inspect-artifacts",
         "U01-check-status", "U01-return-base", "U01-reset-retry",
     ),
     Path("labs/U02-override-audit-metrics/index.html"): (
