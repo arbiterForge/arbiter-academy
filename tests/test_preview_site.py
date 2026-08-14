@@ -2525,29 +2525,15 @@ class PreviewSiteTests(unittest.TestCase):
             css,
         )
 
-    def test_mobile_lesson_order_keeps_the_article_before_the_full_toc(self) -> None:
-        """Catches the mobile grid pulling the long TOC ahead of the lesson H1."""
+    def test_mobile_lesson_order_keeps_the_full_toc_near_the_article_start(self) -> None:
+        """Catches a one-column mobile layout hiding navigation below a long lesson."""
         build_preview_site(self.root, self.out, release_sha="d" * 40)
         lab = (self.out / "labs" / "F01-fork-clone-doctor" / "index.html").read_text(
             encoding="utf-8"
         )
-        css = (self.out / "assets" / "academy.css").read_text(encoding="utf-8")
-
-        article = lab.index('<article class="academy-content">')
         sidebar = lab.index('<aside class="lesson-sidebar">')
-        self.assertLess(article, sidebar, "the semantic article must precede the TOC")
-
-        mobile = css.split("@media (max-width: 42rem) {", 1)[1].split(
-            "@media (prefers-reduced-motion: reduce)", 1
-        )[0]
-        sidebar_rule = re.search(r"\.lesson-sidebar\s*\{(?P<body>.*?)\}", mobile, re.DOTALL)
-        self.assertIsNotNone(sidebar_rule, "the mobile sidebar rule is missing")
-        assert sidebar_rule is not None
-        self.assertNotRegex(
-            sidebar_rule.group("body"),
-            r"\border\s*:\s*-\d+",
-            "mobile CSS must not reorder the TOC ahead of the article",
-        )
+        article = lab.index('<article class="academy-content">')
+        self.assertLess(sidebar, article, "mobile source order must expose the TOC before the lesson")
 
     def test_guided_visual_contract_is_editorial_responsive_and_accessible(self) -> None:
         """Catches card-heavy styling, clipped variants, or inaccessible lesson controls."""
