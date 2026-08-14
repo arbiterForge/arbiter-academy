@@ -22,7 +22,7 @@
               "remote_doctor", "orientation", "task_transition", "tdd_history",
               "approved_spec_plan", "pr_receipt", "accepted_adr", "dependency_review",
               "checkpoint_remediation", "provenance_recovery", "stride_model",
-              "hygiene_snapshot", "sprint_decisions", "override_audit_metrics",
+              "hygiene_snapshot", "sprint_decisions", "audit_guard_observation",
               "refactor_chore_release", "initialized_fixture", "initialized_projects", "debug_spike_conflict",
               "preview_evidence", "u06_preview_evidence", "capstone"
             ]
@@ -37,6 +37,9 @@
           "test": {"$ref": "#/$defs/path"},
           "spec": {"$ref": "#/$defs/path"},
           "plan": {"$ref": "#/$defs/path"},
+          "brief": {"$ref": "#/$defs/path"},
+          "deliverable": {"$ref": "#/$defs/path"},
+          "observation": {"$ref": "#/$defs/path"},
           "receipt": {"$ref": "#/$defs/path"},
           "adr": {"$ref": "#/$defs/path"},
           "decision_log": {"$ref": "#/$defs/path"},

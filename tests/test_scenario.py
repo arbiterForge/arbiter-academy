@@ -223,6 +223,33 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual((self.root / "exercise" / "seed.txt").read_text(encoding="utf-8"), "starting state\n")
         self.assertEqual(git(self.root, "log", "-1", "--format=%s"), "academy: prepare F01-fork-clone-doctor attempt 1")
 
+    def test_prepare_u02_binds_an_existing_audit_log_without_an_override_fixture(self) -> None:
+        temporary, root = p01_academy_git_fixture()
+        self.addCleanup(temporary.cleanup)
+        baseline = (root / ".codearbiter" / "overrides.log").read_bytes()
+
+        prepared = prepare_lab(root, "U02-override-audit-metrics")
+
+        self.assertEqual(
+            (root / ".codearbiter" / "overrides.log").read_bytes(), baseline
+        )
+        self.assertEqual(
+            json.loads((root / "training_scenarios/U02-override-audit-metrics.json").read_text(encoding="utf-8")),
+            {
+                "schema_version": 1,
+                "lab_id": "U02-override-audit-metrics",
+                "operation": "audit_guard_observation",
+                "target": ".codearbiter/overrides.log",
+                "guard": "H-05",
+                "probe": "git-restore-head",
+                "starting_condition": "bound-head-equality",
+            },
+        )
+        self.assertEqual(
+            git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", prepared.commit_sha),
+            "training_scenarios/U02-override-audit-metrics.json",
+        )
+
     def test_p05_prepare_and_reset_stage_the_real_blocked_summary_defect(self) -> None:
         temporary, root = p05_academy_git_fixture()
         self.addCleanup(temporary.cleanup)

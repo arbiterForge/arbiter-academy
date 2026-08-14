@@ -72,7 +72,7 @@ workshop_queue = ["seed/tickets.json"]
   "academy/checkpoints/U06-preview-and-advanced-surfaces.json",
   "academy/checkpoints/U07-capstone.json",
 ]
-"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.24.json"]
+"share/arbiter-academy/academy/publication" = ["academy/publication/preview-0.25.json"]
 "share/arbiter-academy/academy/candidates/P04-review-a-dependency" = [
   "academy/candidates/P04-review-a-dependency/candidate-set.json",
   "academy/candidates/P04-review-a-dependency/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",

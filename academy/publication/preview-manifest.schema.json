@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.24 publication manifest",
+  "title": "Arbiter Academy Preview 0.25 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
   "properties": {
-    "release": {"const": "preview-0.24"},
+    "release": {"const": "preview-0.25"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
@@ -111,7 +111,7 @@
       "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.24."},
+        {"const": "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.25."},
         {"const": "Graduation is unavailable until the withheld F03 lesson has a complete accepted guided path."}
       ]
     },
