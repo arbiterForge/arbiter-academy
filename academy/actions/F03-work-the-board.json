@@ -8,9 +8,9 @@
       "instruction": "From a clean main branch in the native terminal, run the installed Academy Prepare command for your operating system.",
       "rationale": "Prepare records the queued board state on a numbered attempt while preserving main.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
       ],
       "expected_result": "Academy creates and switches to academy/F03-work-the-board/ATTEMPT_NUMBER with academy.feature.0001 queued.",
       "recovery": "If Prepare refuses, preserve its message and resolve only the named main-branch, clean-worktree, or prerequisite condition.",
@@ -141,9 +141,9 @@
       "instruction": "Run the installed Academy Check command from the numbered attempt after the board-only commit and clean-state review.",
       "rationale": "Check compares the prepared board, completed board, commit boundary, and live worktree from outside the learner checkout.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
       ],
       "expected_result": "Check reports checkpoint F03-work-the-board: passed and records progress only when the exact board transition and no non-ignored worktree state agree.",
       "recovery": "If Check fails, preserve the attempt and read the failed predicate before using Reset for a distinct numbered retry.",
@@ -154,9 +154,9 @@
       "instruction": "Use Reset only when Check identifies a failed attempt that must remain available. Run the installed Academy command from the native terminal.",
       "rationale": "Reset retains the failed branch and creates a new numbered attempt instead of rewriting evidence.", "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.21\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.21/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.22\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.22/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
       ],
       "expected_result": "Academy preserves the failed attempt and switches to a fresh academy/F03-work-the-board/ATTEMPT_NUMBER branch.",
       "recovery": "If Reset stops, preserve its message and current branch. Do not force-push, force-reset, or delete the failed attempt.",
