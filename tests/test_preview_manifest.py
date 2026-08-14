@@ -532,7 +532,7 @@ class PreviewManifestTests(unittest.TestCase):
 
         self.assertEqual(
             release_files,
-            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.25.json", "preview-0.4.json", "preview-0.9.json"],
+            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.24.json", "preview-0.25.json", "preview-0.4.json", "preview-0.9.json"],
         )
         historical = json.loads(
             (self.root / "academy" / "publication" / "preview-0.9.json").read_text(encoding="utf-8")
