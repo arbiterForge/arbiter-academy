@@ -23,6 +23,7 @@ U01_ACTION_IDS = (
     "U01-inspect-scenario",
     "U01-run-sprint",
     "U01-approve-or-decline-spec",
+    "U01-approve-or-decline-plan",
     "U01-inspect-artifacts",
     "U01-check-status",
     "U01-return-base",
@@ -83,6 +84,20 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertTrue(all(not variant.command.startswith("!") for variant in sprint.variants))
         self.assertIn("opens a pull request", sprint.expected_result.casefold())
         self.assertIn("never merges", sprint.expected_result.casefold())
+        self.assertIn("proposed specification and its derived plan", sprint.instruction)
+        plan_gate = by_id["U01-approve-or-decline-plan"]
+        self.assertEqual((plan_gate.actor, plan_gate.surface), ("learner", "active-harness"))
+        self.assertIn("plan", plan_gate.instruction.casefold())
+        self.assertIn("autonomous", plan_gate.expected_result.casefold())
+        self.assertIn("approve only", plan_gate.instruction.casefold())
+        self.assertIn(
+            "no product-code, test, dependency, or remote changes",
+            plan_gate.instruction.casefold(),
+        )
+        self.assertIn("fork-only pull-request terminal", plan_gate.instruction.casefold())
+        self.assertIn("approved plan", plan_gate.expected_result.casefold())
+        self.assertIn("plan revision", plan_gate.expected_result.casefold())
+        self.assertIn("proposed specification and derived plan", plan_gate.recovery.casefold())
 
         for action_id in ("U01-prepare-attempt", "U01-check-status", "U01-reset-retry"):
             action = by_id[action_id]

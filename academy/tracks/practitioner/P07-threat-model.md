@@ -30,8 +30,8 @@ before a destination write. It does not edit the target.
 
 ## What you will prove
 
-You will commit one report after Prepare at `.codearbiter/reports/academy/P07-threat-model.md`.
-The report has four native threat-model sections followed by a separate Academy target identity
+You will commit one learner-owned Academy report after Prepare at `.codearbiter/reports/academy/P07-threat-model.md`.
+The report summarizes the read-only advisory analysis in four threat-model sections followed by a separate Academy target identity
 binding. The target stays byte-identical from the prepared commit to the final commit.
 
 The report can use either `CLEAR TO IMPLEMENT` or `BLOCKED - resolve findings first`. Neither
@@ -57,8 +57,8 @@ numbered P07 branch until Check or Reset tells you otherwise.
 
 {{action:P07-review-model}}
 
-The report must be strict UTF-8 with LF line endings and one final newline. Keep it at or below 12
-KiB. Native sections are Scope, STRIDE findings, Recommended controls before implementation, and
+The learner-owned report must be strict UTF-8 with LF line endings and one final newline. Keep it at or below 12
+KiB. Its sections are Scope, STRIDE findings, Recommended controls before implementation, and
 Clearance, in that order. Scope must name controlled input, repository-root boundary, and containment
 or rejection before write. STRIDE findings need six distinct, concrete threats in S, T, R, I, D, E
 order. Each row needs likelihood, impact, and a `PRESENT:`, `PLANNED:`, `GAP:`, or justified `N/A:`
@@ -120,7 +120,4 @@ unpublished source exercises for a released lesson.
 
 ## Understand the mechanism
 
-Threat modeling connects an untrusted input to a concrete boundary, then records threats and controls
-that matter at that boundary. STRIDE supplies coverage categories, not a substitute for specific
-reasoning. The Academy binding freezes which source bytes were reviewed. It makes the report auditable
-without pretending it proves the live conversation or permits implementation.
+`$ca-threat-model` is read-only advisory analysis: it writes no report. Threat modeling connects an untrusted input to a concrete boundary, then the learner-owned Academy record preserves threats and controls that matter at that boundary. STRIDE supplies coverage categories, not a substitute for specific reasoning. The Academy binding freezes which source bytes were reviewed without pretending it proves the live conversation, command invocation, or implementation authority.

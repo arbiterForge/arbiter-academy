@@ -30,7 +30,7 @@ Its policy is `review-only-never-install`. The report still records **Known vuln
 
 You will preserve one reviewed report for `python-dateutil==2.9.0.post0` and its `six` closure. The beginner path rejects the candidate because finite legacy date formats can use a bounded `datetime.strptime` parser: explicit formats, a length limit, deterministic timezone and default rules, and fail-closed trailing-content behavior.
 
-The agent drafts the evidence. You inspect it, review the tradeoff, and select `Decision: reject`. The resulting commit contains only the review report. It does not change a dependency declaration, environment lock, or Academy approval wrapper. The existing checkpoint can still recognize its pre-existing equivalent acceptance topology, but that is not an instruction path in this lesson.
+No CodeArbiter dependency-adoption command applies: `$ca-add-dep` is for an intended adoption and may present an install for confirmation. Use read-only `$ca-btw` only for a bounded question about existing repository context; it cannot inspect the frozen wheel artifacts, decide adoption, or write a report. After you inspect the supplied files, an ordinary harness request drafts learner-owned Academy evidence. You inspect it, review the tradeoff, and then select `Decision: reject`. The resulting commit contains only the review report. It does not change a dependency declaration, environment lock, or Academy approval wrapper. The existing checkpoint can still recognize its pre-existing equivalent acceptance topology, but that is not an instruction path in this lesson.
 
 ## Prepare safely
 
@@ -53,6 +53,8 @@ The agent drafts the evidence. You inspect it, review the tradeoff, and select `
 {{action:P04-assess-provenance}}
 
 {{action:P04-compare-stdlib}}
+
+{{action:P04-ask-context}}
 
 {{action:P04-draft-review}}
 
@@ -96,7 +98,7 @@ Keep the requirement bounded: finite formats, a length limit, deterministic defa
 
 ### Hint 3
 
-The report records review evidence and selected rejection. Check can inspect final state; it cannot reconstruct who read the draft or when a host command ran.
+The report records learner-owned Academy evidence and selected rejection. Check can inspect final state; it cannot reconstruct who read the draft or whether a CodeArbiter command ran.
 
 {{action:P04-reset-retry}}
 

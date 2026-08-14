@@ -69,7 +69,7 @@
       "title": "Ask the agent to classify, not clean up",
       "actor": "agent",
       "surface": null,
-      "instruction": "Run the agent-owned CodeArbiter standup command. Stop any proposed cleanup action and limit the result to inventory and classification advice.",
+      "instruction": "Run the agent-owned CodeArbiter standup command. It begins with git fetch, which may refresh remote-tracking refs. Decline every proposed mutation, including an offered --ff-only pull and every cleanup action; limit the result to inventory and classification advice.",
       "rationale": "Standup can organize evidence but does not grant authority to discard live repository state.",
       "resources": [],
       "variants": [
@@ -78,17 +78,35 @@
         {"id":"standup-pi","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-standup","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-standup","copy":true}
       ],
-      "expected_result": "The agent presents repository state for review without deleting, pruning, or rewriting any ref or worktree.",
-      "recovery": "If the response proposes cleanup, stop it and return to the frozen Git inventory. Preserve the current state.",
-      "evidence": "The learner retains the inventory and the decision to accept or reject any later report draft."
+      "expected_result": "The agent refreshes remote-tracking information, then presents current repository state for review without pulling, deleting, pruning, or rewriting any prepared local branch ref or worktree.",
+      "recovery": "If the response offers an --ff-only pull or cleanup, decline it. Preserve the current state and take the post-fetch inventory before any report draft.",
+      "evidence": "The learner retains the before/after inventory comparison and the decision to accept or reject any later report draft."
+    },
+    {
+      "id": "P08-inventory-after-standup",
+      "sequence": 5,
+      "title": "Capture the post-standup inventory",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "Run the native-terminal inventory again after declining every standup mutation. This post-fetch result, not the earlier baseline, is the exact current inventory for the report draft.",
+      "rationale": "A read-only fetch may legitimately refresh remote-tracking refs, so the report must bind the state that remains after the advisory step.",
+      "resources": [],
+      "variants": [
+        {"id":"post-inventory-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads; git worktree list --porcelain","copy":true},
+        {"id":"post-inventory-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true},
+        {"id":"post-inventory-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git for-each-ref --format='%(refname) %(objectname)' refs/heads && git worktree list --porcelain","copy":true}
+      ],
+      "expected_result": "The current ref and worktree inventory is visible after fetch and before any draft; no local branch, commit, or worktree changed.",
+      "recovery": "If any local state changed, stop before drafting. Preserve the attempt and use Reset rather than trying to reconstruct the fixture.",
+      "evidence": "The before/after inventory distinguishes an allowed fetch refresh from an unaccepted mutation."
     },
     {
       "id": "P08-request-report-draft",
-      "sequence": 5,
+      "sequence": 6,
       "title": "Request a harness-text report draft",
       "actor": "learner",
       "surface": null,
-      "instruction": "Paste the text request into the active harness. It is a request to the agent, not a shell command and not a CodeArbiter command.",
+      "instruction": "Paste the text request into the active harness after standup. It is a request to the agent, not a shell command and not a CodeArbiter command; draft from the post-fetch current inventory, not the earlier pre-fetch snapshot.",
       "rationale": "The agent may draft the canonical report, while the learner remains responsible for reviewing its classifications and commit boundary.",
       "resources": [],
       "variants": [
@@ -102,7 +120,7 @@
     },
     {
       "id": "P08-review-report",
-      "sequence": 6,
+      "sequence": 7,
       "title": "Review the agent draft",
       "actor": "learner",
       "surface": "active-harness",
@@ -116,7 +134,7 @@
     },
     {
       "id": "P08-stage-report",
-      "sequence": 7,
+      "sequence": 8,
       "title": "Stage only the reviewed hygiene report",
       "actor": "learner",
       "surface": null,
@@ -134,7 +152,7 @@
     },
     {
       "id": "P08-review-commit-boundary",
-      "sequence": 8,
+      "sequence": 9,
       "title": "Review the staged evidence boundary",
       "actor": "learner",
       "surface": null,
@@ -152,7 +170,7 @@
     },
     {
       "id": "P08-run-commit-gate",
-      "sequence": 9,
+      "sequence": 10,
       "title": "Run the agent-owned commit gate",
       "actor": "agent",
       "surface": null,
@@ -171,7 +189,7 @@
     },
     {
       "id": "P08-confirm-clean",
-      "sequence": 10,
+      "sequence": 11,
       "title": "Confirm the primary worktree is clean",
       "actor": "learner",
       "surface": null,
@@ -189,7 +207,7 @@
     },
     {
       "id": "P08-check",
-      "sequence": 11,
+      "sequence": 12,
       "title": "Run the external checkpoint",
       "actor": "learner",
       "surface": null,
@@ -207,7 +225,7 @@
     },
     {
       "id": "P08-return-base",
-      "sequence": 12,
+      "sequence": 13,
       "title": "Return to main after a passing attempt",
       "actor": "learner",
       "surface": null,
@@ -225,7 +243,7 @@
     },
     {
       "id": "P08-reset-retry",
-      "sequence": 13,
+      "sequence": 14,
       "title": "Preserve a failed attempt and prepare a retry",
       "actor": "learner",
       "surface": null,

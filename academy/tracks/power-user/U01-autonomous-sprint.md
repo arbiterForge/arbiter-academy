@@ -29,8 +29,7 @@ CodeArbiter command belongs to the harness and has no `!`. The action cards labe
 ## What you will prove
 
 On a prepared U01 attempt, you will prove that a sprint did not self-authorize its work. The learner
-reads the proposed specification, decides whether its scope is acceptable, then preserves the derived
-specification, plan, append-only sprint log, and one bounded operator guide.
+reads the proposed specification, decides whether its scope is acceptable, then reads and explicitly approves the derived plan before autonomy can begin. The completed attempt preserves the derived specification, plan, append-only sprint log, and one bounded operator guide.
 
 This is a documentation-only sprint. Its allowed final commit contains four paths: the spec, plan,
 sprint log, and `docs/academy-sprint-summary.md`. The real sprint lane then pushes only the learner
@@ -58,9 +57,11 @@ an autonomous sprint on an ordinary checkout.
 
 {{action:U01-approve-or-decline-spec}}
 
+{{action:U01-approve-or-decline-plan}}
+
 {{action:U01-inspect-artifacts}}
 
-The sprint specification gate is where the learner sets authority. Check can verify the resulting
+The sprint specification and plan gates are where the learner sets authority. Check can verify the resulting
 repository evidence, but it cannot prove that a person understood the proposal, made a good judgment
 call, typed a host command, or created the pull request.
 
@@ -90,8 +91,8 @@ history to make an incomplete sprint look completed.
 
 ### Hint 1
 
-Separate the sprint's specification approval from its later implementation activity. Autonomous
-execution may begin only after the explicit scope gate.
+Separate the sprint's specification approval and plan approval from its later implementation activity. Autonomous
+execution may begin only after both explicit gates.
 
 ### Hint 2
 

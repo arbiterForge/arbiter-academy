@@ -104,7 +104,7 @@ P04_DOCUMENT_ID = "P04-review-a-dependency"
 P04_ACTION_IDS = (
     "P04-prepare", "P04-read-boundary", "P04-read-candidate-set", "P04-inspect-project-boundary",
     "P04-inspect-wheel-metadata", "P04-verify-wheel-hashes", "P04-read-licenses", "P04-assess-provenance",
-    "P04-compare-stdlib", "P04-draft-review", "P04-review-draft", "P04-select-reject",
+    "P04-compare-stdlib", "P04-ask-context", "P04-draft-review", "P04-review-draft", "P04-select-reject",
     "P04-stage-review", "P04-commit-review", "P04-confirm-no-install", "P04-check", "P04-reset-retry",
 )
 P05_DOCUMENT_ID = "P05-checkpoint-remediation"
@@ -185,6 +185,7 @@ P08_ACTION_IDS = (
     "P08-inventory-native",
     "P08-inventory-harness-shell",
     "P08-run-standup",
+    "P08-inventory-after-standup",
     "P08-request-report-draft",
     "P08-review-report",
     "P08-stage-report",
@@ -484,6 +485,10 @@ class LessonActionTests(unittest.TestCase):
         )
         self.assertTrue(all(variant.language == "codearbiter" for variant in draft.variants))
         self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
+        self.assertIn("writes no file", draft.expected_result)
+        writer = by_id["P07-write-binding"]
+        self.assertIn("learner-owned Academy evidence", writer.instruction)
+        self.assertIn("does not prove", writer.evidence or "")
 
         commit = by_id["P07-commit-report"]
         self.assertEqual(
@@ -499,7 +504,7 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(root, P08_DOCUMENT_ID)
 
         self.assertEqual(tuple(action.id for action in manifest.actions), P08_ACTION_IDS)
-        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 14)))
+        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 15)))
         for action in manifest.actions:
             with self.subTest(action=action.id):
                 self.assertTrue(action.instruction)
@@ -509,6 +514,14 @@ class LessonActionTests(unittest.TestCase):
 
         actions = {action.id: action for action in manifest.actions}
         self.assertEqual(actions["P08-run-standup"].actor, "agent")
+        self.assertIn("git fetch", actions["P08-run-standup"].instruction)
+        self.assertIn("--ff-only pull", actions["P08-run-standup"].instruction)
+        self.assertIn("refresh", actions["P08-run-standup"].expected_result)
+        post_inventory = actions["P08-inventory-after-standup"]
+        self.assertEqual(post_inventory.actor, "learner")
+        self.assertIn("post-fetch", post_inventory.instruction)
+        self.assertEqual(post_inventory.variants[0].surface, "native-terminal")
+        self.assertIn("post-fetch", actions["P08-request-report-draft"].instruction)
         self.assertEqual(actions["P08-request-report-draft"].actor, "learner")
         self.assertEqual(actions["P08-review-report"].surface, "active-harness")
         stage_report = actions["P08-stage-report"]
@@ -529,6 +542,8 @@ class LessonActionTests(unittest.TestCase):
             ("windows", "macos", "linux"),
         )
         self.assertLess(P08_ACTION_IDS.index("P08-review-report"), P08_ACTION_IDS.index("P08-stage-report"))
+        self.assertLess(P08_ACTION_IDS.index("P08-run-standup"), P08_ACTION_IDS.index("P08-inventory-after-standup"))
+        self.assertLess(P08_ACTION_IDS.index("P08-inventory-after-standup"), P08_ACTION_IDS.index("P08-request-report-draft"))
         self.assertLess(P08_ACTION_IDS.index("P08-stage-report"), P08_ACTION_IDS.index("P08-review-commit-boundary"))
         review_boundary = actions["P08-review-commit-boundary"]
         self.assertEqual((review_boundary.actor, review_boundary.surface), ("learner", None))
@@ -662,14 +677,22 @@ class LessonActionTests(unittest.TestCase):
                 self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
         draft = by_id["P04-draft-review"]
         self.assertEqual(draft.actor, "agent")
-        self.assertEqual(
-            tuple((variant.host, variant.language, variant.command) for variant in draft.variants),
-            (("claude-code", "codearbiter", '/ca:add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
-             ("codex", "codearbiter", '$ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
-             ("pi", "codearbiter", '/ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"'),
-             ("pi", "codearbiter", '/skill:ca-add-dep "python-dateutil==2.9.0.post0 for finite legacy date formats"')),
-        )
+        self.assertTrue(all(variant.language == "text" for variant in draft.variants))
+        self.assertTrue(all("Academy evidence" in variant.command for variant in draft.variants))
+        context = by_id["P04-ask-context"]
+        self.assertEqual(context.actor, "learner")
+        self.assertIsNone(context.surface)
+        self.assertTrue(all("btw" in variant.command for variant in context.variants))
+        self.assertIn("cannot inspect the supplied wheel artifacts", context.expected_result + context.instruction)
+        self.assertTrue(all("not $ca-add-dep output" in variant.command for variant in draft.variants))
         self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
+        self.assertFalse(
+            any(
+                variant.language == "codearbiter" and "add-dep" in variant.command
+                for action in manifest.actions
+                for variant in action.variants
+            )
+        )
         checksum_variants = by_id["P04-verify-wheel-hashes"].variants
         self.assertEqual(
             tuple((variant.operating_system, variant.command) for variant in checksum_variants),
@@ -807,8 +830,12 @@ class LessonActionTests(unittest.TestCase):
         """Catches a prose sketch that cannot pass the strict P05 RED verifier."""
         manifest = load_action_manifest(Path(__file__).parents[1], P05_DOCUMENT_ID)
         action = next(action for action in manifest.actions if action.id == "P05-add-red-regression")
+        observation = next(action for action in manifest.actions if action.id == "P05-observe-red")
         marker = "Insert this exact method in WorkshopQueueCliTests:\n"
         terminator = "\nRun only the exact focused test"
+
+        self.assertIn("report, not a syntax", observation.instruction)
+        self.assertNotIn("\u00e2\u20ac\u201d", observation.instruction)
 
         for variant in action.variants:
             with self.subTest(variant=variant.id):
@@ -852,6 +879,14 @@ class LessonActionTests(unittest.TestCase):
             self.assertTrue(variant.command.endswith(suffix))
             scripts.append(variant.command[len(prefix) : -len(suffix)])
         self.assertEqual(scripts[1:], scripts[:1] * 2)
+        self.assertTrue(
+            all('git("rev-parse", "HEAD").strip()' in script for script in scripts)
+        )
+        self.assertTrue(
+            all("reference_oid" in script and "len(reference_oid)" in script for script in scripts)
+        )
+        self.assertTrue(all("show-object-format" not in script for script in scripts))
+        self.assertTrue(all("oid_length" not in script for script in scripts))
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = Path(temporary)
@@ -922,6 +957,9 @@ class LessonActionTests(unittest.TestCase):
         )
         self.assertTrue(all(variant.language == "codearbiter" for variant in checkpoint.variants))
         self.assertFalse(any(variant.command.startswith("!") for variant in checkpoint.variants))
+        finding = by_id["P05-record-finding"]
+        self.assertIn("generated checkpoint report", finding.instruction)
+        self.assertIn(".codearbiter/last-checkpoint", finding.instruction)
 
         for action_id in ("P05-prepare", "P05-check", "P05-reset-retry"):
             action = by_id[action_id]

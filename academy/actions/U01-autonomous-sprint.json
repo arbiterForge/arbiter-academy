@@ -27,9 +27,33 @@
       "rationale": "Prepare installs only reviewed scenario bytes after validating the fork/upstream push boundary, so the sprint begins from an inspectable base.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
+          "copy": true
+        }
       ],
       "expected_result": "Academy reports the numbered attempt branch and preparation commit; training_scenarios/U01-autonomous-sprint.json and U01-sprint-brief.json are committed on that branch.",
       "recovery": "If remote validation or preparation fails, preserve the error and return to P08. Do not copy scenario files or create an academy attempt branch yourself.",
@@ -45,11 +69,51 @@
       "rationale": "The scenario declares the bounded target, approval-required starting condition, and the future operator-guide evidence without claiming that the current public toolchain installed it.",
       "resources": [],
       "variants": [
-        {"id":"native-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-Content training_scenarios/U01-autonomous-sprint.json","copy":true},
-        {"id":"native-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"cat training_scenarios/U01-autonomous-sprint.json","copy":true},
-        {"id":"native-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"cat training_scenarios/U01-autonomous-sprint.json","copy":true},
-        {"id":"harness-windows","surface":"harness","operating_system":"windows","host":"codex","language":"powershell","command":"! Get-Content training_scenarios/U01-autonomous-sprint.json","copy":true},
-        {"id":"harness-posix","surface":"harness","operating_system":"all","host":"claude-code","language":"sh","command":"! cat training_scenarios/U01-autonomous-sprint.json","copy":true}
+        {
+          "id": "native-windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-Content training_scenarios/U01-autonomous-sprint.json",
+          "copy": true
+        },
+        {
+          "id": "native-macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "cat training_scenarios/U01-autonomous-sprint.json",
+          "copy": true
+        },
+        {
+          "id": "native-linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "cat training_scenarios/U01-autonomous-sprint.json",
+          "copy": true
+        },
+        {
+          "id": "harness-windows",
+          "surface": "harness",
+          "operating_system": "windows",
+          "host": "codex",
+          "language": "powershell",
+          "command": "! Get-Content training_scenarios/U01-autonomous-sprint.json",
+          "copy": true
+        },
+        {
+          "id": "harness-posix",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "sh",
+          "command": "! cat training_scenarios/U01-autonomous-sprint.json",
+          "copy": true
+        }
       ],
       "expected_result": "The prepared attempt shows autonomous_sprint, academy-sprint, approval-required, and docs/academy-sprint-summary.md.",
       "recovery": "If the file is absent, do not create it by hand. Confirm that Prepare succeeded on the U01 attempt branch, then use Reset only after preserving the failed attempt.",
@@ -61,16 +125,48 @@
       "title": "Use the host-native sprint command on the prepared attempt",
       "actor": "agent",
       "surface": null,
-      "instruction": "On the prepared U01 attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. The real sprint lane ends by pushing the learner fork branch and opening a pull request. Do not use it to skip the sprint specification approval gate.",
-      "rationale": "An autonomous sprint may execute after its specification gate, but it cannot self-authorize the scope of an Academy exercise or merge its own pull request.",
+      "instruction": "On the prepared U01 attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. The real sprint lane requires explicit learner approval of both its proposed specification and its derived plan before autonomous work begins; it ends by pushing the learner fork branch and opening a pull request.",
+      "rationale": "An autonomous sprint may execute only after its specification and plan gates. It cannot self-authorize the scope of an Academy exercise or merge its own pull request.",
       "resources": [],
       "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:sprint academy-sprint","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-sprint academy-sprint","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-sprint academy-sprint","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-sprint academy-sprint","copy":true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:sprint academy-sprint",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-sprint academy-sprint",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-sprint academy-sprint",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-sprint academy-sprint",
+          "copy": true
+        }
       ],
-      "expected_result": "The host presents the proposed scope before autonomous work begins, then after its commit gate opens a pull request from the learner fork. It never merges that pull request.",
+      "expected_result": "The host presents the proposed specification, then its derived plan, before autonomous work begins; after its commit gate it opens a pull request from the learner fork and never merges it.",
       "recovery": "If the host cannot find the sprint command, do not replace it with shell syntax. Confirm the supported host installation and prepared attempt first.",
       "evidence": "Preserve the proposed specification, derived plan, operator guide, and appended sprint-log decision record. Check validates repository facts, not host invocation, approval, or pull-request creation."
     },
@@ -89,8 +185,22 @@
       "evidence": "Check inspects the prepared brief, final spec, plan, guide, append-only log, exact commit paths, and clean worktree. It does not verify the approval itself."
     },
     {
-      "id": "U01-inspect-artifacts",
+      "id": "U01-approve-or-decline-plan",
       "sequence": 6,
+      "title": "Make the sprint plan decision",
+      "actor": "learner",
+      "surface": "active-harness",
+      "instruction": "After approving the bounded specification, read the derived plan before answering the host. Approve only a plan that preserves the academy-sprint operator-guide scope, acceptance criteria, no product-code, test, dependency, or remote changes, and the fork-only pull-request terminal. Decline or revise a plan that expands those boundaries.",
+      "rationale": "The learner owns the plan approval that permits autonomous execution; approving a specification alone is not enough.",
+      "resources": [],
+      "variants": [],
+      "expected_result": "The host either records an explicit approved plan and begins autonomous execution, or stops with the requested plan revision visible.",
+      "recovery": "If the plan changes boundaries you did not intend, decline it. Preserve the proposed specification and derived plan, then use Reset only after reviewing the failed attempt.",
+      "evidence": "Check inspects final repository facts. It does not verify either approval or a host conversation."
+    },
+    {
+      "id": "U01-inspect-artifacts",
+      "sequence": 7,
       "title": "Inspect the governed artifact paths",
       "actor": "learner",
       "surface": null,
@@ -98,9 +208,33 @@
       "rationale": "The verifier-owned evidence boundary is explicit before the lesson becomes publicly runnable.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"Get-ChildItem .codearbiter/specs/academy-sprint.md, .codearbiter/plans/academy-sprint.md, .codearbiter/sprint-log.md, docs/academy-sprint-summary.md","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-ChildItem .codearbiter/specs/academy-sprint.md, .codearbiter/plans/academy-sprint.md, .codearbiter/sprint-log.md, docs/academy-sprint-summary.md",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "ls -l .codearbiter/specs/academy-sprint.md .codearbiter/plans/academy-sprint.md .codearbiter/sprint-log.md docs/academy-sprint-summary.md",
+          "copy": true
+        }
       ],
       "expected_result": "A completed exercise exposes the spec, plan, append-only sprint log, and operator guide for review. Their presence alone is not a passing result.",
       "recovery": "If any artifact is absent or the worktree is not the prepared attempt, stop. Do not create substitute files to imitate evidence.",
@@ -108,7 +242,7 @@
     },
     {
       "id": "U01-check-status",
-      "sequence": 7,
+      "sequence": 8,
       "title": "Check the bounded local evidence",
       "actor": "academy",
       "surface": null,
@@ -116,9 +250,33 @@
       "rationale": "The installed release accepts only the reviewed sprint-evidence contract and fails closed for altered scope or unsafe remotes.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
+          "copy": true
+        }
       ],
       "expected_result": "Academy Check reports pass only when the prepared brief, exact artifact scope, safe remote topology, one learner commit, and clean worktree all match; otherwise it reports a nonzero failure.",
       "recovery": "Do not edit progress or release data to change the result. Inspect the reported repository boundary, preserve the attempt, then Reset for a numbered retry if needed.",
@@ -126,7 +284,7 @@
     },
     {
       "id": "U01-return-base",
-      "sequence": 8,
+      "sequence": 9,
       "title": "Return to main only after the attempt is clean",
       "actor": "learner",
       "surface": null,
@@ -134,9 +292,33 @@
       "rationale": "Leaving evidence intact keeps an incomplete training run inspectable without treating it as public completion.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$status = git status --short\nif ($status) {\n  Write-Error \"The U01 attempt is dirty. Inspect it before switching branches.\"\n  exit 1\n}\ngit switch main","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$status = git status --short\nif ($status) {\n  Write-Error \"The U01 attempt is dirty. Inspect it before switching branches.\"\n  exit 1\n}\ngit switch main",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "status=\"$(git status --short)\"\nif [ -n \"$status\" ]; then\n  printf '%s\\n' \"The U01 attempt is dirty. Inspect it before switching branches.\" >&2\n  exit 1\nfi\ngit switch main",
+          "copy": true
+        }
       ],
       "expected_result": "git status --short prints nothing before main becomes the active branch.",
       "recovery": "If status shows changes, stop and inspect them. Do not discard, amend, rebase, force-update, or delete the attempt branch to make it look clean.",
@@ -144,7 +326,7 @@
     },
     {
       "id": "U01-reset-retry",
-      "sequence": 9,
+      "sequence": 10,
       "title": "Reset safely to a numbered retry",
       "actor": "academy",
       "surface": null,
@@ -152,9 +334,33 @@
       "rationale": "A retry must preserve the prior evidence while creating an independent, inspectable scenario branch.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.23\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.23/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
+          "copy": true
+        }
       ],
       "expected_result": "Academy reports academy/U01-autonomous-sprint/N+1 and a new preparation commit; the earlier attempt branch remains reachable.",
       "recovery": "Do not simulate Reset with destructive Git commands. If Reset refuses because the current attempt is dirty or still active, inspect and preserve it before retrying.",

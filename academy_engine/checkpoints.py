@@ -857,15 +857,42 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
         if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
             return False
         parent = commit
-    if tuple(_commit_paths(root, commit) for commit in commits) != (
-        (".codearbiter/reports/academy/P05-finding.md",),
-        ("tests/test_cli.py",),
-        ("workshop_queue/cli.py",),
-        (report_path,),
+    finding_paths, red_paths, remediation_paths, receipt_paths = (
+        _commit_paths(root, commit) for commit in commits
+    )
+    checkpoint_paths = tuple(
+        path
+        for path in finding_paths
+        if re.fullmatch(r"\.codearbiter/checkpoints/\d{4}-\d{2}-\d{2}\.md", path)
+    )
+    checkpoint_path = checkpoint_paths[0] if len(checkpoint_paths) == 1 else ""
+    checkpoint_date = checkpoint_path.removeprefix(".codearbiter/checkpoints/").removesuffix(".md")
+    if (
+        len(checkpoint_paths) != 1
+        or set(finding_paths)
+        != {
+            checkpoint_paths[0],
+            ".codearbiter/last-checkpoint",
+            ".codearbiter/reports/academy/P05-finding.md",
+        }
+        or red_paths != ("tests/test_cli.py",)
+        or remediation_paths != ("workshop_queue/cli.py",)
+        or receipt_paths != (report_path,)
     ):
         return False
     finding_blob = _text(root, finding, ".codearbiter/reports/academy/P05-finding.md")
-    if not _p05_finding_is_exact(finding_blob):
+    checkpoint_blob = _text(root, finding, checkpoint_paths[0])
+    checkpoint_baseline = _text(root, finding, ".codearbiter/last-checkpoint")
+    if (
+        not _p05_finding_is_exact(finding_blob)
+        or checkpoint_blob is None
+        or re.fullmatch(
+            rf"# CodeArbiter Checkpoint - {re.escape(checkpoint_date)}\n(?:.|\n)*",
+            checkpoint_blob,
+        ) is None
+        or checkpoint_baseline is None
+        or re.fullmatch(r"\d+\n", checkpoint_baseline) is None
+    ):
         return False
     prepared_test, red_test, head_test = (
         _git_blob(root, attempt.prepared, "tests/test_cli.py"),
