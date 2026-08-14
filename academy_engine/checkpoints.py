@@ -3763,7 +3763,7 @@ def _semantic(context: _SemanticContext) -> bool:
             and _commit_paths(root, commits[1]) == (str(data["spike"]),)
             and re.fullmatch(
                 r"## In-flight\n"
-                r"- \[ \] debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*\n"
+                r"- \[ \] (?:debug\.note\.\d{4} - (?=[^\n]*closed without code changes)[^\n]*|U05 cache-key observation)\n"
                 r"  - Desc: [^\n]+\n",
                 board_delta,
             )

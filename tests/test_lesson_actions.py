@@ -245,6 +245,8 @@ U04_ACTION_IDS = (
     "U04-read-greenfield-plans",
     "U04-choose-greenfield-reconciliation",
     "U04-run-greenfield-reconcile",
+    "U04-record-greenfield-adr",
+    "U04-accept-greenfield-adr",
     "U04-inspect-greenfield-changes",
     "U04-stage-greenfield-changes",
     "U04-review-greenfield-commit-boundary",
@@ -276,6 +278,10 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(Path(__file__).parents[1], U04_DOCUMENT_ID)
         actions = {action.id: action for action in manifest.actions}
         self.assertEqual(tuple(actions), U04_ACTION_IDS)
+        self.assertEqual(
+            tuple(action.sequence for action in manifest.actions),
+            tuple(range(1, len(U04_ACTION_IDS) + 1)),
+        )
 
         prepare = actions["U04-prepare-attempt"]
         self.assertIn("Academy root", prepare.instruction)
@@ -341,6 +347,8 @@ class LessonActionTests(unittest.TestCase):
                     "read greenfield plans",
                     "choose greenfield reconciliation",
                     "run greenfield reconcile",
+                    "record greenfield ADR",
+                    "accept greenfield ADR",
                     "inspect greenfield changes",
                     "stage greenfield changes",
                     "review greenfield commit boundary",
@@ -396,6 +404,23 @@ class LessonActionTests(unittest.TestCase):
             "03-task-backlog.md",
         ):
             self.assertIn(filename, decompose.expected_result)
+
+        reconcile = actions["U04-run-greenfield-reconcile"]
+        adr = actions["U04-record-greenfield-adr"]
+        accept_adr = actions["U04-accept-greenfield-adr"]
+        self.assertNotIn("accepted ADR", reconcile.expected_result)
+        self.assertTrue(
+            all(
+                "ca-adr" in variant.command or "ca:adr" in variant.command
+                for variant in adr.variants
+            )
+        )
+        self.assertIn("explicit learner attribution", adr.instruction)
+        self.assertEqual(adr.title, "record the proposed greenfield ADR")
+        self.assertIn("proposed", adr.expected_result)
+        self.assertEqual(accept_adr.actor, "learner")
+        self.assertEqual(accept_adr.surface, "active-harness")
+        self.assertIn("explicitly accept", accept_adr.instruction)
 
         for kind in ("greenfield", "brownfield"):
             stage = actions[f"U04-stage-{kind}-changes"]

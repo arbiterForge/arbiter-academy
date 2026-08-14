@@ -14,7 +14,7 @@ from academy_engine import curriculum
 SOURCE = Path(__file__).parents[1]
 U05 = "U05-debug-spike-conflict"
 U05_RELEASED_INTEGRATION = (
-    "matching released integration: CodeArbiter 2.15.1 (Claude); ca-codex 0.7.1 (Codex); "
+    "matching released integration: CodeArbiter 2.15.1 (Claude); ca-codex 0.7.2 (Codex); "
     "or ca-pi 0.8.1 (Pi)"
 )
 
@@ -43,6 +43,7 @@ class U05PluginContractTests(unittest.TestCase):
         include_observation: bool = True,
         include_spike_question: bool = True,
         include_extra_debug_note: bool = False,
+        idless_debug_note: bool = False,
         collapse_evidence_into_one_commit: bool = False,
     ) -> _SemanticContext:
         (root / ".codearbiter/spikes").mkdir(parents=True)
@@ -70,9 +71,12 @@ class U05PluginContractTests(unittest.TestCase):
         self.git(root, "commit", "-m", "academy: prepare U05")
         prepared = self.git(root, "rev-parse", "HEAD")
         self.git(root, "switch", "-c", "academy/U05-debug-spike-conflict/1")
-        board = initial_board + (
-            "## In-flight\n"
-            "- [ ] debug.note.0001 - U05 cache-key investigation closed without code changes\n"
+        board = initial_board + "## In-flight\n"
+        board += (
+            "- [ ] U05 cache-key observation\n"
+            "  - Desc: cited read-only trace\n"
+            if idless_debug_note
+            else "- [ ] debug.note.0001 - U05 cache-key investigation closed without code changes\n"
             "  - Desc: cited read-only trace\n"
         )
         if split_debug_metadata:
@@ -133,6 +137,11 @@ class U05PluginContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             self.assertTrue(_semantic(self.context(Path(directory))))
 
+    def test_accepts_the_idless_taskwrite_no_action_close(self) -> None:
+        """ca-debug may use taskwrite without the optional --id debug.note."""
+        with tempfile.TemporaryDirectory() as directory:
+            self.assertTrue(_semantic(self.context(Path(directory), idless_debug_note=True)))
+
     def test_rejects_a_retained_real_spike_branch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             self.assertFalse(_semantic(self.context(Path(directory), retain_spike=True)))
@@ -184,11 +193,13 @@ class U05PluginContractTests(unittest.TestCase):
             "U05-commit-findings", "U05-delete-spike", "U05-halt-for-conflict",
             "U05-check-status", "U05-reset-retry",
         ))
-        self.assertIn("debug.note.0001", by_id["U05-run-debug"].expected_result)
+        self.assertIn("taskwrite", by_id["U05-run-debug"].expected_result)
         self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
+        self.assertIn("taskwrite", by_id["U05-commit-debug-board"].evidence or "")
+        self.assertNotIn("debug-note", by_id["U05-commit-debug-board"].evidence or "")
         self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
         self.assertIn("CodeArbiter 2.15.1", by_id["U05-confirm-readiness"].instruction)
-        self.assertIn("ca-codex 0.7.1", by_id["U05-confirm-readiness"].instruction)
+        self.assertIn("ca-codex 0.7.2", by_id["U05-confirm-readiness"].instruction)
         self.assertIn("ca-pi 0.8.1", by_id["U05-confirm-readiness"].instruction)
         self.assertIn("confirm", by_id["U05-confirm-spike-question"].instruction.casefold())
         self.assertIn("pauses before creating", by_id["U05-run-spike"].expected_result)

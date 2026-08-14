@@ -29,7 +29,9 @@ the folder visible in that host. A terminal `cd` does not switch it, and neither
 CodeArbiter commands use `!`.
 
 Greenfield will use `ca-init`, then `ca-decompose`, which generates the three exact reconciliation
-inputs under `.codearbiter/plans/`. After learner review, greenfield alone will use `ca-reconcile`.
+inputs under `.codearbiter/plans/`. After learner review, greenfield alone will use `ca-reconcile`,
+then `ca-adr` drafts the learner-attributed decision for the learner to review and explicitly
+accept. Reconciliation does not author ADRs or advance their status.
 Brownfield will use `ca-init`, then `ca-create-context`; the accepted walkthrough must use
 `ca-create-context` on the brownfield and must not use `ca-decompose` on the brownfield. The real
 brownfield route does not create the three `ca-reconcile` plan inputs, so this lesson does not
@@ -63,6 +65,10 @@ Complete and commit greenfield before opening brownfield:
 {{action:U04-choose-greenfield-reconciliation}}
 
 {{action:U04-run-greenfield-reconcile}}
+
+{{action:U04-record-greenfield-adr}}
+
+{{action:U04-accept-greenfield-adr}}
 
 {{action:U04-inspect-greenfield-changes}}
 
