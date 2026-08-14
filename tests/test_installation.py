@@ -157,6 +157,21 @@ class InstallerHarnessTests(unittest.TestCase):
 
 
 class InstalledWheelTests(unittest.TestCase):
+    def test_preview_zero_twenty_six_declares_the_complete_f03_wheel_payload(self) -> None:
+        """Catches a public F03 route whose source inputs are absent from the wheel."""
+        repository = Path(__file__).resolve().parents[1]
+        package = (repository / "pyproject.toml").read_text(encoding="utf-8")
+        for source in (
+            "academy/publication/preview-0.26.json",
+            "academy/actions/F03-work-the-board.json",
+            "academy/checkpoints/F03-work-the-board.json",
+            "academy/tracks/foundations/F03-work-the-board.md",
+            "academy/scenarios/F03-work-the-board/manifest.json",
+            "academy/scenarios/F03-work-the-board/files/*",
+        ):
+            with self.subTest(source=source):
+                self.assertIn(f'"{source}"', package)
+
     def test_published_u07_data_and_all_guided_power_user_data_are_in_the_public_wheel(self) -> None:
         """A downloadable Preview wheel includes the final public U07 capstone."""
         repository = Path(__file__).resolve().parents[1]
@@ -469,11 +484,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.25.json"
+                        "share/arbiter-academy/academy/publication/preview-0.26.json"
                     )
                     for name in names
                 ),
-                "preview-0.25.json",
+                "preview-0.26.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]
@@ -513,9 +528,9 @@ class InstalledWheelTests(unittest.TestCase):
                 any(name.endswith("/academy/actions/U07-capstone.json") for name in names),
                 "the public wheel must distribute the accepted U07 action contract",
             )
-            self.assertFalse(
+            self.assertTrue(
                 any("/academy/actions/F03-work-the-board.json" in name for name in names),
-                "the public wheel must not distribute the withheld F03 action contract",
+                "the public wheel must distribute the accepted F03 action contract",
             )
             self.assertEqual(
                 sum(
@@ -523,7 +538,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/checkpoints/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             self.assertEqual(
                 sum(
@@ -531,7 +546,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             self.assertEqual(
                 sum(
@@ -539,7 +554,7 @@ class InstalledWheelTests(unittest.TestCase):
                     and "/share/arbiter-academy/academy/scenarios/" in name
                     for name in names
                 ),
-                18,
+                19,
             )
             foundations_sources = {
                 name.rsplit("/", 1)[-1]
@@ -553,6 +568,7 @@ class InstalledWheelTests(unittest.TestCase):
                     "index.md",
                     "F01-fork-clone-doctor.md",
                     "F02-orient-to-state.md",
+                    "F03-work-the-board.md",
                     "F04-fix-with-evidence.md",
                 },
             )

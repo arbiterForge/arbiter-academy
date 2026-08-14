@@ -100,6 +100,7 @@ _ALLOWED_HTML_ATTRIBUTES = {
 _LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
+    "F03-work-the-board",
     "F04-fix-with-evidence",
     "P01-feature-through-plan",
     "P02-commit-review-pr",
@@ -121,6 +122,7 @@ _COMING_NEXT: tuple[str, ...] = ()
 _RUNNABLE_LINK_LABELS = (
     "F01 \u2014 Fork, clone, and Doctor safety",
     "F02 \u2014 Orient to live governance state",
+    "F03: Start a task with its work",
     "F04 \u2014 Fix with evidence",
     "P01 - Feature through a user-approved spec and derived plan",
     "P02: Review, commit, push, and record an offline-local receipt",
@@ -147,8 +149,8 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01, F02, F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.25.",
-    "Graduation is unavailable until the withheld F03 lesson has a complete accepted guided path.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.26.",
+    "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _EXPECTED_ACTION_IDS = {
     Path("index.html"): (
@@ -199,6 +201,19 @@ _EXPECTED_ACTION_IDS = {
         "F02-check",
         "F02-return-base",
         "F02-reset-retry",
+    ),
+    Path("labs/F03-work-the-board/index.html"): (
+        "F03-prepare",
+        "F03-read-target-task",
+        "F03-start-task",
+        "F03-inspect-started-task",
+        "F03-read-contract",
+        "F03-run-docs-chore",
+        "F03-review-co-commit-boundary",
+        "F03-choose-keep-branch",
+        "F03-confirm-clean",
+        "F03-check",
+        "F03-reset-retry",
     ),
     Path("labs/F04-fix-with-evidence/index.html"): (
         "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix",
@@ -599,7 +614,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.25"
+        or data.get("release") != "preview-0.26"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -614,7 +629,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.25 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.26 provenance contract")
     return data["release"]
 
 
@@ -647,16 +662,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.25 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.26 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.25 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.26 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.25 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.26 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -664,6 +679,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
         elif relative in {
             Path("labs/F01-fork-clone-doctor/index.html"),
             Path("labs/F02-orient-to-state/index.html"),
+            Path("labs/F03-work-the-board/index.html"),
             Path("labs/F04-fix-with-evidence/index.html"),
             Path("labs/P01-feature-through-plan/index.html"),
             Path("labs/P02-commit-review-pr/index.html"),
@@ -686,7 +702,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.25 contract: "
+                "generated publication status does not match the exact Preview 0.26 contract: "
                 f"{relative.as_posix()}"
             )
 

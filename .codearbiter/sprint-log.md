@@ -87,3 +87,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: retain a board-only queued-to-done commit; model a full `$ca-feature` workflow already taught in P01; use a `$ca-task start` transition co-committed with one real docs correction and leave the task deliberately in progress.
 - SMARTS: Reliable and Testable favor the co-commit because it binds a dated taskwriter transition, exact work paths, and one clean commit without inferring an agent transcript. Available favors a small Foundation exercise. Securable favors no direct board edit, no synthetic command receipt, and no hosted side effect. Maintainable favors preserving P01 as the complete feature lane and F04 as the behavior-fix lane.
 - Chosen: rebuild withheld F03 as a real `$ca-task start` plus `$ca-chore docs` co-commit exercise. The attempt ends at `[~]`, explicitly does not claim completion, and remains private until accepted evidence supports a later immutable promotion.
+
+## SD-ACA-015 - Promote accepted F03 only as an atomic public release - confidence: high
+- Date: 2026-08-14
+- Point: Whether to expose the accepted F03 task-start co-commit through a manifest-only switch or an atomic Preview 0.26 release.
+- Options: retain F03 as source-only; expose its route without package evidence; publish its reviewed guide, scenario, Check binding, package payload, manifest, installers, and site together.
+- SMARTS: Reliable and Testable favor the atomic release because Prepare, Check, the public wheel, and the route then share one reviewed contract. Available favors a small Foundation lesson that teaches the real task-start rule. Securable favors no fabricated command telemetry, no hosted pull request, and an immutable predecessor release. Maintainable favors one versioned inventory and deterministic assets.
+- Chosen: promote F03 only in Preview 0.26 after its public guide, semantic Check, package data, release assets, rendered site, and hosted CI prove the same real task-start co-commit path.

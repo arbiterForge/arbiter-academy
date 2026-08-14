@@ -73,7 +73,6 @@ PUBLIC_PREVIEW_0_8_DOCUMENT_IDS = frozenset(
     }
 )
 F03_ACTION_IDS = (
-    "F03-private-boundary",
     "F03-prepare",
     "F03-read-target-task",
     "F03-start-task",
@@ -1196,32 +1195,25 @@ class LessonActionTests(unittest.TestCase):
                     for stale in ("preview-0.6", "preview-0.7", "preview-0.8", "preview-0.9"):
                         self.assertNotIn(stale, commands)
 
-    def test_checked_in_f03_manifest_stays_source_only_while_withheld(self) -> None:
-        """Catches the future F03 walkthrough being represented as runnable in 0.25."""
+    def test_checked_in_f03_manifest_encodes_the_public_preview_026_lifecycle(self) -> None:
+        """Catches F03 publishing without its installed lifecycle commands and co-commit limits."""
         root = Path(__file__).parents[1]
-        self.assertNotIn(F03_DOCUMENT_ID, load_preview_manifest(root).guided_labs)
         manifest = load_action_manifest(root, F03_DOCUMENT_ID)
 
         self.assertEqual(tuple(action.id for action in manifest.actions), F03_ACTION_IDS)
         self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
         by_id = {action.id: action for action in manifest.actions}
 
-        boundary = by_id["F03-private-boundary"]
-        boundary_copy = "\n".join(
-            (boundary.instruction, boundary.expected_result, boundary.recovery, boundary.evidence or "")
-        )
-        self.assertIn("Future private-source walkthrough only", boundary_copy)
-        self.assertIn("Preview 0.25 does not publish F03", boundary_copy)
-        for lifecycle_command in ("Prepare", "Check", "Reset"):
-            self.assertIn(lifecycle_command, boundary_copy)
-        self.assertIn("refuse", boundary_copy)
-
-        for action_id in ("F03-prepare", "F03-check", "F03-reset-retry"):
+        for action_id, operation in (("F03-prepare", "prepare"), ("F03-check", "check"), ("F03-reset-retry", "reset")):
             action = by_id[action_id]
             with self.subTest(action=action_id):
-                self.assertEqual(action.variants, ())
-                self.assertIn("Future private-source walkthrough only", action.instruction)
-                self.assertIn("refuses", action.expected_result)
+                self.assertEqual(action.actor, "learner")
+                self.assertIsNone(action.surface)
+                self.assertEqual(tuple((variant.operating_system, variant.command) for variant in action.variants), (
+                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
+                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                ))
 
         expected_agent_commands = {
             "F03-start-task": (
@@ -1266,9 +1258,19 @@ class LessonActionTests(unittest.TestCase):
         self.assertNotIn("ca-commit", commands)
         self.assertNotIn("ca:commit", commands)
         self.assertNotIn("task done", commands)
-        self.assertNotIn("prepare F03-work-the-board", commands)
-        self.assertNotIn("check F03-work-the-board", commands)
-        self.assertNotIn("reset F03-work-the-board", commands)
+        self.assertIn("prepare F03-work-the-board", commands)
+        self.assertIn("check F03-work-the-board", commands)
+        self.assertIn("reset F03-work-the-board", commands)
+        self.assertIn("preview-0.26", commands)
+
+        action_copy = "\n".join(
+            part for action in manifest.actions
+            for part in (action.instruction, action.expected_result, action.recovery, action.evidence or "")
+        )
+        self.assertNotIn("Future private-source walkthrough", action_copy)
+        self.assertNotIn("future", action_copy.casefold())
+        self.assertNotIn("refuse", action_copy)
+        self.assertNotIn("Preview 0.25", action_copy)
 
         review_copy = "\n".join(
             part

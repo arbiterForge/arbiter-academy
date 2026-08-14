@@ -15,19 +15,13 @@ next_lab: F04-fix-with-evidence
 
 ## Know before you begin
 
-Preview 0.25 does not publish F03. Prepare, Check, and Reset refuse F03 in the current release. The
-detailed lifecycle below is a **Future private-source walkthrough**, not a runnable Preview 0.25
-lesson. It includes no current F03 Academy lifecycle command.
-
-{{action:F03-private-boundary}}
-
-The future walkthrough begins from a clean numbered attempt with `academy.docs.0001` queued and
+Preview 0.26 publishes F03 as a runnable Foundation lesson. Begin from a clean numbered attempt with `academy.docs.0001` queued and
 `docs/ticket-list-contract.md` seeded. Keep a native terminal and one active CodeArbiter host at that
 same repository. Agent commands do not run in the shell.
 
 ## What you will prove
 
-The future attempt will use `$ca-task start academy.docs.0001`, then `$ca-chore docs`, to create one
+This attempt uses `$ca-task start academy.docs.0001`, then `$ca-chore docs`, to create one
 post-Prepare commit. That commit must contain both `.codearbiter/open-tasks.md` and
 `docs/ticket-list-contract.md`. The task remains `[~]`; this lesson starts bounded work but does not
 mark it done.
@@ -68,7 +62,7 @@ After the commit gate succeeds, use the normal branch-completion handoff.
 
 ## Recognize success
 
-The future numbered attempt is clean and has exactly one learner commit after Prepare. Its changed
+The numbered attempt is clean and has exactly one learner commit after Prepare. Its changed
 path set is exactly `.codearbiter/open-tasks.md` plus `docs/ticket-list-contract.md`. The board keeps
 the original `academy.docs.0001` task text, changes its marker from `[ ]` to `[~]`, and records the
 started date that matches the commit date.
@@ -81,14 +75,16 @@ branch as-is**. There is no hosted pull request.
 
 {{action:F03-check}}
 
-A future Check can compare the prepared board and document blobs with the one post-Prepare commit. It
-can validate the exact task transition, correction, commit parent, commit date, changed paths, and
-clean worktree. It cannot prove that `$ca-task` ran, and it cannot prove that `$ca-chore` ran. Those
+A Check can compare the prepared board and document blobs with the one post-Prepare commit. It can
+validate the exact task transition, correction, commit parent, commit date, changed paths, and clean
+worktree. It cannot prove that `$ca-task` ran, and it cannot prove that `$ca-chore` ran. Those
 are agent invocations, not authenticated repository facts.
 
 ## Recover or continue
 
-The current release has no runnable F03 retry path. Keep private-source attempts unchanged.
+If Check reports a durable-state mismatch, repair only that mismatch and run Check again. Use Reset
+from clean main when you need a fresh numbered attempt; it preserves failed evidence rather than
+rewriting the retained branch.
 
 **Hint 1.** The target is `academy.docs.0001`, and its only work file is
 `docs/ticket-list-contract.md`.
@@ -100,9 +96,6 @@ commit and a document-only commit both fail the boundary.
 
 {{action:F03-reset-retry}}
 
-Wait for an atomic publication that adds F03 to a later release before using Academy lifecycle
-commands. F04 remains independently available from F02 in Preview 0.25.
-
 ## Understand the mechanism
 
 `$ca-task start` records that work began. `$ca-chore docs` performs the bounded non-behavioral change
@@ -110,6 +103,6 @@ and carries the dirty board transition through the same governed commit. Co-loca
 prevents a board-only commit from claiming progress without work and prevents a document-only commit
 from hiding that the task entered progress.
 
-The local Git result is deliberately narrower than the workflow that produced it. Future Check can
+The local Git result is deliberately narrower than the workflow that produced it. Check can
 verify the one commit and its bytes, but not either agent invocation, the learner's review, or the
 branch-handoff choice. The guide states those limits instead of treating durable state as telemetry.
