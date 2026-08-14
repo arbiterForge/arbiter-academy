@@ -298,14 +298,17 @@
       "evidence": "The rejection is a capability comparison, not an unsupported safety assertion."
     },
     {
-      "id": "P04-draft-review",
+      "id": "P04-ask-context",
       "sequence": 10,
-      "title": "Let the agent draft the review",
-      "actor": "agent",
+      "title": "Ask CodeArbiter the bounded no-install context question",
+      "actor": "learner",
       "surface": null,
-      "instruction": "After inspecting the frozen evidence, ask the active agent to invoke the host-native dependency review lane. The agent drafts the report; it does not install, change dependency files, or choose for you.",
-      "rationale": "The host lane structures the report while the learner retains the decision.",
+      "instruction": "Ask the read-only $ca-btw route one bounded project-context question about whether the prepared finite legacy date-format requirement has an existing local policy constraint. Its answer is conversational context only: it cannot inspect the supplied wheel artifacts, decide adoption, or write the Academy report.",
+      "rationale": "The real no-adoption route can clarify repository context without pretending to review an artifact or create evidence.",
       "resources": [],
+      "expected_result": "CodeArbiter answers from the repository's existing context without changing a file, routing work, installing a package, or deciding the rejection.",
+      "recovery": "If the answer is absent from repository context, record that limit and continue from the supplied frozen artifacts; do not turn $ca-btw into package research or a write request.",
+      "evidence": "The harness answer is ephemeral context, not a report or proof of the dependency assessment.",
       "variants": [
         {
           "id": "claude-code",
@@ -313,7 +316,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "command": "/ca:btw Does the existing Academy context constrain the finite legacy date-format requirement beyond the supplied P04 artifacts?",
           "copy": true
         },
         {
@@ -322,7 +325,55 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "command": "$ca-btw Does the existing Academy context constrain the finite legacy date-format requirement beyond the supplied P04 artifacts?",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-btw Does the existing Academy context constrain the finite legacy date-format requirement beyond the supplied P04 artifacts?",
+          "copy": true
+        },
+        {
+          "id": "pi-skill",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-btw Does the existing Academy context constrain the finite legacy date-format requirement beyond the supplied P04 artifacts?",
+          "copy": true
+        }
+      ]
+    },
+    {
+      "id": "P04-draft-review",
+      "sequence": 11,
+      "title": "Draft learner-owned Academy evidence",
+      "actor": "agent",
+      "surface": null,
+      "instruction": "No dependency is proposed for adoption, so do not invoke $ca-add-dep: its real lane reviews an intended dependency and can present an install for confirmation. After inspecting the frozen evidence, ask the active agent to draft learner-owned Academy evidence; it is not $ca-add-dep output and it must not install, change dependency files, or choose for you.",
+      "rationale": "The no-install decision is based on frozen local evidence. The separate Academy record makes that decision reviewable without pretending a CodeArbiter command wrote it.",
+      "resources": [],
+      "variants": [
+        {
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Draft .codearbiter/reports/academy/P04-dependency-review.md from the frozen P04 candidate files only. This is learner-owned Academy evidence, not $ca-add-dep output. Do not install, modify dependency files, stage, or commit; wait for my review.",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Draft .codearbiter/reports/academy/P04-dependency-review.md from the frozen P04 candidate files only. This is learner-owned Academy evidence, not $ca-add-dep output. Do not install, modify dependency files, stage, or commit; wait for my review.",
           "copy": true
         },
       {
@@ -330,8 +381,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-        "command": "/ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "language": "text",
+        "command": "Draft .codearbiter/reports/academy/P04-dependency-review.md from the frozen P04 candidate files only. This is learner-owned Academy evidence, not $ca-add-dep output. Do not install, modify dependency files, stage, or commit; wait for my review.",
           "copy": true
         },
         {
@@ -339,18 +390,18 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-          "command": "/skill:ca-add-dep \"python-dateutil==2.9.0.post0 for finite legacy date formats\"",
+          "language": "text",
+          "command": "Draft .codearbiter/reports/academy/P04-dependency-review.md from the frozen P04 candidate files only. This is learner-owned Academy evidence, not $ca-add-dep output. Do not install, modify dependency files, stage, or commit; wait for my review.",
           "copy": true
         }
       ],
-      "expected_result": "The agent drafts .codearbiter/reports/academy/P04-dependency-review.md with candidate, closure, license, provenance, supply-chain, compatibility, alternatives, and SMARTS evidence.",
-      "recovery": "If the agent changes dependency state, stop and Reset.",
-      "evidence": "The draft names the sole report later committed."
+      "expected_result": "The agent drafts learner-owned Academy evidence at .codearbiter/reports/academy/P04-dependency-review.md with candidate, closure, license, provenance, supply-chain, compatibility, alternatives, and SMARTS evidence; dependency state is unchanged.",
+      "recovery": "If the agent changes dependency state or claims this is $ca-add-dep output, stop and Reset.",
+      "evidence": "The draft is an Academy record of reviewed local evidence, not proof that a CodeArbiter dependency command ran."
     },
     {
       "id": "P04-review-draft",
-      "sequence": 11,
+      "sequence": 12,
       "title": "Review the drafted evidence",
       "actor": "learner",
       "surface": "active-harness",
@@ -364,7 +415,7 @@
     },
     {
       "id": "P04-select-reject",
-      "sequence": 12,
+      "sequence": 13,
       "title": "Select the rejection decision",
       "actor": "learner",
       "surface": "active-harness",
@@ -378,7 +429,7 @@
     },
     {
       "id": "P04-stage-review",
-      "sequence": 13,
+      "sequence": 14,
       "title": "Stage only the review report",
       "actor": "learner",
       "surface": null,
@@ -420,7 +471,7 @@
     },
     {
       "id": "P04-commit-review",
-      "sequence": 14,
+      "sequence": 15,
       "title": "Let the agent commit the review evidence",
       "actor": "agent",
       "surface": null,
@@ -471,7 +522,7 @@
     },
     {
       "id": "P04-confirm-no-install",
-      "sequence": 15,
+      "sequence": 16,
       "title": "Confirm the dependency surface stayed untouched",
       "actor": "learner",
       "surface": null,
@@ -513,7 +564,7 @@
     },
     {
       "id": "P04-check",
-      "sequence": 16,
+      "sequence": 17,
       "title": "Run external Academy Check",
       "actor": "learner",
       "surface": null,
@@ -555,7 +606,7 @@
     },
     {
       "id": "P04-reset-retry",
-      "sequence": 17,
+      "sequence": 18,
       "title": "Preserve and reset a failed attempt",
       "actor": "learner",
       "surface": null,

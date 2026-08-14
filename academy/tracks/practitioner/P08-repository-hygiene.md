@@ -32,7 +32,7 @@ history, or force operations.
 
 ## What you will prove
 
-You will preserve a closed inventory of the prepared live refs and worktrees. For each prepared ref,
+You will preserve a complete inventory of the prepared live refs and worktrees. For each prepared ref,
 the report records its full ref name, object ID, worktree state, merge containment relative to
 `main`, unique commit count, classification, and recommendation. For each prepared worktree, it
 records the path-free prepared identity, branch binding, head binding, presence, dirtiness,
@@ -62,8 +62,9 @@ actual inventory. Do not merge partial output from memory or from a previous att
 
 {{action:P08-run-standup}}
 
-Standup may organize the inspection, but it is not cleanup authority. Stop any cleanup proposal and
-keep all live refs and worktrees intact.
+Standup begins with `git fetch`, so it may refresh remote-tracking refs before it organizes the inspection. It is not mutation authority: decline any offered `--ff-only` pull and every cleanup proposal, keep all local refs and worktrees intact, and then capture the post-fetch inventory for the report.
+
+{{action:P08-inventory-after-standup}}
 
 {{action:P08-request-report-draft}}
 
@@ -117,8 +118,7 @@ only when you need a new numbered attempt; it preserves the failed attempt for i
 
 ### Hint 1
 
-Freeze the complete ref and worktree inventory before asking for a classification. A
-classification based on one branch at a time can omit a prepared identity.
+Compare the complete ref and worktree inventory before and after standup. A classification based on one branch at a time can omit a prepared identity, and a pre-fetch snapshot is not the report's final source of truth. Decline the offered fast-forward pull as well as cleanup: this exercise does not advance its sealed attempt.
 
 ### Hint 2
 

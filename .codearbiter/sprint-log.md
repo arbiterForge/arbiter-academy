@@ -73,3 +73,10 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: retain the internal label alone; add unverified third-party references; record the official PyPI release and wheel URLs, the verified upstream tag, and the existing local review record.
 - SMARTS: Reliable and Testable favor origin URLs paired with the already-pinned size and SHA-256, so maintainers can independently compare the bundled byte. Securable favors the verified upstream tag and does not add an acquisition path to learner execution. Available and Maintainable favor concise static documentation with no runtime dependency or network change.
 - Chosen: document the official PyPI release, immutable wheel URL, upstream signed tag, and existing local review record in the build-only wheelhouse README.
+
+## SD-ACA-013 - Preserve plugin fidelity over unsafe public continuity - confidence: high
+- Date: 2026-08-14
+- Point: Whether to keep public F03 and U03 runnable by teaching Academy-only commit shapes, or withhold them until their real CodeArbiter lanes can produce the required evidence.
+- Options: retain the board-only F03 commit and footerless U03 release path; invent an Academy exception; redesign each lesson now; remove only those two routes from the next immutable Preview while retaining their sources for a governed redesign.
+- SMARTS: Reliable and Testable favor withholding because `ca-task` requires task transitions to ride a co-located work commit, while `ca-release` requires a CHANGELOG footer that bare `ca-commit` does not guarantee for a refactor. Available favors preserving the remaining verified course sequence with explicit prerequisite continuity. Securable favors no synthetic command receipt, no bypass, and immutable historical releases. Maintainable favors small explicit public eligibility lists over a misleading compatibility shim.
+- Chosen: repair the faithful P04/P05/P07/P08/U01 paths, keep F03 and U03 out of Preview 0.24, rebase only the affected public successors to their preceding accepted lessons, and defer their substantive redesign until the plugin provides a genuine supported lane.

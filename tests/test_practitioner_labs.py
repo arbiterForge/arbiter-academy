@@ -38,7 +38,7 @@ EXPECTED_HOST_ACTIONS = {
     # metadata presents the first host entry point only.
     PRACTITIONER[1]: ("review",),
     PRACTITIONER[2]: ("adr",),
-    PRACTITIONER[3]: ("add-dep",),
+    PRACTITIONER[3]: ("btw",),
     PRACTITIONER[4]: ("checkpoint",),
     PRACTITIONER[5]: ("context-check",),
     PRACTITIONER[6]: ("threat-model",),
@@ -160,7 +160,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                         tuple(actions),
                         (
                             "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell",
-                            "P08-run-standup", "P08-request-report-draft", "P08-review-report",
+                            "P08-run-standup", "P08-inventory-after-standup", "P08-request-report-draft", "P08-review-report",
                             "P08-stage-report", "P08-review-commit-boundary", "P08-run-commit-gate",
                             "P08-confirm-clean", "P08-check", "P08-return-base", "P08-reset-retry",
                         ),
@@ -748,7 +748,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)),
             tuple(action.id for action in manifest.actions),
         )
-        self.assertEqual(len(manifest.actions), 17)
+        self.assertEqual(len(manifest.actions), 18)
         self.assertIn("The website is the primary lesson surface.", guide)
         self.assertIn("Academy CLI only handles Prepare, Check, and Reset.", guide)
         self.assertIn("bounded `datetime.strptime`", guide)
@@ -1099,7 +1099,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
             },
         )
         native_sections = (
-            "Native sections are Scope, STRIDE findings",
+            "Its sections are Scope, STRIDE findings",
             "Clearance, in that order",
             "S, T, R, I, D, E\norder",
             "## Academy Target-SHA256/identity binding",

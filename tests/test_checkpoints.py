@@ -73,7 +73,11 @@ _P05_FINDING = (
     "Affected paths: `tests/test_cli.py`, `workshop_queue/cli.py`.\n"
 ).encode("utf-8")
 _P05_ROLE_PATHS = (
-    (".codearbiter/reports/academy/P05-finding.md",),
+    (
+        ".codearbiter/checkpoints/2026-08-02.md",
+        ".codearbiter/last-checkpoint",
+        ".codearbiter/reports/academy/P05-finding.md",
+    ),
     ("tests/test_cli.py",),
     ("workshop_queue/cli.py",),
     (".codearbiter/checkpoints/P05-academy.json",),
@@ -440,6 +444,14 @@ class CheckpointTests(unittest.TestCase):
         finding_path = root / ".codearbiter/reports/academy/P05-finding.md"
         finding_path.parent.mkdir(parents=True)
         finding_path.write_bytes(_P05_FINDING)
+        checkpoint_path = root / ".codearbiter/checkpoints/2026-08-02.md"
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint_path.write_text(
+            "# CodeArbiter Checkpoint - 2026-08-02\n\n"
+            "ACADEMY-P05-BLOCKED-UNRESOLVED: blocked tickets omitted from unresolved summary.\n",
+            encoding="utf-8",
+        )
+        (root / ".codearbiter/last-checkpoint").write_text("0\n", encoding="utf-8")
         finding = self._p05_commit(
             root,
             _P05_ROLE_PATHS[0],

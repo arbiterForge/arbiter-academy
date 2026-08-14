@@ -37,7 +37,7 @@ The prepared exercise can persist a terminal `blocked` ticket through its normal
 but its JSON report wrongly excludes that ticket from the `unresolved` count. You will preserve four
 linear commits after Academy Prepare:
 
-1. an exact finding-only report;
+1. the checkpoint's generated dated report and baseline together with an exact finding record;
 2. a test-only RED regression that exposes the defect;
 3. a code-only GREEN repair that leaves the regression unchanged; and
 4. a canonical receipt that names the first three real commit IDs.
@@ -92,7 +92,8 @@ separable.
 ## Recognize success
 
 The completed attempt has exactly four descendant commits after Prepare and no pending worktree
-changes. The first changes only `.codearbiter/reports/academy/P05-finding.md`; the second changes
+changes. The first changes the generated dated `.codearbiter/checkpoints/YYYY-MM-DD.md`,
+`.codearbiter/last-checkpoint`, and `.codearbiter/reports/academy/P05-finding.md`; the second changes
 only `tests/test_cli.py`; the third changes only `workshop_queue/cli.py`; and the fourth changes
 only `.codearbiter/checkpoints/P05-academy.json`.
 
