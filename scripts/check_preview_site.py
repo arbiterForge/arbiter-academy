@@ -149,7 +149,7 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.26.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.27.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _EXPECTED_ACTION_IDS = {
@@ -614,7 +614,7 @@ def _check_release(root: Path) -> str:
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
         }
-        or data.get("release") != "preview-0.26"
+        or data.get("release") != "preview-0.27"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -629,7 +629,7 @@ def _check_release(root: Path) -> str:
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.26 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.27 provenance contract")
     return data["release"]
 
 
@@ -662,16 +662,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.26 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.27 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.26 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.27 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.26 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.27 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -702,7 +702,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.26 contract: "
+                "generated publication status does not match the exact Preview 0.27 contract: "
                 f"{relative.as_posix()}"
             )
 

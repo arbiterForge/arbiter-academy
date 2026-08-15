@@ -9,13 +9,13 @@
       "title": "Prepare a runnable attempt",
       "actor": "learner",
       "surface": null,
-      "instruction": "From clean main, run the installed Preview 0.26 Academy Prepare command for your operating system.",
+      "instruction": "From clean main, run the installed Preview 0.27 Academy Prepare command for your operating system.",
       "rationale": "The prepared commit must bind the original board line and contract sentence before learner work begins.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F03-work-the-board","copy":true}
       ],
       "expected_result": "Academy creates a clean numbered F03 attempt with academy.docs.0001 queued and docs/ticket-list-contract.md seeded.",
       "recovery": "If Prepare reports an existing attempt or dirty checkout, return to clean main or use Reset before trying again.",
@@ -165,13 +165,13 @@
       "title": "Check the durable co-commit",
       "actor": "learner",
       "surface": null,
-      "instruction": "From the retained attempt branch, run the installed Preview 0.26 Academy Check command for your operating system.",
+      "instruction": "From the retained attempt branch, run the installed Preview 0.27 Academy Check command for your operating system.",
       "rationale": "Repository evidence can validate content and history without claiming agent telemetry.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F03-work-the-board","copy":true}
       ],
       "expected_result": "Check accepts only the exact one-commit, two-path, clean result with academy.docs.0001 still [~].",
       "recovery": "Read the named durable-state mismatch, repair only that mismatch, and run Check again.",
@@ -183,13 +183,13 @@
       "title": "Reset for a fresh retry",
       "actor": "learner",
       "surface": null,
-      "instruction": "From the clean retained F03 attempt branch, not main, run the installed Preview 0.26 Academy Reset command for your operating system when you need a fresh F03 attempt.",
+      "instruction": "From the clean retained F03 attempt branch, not main, run the installed Preview 0.27 Academy Reset command for your operating system when you need a fresh F03 attempt.",
       "rationale": "A new attempt must preserve failed evidence instead of rewriting the one-commit history.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F03-work-the-board","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F03-work-the-board","copy":true}
       ],
       "expected_result": "Reset archives the failed prepared attempt before a new numbered attempt is created.",
       "recovery": "Keep work you need intact; do not force-reset, rebase, or delete the branch to imitate Academy attempt bookkeeping.",

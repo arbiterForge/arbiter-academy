@@ -38,7 +38,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P05-checkpoint-remediation",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -47,7 +47,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -56,7 +56,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P05-checkpoint-remediation",
           "copy": true
         }
       ],
@@ -621,7 +621,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P05-checkpoint-remediation",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -630,7 +630,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -639,7 +639,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P05-checkpoint-remediation",
           "copy": true
         }
       ],
@@ -663,7 +663,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P05-checkpoint-remediation",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -672,7 +672,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation",
           "copy": true
         },
         {
@@ -681,7 +681,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.26/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P05-checkpoint-remediation",
           "copy": true
         }
       ],
