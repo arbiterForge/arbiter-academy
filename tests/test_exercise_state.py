@@ -5680,6 +5680,45 @@ class P02RealRepositoryTests(unittest.TestCase):
 
 class P02ReceiptRecorderTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
+    def test_windows_receipt_writer_closes_transferred_descriptor_when_fdopen_fails(self) -> None:
+        """Catches a failed CRT stream construction leaking the transferred descriptor."""
+        import msvcrt
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            descriptors: list[int] = []
+            original_open_osfhandle = msvcrt.open_osfhandle
+
+            def capture_descriptor(handle: int, flags: int) -> int:
+                descriptor = original_open_osfhandle(handle, flags)
+                descriptors.append(descriptor)
+                return descriptor
+
+            def close_if_needed() -> None:
+                for descriptor in descriptors:
+                    try:
+                        os.close(descriptor)
+                    except OSError:
+                        pass
+
+            self.addCleanup(close_if_needed)
+            with (
+                patch.object(msvcrt, "open_osfhandle", side_effect=capture_descriptor),
+                patch.object(exercise_module.os, "fdopen", side_effect=OSError("stream unavailable")),
+                patch.object(exercise_module.os, "close", wraps=os.close) as close_descriptor,
+            ):
+                with self.assertRaisesRegex(OSError, "stream unavailable"):
+                    exercise_module._write_new_contained_receipt(
+                        repository,
+                        Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                        b'{"receipt":"evidence"}\n',
+                    )
+
+            self.assertEqual(len(descriptors), 1)
+            close_descriptor.assert_any_call(descriptors[0])
+
+    @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
     def test_windows_receipt_writer_creates_a_new_contained_receipt(self) -> None:
         """Catches the public Windows P02 route failing before it can record evidence."""
         with tempfile.TemporaryDirectory() as temporary:

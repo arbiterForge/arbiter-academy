@@ -3470,6 +3470,7 @@ def _write_new_contained_receipt_windows(
         raise ctypes.WinError(ctypes.get_last_error())
     handles: list[int] = [int(root)]
     receipt_handle: int | None = None
+    descriptor: int | None = None
     try:
         _require_plain_directory(handles[-1])
         for component in relative_destination.parent.parts:
@@ -3502,11 +3503,15 @@ def _write_new_contained_receipt_windows(
         )
         descriptor = msvcrt.open_osfhandle(receipt_handle, os.O_WRONLY | os.O_BINARY)
         receipt_handle = None
-        with os.fdopen(descriptor, "wb") as stream:
+        stream = os.fdopen(descriptor, "wb")
+        descriptor = None
+        with stream:
             stream.write(encoded)
             stream.flush()
             os.fsync(stream.fileno())
     finally:
+        if descriptor is not None:
+            os.close(descriptor)
         _close(receipt_handle)
         while handles:
             _close(handles.pop())
