@@ -865,6 +865,16 @@ h1 + p {
     padding-inline-start: 1rem;
   }
 
+  .command-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .command-copy {
+    min-height: 2.75rem;
+    border-inline-start: 1px solid var(--ca-line-strong);
+    border-block-start: 0;
+  }
+
   .academy-content :is(h1, h2, h3)[id] {
     scroll-margin-block-start: 9rem;
   }
