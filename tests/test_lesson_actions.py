@@ -1210,9 +1210,9 @@ class LessonActionTests(unittest.TestCase):
                 self.assertEqual(action.actor, "learner")
                 self.assertIsNone(action.surface)
                 self.assertEqual(tuple((variant.operating_system, variant.command) for variant in action.variants), (
-                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.27\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
-                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
-                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.27/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.28\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
+                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
                 ))
 
         expected_agent_commands = {
@@ -1261,7 +1261,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("prepare F03-work-the-board", commands)
         self.assertIn("check F03-work-the-board", commands)
         self.assertIn("reset F03-work-the-board", commands)
-        self.assertIn("preview-0.27", commands)
+        self.assertIn("preview-0.28", commands)
         self.assertIn("From the clean retained F03 attempt branch", by_id["F03-reset-retry"].instruction)
         self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
 
