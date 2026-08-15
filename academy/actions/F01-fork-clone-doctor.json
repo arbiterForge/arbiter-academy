@@ -19,7 +19,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.28\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -28,7 +28,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -37,7 +37,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare F01-fork-clone-doctor",
           "copy": true
         }
       ],
@@ -727,7 +727,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.28\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor F01-fork-clone-doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path doctor F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -736,7 +736,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -745,7 +745,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" doctor F01-fork-clone-doctor",
           "copy": true
         }
       ],
@@ -1207,7 +1207,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.28\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F01-fork-clone-doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -1216,7 +1216,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -1225,7 +1225,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check F01-fork-clone-doctor",
           "copy": true
         }
       ],
@@ -1372,7 +1372,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.28\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F01-fork-clone-doctor",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -1381,7 +1381,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
           "copy": true
         },
         {
@@ -1390,7 +1390,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.28/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset F01-fork-clone-doctor",
           "copy": true
         }
       ],

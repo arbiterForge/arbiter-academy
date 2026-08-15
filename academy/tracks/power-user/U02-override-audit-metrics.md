@@ -15,7 +15,7 @@ next_lab: U03-refactor-chore-release
 
 ## Know before you begin
 
-U02 is a published Power User lesson in Preview 0.28. The action cards are the primary route. Academy provides local Prepare, Check, and Reset helpers.
+U02 is a published Power User lesson in Preview 0.29. The action cards are the primary route. Academy provides local Prepare, Check, and Reset helpers.
 
 Keep a native terminal and one supported CodeArbiter harness at the same clone. Native shell commands never begin with `!`. Harness shell commands begin with exactly one `!`. Host CodeArbiter commands never begin with `!`.
 
