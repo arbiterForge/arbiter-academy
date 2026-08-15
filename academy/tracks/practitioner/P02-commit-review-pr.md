@@ -17,7 +17,7 @@ next_lab: P03-record-an-adr
 
 P02 is a public guided and runnable lesson in this preview. Its action cards use the installed Academy verifier and the shared public lesson renderer.
 
-The receipt recorder currently requires descriptor-safe filesystem operations available on macOS or Linux. Native Windows cannot complete the receipt path yet; the Windows action variants document the boundary but are not a complete runnable route.
+The installed receipt recorder creates the same contained, untracked local receipt on Windows, macOS, and Linux. Select your operating system on each native-terminal card.
 
 This is an offline-local pull-request rehearsal. Academy temporarily routes the checkout to two verifier-owned local bare repositories. It does not open GitHub, contact a hosted reviewer, run hosted CI, or prove that a person reviewed the change. The Browser explains the boundary; the native terminal and active CodeArbiter harness perform the lesson work.
 

@@ -65,6 +65,29 @@ jobs:
         timeout-minutes: 75
         run: python scripts/run_test_shards.py --shard-index "${{ matrix.shard-index }}"
 
+  p02-windows-receipt:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact Academy candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Verify the native Windows P02 receipt path
+        run: >-
+          python -m unittest
+          tests.test_exercise_state.P02ReceiptRecorderTests.test_windows_receipt_writer_creates_a_new_contained_receipt
+          tests.test_exercise_state.P02ReceiptRecorderTests.test_windows_receipt_writer_rejects_a_junction_ancestor
+          tests.test_exercise_state.P02ReceiptRecorderTests.test_record_writes_only_the_unstaged_canonical_offline_receipt
+
   academy-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -104,7 +127,7 @@ jobs:
           if-no-files-found: ignore
 
   verify-candidate:
-    needs: verify
+    needs: [verify, p02-windows-receipt]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

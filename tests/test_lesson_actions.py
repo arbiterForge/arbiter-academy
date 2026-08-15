@@ -2155,8 +2155,11 @@ class LessonActionTests(unittest.TestCase):
         self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
         by_id = {action.id: action for action in manifest.actions}
         boundary = by_id["P02-read-boundary"]
-        self.assertIn("macOS or Linux", boundary.instruction)
+        self.assertIn("Windows, macOS, and Linux", boundary.instruction)
         self.assertIn("native Windows", boundary.expected_result)
+        self.assertNotIn("cannot complete", boundary.expected_result)
+        guide = (Path(__file__).parents[1] / "academy/tracks/practitioner/P02-commit-review-pr.md").read_text(encoding="utf-8")
+        self.assertNotIn("Native Windows cannot complete", guide)
         staged_work = by_id["P02-stage-work"]
         self.assertEqual(staged_work.sequence, 5)
         self.assertEqual(staged_work.actor, "learner")
@@ -2188,7 +2191,7 @@ class LessonActionTests(unittest.TestCase):
         recorder = by_id["P02-record-receipt"]
         self.assertEqual(
             tuple(variant.operating_system for variant in recorder.variants),
-            ("macos", "linux"),
+            ("windows", "macos", "linux"),
         )
         commands = tuple(variant.command for variant in recorder.variants)
         self.assertTrue(all("record P02-commit-review-pr --review-declared-cleared" in command for command in commands))

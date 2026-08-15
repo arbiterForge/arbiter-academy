@@ -59,6 +59,7 @@ from academy_engine.exercise_state import (
     P02AttemptIdentity,
 )
 from academy_engine.external_state import ExternalStateError
+from academy_engine.paths import PathBoundaryError
 from academy_engine.scenario import PreparationError, prepare_lab
 from tests._temporary import RetryingTemporaryDirectory
 
@@ -5677,13 +5678,57 @@ class P02RealRepositoryTests(unittest.TestCase):
             self.assertEqual(locked.read_record("p02", 1)["phase"], "restoring-origin-pushurl")
 
 
-@unittest.skipUnless(
-    os.name == "posix"
-    and hasattr(os, "O_DIRECTORY")
-    and hasattr(os, "O_NOFOLLOW"),
-    "P02 receipt recording requires descriptor-safe filesystem operations",
-)
 class P02ReceiptRecorderTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
+    def test_windows_receipt_writer_creates_a_new_contained_receipt(self) -> None:
+        """Catches the public Windows P02 route failing before it can record evidence."""
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+
+            destination = exercise_module._write_new_contained_receipt(
+                repository,
+                Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                b'{"receipt":"evidence"}\n',
+            )
+
+            self.assertEqual(
+                destination,
+                repository / ".codearbiter/reports/academy/P02-pr-receipt.json",
+            )
+            self.assertEqual(destination.read_bytes(), b'{"receipt":"evidence"}\n')
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction boundary")
+    def test_windows_receipt_writer_rejects_a_junction_ancestor(self) -> None:
+        """Catches a Windows writer following a redirected receipt directory."""
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            outside = Path(temporary) / "outside"
+            redirected = repository / ".codearbiter/reports/academy"
+            repository.mkdir()
+            outside.mkdir()
+            redirected.parent.mkdir(parents=True)
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", str(redirected), str(outside)],
+                cwd=repository,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(created.returncode, 0, created.stderr.decode("utf-8", "replace"))
+            try:
+                with self.assertRaises(PathBoundaryError):
+                    exercise_module._write_new_contained_receipt(
+                        repository,
+                        Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                        b'{"receipt":"evidence"}\n',
+                    )
+                self.assertFalse((outside / "P02-pr-receipt.json").exists())
+            finally:
+                if os.path.lexists(redirected):
+                    os.rmdir(redirected)
+
     def _case(self) -> P02RealRepositoryTests:
         case = P02RealRepositoryTests(
             "test_prepare_creates_exact_bares_patch_and_local_topology"

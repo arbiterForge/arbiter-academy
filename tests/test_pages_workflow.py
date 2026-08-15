@@ -344,6 +344,30 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertRegex(pages_trigger, r"(?ms)^  push:\s+branches:\s+- main\s*$")
         self.assertIn("github.ref == 'refs/heads/main'", self.deploy)
 
+    def test_p02_windows_receipt_path_is_a_required_pull_request_gate(self) -> None:
+        """Catches the native Windows receipt path being absent from hosted verification."""
+        jobs = _workflow_jobs(self.verify_workflow)
+        windows = jobs.get("p02-windows-receipt", "")
+
+        self.assertIn("runs-on: windows-latest", windows)
+        self.assertIn('python-version: "3.12"', windows)
+        self.assertIn(
+            "P02ReceiptRecorderTests.test_windows_receipt_writer_creates_a_new_contained_receipt",
+            windows,
+        )
+        self.assertIn(
+            "P02ReceiptRecorderTests.test_windows_receipt_writer_rejects_a_junction_ancestor",
+            windows,
+        )
+        self.assertIn(
+            "P02ReceiptRecorderTests.test_record_writes_only_the_unstaged_canonical_offline_receipt",
+            windows,
+        )
+        self.assertEqual(
+            _job_needs(jobs["verify-candidate"]),
+            {"verify", "p02-windows-receipt"},
+        )
+
     def test_browser_visual_baselines_use_a_fixed_public_release_identity(self) -> None:
         """Visual snapshots must not churn merely because a PR head SHA changes."""
         self.assertRegex(
@@ -379,7 +403,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for label, job in (("pull request", self.verify_candidate), ("main", self.build)):
             expected_directives = (
                 (
-                    "    needs: verify",
+                    "    needs: [verify, p02-windows-receipt]",
                     "    runs-on: ubuntu-latest",
                     "    timeout-minutes: 30",
                     "    env:",
@@ -583,7 +607,11 @@ class PagesWorkflowContractTests(unittest.TestCase):
                     f"{label} exhaustive shard step must match the strict gate",
                 )
                 self.assertNotIn("unittest discover", job)
-                dependency = "verify" if label == "pull request" else "verify-main"
+                dependency = (
+                    r"\[verify, p02-windows-receipt\]"
+                    if label == "pull request"
+                    else "verify-main"
+                )
                 self.assertRegex(consumer, rf"(?m)^    needs: {dependency}\s*$")
                 self.assertNotIn("strategy:", consumer)
                 for gated_job in (job, consumer):

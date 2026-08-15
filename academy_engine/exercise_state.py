@@ -3266,10 +3266,14 @@ def _write_new_contained_receipt(
     encoded: bytes,
 ) -> Path:
     """Create a receipt through pinned directory descriptors, never a checked path."""
-    if os.name != "posix" or not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
-        raise OSError("descriptor-safe receipt creation is unavailable on this platform")
     if relative_destination.is_absolute() or relative_destination.name != "P02-pr-receipt.json":
         raise PathBoundaryError("receipt destination is invalid")
+    if os.name == "nt":
+        return _write_new_contained_receipt_windows(
+            repository, relative_destination, encoded
+        )
+    if not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise OSError("descriptor-safe receipt creation is unavailable on this platform")
     directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     descriptors: list[int] = []
     receipt_descriptor: int | None = None
@@ -3300,6 +3304,212 @@ def _write_new_contained_receipt(
             os.close(receipt_descriptor)
         while descriptors:
             os.close(descriptors.pop())
+    return repository / relative_destination
+
+
+def _write_new_contained_receipt_windows(
+    repository: Path,
+    relative_destination: Path,
+    encoded: bytes,
+) -> Path:
+    """Create the receipt through Windows handles pinned to each safe ancestor."""
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    file_attribute_reparse_point = 0x400
+    file_flag_backup_semantics = 0x02000000
+    file_flag_open_reparse_point = 0x00200000
+    file_read_attributes = 0x0080
+    file_list_directory = 0x0001
+    file_add_subdirectory = 0x0004
+    file_traverse = 0x0020
+    file_write_data = 0x0002
+    synchronize = 0x00100000
+    file_share_read = 0x00000001
+    file_share_write = 0x00000002
+    file_share_delete = 0x00000004
+    open_existing = 3
+    file_open = 1
+    file_create = 2
+    file_directory_file = 0x00000001
+    file_non_directory_file = 0x00000040
+    file_open_reparse_point = 0x00200000
+    file_synchronous_io_nonalert = 0x00000020
+    file_attribute_tag_info = 9
+
+    class _UnicodeString(ctypes.Structure):
+        _fields_ = (
+            ("Length", wintypes.USHORT),
+            ("MaximumLength", wintypes.USHORT),
+            ("Buffer", wintypes.LPWSTR),
+        )
+
+    class _ObjectAttributes(ctypes.Structure):
+        _fields_ = (
+            ("Length", wintypes.ULONG),
+            ("RootDirectory", wintypes.HANDLE),
+            ("ObjectName", ctypes.POINTER(_UnicodeString)),
+            ("Attributes", wintypes.ULONG),
+            ("SecurityDescriptor", wintypes.LPVOID),
+            ("SecurityQualityOfService", wintypes.LPVOID),
+        )
+
+    class _IoStatusBlock(ctypes.Structure):
+        _fields_ = (("Status", wintypes.LONG), ("Information", ctypes.c_size_t))
+
+    class _FileAttributeTagInfo(ctypes.Structure):
+        _fields_ = (("FileAttributes", wintypes.DWORD), ("ReparseTag", wintypes.DWORD))
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    ntdll = ctypes.WinDLL("ntdll")
+    kernel32.CreateFileW.argtypes = (
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    )
+    kernel32.CreateFileW.restype = wintypes.HANDLE
+    kernel32.GetFileInformationByHandleEx.argtypes = (
+        wintypes.HANDLE,
+        ctypes.c_int,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+    )
+    kernel32.GetFileInformationByHandleEx.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    ntdll.NtCreateFile.argtypes = (
+        ctypes.POINTER(wintypes.HANDLE),
+        wintypes.ULONG,
+        ctypes.POINTER(_ObjectAttributes),
+        ctypes.POINTER(_IoStatusBlock),
+        wintypes.LPVOID,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        wintypes.ULONG,
+        wintypes.LPVOID,
+        wintypes.ULONG,
+    )
+    ntdll.NtCreateFile.restype = wintypes.LONG
+    ntdll.RtlNtStatusToDosError.argtypes = (wintypes.LONG,)
+    ntdll.RtlNtStatusToDosError.restype = wintypes.ULONG
+
+    def _close(handle: int | None) -> None:
+        if handle is not None:
+            kernel32.CloseHandle(wintypes.HANDLE(handle))
+
+    def _require_plain_directory(handle: int) -> None:
+        details = _FileAttributeTagInfo()
+        if not kernel32.GetFileInformationByHandleEx(
+            wintypes.HANDLE(handle),
+            file_attribute_tag_info,
+            ctypes.byref(details),
+            ctypes.sizeof(details),
+        ):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if details.FileAttributes & file_attribute_reparse_point:
+            raise PathBoundaryError("Path must not traverse a symlink or reparse point.")
+
+    def _open_relative(
+        parent: int,
+        name: str,
+        *,
+        access: int,
+        disposition: int,
+        options: int,
+    ) -> int:
+        buffer = ctypes.create_unicode_buffer(name)
+        object_name = _UnicodeString(
+            len(name.encode("utf-16-le")),
+            ctypes.sizeof(buffer),
+            ctypes.cast(buffer, wintypes.LPWSTR),
+        )
+        attributes = _ObjectAttributes(
+            ctypes.sizeof(_ObjectAttributes),
+            wintypes.HANDLE(parent),
+            ctypes.pointer(object_name),
+            0x40,
+            None,
+            None,
+        )
+        status = _IoStatusBlock()
+        handle = wintypes.HANDLE()
+        result = ntdll.NtCreateFile(
+            ctypes.byref(handle),
+            access,
+            ctypes.byref(attributes),
+            ctypes.byref(status),
+            None,
+            0,
+            file_share_read | file_share_write | file_share_delete,
+            disposition,
+            options,
+            None,
+            0,
+        )
+        if result < 0:
+            raise ctypes.WinError(ntdll.RtlNtStatusToDosError(result))
+        return int(handle.value)
+
+    root = kernel32.CreateFileW(
+        str(repository),
+        file_read_attributes | file_list_directory | file_traverse | synchronize,
+        file_share_read | file_share_write | file_share_delete,
+        None,
+        open_existing,
+        file_flag_backup_semantics | file_flag_open_reparse_point,
+        None,
+    )
+    invalid_handle = ctypes.c_void_p(-1).value
+    if root == invalid_handle:
+        raise ctypes.WinError(ctypes.get_last_error())
+    handles: list[int] = [int(root)]
+    receipt_handle: int | None = None
+    try:
+        _require_plain_directory(handles[-1])
+        for component in relative_destination.parent.parts:
+            if component in {"", "."}:
+                continue
+            try:
+                child = _open_relative(
+                    handles[-1],
+                    component,
+                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_traverse | synchronize,
+                    disposition=file_open,
+                    options=file_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
+                )
+            except FileNotFoundError:
+                child = _open_relative(
+                    handles[-1],
+                    component,
+                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_traverse | synchronize,
+                    disposition=file_create,
+                    options=file_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
+                )
+            _require_plain_directory(child)
+            handles.append(child)
+        receipt_handle = _open_relative(
+            handles[-1],
+            relative_destination.name,
+            access=file_write_data | synchronize,
+            disposition=file_create,
+            options=file_non_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
+        )
+        descriptor = msvcrt.open_osfhandle(receipt_handle, os.O_WRONLY | os.O_BINARY)
+        receipt_handle = None
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        _close(receipt_handle)
+        while handles:
+            _close(handles.pop())
     return repository / relative_destination
 
 
