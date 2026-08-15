@@ -565,6 +565,13 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertEqual(historical["release"], "preview-0.9")
         self.assertEqual(historical["guided_labs"], PREVIEW_0_10[:5])
         self.assertEqual(historical["coming_next"][:2], PREVIEW_0_10[5:])
+        preview_0_27 = (
+            self.root / "academy" / "publication" / "preview-0.27.json"
+        ).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(preview_0_27).hexdigest(),
+            "852afe522a82cdda66e79a3758149df6b5b7964dde51c55773ef1701e909667c",
+        )
         self.assertEqual(manifest.release, "preview-0.28")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
