@@ -26,8 +26,9 @@ hosted review, CI run, or merge.
 ## What you will prove
 
 You will repair the prepared behavior: a ticket resolution must reject newline, tab, and DEL control
-characters. The feature lane must leave a matching specification and plan, a live focused regression,
-and executable service behavior on the prepared branch.
+characters. This bounded two-file change uses the small lane of the real feature workflow, so it leaves its
+classification in `.codearbiter/triage.log`, a live focused regression, and executable service
+behavior on the prepared branch. It does not manufacture full-lane specification or plan files.
 
 You will also choose **Open a PR** at the real feature terminal and retain its browser URL. That URL is
 evidence of the hosted pull request for you and its reviewers. It is not an Academy receipt.
@@ -54,10 +55,9 @@ When the feature lane reaches its terminal, use the browser action.
 
 ## Recognize success
 
-The local branch is clean. It contains a `.codearbiter/specs` document and a matching
-`.codearbiter/plans` document from the feature work, a focused service test that rejects all three
-control characters, and the narrow service validation that makes it pass. Your fork's browser shows
-the feature branch as an open hosted pull request.
+The local branch is clean. It contains the small-lane classification in `.codearbiter/triage.log`,
+a focused service test that rejects all three control characters, and the narrow service validation
+that makes it pass. Your fork's browser shows the feature branch as an open hosted pull request.
 
 Leave that hosted pull request open. Its review and merge are part of the normal feature lifecycle,
 not a local Academy simulation.
@@ -66,7 +66,7 @@ not a local Academy simulation.
 
 {{action:U07-check}}
 
-A passing Check validates the prepared baseline, the local feature documents, the committed test and
+A passing Check validates the prepared baseline, the local small-lane record, the committed test and
 service behavior, safe remotes, and a clean worktree. It does not prove that the feature command ran,
 that you approved its spec, that a hosted pull request exists, that CI passed, or that anyone reviewed
 or merged it.

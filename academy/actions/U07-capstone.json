@@ -36,9 +36,9 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-feature \"Reject control characters in ticket resolutions\"","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-feature \"Reject control characters in ticket resolutions\"","copy":true}
       ],
-      "expected_result": "CodeArbiter writes matching .codearbiter/specs and .codearbiter/plans artifacts, changes the focused regression and service behavior, completes its own commit gate, then presents its feature-branch terminal.",
+      "expected_result": "For this bounded two-file change, CodeArbiter uses its small lane and appends the classification to .codearbiter/triage.log, then changes the focused regression and service behavior, completes its own commit gate, and presents its feature-branch terminal. It does not invent full-lane spec or plan files.",
       "recovery": "If the proposed scope expands or the feature lane reports a stop, do not hand-write substitute artifacts. Preserve the branch and resolve the named real gate, or use Reset for a new attempt.",
-      "evidence": "The committed spec and plan, the focused test, the implementation, and a clean worktree are local evidence that Academy Check can inspect."
+      "evidence": "The committed .codearbiter/triage.log small-lane entry, focused test, implementation, and clean worktree are local evidence that Academy Check can inspect."
     },
     {
       "id": "U07-open-pr",
@@ -60,7 +60,7 @@
       "title": "Check durable local evidence",
       "actor": "learner",
       "surface": null,
-      "instruction": "After the feature branch is clean, run Academy Check in a native terminal at the clone root. It inspects the prepared baseline, committed local feature artifacts, bounded behavior, remotes, and worktree state.",
+      "instruction": "After the feature branch is clean, run Academy Check in a native terminal at the clone root. It inspects the prepared baseline, committed small-lane triage record, bounded behavior, remotes, and worktree state.",
       "rationale": "Check independently verifies durable repository facts without claiming that a harness command, review, PR, CI run, or merge occurred.",
       "resources": [],
       "variants": [

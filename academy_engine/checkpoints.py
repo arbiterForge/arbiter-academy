@@ -3302,26 +3302,37 @@ def _u07_capstone(context: _SemanticContext) -> bool:
     }
     allowed_paths = {paths["code"], paths["test"], *specs, *plans, *allowed_governance}
     if (
-        len(specs) != 1
-        or len(plans) != 1
-        or Path(specs[0]).stem != Path(plans[0]).stem
+        (len(specs), len(plans)) not in {(0, 0), (1, 1)}
+        or (bool(specs) and Path(specs[0]).stem != Path(plans[0]).stem)
         or paths["code"] not in changed_paths
         or paths["test"] not in changed_paths
         or any(path not in allowed_paths for path in changed_paths)
     ):
         return False
-    documents = {
-        "spec": _text(root, attempt.head, specs[0]),
-        "plan": _text(root, attempt.head, plans[0]),
-    }
-    if not (
-        _headings(documents["spec"], ("Problem", "Acceptance criteria"))
-        and _headings(documents["plan"], ("Plan", "Verification"))
-    ):
-        return False
-    document_text = "\n".join(item or "" for item in documents.values()).casefold()
-    if any(token not in document_text for token in ("control", "character", "resolution")):
-        return False
+    if specs:
+        documents = {
+            "spec": _text(root, attempt.head, specs[0]),
+            "plan": _text(root, attempt.head, plans[0]),
+        }
+        if not (
+            _headings(documents["spec"], ("Problem", "Acceptance criteria"))
+            and _headings(documents["plan"], ("Plan", "Verification"))
+        ):
+            return False
+        document_text = "\n".join(item or "" for item in documents.values()).casefold()
+        if any(token not in document_text for token in ("control", "character", "resolution")):
+            return False
+    else:
+        triage_path = ".codearbiter/triage.log"
+        triage = _text(root, attempt.head, triage_path)
+        if triage_path not in changed_paths or triage is None:
+            return False
+        entries = [line for line in triage.splitlines() if "| LANE: small |" in line]
+        if len(entries) != 1:
+            return False
+        entry = entries[0].casefold()
+        if any(token not in entry for token in ("control", "character", "resolution")):
+            return False
     test_blob = _git_blob(root, attempt.head, paths["test"])
     code_blob = _git_blob(root, attempt.head, paths["code"])
     if (

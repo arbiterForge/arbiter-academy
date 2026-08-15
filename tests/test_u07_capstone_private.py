@@ -66,8 +66,8 @@ class U07PrivateCapstoneTests(unittest.TestCase):
 
         self.assertEqual(git(fixture.root, "status", "--porcelain", "--untracked-files=all").stdout, "")
 
-    def test_check_accepts_real_feature_artifacts_without_an_adr_or_pr_receipt(self) -> None:
-        """A real feature commit is not constrained to the retired synthetic three-commit history."""
+    def test_check_accepts_real_small_lane_evidence_without_a_pr_receipt(self) -> None:
+        """The valid two-file small lane has a triage record, not invented full-lane documents."""
         fixture = AcademyRepository()
         self.addCleanup(fixture.close)
         fixture.add_safe_upstream()
@@ -101,19 +101,12 @@ class U07PrivateCapstoneTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        spec = fixture.root / ".codearbiter/specs/reject-control-characters-in-ticket-resolutions.md"
-        plan = fixture.root / ".codearbiter/plans/reject-control-characters-in-ticket-resolutions.md"
-        spec.parent.mkdir(parents=True, exist_ok=True)
-        plan.parent.mkdir(parents=True, exist_ok=True)
-        spec.write_text(
-            "# Reject control characters in ticket resolutions\n\n## Problem\n\nTicket resolutions accept control characters.\n\n## Acceptance criteria\n\n- Reject newline, tab, and DEL control characters.\n",
+        triage = fixture.root / ".codearbiter/triage.log"
+        triage.write_text(
+            "[2026-08-15T00:00:00Z] | BY: learner@example.test | LANE: small | SCOPE: reject control characters in ticket resolutions | BASIS: two files, no public surface, three testable criteria\n",
             encoding="utf-8",
         )
-        plan.write_text(
-            "# Reject control characters in ticket resolutions\n\n## Plan\n\n1. Add a focused service regression.\n2. Reject control characters in the service.\n\n## Verification\n\npython -m unittest tests.test_service\n",
-            encoding="utf-8",
-        )
-        fixture.commit("feature: reject control characters", spec.relative_to(fixture.root).as_posix(), plan.relative_to(fixture.root).as_posix(), "tests/test_service.py", "workshop_queue/service.py")
+        fixture.commit("feature: reject control characters", triage.relative_to(fixture.root).as_posix(), "tests/test_service.py", "workshop_queue/service.py")
 
         result = evaluate_checkpoint(fixture.root, LAB)
         self.assertTrue(result.passed, result)

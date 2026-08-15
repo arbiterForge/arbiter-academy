@@ -33,6 +33,8 @@ class U07CapstoneContractTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         self.assertIn("existing resolution behavior", by_id["U07-prepare"].expected_result)
         self.assertIn("add the missing resolution regression", by_id["U07-run-feature"].instruction.casefold())
+        self.assertIn("small lane", by_id["U07-run-feature"].expected_result.casefold())
+        self.assertIn("triage.log", by_id["U07-run-feature"].evidence)
         self.assertEqual(
             {(variant.host, variant.command) for variant in by_id["U07-run-feature"].variants},
             {
@@ -66,6 +68,8 @@ class U07CapstoneContractTests(unittest.TestCase):
         self.assertIn("does not prove that the feature command ran", guide)
         self.assertIn("existing resolution behavior", guide)
         self.assertIn("add the missing resolution regression", guide.casefold())
+        self.assertIn("small lane", guide.casefold())
+        self.assertIn("triage.log", guide)
         self.assertIn("capstone in the public Academy course", guide)
         self.assertNotIn("private source material", guide)
         self.assertNotIn("not as a Preview route", guide)
