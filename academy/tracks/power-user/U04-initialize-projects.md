@@ -15,7 +15,7 @@ next_lab: U05-debug-spike-conflict
 
 ## Know before you begin
 
-U04 is a guided Preview 0.26 lesson. It prepares two separate child repositories beneath the Academy
+U04 is a guided Preview 0.27 lesson. It prepares two separate child repositories beneath the Academy
 attempt root. The Academy root controls the attempt and stores the final binding report; it is not a
 CodeArbiter project for this lesson.
 
