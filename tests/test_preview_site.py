@@ -2569,6 +2569,22 @@ class PreviewSiteTests(unittest.TestCase):
         article = lab.index('<article class="academy-content">')
         self.assertLess(sidebar, article, "mobile source order must expose the TOC before the lesson")
 
+    def test_mobile_command_copy_uses_the_primary_mobile_breakpoint(self) -> None:
+        """Catches the 385px-to-672px range retaining the desktop command grid."""
+        css = (self.root / "site" / "assets" / "academy.css").read_text(encoding="utf-8")
+        mobile = css.split("@media (max-width: 42rem) {", 1)[1].split(
+            "@media (max-width: 24rem)", 1
+        )[0]
+
+        self.assertRegex(
+            mobile,
+            r"\.command-shell\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*;",
+        )
+        self.assertRegex(
+            mobile,
+            r"\.command-copy\s*\{[^}]*min-height:\s*2\.75rem\s*;",
+        )
+
     def test_guided_visual_contract_is_editorial_responsive_and_accessible(self) -> None:
         """Catches card-heavy styling, clipped variants, or inaccessible lesson controls."""
         build_preview_site(self.root, self.out, release_sha="d" * 40)

@@ -46,6 +46,30 @@ test("Academy Home keeps the verify-first installer usable", async ({ page }, te
   });
 });
 
+test("Academy Home places mobile Copy controls below their commands", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "mobile command-control contract");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/index.html", { waitUntil: "networkidle" });
+  await stabilize(page);
+
+  const install = page.locator('[data-action-id="home-install"]');
+  await install.scrollIntoViewIfNeeded();
+  const shell = install.locator(".command-shell").filter({ visible: true }).first();
+  const command = shell.locator("pre");
+  const copy = shell.locator(".command-copy");
+  const [shellBox, commandBox, copyBox] = await Promise.all([
+    shell.boundingBox(),
+    command.boundingBox(),
+    copy.boundingBox(),
+  ]);
+  expect(shellBox).not.toBeNull();
+  expect(commandBox).not.toBeNull();
+  expect(copyBox).not.toBeNull();
+  expect(copyBox.y).toBeGreaterThanOrEqual(commandBox.y + commandBox.height);
+  expect(copyBox.width).toBeCloseTo(shellBox.width, 0);
+  expect(copyBox.height).toBeGreaterThanOrEqual(44);
+});
+
 test("F01 keeps its table of contents before the mobile lesson body", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "mobile layout contract");
   await page.goto("/labs/F01-fork-clone-doctor/index.html", { waitUntil: "networkidle" });
