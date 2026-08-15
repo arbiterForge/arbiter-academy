@@ -59,6 +59,7 @@ from academy_engine.exercise_state import (
     P02AttemptIdentity,
 )
 from academy_engine.external_state import ExternalStateError
+from academy_engine.paths import PathBoundaryError
 from academy_engine.scenario import PreparationError, prepare_lab
 from tests._temporary import RetryingTemporaryDirectory
 
@@ -5677,13 +5678,103 @@ class P02RealRepositoryTests(unittest.TestCase):
             self.assertEqual(locked.read_record("p02", 1)["phase"], "restoring-origin-pushurl")
 
 
-@unittest.skipUnless(
-    os.name == "posix"
-    and hasattr(os, "O_DIRECTORY")
-    and hasattr(os, "O_NOFOLLOW"),
-    "P02 receipt recording requires descriptor-safe filesystem operations",
-)
 class P02ReceiptRecorderTests(unittest.TestCase):
+    def test_windows_receipt_writer_requests_the_required_native_access(self) -> None:
+        """Catches a Windows receipt handle that cannot flush or create its child."""
+        source = inspect.getsource(exercise_module._write_new_contained_receipt_windows)
+        self.assertIn("generic_write = 0x40000000", source)
+        self.assertEqual(source.count("file_add_subdirectory | file_write_data"), 2)
+        self.assertIn("access=generic_write", source)
+
+    @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
+    def test_windows_receipt_writer_closes_transferred_descriptor_when_fdopen_fails(self) -> None:
+        """Catches a failed CRT stream construction leaking the transferred descriptor."""
+        import msvcrt
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+            descriptors: list[int] = []
+            original_open_osfhandle = msvcrt.open_osfhandle
+
+            def capture_descriptor(handle: int, flags: int) -> int:
+                descriptor = original_open_osfhandle(handle, flags)
+                descriptors.append(descriptor)
+                return descriptor
+
+            def close_if_needed() -> None:
+                for descriptor in descriptors:
+                    try:
+                        os.close(descriptor)
+                    except OSError:
+                        pass
+
+            self.addCleanup(close_if_needed)
+            with (
+                patch.object(msvcrt, "open_osfhandle", side_effect=capture_descriptor),
+                patch.object(exercise_module.os, "fdopen", side_effect=OSError("stream unavailable")),
+                patch.object(exercise_module.os, "close", wraps=os.close) as close_descriptor,
+            ):
+                with self.assertRaisesRegex(OSError, "stream unavailable"):
+                    exercise_module._write_new_contained_receipt(
+                        repository,
+                        Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                        b'{"receipt":"evidence"}\n',
+                    )
+
+            self.assertEqual(len(descriptors), 1)
+            close_descriptor.assert_any_call(descriptors[0])
+
+    @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
+    def test_windows_receipt_writer_creates_a_new_contained_receipt(self) -> None:
+        """Catches the public Windows P02 route failing before it can record evidence."""
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            repository.mkdir()
+
+            destination = exercise_module._write_new_contained_receipt(
+                repository,
+                Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                b'{"receipt":"evidence"}\n',
+            )
+
+            self.assertEqual(
+                destination,
+                repository / ".codearbiter/reports/academy/P02-pr-receipt.json",
+            )
+            self.assertEqual(destination.read_bytes(), b'{"receipt":"evidence"}\n')
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction boundary")
+    def test_windows_receipt_writer_rejects_a_junction_ancestor(self) -> None:
+        """Catches a Windows writer following a redirected receipt directory."""
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary) / "repository"
+            outside = Path(temporary) / "outside"
+            redirected = repository / ".codearbiter/reports/academy"
+            repository.mkdir()
+            outside.mkdir()
+            redirected.parent.mkdir(parents=True)
+            command = Path(os.environ["SystemRoot"]) / "System32/cmd.exe"
+            created = subprocess.run(
+                [str(command), "/d", "/v:off", "/c", "mklink", "/J", str(redirected), str(outside)],
+                cwd=repository,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(created.returncode, 0, created.stderr.decode("utf-8", "replace"))
+            try:
+                with self.assertRaises(PathBoundaryError):
+                    exercise_module._write_new_contained_receipt(
+                        repository,
+                        Path(".codearbiter/reports/academy/P02-pr-receipt.json"),
+                        b'{"receipt":"evidence"}\n',
+                    )
+                self.assertFalse((outside / "P02-pr-receipt.json").exists())
+            finally:
+                if os.path.lexists(redirected):
+                    os.rmdir(redirected)
+
     def _case(self) -> P02RealRepositoryTests:
         case = P02RealRepositoryTests(
             "test_prepare_creates_exact_bares_patch_and_local_topology"
@@ -5772,7 +5863,9 @@ class P02ReceiptRecorderTests(unittest.TestCase):
             receipt = record_p02_receipt(case.repository, store)
 
         expected = case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json"
-        self.assertEqual(receipt, expected)
+        # Windows may normalize the same pinned directory to its short-name
+        # spelling; the public result remains the canonical receipt entry.
+        self.assertEqual(receipt, expected.resolve())
         self.assertEqual(
             git(case.repository, "rev-parse", "HEAD").stdout.strip(), head_before
         )

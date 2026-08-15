@@ -9,11 +9,11 @@
             "title": "Read the offline boundary",
             "actor": "learner",
             "surface": "browser",
-            "instruction": "Read this public lesson before running a command. The exercise uses local bare repositories and never creates a hosted pull request. The receipt recorder currently requires macOS or Linux; native Windows is not a complete P02 route.",
+            "instruction": "Read this public lesson before running a command. The exercise uses local bare repositories and never creates a hosted pull request. The installed recorder creates the same single local receipt on Windows, macOS, and Linux.",
             "rationale": "The learner must distinguish local proof from a hosted collaboration workflow.",
             "resources": [],
             "variants": [],
-            "expected_result": "You can state that this is a public offline-local rehearsal and that native Windows cannot complete the receipt path.",
+            "expected_result": "You can state that this is a public offline-local rehearsal with a complete native Windows, macOS, and Linux receipt path.",
             "recovery": "If you expected a GitHub pull request or hosted CI, stop here and reread the boundary.",
             "evidence": "No repository state changes yet."
         },
@@ -353,6 +353,15 @@
             "rationale": "The helper formats only recomputable local facts plus the learner declaration.",
             "resources": [],
             "variants": [
+                {
+                    "id": "windows",
+                    "surface": "native-terminal",
+                    "operating_system": "windows",
+                    "host": "none",
+                    "language": "powershell",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.26\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path record P02-commit-review-pr --review-declared-cleared",
+                    "copy": true
+                },
                 {
                     "id": "macos",
                     "surface": "native-terminal",
