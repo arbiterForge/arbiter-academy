@@ -3325,6 +3325,7 @@ def _write_new_contained_receipt_windows(
     file_add_subdirectory = 0x0004
     file_traverse = 0x0020
     file_write_data = 0x0002
+    generic_write = 0x40000000
     synchronize = 0x00100000
     file_share_read = 0x00000001
     file_share_write = 0x00000002
@@ -3480,7 +3481,7 @@ def _write_new_contained_receipt_windows(
                 child = _open_relative(
                     handles[-1],
                     component,
-                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_traverse | synchronize,
+                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_write_data | file_traverse | synchronize,
                     disposition=file_open,
                     options=file_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
                 )
@@ -3488,7 +3489,7 @@ def _write_new_contained_receipt_windows(
                 child = _open_relative(
                     handles[-1],
                     component,
-                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_traverse | synchronize,
+                    access=file_read_attributes | file_list_directory | file_add_subdirectory | file_write_data | file_traverse | synchronize,
                     disposition=file_create,
                     options=file_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
                 )
@@ -3497,7 +3498,7 @@ def _write_new_contained_receipt_windows(
         receipt_handle = _open_relative(
             handles[-1],
             relative_destination.name,
-            access=file_write_data | synchronize,
+            access=generic_write | synchronize,
             disposition=file_create,
             options=file_non_directory_file | file_open_reparse_point | file_synchronous_io_nonalert,
         )

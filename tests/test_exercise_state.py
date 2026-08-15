@@ -5679,6 +5679,13 @@ class P02RealRepositoryTests(unittest.TestCase):
 
 
 class P02ReceiptRecorderTests(unittest.TestCase):
+    def test_windows_receipt_writer_requests_the_required_native_access(self) -> None:
+        """Catches a Windows receipt handle that cannot flush or create its child."""
+        source = inspect.getsource(exercise_module._write_new_contained_receipt_windows)
+        self.assertIn("generic_write = 0x40000000", source)
+        self.assertEqual(source.count("file_add_subdirectory | file_write_data"), 2)
+        self.assertIn("access=generic_write", source)
+
     @unittest.skipUnless(os.name == "nt", "Windows receipt-writer coverage")
     def test_windows_receipt_writer_closes_transferred_descriptor_when_fdopen_fails(self) -> None:
         """Catches a failed CRT stream construction leaking the transferred descriptor."""
