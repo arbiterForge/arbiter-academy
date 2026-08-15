@@ -5817,7 +5817,9 @@ class P02ReceiptRecorderTests(unittest.TestCase):
             receipt = record_p02_receipt(case.repository, store)
 
         expected = case.repository / ".codearbiter/reports/academy/P02-pr-receipt.json"
-        self.assertEqual(receipt, expected)
+        # Windows may normalize the same pinned directory to its short-name
+        # spelling; the public result remains the canonical receipt entry.
+        self.assertEqual(receipt, expected.resolve())
         self.assertEqual(
             git(case.repository, "rev-parse", "HEAD").stdout.strip(), head_before
         )

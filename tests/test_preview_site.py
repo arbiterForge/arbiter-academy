@@ -890,9 +890,7 @@ class PreviewSiteTests(unittest.TestCase):
                 self.assertEqual(
                     operating_systems,
                     (
-                        ["macos", "linux"]
-                        if action == ("P02-commit-review-pr", "P02-record-receipt")
-                        else ["windows", "macos", "linux"]
+                        ["windows", "macos", "linux"]
                     ),
                 )
 
