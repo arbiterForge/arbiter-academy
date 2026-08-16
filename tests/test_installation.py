@@ -162,7 +162,7 @@ class InstalledWheelTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[1]
         package = (repository / "pyproject.toml").read_text(encoding="utf-8")
         for source in (
-            "academy/publication/preview-0.29.json",
+            "academy/publication/preview-0.30.json",
             "academy/actions/F03-work-the-board.json",
             "academy/checkpoints/F03-work-the-board.json",
             "academy/tracks/foundations/F03-work-the-board.md",
@@ -484,11 +484,11 @@ class InstalledWheelTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     name.endswith(
-                        "share/arbiter-academy/academy/publication/preview-0.29.json"
+                        "share/arbiter-academy/academy/publication/preview-0.30.json"
                     )
                     for name in names
                 ),
-                "preview-0.29.json",
+                "preview-0.30.json",
             )
             action_sources = {
                 name.rsplit("/", 1)[-1]

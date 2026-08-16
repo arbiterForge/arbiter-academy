@@ -99,6 +99,24 @@ test("F01 keeps its table of contents before the mobile lesson body", async ({ p
   expect(tocBox.y).toBeLessThan(articleBox.y);
 });
 
+test("mobile standalone course links keep a usable touch target", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "mobile touch-target contract");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/labs/U07-capstone/index.html", { waitUntil: "networkidle" });
+  await stabilize(page);
+
+  for (const link of [
+    page.locator('.breadcrumbs a[href="../../index.html"]'),
+    page.locator('.next-step a[href="../../recovery/index.html"]'),
+    page.locator(".site-footer a"),
+  ]) {
+    await link.scrollIntoViewIfNeeded();
+    const box = await link.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.height).toBeGreaterThanOrEqual(24);
+  }
+});
+
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],

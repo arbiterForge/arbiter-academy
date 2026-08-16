@@ -35,6 +35,8 @@ evidence of the hosted pull request for you and its reviewers. It is not an Acad
 
 ## Prepare safely
 
+{{action:U07-return-to-main}}
+
 {{action:U07-prepare}}
 
 `ATTEMPT_NUMBER` is the number Academy prints, such as `1`. It is not text to type. Do not switch to
@@ -44,7 +46,7 @@ another branch before the real feature terminal finishes.
 
 {{action:U07-run-feature}}
 
-Read the proposed specification before you approve it. Reject a draft that adds unrelated workflow,
+Read the proposed mini-spec and criteria before you confirm them. Reject a draft that adds unrelated workflow,
 dependencies, data migration, or an unrelated public API. If CodeArbiter stops for a real decision,
 answer that decision in the harness. Do not imitate the feature lane by creating an Academy-only spec,
 plan, review marker, or pull-request record.

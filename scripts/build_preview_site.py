@@ -35,6 +35,13 @@ _INLINE_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _GUIDE_LINK_TARGETS = frozenset(
     {
         "../../index.html",
+        "../../index.html#complete-these-five-setup-steps-before-f01",
+        "#create-your-practice-fork",
+        "#clone-it-to-your-computer",
+        "#enter-the-cloned-repository",
+        "#verify-and-install-the-academy-tools",
+        "#run-readiness-checks",
+        "../F02-orient-to-state/index.html",
         "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
     }
 )

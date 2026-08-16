@@ -45,6 +45,11 @@ review it before the bounded commit gate runs.
 
 ## Prepare safely
 
+P07 ends on its preserved attempt branch. Return to clean `main` before P08 Prepare; the completed
+P07 evidence stays reachable and is not part of the new attempt.
+
+{{action:P08-return-to-main}}
+
 {{action:P08-prepare}}
 
 Preparation creates the numbered attempt, live fixture refs, and linked worktrees. It does not give

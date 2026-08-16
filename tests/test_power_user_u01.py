@@ -70,6 +70,17 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertEqual(tuple(action.id for action in manifest.actions), U01_ACTION_IDS)
         by_id = {action.id: action for action in manifest.actions}
 
+        fork_boundary = by_id["U01-confirm-fork-boundary"]
+        self.assertEqual(
+            tuple((resource.label, resource.href) for resource in fork_boundary.resources),
+            (
+                (
+                    "Review the immutable Preview 0.30 U01 boundary manifest",
+                    "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.30/academy/actions/U01-autonomous-sprint.json",
+                ),
+            ),
+        )
+
         sprint = by_id["U01-run-sprint"]
         self.assertEqual(sprint.actor, "agent")
         self.assertEqual(
@@ -112,7 +123,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
                 self.assertTrue(
-                    all("preview-0.29" in variant.command for variant in action.variants)
+                    all("preview-0.30" in variant.command for variant in action.variants)
                 )
 
         inspect = by_id["U01-inspect-scenario"]

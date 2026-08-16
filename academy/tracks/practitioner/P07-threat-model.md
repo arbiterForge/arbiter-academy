@@ -69,6 +69,8 @@ before creating or copying a file. Reject absolute, traversal, symlink, and Wind
 ancestors in archive destinations. Fail closed on a different drive or an unrepresentable containment
 path before any write.
 
+The next learner request creates the report from the advisory analysis and prepared scenario values, validates its binding, stages only that report, and stops for your review before the commit gate.
+
 {{action:P07-write-binding}}
 
 After Clearance, add `## Academy Target-SHA256/identity binding` with the exact target path, prepared

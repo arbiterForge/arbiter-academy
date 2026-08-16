@@ -4,8 +4,26 @@
   "document_id": "P08-repository-hygiene",
   "actions": [
     {
-      "id": "P08-prepare",
+      "id": "P08-return-to-main",
       "sequence": 1,
+      "title": "Return to main before preparing P08",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After P07 passes, return to main in a native terminal and confirm the worktree is clean before preparing P08. Leave the completed P07 attempt branch intact.",
+      "rationale": "Academy Prepare starts only from the clean base branch, while the completed P07 attempt remains available for inspection.",
+      "resources": [],
+      "variants": [
+        {"id":"return-main-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\ngit status --short","copy":true},
+        {"id":"return-main-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true},
+        {"id":"return-main-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true}
+      ],
+      "expected_result": "The primary checkout is on clean main and the completed P07 attempt remains reachable.",
+      "recovery": "If Git refuses to switch or status prints a path, preserve the message and completed attempt. Do not force a switch, reset, rebase, delete the attempt branch, or hide the change.",
+      "evidence": "The current branch is main and Git prints no worktree changes before P08 Prepare."
+    },
+    {
+      "id": "P08-prepare",
+      "sequence": 2,
       "title": "Prepare the live hygiene fixture",
       "actor": "learner",
       "surface": null,
@@ -13,9 +31,9 @@
       "rationale": "Prepare creates the externally recorded fixture and a numbered attempt without precomputing the learner report.",
       "resources": [],
       "variants": [
-        {"id":"prepare-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P08-repository-hygiene","copy":true},
-        {"id":"prepare-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true},
-        {"id":"prepare-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true}
+        {"id":"prepare-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true},
+        {"id":"prepare-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy creates and switches to academy/P08-repository-hygiene/<attempt> and reports the prepared fixture.",
       "recovery": "If Prepare refuses, preserve its message and return to the documented dirty-state or existing-attempt recovery before retrying.",
@@ -23,7 +41,7 @@
     },
     {
       "id": "P08-inventory-native",
-      "sequence": 2,
+      "sequence": 3,
       "title": "Freeze a native-terminal inventory",
       "actor": "learner",
       "surface": null,
@@ -41,7 +59,7 @@
     },
     {
       "id": "P08-inventory-harness-shell",
-      "sequence": 3,
+      "sequence": 4,
       "title": "Inspect through a harness shell",
       "actor": "learner",
       "surface": null,
@@ -65,7 +83,7 @@
     },
     {
       "id": "P08-run-standup",
-      "sequence": 4,
+      "sequence": 5,
       "title": "Ask the agent to classify, not clean up",
       "actor": "agent",
       "surface": null,
@@ -84,7 +102,7 @@
     },
     {
       "id": "P08-inventory-after-standup",
-      "sequence": 5,
+      "sequence": 6,
       "title": "Capture the post-standup inventory",
       "actor": "learner",
       "surface": null,
@@ -102,7 +120,7 @@
     },
     {
       "id": "P08-request-report-draft",
-      "sequence": 6,
+      "sequence": 7,
       "title": "Request a harness-text report draft",
       "actor": "learner",
       "surface": null,
@@ -120,21 +138,25 @@
     },
     {
       "id": "P08-review-report",
-      "sequence": 7,
+      "sequence": 8,
       "title": "Review the agent draft",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Review the draft against the complete inventory. Confirm all five refs and three worktrees are present, path-free, correctly bound, and conservatively classified before authorizing a commit.",
+      "surface": null,
+      "instruction": "Use the selected copyable request to review the draft against a fresh current inventory. Confirm all five refs and three worktrees are present, path-free, correctly bound, and conservatively classified before authorizing a commit.",
       "rationale": "A complete report is evidence of a learner-reviewed classification, not an agent decision delegated without inspection.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Run git for-each-ref --format='%(refname) %(objectname)' refs/heads and git worktree list --porcelain, then review only .codearbiter/reports/academy/P08-hygiene.json against that current inventory. Account for all five refs and three worktrees: main, the current attempt, the prepared fixture refs, and the current-attempt, merged-clean, dirty-unmerged worktree roles. Identify any path-bearing, missing, stale, wrongly bound, or unsafe removable classification. Do not change files, stage, commit, delete, prune, pull, force, or clear the report; stop for my decision.","copy":true},
+        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Run git for-each-ref --format='%(refname) %(objectname)' refs/heads and git worktree list --porcelain, then review only .codearbiter/reports/academy/P08-hygiene.json against that current inventory. Account for all five refs and three worktrees: main, the current attempt, the prepared fixture refs, and the current-attempt, merged-clean, dirty-unmerged worktree roles. Identify any path-bearing, missing, stale, wrongly bound, or unsafe removable classification. Do not change files, stage, commit, delete, prune, pull, force, or clear the report; stop for my decision.","copy":true},
+        {"id":"pi","surface":"harness","operating_system":"all","host":"pi","language":"text","command":"Run git for-each-ref --format='%(refname) %(objectname)' refs/heads and git worktree list --porcelain, then review only .codearbiter/reports/academy/P08-hygiene.json against that current inventory. Account for all five refs and three worktrees: main, the current attempt, the prepared fixture refs, and the current-attempt, merged-clean, dirty-unmerged worktree roles. Identify any path-bearing, missing, stale, wrongly bound, or unsafe removable classification. Do not change files, stage, commit, delete, prune, pull, force, or clear the report; stop for my decision.","copy":true}
+      ],
       "expected_result": "You can identify each preserved resource and the one merged-clean item eligible only for explicit future review.",
       "recovery": "If a fact is missing, stale, path-bearing, or classified as removable, reject the draft and preserve the fixture while requesting a correction.",
       "evidence": "The learner has reviewed the exact report that may become the sole evidence commit."
     },
     {
       "id": "P08-stage-report",
-      "sequence": 8,
+      "sequence": 9,
       "title": "Stage only the reviewed hygiene report",
       "actor": "learner",
       "surface": null,
@@ -152,7 +174,7 @@
     },
     {
       "id": "P08-review-commit-boundary",
-      "sequence": 9,
+      "sequence": 10,
       "title": "Review the staged evidence boundary",
       "actor": "learner",
       "surface": null,
@@ -170,7 +192,7 @@
     },
     {
       "id": "P08-run-commit-gate",
-      "sequence": 10,
+      "sequence": 11,
       "title": "Run the agent-owned commit gate",
       "actor": "agent",
       "surface": null,
@@ -189,7 +211,7 @@
     },
     {
       "id": "P08-confirm-clean",
-      "sequence": 11,
+      "sequence": 12,
       "title": "Confirm the primary worktree is clean",
       "actor": "learner",
       "surface": null,
@@ -207,7 +229,7 @@
     },
     {
       "id": "P08-check",
-      "sequence": 12,
+      "sequence": 13,
       "title": "Run the external checkpoint",
       "actor": "learner",
       "surface": null,
@@ -215,9 +237,9 @@
       "rationale": "Check independently compares the committed report with the externally recorded live fixture.",
       "resources": [],
       "variants": [
-        {"id":"check-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P08-repository-hygiene","copy":true},
-        {"id":"check-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true},
-        {"id":"check-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true}
+        {"id":"check-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P08-repository-hygiene","copy":true},
+        {"id":"check-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true},
+        {"id":"check-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy reports checkpoint P08-repository-hygiene: passed and records progress only when the exact fixture and report agree.",
       "recovery": "If Check fails, preserve every resource and read the failed predicate. Use Reset only for a separately retained retry.",
@@ -225,7 +247,7 @@
     },
     {
       "id": "P08-return-base",
-      "sequence": 13,
+      "sequence": 14,
       "title": "Return to main after a passing attempt",
       "actor": "learner",
       "surface": null,
@@ -243,7 +265,7 @@
     },
     {
       "id": "P08-reset-retry",
-      "sequence": 14,
+      "sequence": 15,
       "title": "Preserve a failed attempt and prepare a retry",
       "actor": "learner",
       "surface": null,
@@ -251,9 +273,9 @@
       "rationale": "A numbered retry preserves evidence instead of rewriting the failed state.",
       "resources": [],
       "variants": [
-        {"id":"reset-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P08-repository-hygiene","copy":true},
-        {"id":"reset-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true},
-        {"id":"reset-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true}
+        {"id":"reset-windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P08-repository-hygiene","copy":true},
+        {"id":"reset-macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true},
+        {"id":"reset-linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P08-repository-hygiene","copy":true}
       ],
       "expected_result": "Academy retains the failed P08 attempt and switches to a new numbered attempt with a fresh fixture.",
       "recovery": "If Reset stops, preserve its message and return to the Recovery guidance. Do not manually remove refs or worktrees.",
