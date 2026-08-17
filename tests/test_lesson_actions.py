@@ -84,6 +84,7 @@ F03_ACTION_IDS = (
     "F03-confirm-clean",
     "F03-check",
     "F03-reset-retry",
+    "F03-return-to-main",
 )
 P01_DOCUMENT_ID = "P01-feature-through-plan"
 P01_ACTION_IDS = (
@@ -1322,6 +1323,13 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("preview-0.30", commands)
         self.assertIn("From the clean retained F03 attempt branch", by_id["F03-reset-retry"].instruction)
         self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
+        handoff = by_id["F03-return-to-main"]
+        self.assertEqual((handoff.actor, handoff.surface), ("learner", None))
+        for variant in handoff.variants:
+            with self.subTest(variant=variant.id):
+                self.assertEqual(variant.command, "git switch main\ngit status --short")
+        self.assertIn("completed numbered F03 attempt branch", handoff.expected_result)
+        self.assertIn("do not force-switch", handoff.recovery)
 
         action_copy = "\n".join(
             part for action in manifest.actions

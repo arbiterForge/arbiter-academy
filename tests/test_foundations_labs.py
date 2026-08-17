@@ -391,7 +391,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
             "F03-start-task", "F03-inspect-started-task", "F03-read-contract",
             "F03-run-docs-chore", "F03-review-co-commit-boundary",
             "F03-choose-keep-branch", "F03-confirm-clean", "F03-check",
-            "F03-reset-retry",
+            "F03-reset-retry", "F03-return-to-main",
         )
         for action_id in action_ids:
             self.assertEqual(body.count("{{action:" + action_id + "}}"), 1, action_id)
@@ -416,6 +416,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
         self.assertIn("[~]", body)
         self.assertIn("Keep the branch as-is", body)
         self.assertIn("no hosted pull request", body)
+        self.assertIn("{{action:F03-return-to-main}}", body)
         self.assertIn("cannot prove that `$ca-task` ran", body)
         self.assertIn("cannot prove that `$ca-chore` ran", body)
         self.assertNotIn("F03-private-boundary", body)

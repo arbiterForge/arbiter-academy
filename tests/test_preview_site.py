@@ -212,6 +212,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('data-action-id="F03-start-task"', html)
         self.assertIn('data-action-id="F03-check"', html)
         self.assertIn('data-action-id="F03-reset-retry"', html)
+        self.assertIn('data-action-id="F03-return-to-main"', html)
         self.assertIn('data-copy-target="command-F03-prepare-windows"', html)
         self.assertIn("Your agent · Codex harness", html)
         self.assertIn("You · Native terminal · Windows", html)
