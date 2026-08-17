@@ -209,9 +209,9 @@
       "rationale": "F04 Prepare requires the Academy base branch, while the retained F03 branch remains the durable local evidence.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\ngit status --short","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\nif ($LASTEXITCODE -ne 0) { throw \"git switch main failed\" }\ngit status --short --branch","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main && git status --short --branch","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main && git status --short --branch","copy":true}
       ],
       "expected_result": "main is checked out with an empty status, and the completed numbered F03 attempt branch still exists locally.",
       "recovery": "If status is not empty, do not force-switch, reset, rebase, delete, or hide the attempt. Preserve it and resolve the reported state before continuing.",

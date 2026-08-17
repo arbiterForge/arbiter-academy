@@ -1325,9 +1325,18 @@ class LessonActionTests(unittest.TestCase):
         self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
         handoff = by_id["F03-return-to-main"]
         self.assertEqual((handoff.actor, handoff.surface), ("learner", None))
-        for variant in handoff.variants:
-            with self.subTest(variant=variant.id):
-                self.assertEqual(variant.command, "git switch main\ngit status --short")
+        self.assertEqual(
+            {variant.id: variant.command for variant in handoff.variants},
+            {
+                "windows": (
+                    "git switch main\n"
+                    "if ($LASTEXITCODE -ne 0) { throw \"git switch main failed\" }\n"
+                    "git status --short --branch"
+                ),
+                "macos": "git switch main && git status --short --branch",
+                "linux": "git switch main && git status --short --branch",
+            },
+        )
         self.assertIn("completed numbered F03 attempt branch", handoff.expected_result)
         self.assertIn("do not force-switch", handoff.recovery)
 
