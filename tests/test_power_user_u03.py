@@ -282,8 +282,21 @@ class PrivateU03CheckpointTests(unittest.TestCase):
             brief = json.loads((root / self._SCENARIO_PATH).read_text(encoding="utf-8"))
 
             self.assertEqual(prepared.branch, self.branch)
-            self.assertEqual(brief["refactor"], {"code_path": self._CODE, "test_path": self._TEST})
-            self.assertEqual(brief["chore"], {"path": self._CHORE})
+            self.assertEqual(
+                brief["refactor"],
+                {
+                    "code_path": self._CODE,
+                    "test_path": self._TEST,
+                    "scope": "Preserve ticket-read behavior while clarifying its storage boundary.",
+                },
+            )
+            self.assertEqual(
+                brief["chore"],
+                {
+                    "path": self._CHORE,
+                    "approved_readme_fact": "Ticket reads preserve their established storage boundary.",
+                },
+            )
             targets = (root / ".codearbiter/release-targets.md").read_text(encoding="utf-8")
             self.assertIn("<!-- release-targets -->", targets)
             self.assertIn("[academy-private-training]", targets)

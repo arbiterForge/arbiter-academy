@@ -822,6 +822,15 @@ h1 + p {
     padding-block: 1.5rem;
   }
 
+  .breadcrumbs a,
+  .next-step > p > a,
+  .site-footer a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding-inline: 0.25rem;
+  }
+
   .site-header nav {
     width: 100%;
   }

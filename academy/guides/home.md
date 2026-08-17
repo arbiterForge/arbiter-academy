@@ -4,6 +4,16 @@ Arbiter Academy is a practice course for codeArbiter. You work in a real Git rep
 
 Before F01, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. [Choose and install your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/) first, then return here to create your practice fork. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course. A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.
 
+## Complete these five setup steps before F01
+
+Complete these steps in order before Prepare in F01:
+
+1. [Create your practice fork](#create-your-practice-fork).
+2. [Clone it to your computer](#clone-it-to-your-computer).
+3. [Enter the cloned repository](#enter-the-cloned-repository).
+4. [Verify and install the Academy tools](#verify-and-install-the-academy-tools).
+5. [Run readiness checks](#run-readiness-checks).
+
 ## What the Academy changes
 
 A repository is a project's files plus its Git history. The official repository belongs to arbiterForge and stays read-only for learners. A fork is your account's copy of that repository on GitHub. A clone is the working copy stored on your computer.
@@ -21,6 +31,8 @@ Choose a folder where you keep projects, open a Native terminal there, and use t
 {{action:home-clone}}
 
 The clone command creates a new `arbiter-academy` folder but leaves the Native terminal in its current folder. Enter the clone before running any Academy command.
+
+## Enter the cloned repository
 
 {{action:home-enter-clone}}
 

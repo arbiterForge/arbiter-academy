@@ -23,7 +23,7 @@
             "title": "Prepare the numbered local attempt",
             "actor": "learner",
             "surface": null,
-            "instruction": "In a native terminal outside the checkout, run Prepare with the absolute learner repository path. Record the printed branch and prepared commit before entering the checkout.",
+            "instruction": "In a native terminal outside the checkout, replace every literal <learner-repository> in the selected command with the absolute path to the fork clone you used for P01. It is a placeholder, not a directory you can paste literally. Then run Prepare and record the printed branch and prepared commit before entering that checkout.",
             "rationale": "Prepare establishes the verifier-owned local topology before learner work begins.",
             "resources": [],
             "variants": [
@@ -33,7 +33,7 @@
                     "operating_system": "windows",
                     "host": "none",
                     "language": "powershell",
-                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P02-commit-review-pr",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -42,7 +42,7 @@
                     "operating_system": "macos",
                     "host": "none",
                     "language": "sh",
-                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -51,7 +51,7 @@
                     "operating_system": "linux",
                     "host": "none",
                     "language": "sh",
-                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P02-commit-review-pr",
                     "copy": true
                 }
             ],
@@ -190,11 +190,39 @@
             "sequence": 6,
             "title": "Declare the review boundary",
             "actor": "learner",
-            "surface": "active-harness",
-            "instruction": "Tell the active agent to inspect only the staged tests/test_cli.py and workshop_queue/cli.py change. Decide whether its findings are cleared before asking for a commit.",
+            "surface": null,
+            "instruction": "Paste the reviewed request into your selected active harness. It asks the agent to inspect only the staged two-path change and stop with findings; you decide whether findings are cleared before asking for a commit.",
             "rationale": "The learner owns the review decision; Academy does not authenticate it as human approval.",
             "resources": [],
-            "variants": [],
+            "variants": [
+                {
+                    "id": "claude",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "claude-code",
+                    "language": "text",
+                    "command": "Review only the staged change in tests/test_cli.py and workshop_queue/cli.py. Show the staged path list, inspect the staged diff for the prepared exercise boundary, and report concrete findings or state that none remain. Do not stage, commit, push, change files, or declare the review cleared; stop for my decision.",
+                    "copy": true
+                },
+                {
+                    "id": "codex",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "codex",
+                    "language": "text",
+                    "command": "Review only the staged change in tests/test_cli.py and workshop_queue/cli.py. Show the staged path list, inspect the staged diff for the prepared exercise boundary, and report concrete findings or state that none remain. Do not stage, commit, push, change files, or declare the review cleared; stop for my decision.",
+                    "copy": true
+                },
+                {
+                    "id": "pi",
+                    "surface": "harness",
+                    "operating_system": "all",
+                    "host": "pi",
+                    "language": "text",
+                    "command": "Review only the staged change in tests/test_cli.py and workshop_queue/cli.py. Show the staged path list, inspect the staged diff for the prepared exercise boundary, and report concrete findings or state that none remain. Do not stage, commit, push, change files, or declare the review cleared; stop for my decision.",
+                    "copy": true
+                }
+            ],
             "expected_result": "You have a bounded review request and a conscious cleared or not-cleared decision.",
             "recovery": "If findings remain, correct only the exercise change and review again. Do not declare it cleared early.",
             "evidence": "The later receipt records only your cleared declaration."
@@ -359,7 +387,7 @@
                     "operating_system": "windows",
                     "host": "none",
                     "language": "powershell",
-                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path record P02-commit-review-pr --review-declared-cleared",
+                    "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path record P02-commit-review-pr --review-declared-cleared",
                     "copy": true
                 },
                 {
@@ -368,7 +396,7 @@
                     "operating_system": "macos",
                     "host": "none",
                     "language": "sh",
-                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
                     "copy": true
                 },
                 {
@@ -377,7 +405,7 @@
                     "operating_system": "linux",
                     "host": "none",
                     "language": "sh",
-                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
+                    "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" record P02-commit-review-pr --review-declared-cleared",
                     "copy": true
                 }
             ],
@@ -536,7 +564,7 @@
                     "operating_system": "windows",
                     "host": "none",
                     "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P02-commit-review-pr",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -545,7 +573,7 @@
                     "operating_system": "macos",
                     "host": "none",
                     "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -554,7 +582,7 @@
                     "operating_system": "linux",
                     "host": "none",
                     "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P02-commit-review-pr",
                     "copy": true
                 }
             ],
@@ -578,7 +606,7 @@
                     "operating_system": "windows",
                     "host": "none",
                     "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P02-commit-review-pr",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -587,7 +615,7 @@
                     "operating_system": "macos",
                     "host": "none",
                     "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
                     "copy": true
                 },
                 {
@@ -596,7 +624,7 @@
                     "operating_system": "linux",
                     "host": "none",
                     "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P02-commit-review-pr",
                     "copy": true
                 }
             ],

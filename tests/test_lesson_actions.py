@@ -179,6 +179,7 @@ U06_HEADINGS = (
     "Recover or continue",
 )
 P08_ACTION_IDS = (
+    "P08-return-to-main",
     "P08-prepare",
     "P08-inventory-native",
     "P08-inventory-harness-shell",
@@ -484,8 +485,22 @@ class LessonActionTests(unittest.TestCase):
         self.assertTrue(all(variant.language == "codearbiter" for variant in draft.variants))
         self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
         self.assertIn("writes no file", draft.expected_result)
+        model_review = by_id["P07-review-model"]
+        self.assertIn("advisory analysis", model_review.recovery)
+        self.assertNotIn("revise only the report", model_review.recovery)
         writer = by_id["P07-write-binding"]
         self.assertIn("learner-owned Academy evidence", writer.instruction)
+        self.assertEqual(writer.actor, "learner")
+        self.assertEqual(
+            tuple((variant.host, variant.language, variant.command) for variant in writer.variants),
+            (
+                ("claude-code", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
+                ("codex", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
+                ("pi", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
+            ),
+        )
+        self.assertIn("Stage only that report", writer.variants[0].command)
+        self.assertIn("stop for my review", writer.variants[0].command)
         self.assertIn("does not prove", writer.evidence or "")
 
         commit = by_id["P07-commit-report"]
@@ -502,7 +517,7 @@ class LessonActionTests(unittest.TestCase):
         manifest = load_action_manifest(root, P08_DOCUMENT_ID)
 
         self.assertEqual(tuple(action.id for action in manifest.actions), P08_ACTION_IDS)
-        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 15)))
+        self.assertEqual(tuple(action.sequence for action in manifest.actions), tuple(range(1, 16)))
         for action in manifest.actions:
             with self.subTest(action=action.id):
                 self.assertTrue(action.instruction)
@@ -511,6 +526,12 @@ class LessonActionTests(unittest.TestCase):
                 self.assertIsNotNone(action.evidence)
 
         actions = {action.id: action for action in manifest.actions}
+        handoff = actions["P08-return-to-main"]
+        self.assertEqual((handoff.actor, handoff.surface), ("learner", None))
+        self.assertTrue(all("git switch main\ngit status --short" == variant.command for variant in handoff.variants))
+        self.assertIn("completed P07 attempt", handoff.expected_result)
+        self.assertIn("Do not force", handoff.recovery)
+        self.assertLess(P08_ACTION_IDS.index("P08-return-to-main"), P08_ACTION_IDS.index("P08-prepare"))
         self.assertEqual(actions["P08-run-standup"].actor, "agent")
         self.assertIn("git fetch", actions["P08-run-standup"].instruction)
         self.assertIn("--ff-only pull", actions["P08-run-standup"].instruction)
@@ -521,7 +542,22 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(post_inventory.variants[0].surface, "native-terminal")
         self.assertIn("post-fetch", actions["P08-request-report-draft"].instruction)
         self.assertEqual(actions["P08-request-report-draft"].actor, "learner")
-        self.assertEqual(actions["P08-review-report"].surface, "active-harness")
+        report_review = actions["P08-review-report"]
+        self.assertEqual((report_review.actor, report_review.surface), ("learner", None))
+        self.assertEqual(tuple(variant.host for variant in report_review.variants), ("claude-code", "codex", "pi"))
+        self.assertTrue(
+            all(
+                variant.surface == "harness"
+                and variant.language == "text"
+                and variant.copy
+                and "five refs" in variant.command
+                and "three worktrees" in variant.command
+                and "git for-each-ref" in variant.command
+                and "git worktree list --porcelain" in variant.command
+                and "Do not change files" in variant.command
+                for variant in report_review.variants
+            )
+        )
         stage_report = actions["P08-stage-report"]
         self.assertEqual(stage_report.actor, "learner")
         self.assertEqual(
@@ -721,10 +757,19 @@ class LessonActionTests(unittest.TestCase):
                 ),
             ),
         )
-        for action_id in ("P04-review-draft", "P04-select-reject"):
+        for action_id, required_terms in (
+            ("P04-assess-provenance", ("candidate-set.json", "2026-07-31", "Do not use live registry or CVE data")),
+            ("P04-compare-stdlib", ("datetime.strptime", "SMARTS", "Do not change files")),
+            ("P04-review-draft", ("P04-dependency-review.md", "2026-07-31", "Do not change files")),
+            ("P04-select-reject", ("Decision: reject", "datetime.strptime", "Do not change files")),
+        ):
             action = by_id[action_id]
             with self.subTest(action=action_id):
-                self.assertEqual((action.actor, action.surface, action.variants), ("learner", "active-harness", ()))
+                self.assertEqual((action.actor, action.surface), ("learner", None))
+                self.assertEqual(tuple(variant.host for variant in action.variants), ("claude-code", "codex", "pi"))
+                self.assertTrue(all(variant.surface == "harness" and variant.language == "text" for variant in action.variants))
+                self.assertTrue(all(variant.copy for variant in action.variants))
+                self.assertTrue(all(term in variant.command for variant in action.variants for term in required_terms))
         self.assertEqual(by_id["P04-commit-review"].actor, "agent")
         no_install = by_id["P04-confirm-no-install"]
         self.assertIn("pyproject.toml", no_install.expected_result)
@@ -1058,6 +1103,11 @@ class LessonActionTests(unittest.TestCase):
                     )
                 )
 
+        prepare = by_id["P03-prepare"]
+        self.assertIn("not a directory you can paste literally", prepare.instruction)
+        self.assertIn("fork clone you used for P01", prepare.instruction)
+        self.assertTrue(all("<learner-repository>" in variant.command for variant in prepare.variants))
+
         choice = by_id["P03-request-decision-analysis"]
         self.assertEqual(choice.actor, "learner")
         self.assertEqual(
@@ -1100,8 +1150,16 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(by_id["P06-apply-correction"].actor, "agent")
         self.assertEqual(by_id["P06-write-handoff"].actor, "learner")
         self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
-        self.assertEqual(by_id["P06-review-correction-boundary"].surface, "active-harness")
-        self.assertEqual(by_id["P06-review-handoff-boundary"].surface, "active-harness")
+        for action_id, required_terms in (
+            ("P06-review-correction-boundary", ("git diff --cached --name-only", "git diff --cached", "docs/preserved-note.md", "Do not change files")),
+            ("P06-review-handoff-boundary", ("git diff --cached --name-only", "git diff --cached", "P06-recovery.json", "Do not change files")),
+        ):
+            action = by_id[action_id]
+            with self.subTest(action=action_id):
+                self.assertEqual((action.actor, action.surface), ("learner", None))
+                self.assertEqual(tuple(variant.host for variant in action.variants), ("claude-code", "codex", "pi"))
+                self.assertTrue(all(variant.surface == "harness" and variant.language == "text" and variant.copy for variant in action.variants))
+                self.assertTrue(all(term in variant.command for variant in action.variants for term in required_terms))
 
         audit = by_id["P06-run-context-audit"]
         self.assertEqual(
@@ -1210,9 +1268,9 @@ class LessonActionTests(unittest.TestCase):
                 self.assertEqual(action.actor, "learner")
                 self.assertIsNone(action.surface)
                 self.assertEqual(tuple((variant.operating_system, variant.command) for variant in action.variants), (
-                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
-                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
-                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
+                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
                 ))
 
         expected_agent_commands = {
@@ -1261,7 +1319,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("prepare F03-work-the-board", commands)
         self.assertIn("check F03-work-the-board", commands)
         self.assertIn("reset F03-work-the-board", commands)
-        self.assertIn("preview-0.29", commands)
+        self.assertIn("preview-0.30", commands)
         self.assertIn("From the clean retained F03 attempt branch", by_id["F03-reset-retry"].instruction)
         self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
 
@@ -1288,6 +1346,50 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("staged", review_copy)
         self.assertIn("[~]", review_copy)
         self.assertIn("one commit", review_copy)
+        review = by_id["F03-review-co-commit-boundary"]
+        self.assertEqual((review.actor, review.surface), ("learner", None))
+        self.assertEqual(
+            tuple(
+                (
+                    variant.surface,
+                    variant.operating_system,
+                    variant.host,
+                    variant.language,
+                    variant.command,
+                    variant.copy,
+                )
+                for variant in review.variants
+            ),
+            (
+                (
+                    "native-terminal",
+                    "windows",
+                    "none",
+                    "powershell",
+                    "git diff --staged --name-only\ngit diff --staged",
+                    True,
+                ),
+                (
+                    "native-terminal",
+                    "macos",
+                    "none",
+                    "sh",
+                    "git diff --staged --name-only\ngit diff --staged",
+                    True,
+                ),
+                (
+                    "native-terminal",
+                    "linux",
+                    "none",
+                    "sh",
+                    "git diff --staged --name-only\ngit diff --staged",
+                    True,
+                ),
+            ),
+        )
+        self.assertIn("only after both", review.instruction)
+        self.assertIn("exactly .codearbiter/open-tasks.md and docs/ticket-list-contract.md", review.expected_result)
+        self.assertIn("both inspections", review.recovery)
 
         finish_copy = "\n".join(
             part
@@ -2160,6 +2262,18 @@ class LessonActionTests(unittest.TestCase):
         self.assertNotIn("cannot complete", boundary.expected_result)
         guide = (Path(__file__).parents[1] / "academy/tracks/practitioner/P02-commit-review-pr.md").read_text(encoding="utf-8")
         self.assertNotIn("Native Windows cannot complete", guide)
+        prepare = by_id["P02-prepare"]
+        self.assertIn("not a directory you can paste literally", prepare.instruction)
+        self.assertIn("fork clone you used for P01", prepare.instruction)
+        self.assertTrue(all("<learner-repository>" in variant.command for variant in prepare.variants))
+        review_request = by_id["P02-request-review"]
+        self.assertEqual(
+            tuple((variant.host, variant.language) for variant in review_request.variants),
+            (("claude-code", "text"), ("codex", "text"), ("pi", "text")),
+        )
+        self.assertTrue(all("tests/test_cli.py" in variant.command for variant in review_request.variants))
+        self.assertTrue(all("workshop_queue/cli.py" in variant.command for variant in review_request.variants))
+        self.assertTrue(all("Do not stage, commit, push" in variant.command for variant in review_request.variants))
         staged_work = by_id["P02-stage-work"]
         self.assertEqual(staged_work.sequence, 5)
         self.assertEqual(staged_work.actor, "learner")
@@ -2543,7 +2657,6 @@ class U03LessonActionTests(unittest.TestCase):
 
         for action_id in (
             "U03-read-boundary",
-            "U03-review-sealed-brief",
             "U03-review-refactor",
             "U03-review-chore",
             "U03-review-release",
@@ -2553,6 +2666,27 @@ class U03LessonActionTests(unittest.TestCase):
                     (actions[action_id].actor, actions[action_id].surface),
                     ("learner", "active-harness"),
                 )
+
+        sealed_brief = actions["U03-review-sealed-brief"]
+        self.assertEqual((sealed_brief.actor, sealed_brief.surface), ("learner", None))
+        self.assertEqual(
+            {variant.surface for variant in sealed_brief.variants},
+            {"native-terminal", "harness"},
+        )
+        self.assertTrue(
+            all(
+                "training_scenarios/U03-refactor-chore-release.json" in variant.command
+                for variant in sealed_brief.variants
+            )
+        )
+        self.assertIn("refactor.scope", sealed_brief.instruction)
+        self.assertIn("chore.approved_readme_fact", sealed_brief.instruction)
+        self.assertTrue(
+            any(
+                variant.host == "codex" and variant.command.startswith("! ")
+                for variant in sealed_brief.variants
+            )
+        )
 
         boundary = actions["U03-read-boundary"]
         self.assertIn("does not prove", boundary.evidence or "")

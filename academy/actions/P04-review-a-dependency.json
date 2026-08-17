@@ -19,7 +19,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P04-review-a-dependency",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare P04-review-a-dependency",
           "copy": true
         },
         {
@@ -28,7 +28,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
           "copy": true
         },
         {
@@ -37,7 +37,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare P04-review-a-dependency",
           "copy": true
         }
       ],
@@ -274,11 +274,15 @@
       "sequence": 8,
       "title": "Assess frozen provenance limits",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Ask the active agent to explain candidate provenance and supply-chain signals, then compare its answer with the files you read. Treat maintenance and vulnerability statements as the frozen 2026-07-31 snapshot, never live registry or CVE truth.",
+      "surface": null,
+      "instruction": "Use the selected copyable request to obtain a bounded reading of the frozen candidate evidence, then compare it with the files you read. Treat maintenance and vulnerability statements as the 2026-07-31 snapshot, never live registry or CVE truth.",
       "rationale": "The learner reviews the time boundary, not an agent summary.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id": "claude-code", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Review only academy/candidates/P04-review-a-dependency/candidate-set.json, the two supplied wheels, and their bundled license files. Explain the candidate provenance and supply-chain signals that those frozen files support, separating archive facts from the 2026-07-31 maintenance/vulnerability snapshot. Do not use live registry or CVE data, change files, stage, or commit; stop for my comparison.", "copy": true},
+        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Review only academy/candidates/P04-review-a-dependency/candidate-set.json, the two supplied wheels, and their bundled license files. Explain the candidate provenance and supply-chain signals that those frozen files support, separating archive facts from the 2026-07-31 maintenance/vulnerability snapshot. Do not use live registry or CVE data, change files, stage, or commit; stop for my comparison.", "copy": true},
+        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Review only academy/candidates/P04-review-a-dependency/candidate-set.json, the two supplied wheels, and their bundled license files. Explain the candidate provenance and supply-chain signals that those frozen files support, separating archive facts from the 2026-07-31 maintenance/vulnerability snapshot. Do not use live registry or CVE data, change files, stage, or commit; stop for my comparison.", "copy": true}
+      ],
       "expected_result": "You can distinguish archive evidence from time-bounded maintenance and vulnerability observations.",
       "recovery": "Do not add a live claim without inspectable source evidence.",
       "evidence": "Your decision remains limited to supplied evidence and its review date."
@@ -288,11 +292,15 @@
       "sequence": 9,
       "title": "Compare the bounded standard-library alternative",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Ask the agent to compare finite-format datetime.strptime parsing with the two-wheel closure across every SMARTS lens. Require length limits, explicit formats, deterministic defaults, and fail-closed trailing content.",
+      "surface": null,
+      "instruction": "Use the selected copyable request to compare the bounded standard-library alternative against the frozen two-wheel closure, then decide whether its stated limits fit this exercise.",
       "rationale": "The capability need is smaller than the package surface.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id": "claude-code", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Compare finite-format datetime.strptime parsing with the frozen two-wheel closure across every SMARTS lens. Address length limits, explicit formats, deterministic defaults, and fail-closed trailing content. Do not change files, stage, commit, select a decision, or make safety claims beyond the supplied evidence; stop for my decision.", "copy": true},
+        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Compare finite-format datetime.strptime parsing with the frozen two-wheel closure across every SMARTS lens. Address length limits, explicit formats, deterministic defaults, and fail-closed trailing content. Do not change files, stage, commit, select a decision, or make safety claims beyond the supplied evidence; stop for my decision.", "copy": true},
+        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Compare finite-format datetime.strptime parsing with the frozen two-wheel closure across every SMARTS lens. Address length limits, explicit formats, deterministic defaults, and fail-closed trailing content. Do not change files, stage, commit, select a decision, or make safety claims beyond the supplied evidence; stop for my decision.", "copy": true}
+      ],
       "expected_result": "You can explain why bounded datetime.strptime is sufficient for this finite-format exercise.",
       "recovery": "If requirements broaden beyond finite formats, stop and record a separate decision.",
       "evidence": "The rejection is a capability comparison, not an unsupported safety assertion."
@@ -404,11 +412,15 @@
       "sequence": 12,
       "title": "Review the drafted evidence",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Read the draft with the active agent and compare it with the candidate-set, hashes, and licenses. Confirm it labels the 2026-07-31 snapshot and not live registry or CVE truth.",
+      "surface": null,
+      "instruction": "Use the selected copyable request to review the learner-owned draft against the prepared candidate evidence before deciding whether it needs correction.",
       "rationale": "A formatted report is not a learner decision.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id": "claude-code", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Review only .codearbiter/reports/academy/P04-dependency-review.md against academy/candidates/P04-review-a-dependency/candidate-set.json, the recorded hashes, and bundled licenses. Identify unsupported claims and verify that the report labels the 2026-07-31 snapshot rather than live registry or CVE truth. Do not change files, stage, commit, or choose the decision; stop for my review.", "copy": true},
+        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Review only .codearbiter/reports/academy/P04-dependency-review.md against academy/candidates/P04-review-a-dependency/candidate-set.json, the recorded hashes, and bundled licenses. Identify unsupported claims and verify that the report labels the 2026-07-31 snapshot rather than live registry or CVE truth. Do not change files, stage, commit, or choose the decision; stop for my review.", "copy": true},
+        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Review only .codearbiter/reports/academy/P04-dependency-review.md against academy/candidates/P04-review-a-dependency/candidate-set.json, the recorded hashes, and bundled licenses. Identify unsupported claims and verify that the report labels the 2026-07-31 snapshot rather than live registry or CVE truth. Do not change files, stage, commit, or choose the decision; stop for my review.", "copy": true}
+      ],
       "expected_result": "You can identify candidate, closure, no-install policy, bounded alternative, and SMARTS comparison.",
       "recovery": "Ask the agent to correct any claim unsupported by prepared files before you choose.",
       "evidence": "The final report reflects reviewed local evidence."
@@ -418,11 +430,15 @@
       "sequence": 13,
       "title": "Select the rejection decision",
       "actor": "learner",
-      "surface": "active-harness",
-      "instruction": "Tell the agent you select the rejection path: bounded datetime.strptime for finite formats and Decision: reject. Do not ask the agent to select for you.",
+      "surface": null,
+      "instruction": "After you personally choose the rejection path, use the selected copyable request to record only that choice in the learner-owned report.",
       "rationale": "The learner owns the tradeoff; the agent records it.",
       "resources": [],
-      "variants": [],
+      "variants": [
+        {"id": "claude-code", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "I choose bounded datetime.strptime for the supplied finite formats and Decision: reject. Update only .codearbiter/reports/academy/P04-dependency-review.md to record that learner decision and its reviewed rationale. Do not change files outside that report, stage, commit, install, or make the choice for me; stop for my review.", "copy": true},
+        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "I choose bounded datetime.strptime for the supplied finite formats and Decision: reject. Update only .codearbiter/reports/academy/P04-dependency-review.md to record that learner decision and its reviewed rationale. Do not change files outside that report, stage, commit, install, or make the choice for me; stop for my review.", "copy": true},
+        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "I choose bounded datetime.strptime for the supplied finite formats and Decision: reject. Update only .codearbiter/reports/academy/P04-dependency-review.md to record that learner decision and its reviewed rationale. Do not change files outside that report, stage, commit, install, or make the choice for me; stop for my review.", "copy": true}
+      ],
       "expected_result": "The report says the bounded standard-library alternative is selected and ends with Decision: reject.",
       "recovery": "If the formats are not finite and bounded, stop. That is a new requirement decision.",
       "evidence": "The report preserves the decision and rationale, but not an authenticated account of who chose it."
@@ -578,7 +594,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P04-review-a-dependency",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check P04-review-a-dependency",
           "copy": true
         },
         {
@@ -587,7 +603,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
           "copy": true
         },
         {
@@ -596,7 +612,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check P04-review-a-dependency",
           "copy": true
         }
       ],
@@ -620,7 +636,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P04-review-a-dependency",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset P04-review-a-dependency",
           "copy": true
         },
         {
@@ -629,7 +645,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
           "copy": true
         },
         {
@@ -638,7 +654,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset P04-review-a-dependency",
           "copy": true
         }
       ],

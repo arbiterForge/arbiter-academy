@@ -15,7 +15,7 @@ next_lab: F02-orient-to-state
 
 ## Know before you begin
 
-**No prior Academy lesson is required.** Complete [Academy Home setup steps 1-5](../../index.html)
+**No prior Academy lesson is required.** Complete [five Academy Home setup steps](../../index.html#complete-these-five-setup-steps-before-f01)
 before Prepare. New here? Stop on this page until you have created
 your personal GitHub fork, cloned that fork, installed Academy, [chosen and installed your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/), and run Home Doctor in the clone.
 An expected missing `upstream` finding proceeds to F01; this lesson repairs that boundary.

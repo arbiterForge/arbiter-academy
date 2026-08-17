@@ -23,6 +23,7 @@ class U07CapstoneContractTests(unittest.TestCase):
         self.assertEqual(
             action_ids,
             (
+                "U07-return-to-main",
                 "U07-prepare",
                 "U07-run-feature",
                 "U07-open-pr",
@@ -31,8 +32,13 @@ class U07CapstoneContractTests(unittest.TestCase):
             ),
         )
         by_id = {action.id: action for action in manifest.actions}
+        preflight = by_id["U07-return-to-main"]
+        self.assertEqual(preflight.actor, "learner")
+        self.assertTrue(all("git switch main" in variant.command and "git status --short" in variant.command for variant in preflight.variants))
+        self.assertIn("preserve", preflight.recovery.casefold())
         self.assertIn("existing resolution behavior", by_id["U07-prepare"].expected_result)
         self.assertIn("add the missing resolution regression", by_id["U07-run-feature"].instruction.casefold())
+        self.assertIn("mini-spec and criteria", by_id["U07-run-feature"].instruction.casefold())
         self.assertIn("small lane", by_id["U07-run-feature"].expected_result.casefold())
         self.assertIn("triage.log", by_id["U07-run-feature"].evidence)
         self.assertEqual(
@@ -71,6 +77,7 @@ class U07CapstoneContractTests(unittest.TestCase):
         self.assertIn("small lane", guide.casefold())
         self.assertIn("triage.log", guide)
         self.assertIn("capstone in the public Academy course", guide)
+        self.assertIn("{{action:U07-return-to-main}}", guide)
         self.assertNotIn("private source material", guide)
         self.assertNotIn("not as a Preview route", guide)
         self.assertNotIn("this draft", guide)

@@ -407,7 +407,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 "pi": "/ca-task start academy.docs.0001\n/skill:ca-task start academy.docs.0001",
             },
         )
-        self.assertIn("Preview 0.29", body)
+        self.assertIn("Preview 0.30", body)
         self.assertIn("$ca-chore docs", body)
         self.assertIn("academy.docs.0001", body)
         self.assertIn("clean retained F03 attempt branch", body)

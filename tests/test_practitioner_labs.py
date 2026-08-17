@@ -159,7 +159,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     self.assertEqual(
                         tuple(actions),
                         (
-                            "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell",
+                            "P08-return-to-main", "P08-prepare", "P08-inventory-native", "P08-inventory-harness-shell",
                             "P08-run-standup", "P08-inventory-after-standup", "P08-request-report-draft", "P08-review-report",
                             "P08-stage-report", "P08-review-commit-boundary", "P08-run-commit-gate",
                             "P08-confirm-clean", "P08-check", "P08-return-base", "P08-reset-retry",
@@ -211,7 +211,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.29")
+                    self.assertEqual(release.release, "preview-0.30")
                     self.assertIn(lab.id, release.runnable_labs)
                     self.assertIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -760,7 +760,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
     def test_p04_cannot_be_public_before_p03_closes_its_prerequisite(self) -> None:
         """Catches P04 being promoted while its required P03 lesson remains absent."""
-        path = SOURCE / "academy/publication/preview-0.29.json"
+        path = SOURCE / "academy/publication/preview-0.30.json"
         candidate = json.loads(path.read_text(encoding="utf-8"))
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             candidate[field].remove("P03-record-an-adr")

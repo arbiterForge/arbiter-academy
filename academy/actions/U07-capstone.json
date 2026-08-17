@@ -4,8 +4,26 @@
   "document_id": "U07-capstone",
   "actions": [
     {
-      "id": "U07-prepare",
+      "id": "U07-return-to-main",
       "sequence": 1,
+      "title": "Return safely to the Academy base branch",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After completing U06, use a native terminal at the Academy clone root to return to main and confirm the checkout is clean before preparing U07. This preserves the completed U06 attempt branch.",
+      "rationale": "U07 Prepare creates its own numbered branch from main; it must not start from a previous lesson attempt.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\ngit status --short","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true}
+      ],
+      "expected_result": "HEAD is on main and git status --short prints nothing; the completed U06 attempt branch remains intact.",
+      "recovery": "If switching branches would overwrite or hide work, stop and preserve that work on its existing branch. Do not force-switch, reset, rebase, delete, or alter the earlier attempt. Next safe step: return only after the checkout is clean.",
+      "evidence": "The branch name and clean status establish the base-branch precondition for the U07 attempt."
+    },
+    {
+      "id": "U07-prepare",
+      "sequence": 2,
       "title": "Prepare the bounded feature attempt",
       "actor": "learner",
       "surface": null,
@@ -13,9 +31,9 @@
       "rationale": "The fixture makes the implementation boundary inspectable without replacing CodeArbiter's feature workflow.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U07-capstone","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true}
       ],
       "expected_result": "Academy prints academy/U07-capstone/ATTEMPT_NUMBER. The branch is clean and tests/test_service.py contains a passing case that shows the existing resolution behavior accepts a control character. The feature lane will add the missing resolution regression.",
       "recovery": "If Prepare names a dirty-worktree, branch, or remote problem, preserve the message and repair only that condition. Do not force-reset main or borrow another lesson's history.",
@@ -23,11 +41,11 @@
     },
     {
       "id": "U07-run-feature",
-      "sequence": 2,
+      "sequence": 3,
       "title": "Run the real feature lane",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the selected CodeArbiter harness at that clone, invoke the copied feature command. Review the proposed spec before approval. It must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
+      "instruction": "In the selected CodeArbiter harness at that clone, invoke the copied feature command. Review the proposed mini-spec and criteria before confirmation. They must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
       "rationale": "The real feature lane owns specification, planning, test-first execution, its commit gate, and the terminal decision.",
       "resources": [],
       "variants": [
@@ -42,7 +60,7 @@
     },
     {
       "id": "U07-open-pr",
-      "sequence": 3,
+      "sequence": 4,
       "title": "Choose Open a PR at the real terminal",
       "actor": "learner",
       "surface": "browser",
@@ -56,7 +74,7 @@
     },
     {
       "id": "U07-check",
-      "sequence": 4,
+      "sequence": 5,
       "title": "Check durable local evidence",
       "actor": "learner",
       "surface": null,
@@ -64,9 +82,9 @@
       "rationale": "Check independently verifies durable repository facts without claiming that a harness command, review, PR, CI run, or merge occurred.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U07-capstone","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true}
       ],
       "expected_result": "Check prints checkpoint U07-capstone: passed only when the prepared defect, feature documents, executable regression and repair, fork-safe remote, and clean worktree match the capstone boundary.",
       "recovery": "Read the failed predicate and correct the real branch boundary it identifies. Do not create a PR, review, CI, or approval receipt to influence Check.",
@@ -74,7 +92,7 @@
     },
     {
       "id": "U07-reset-retry",
-      "sequence": 5,
+      "sequence": 6,
       "title": "Preserve the branch before a retry",
       "actor": "learner",
       "surface": null,
@@ -82,9 +100,9 @@
       "rationale": "A preserved retry leaves the failed feature evidence inspectable and avoids rewriting history or deleting a real hosted branch.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.29\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.29/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true}
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U07-capstone","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.30/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true}
       ],
       "expected_result": "Academy preserves the old attempt on an academy/archive/U07-capstone timestamped branch and prints a clean next attempt branch.",
       "recovery": "If Reset refuses, preserve its output and current branch. Resolve only the stated repository condition. Never force-reset, rebase, delete the old attempt, or close a real PR to make the retry easier.",

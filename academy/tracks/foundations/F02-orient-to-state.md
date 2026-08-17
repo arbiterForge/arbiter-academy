@@ -8,7 +8,7 @@ prerequisites: F01-fork-clone-doctor
 estimated_minutes: 25
 scenario_command: arbiter-academy --repository . prepare F02-orient-to-state
 checkpoint_command: arbiter-academy --repository . check F02-orient-to-state
-next_lab: F04-fix-with-evidence
+next_lab: F03-work-the-board
 ---
 
 # F02 — Orient to live governance state
@@ -122,8 +122,9 @@ before Check and preserve that state for recovery.
 
 {{action:F02-reset-retry}}
 
-After Check passes, return to `main` and keep the completed attempt branch intact. Continue to F04
-only when it is published as a guided Academy lesson. An Academy lesson appears on the course home only after its guided rewrite; unpublished source exercises are not a substitute for the accepted course.
+After Check passes, return to `main` and keep the completed attempt branch intact. Continue with F03,
+then F04. An Academy lesson appears on the course home only after its guided rewrite; unpublished
+source exercises are not a substitute for the accepted course.
 
 ## Understand the mechanism
 
