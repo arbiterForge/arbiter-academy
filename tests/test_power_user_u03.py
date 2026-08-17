@@ -73,8 +73,15 @@ class PrivateU03CheckpointTests(unittest.TestCase):
             "lab_id": "U03-refactor-chore-release",
             "operation": "refactor_chore_release",
             "starting_condition": "first-release",
-            "refactor": {"code_path": self._CODE, "test_path": self._TEST},
-            "chore": {"path": self._CHORE},
+            "refactor": {
+                "code_path": self._CODE,
+                "test_path": self._TEST,
+                "scope": "Preserve ticket-read behavior while clarifying its storage boundary.",
+            },
+            "chore": {
+                "path": self._CHORE,
+                "approved_readme_fact": "Ticket reads preserve their established storage boundary.",
+            },
             "release": {
                 "target": self._TARGET,
                 "version": self._VERSION,

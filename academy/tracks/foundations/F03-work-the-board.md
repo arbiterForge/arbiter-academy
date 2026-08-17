@@ -97,6 +97,12 @@ commit and a document-only commit both fail the boundary.
 
 {{action:F03-reset-retry}}
 
+When F03 Check passes and you are continuing rather than retrying, return to clean `main` before
+opening F04. This preserves the completed F03 branch as evidence while satisfying F04 Prepare's
+base-branch requirement.
+
+{{action:F03-return-to-main}}
+
 ## Understand the mechanism
 
 `$ca-task start` records that work began. `$ca-chore docs` performs the bounded non-behavioral change

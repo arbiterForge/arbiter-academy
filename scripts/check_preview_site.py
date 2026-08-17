@@ -214,6 +214,7 @@ _EXPECTED_ACTION_IDS = {
         "F03-confirm-clean",
         "F03-check",
         "F03-reset-retry",
+        "F03-return-to-main",
     ),
     Path("labs/F04-fix-with-evidence/index.html"): (
         "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix",

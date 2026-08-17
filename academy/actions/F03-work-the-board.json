@@ -198,6 +198,24 @@
       "expected_result": "Reset archives the failed prepared attempt before a new numbered attempt is created.",
       "recovery": "Keep work you need intact; do not force-reset, rebase, or delete the branch to imitate Academy attempt bookkeeping.",
       "evidence": "Reset preserves failed evidence before a new attempt begins."
+    },
+    {
+      "id": "F03-return-to-main",
+      "sequence": 12,
+      "title": "Return safely to main for F04",
+      "actor": "learner",
+      "surface": null,
+      "instruction": "After F03 Check passes and you do not need Reset, return to main before beginning F04. Keep the completed F03 attempt branch intact.",
+      "rationale": "F04 Prepare requires the Academy base branch, while the retained F03 branch remains the durable local evidence.",
+      "resources": [],
+      "variants": [
+        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\nif ($LASTEXITCODE -ne 0) { throw \"git switch main failed\" }\ngit status --short --branch","copy":true},
+        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main && git status --short --branch","copy":true},
+        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main && git status --short --branch","copy":true}
+      ],
+      "expected_result": "main is checked out with an empty status, and the completed numbered F03 attempt branch still exists locally.",
+      "recovery": "If status is not empty, do not force-switch, reset, rebase, delete, or hide the attempt. Preserve it and resolve the reported state before continuing.",
+      "evidence": "The terminal shows main and no worktree changes; the retained F03 branch remains available for its Check evidence."
     }
   ]
 }

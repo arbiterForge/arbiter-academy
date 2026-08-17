@@ -34,7 +34,14 @@ class U07CapstoneContractTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         preflight = by_id["U07-return-to-main"]
         self.assertEqual(preflight.actor, "learner")
-        self.assertTrue(all("git switch main" in variant.command and "git status --short" in variant.command for variant in preflight.variants))
+        for variant in preflight.variants:
+            with self.subTest(variant=variant.id):
+                self.assertIn("git switch main", variant.command)
+                self.assertIn("git status --short", variant.command)
+                self.assertLess(
+                    variant.command.index("git switch main"),
+                    variant.command.index("git status --short"),
+                )
         self.assertIn("preserve", preflight.recovery.casefold())
         self.assertIn("existing resolution behavior", by_id["U07-prepare"].expected_result)
         self.assertIn("add the missing resolution regression", by_id["U07-run-feature"].instruction.casefold())

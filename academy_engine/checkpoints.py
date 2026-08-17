@@ -3474,8 +3474,15 @@ def _u03_refactor_chore_release(root: Path, attempt: _Attempt, data: dict[str, o
         "lab_id": "U03-refactor-chore-release",
         "operation": "refactor_chore_release",
         "starting_condition": "first-release",
-        "refactor": {"code_path": code, "test_path": test},
-        "chore": {"path": chore},
+        "refactor": {
+            "code_path": code,
+            "test_path": test,
+            "scope": "Preserve ticket-read behavior while clarifying its storage boundary.",
+        },
+        "chore": {
+            "path": chore,
+            "approved_readme_fact": "Ticket reads preserve their established storage boundary.",
+        },
         "release": {"target": target, "version": version, "tag": tag, "changelog": changelog},
     }
     commits = _exact_three_commit_range(root, attempt.prepared, attempt.head)
