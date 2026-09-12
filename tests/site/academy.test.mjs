@@ -174,6 +174,7 @@ test("selectVariant filters with independent OS and host wildcards without delet
 
   selectVariant(root, "windows", null);
   assert.deepEqual(variants.map((variant) => variant.hidden), [false, false, false, true, false]);
+  assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
   selectVariant(root, null, "codex");
   assert.deepEqual(variants.map((variant) => variant.hidden), [false, false, false, false, true]);
   assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
