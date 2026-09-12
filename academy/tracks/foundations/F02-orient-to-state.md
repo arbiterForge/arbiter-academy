@@ -18,11 +18,11 @@ next_lab: F03-work-the-board
 Complete F01 first and begin from the same arbiter-academy fork and clone. Before Prepare, switch
 to `main` and confirm the clone is clean. Keep two surfaces open at the repository root: a native
 terminal for installed Academy and shell commands, and your Claude Code, Codex, or Pi harness for
-CodeArbiter commands and learner approvals.
+codeArbiter commands and learner approvals.
 
 This page labels every command with its actor and surface. A native-terminal command is entered
 directly in PowerShell or your shell and therefore has no `!`. A harness shell command begins with
-exactly one `!`. A CodeArbiter command is handled by the active harness and never begins with `!`.
+exactly one `!`. A codeArbiter command is handled by the active harness and never begins with `!`.
 You do not need to know how to construct JSON, calculate a digest, or choose a Git commit boundary
 before starting; the actions below provide those exact steps.
 
@@ -31,7 +31,7 @@ before starting; the actions below provide those exact steps.
 You will read the live repository state from its tracked source, follow the source links, and bind
 one four-field orientation report to the exact context bytes you inspected. The evidence report
 contains only `schema_version`, `context_path`, `context_sha256`, and `stage`. You will stage only
-that report, approve only that boundary, let CodeArbiter commit it, and pass the external Academy
+that report, approve only that boundary, let codeArbiter commit it, and pass the external Academy
 Check with no uncommitted work.
 
 The status screen helps you navigate. It is not the evidence source. The tracked

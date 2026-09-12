@@ -38,7 +38,7 @@
     },
     {
       "id": "F04-start-fix", "sequence": 4, "title": "Open the governed fix lane", "actor": "agent", "surface": null,
-      "instruction": "In the selected CodeArbiter harness, paste the copied fix command into the harness prompt and send it. It is not a shell command and never begins with !. The agent opens the governed fix lane before changing production code.",
+      "instruction": "In the selected codeArbiter harness, paste the copied fix command into the harness prompt and send it. It is not a shell command and never begins with !. The agent opens the governed fix lane before changing production code.",
       "rationale": "The fix lane records the defect boundary and keeps the upcoming work under the repository's rules.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:fix \"Reject control characters in a claimant label\"","copy":true},
@@ -105,7 +105,7 @@
     },
     {
       "id": "F04-commit-regression", "sequence": 10, "title": "Commit the red regression", "actor": "agent", "surface": null,
-      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the CodeArbiter commit gate; do not use git commit.",
+      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the codeArbiter commit gate; do not use git commit.",
       "rationale": "The governed commit makes the failing regression durable history before the repair exists.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
@@ -113,7 +113,7 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
-      "expected_result": "CodeArbiter creates one learner commit after Prepare containing only tests/test_service.py.", "recovery": "If the gate blocks, preserve the finding. Do not direct-commit, amend another attempt, or add workshop_queue/service.py to this commit.", "evidence": "The first immutable learner commit contains the red regression only."
+      "expected_result": "codeArbiter creates one learner commit after Prepare containing only tests/test_service.py.", "recovery": "If the gate blocks, preserve the finding. Do not direct-commit, amend another attempt, or add workshop_queue/service.py to this commit.", "evidence": "The first immutable learner commit contains the red regression only."
     },
     {
       "id": "F04-prove-red-commit", "sequence": 11, "title": "Prove the first commit is still red", "actor": "learner", "surface": null,
@@ -183,7 +183,7 @@
     },
     {
       "id": "F04-commit-repair", "sequence": 17, "title": "Commit the production repair", "actor": "agent", "surface": null,
-      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the CodeArbiter commit gate; do not use git commit.",
+      "instruction": "After the learner approves the boundary, paste the copied commit command into the selected harness prompt and send it. It is not a shell command. The agent runs the codeArbiter commit gate; do not use git commit.",
       "rationale": "The second governed commit preserves the repair separately from the red regression.", "resources": [],
       "variants": [
         {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
@@ -191,7 +191,7 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
-      "expected_result": "CodeArbiter creates one later learner commit containing only workshop_queue/service.py.", "recovery": "If the gate blocks, preserve the finding. Do not amend the red regression, direct-commit, or add tests/test_service.py to this repair commit.", "evidence": "The second immutable learner commit contains the production repair only."
+      "expected_result": "codeArbiter creates one later learner commit containing only workshop_queue/service.py.", "recovery": "If the gate blocks, preserve the finding. Do not amend the red regression, direct-commit, or add tests/test_service.py to this repair commit.", "evidence": "The second immutable learner commit contains the production repair only."
     },
     {
       "id": "F04-inspect-history", "sequence": 18, "title": "Inspect the exact two-commit proof", "actor": "learner", "surface": null,

@@ -18,7 +18,7 @@ next_lab: F04-fix-with-evidence
 Preview 0.30 publishes F03 as a runnable Foundation lesson. Complete [F02 — Orient to live governance
 state](../F02-orient-to-state/index.html) first, then begin from a clean numbered attempt with
 `academy.docs.0001` queued and `docs/ticket-list-contract.md` seeded. Keep a native terminal and one
-active CodeArbiter host at that same repository. Agent commands do not run in the shell.
+active codeArbiter host at that same repository. Agent commands do not run in the shell.
 
 ## What you will prove
 

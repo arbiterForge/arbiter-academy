@@ -3,7 +3,7 @@ id: U04-initialize-projects
 track: power-user
 order: 4
 title: Initialize a greenfield and a brownfield project
-outcome: Compare the sanctioned project routes, commit each child through CodeArbiter, and bind both committed repositories with a canonical report.
+outcome: Compare the sanctioned project routes, commit each child through codeArbiter, and bind both committed repositories with a canonical report.
 prerequisites: U03-refactor-chore-release
 estimated_minutes: 55
 scenario_command: {{action:U04-prepare-attempt}}
@@ -17,7 +17,7 @@ next_lab: U05-debug-spike-conflict
 
 U04 is a guided Preview 0.30 lesson. It prepares two separate child repositories beneath the Academy
 attempt root. The Academy root controls the attempt and stores the final binding report; it is not a
-CodeArbiter project for this lesson.
+codeArbiter project for this lesson.
 
 {{action:U04-confirm-private-boundary}}
 
@@ -26,7 +26,7 @@ CodeArbiter project for this lesson.
 U04 keeps the Academy root as the attempt controller and final-report repository. Do not initialize a
 child project in the Academy root. Host-native commands act on
 the folder visible in that host. A terminal `cd` does not switch it, and neither native-terminal nor
-CodeArbiter commands use `!`.
+codeArbiter commands use `!`.
 
 Greenfield will use `ca-init`, then `ca-decompose`, which generates the three exact reconciliation
 inputs under `.codearbiter/plans/`. After learner review, greenfield alone will use `ca-reconcile`,
@@ -145,7 +145,7 @@ history to make status look clean.
 ## Understand the mechanism
 
 The action manifest preserves actor, surface, timing, expected result, evidence, recovery, and next
-safe step. Its verifier reads real CodeArbiter layout from committed
+safe step. Its verifier reads real codeArbiter layout from committed
 child heads: decompose plans live under `.codearbiter/plans/`; context-creation documents remain in
 their real root locations. The canonical writer and Check use the same byte renderer, so the report
 that you inspect is the report Check verifies.

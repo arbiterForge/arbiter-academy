@@ -17,8 +17,8 @@
       "evidence": "The numbered branch records the exact starting context for this attempt."
     },
     {
-      "id": "F02-run-status", "sequence": 2, "title": "Ask CodeArbiter for live status", "actor": "agent", "surface": null,
-      "instruction": "In your active CodeArbiter harness, ask the agent to invoke Status using the command for that host. These are CodeArbiter commands, not shell commands, so they never begin with an exclamation mark.",
+      "id": "F02-run-status", "sequence": 2, "title": "Ask codeArbiter for live status", "actor": "agent", "surface": null,
+      "instruction": "In your active codeArbiter harness, ask the agent to invoke Status using the command for that host. These are codeArbiter commands, not shell commands, so they never begin with an exclamation mark.",
       "rationale": "Status is the entry point to the repository-owned governance state you will verify against source files.", "resources": [],
       "variants": [
         {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:status","copy":true},
@@ -54,7 +54,7 @@
     },
     {
       "id": "F02-follow-context-links", "sequence": 4, "title": "Follow every governing link", "actor": "learner", "surface": null,
-      "instruction": "Paste the matching prompt into the active CodeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
+      "instruction": "Paste the matching prompt into the active codeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
       "rationale": "CONTEXT.md is a map; the linked artifacts contain the active requirements, work, decisions, and verification commands.", "resources": [],
       "variants": [
         {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Open each file in order, then give this four-item orientation report: the queued task ID, both ADR decisions, the verification command, and the local-only data boundary. Read these files in order: .codearbiter/specs/ticket-assignment.md, .codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, .codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, .codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, and .codearbiter/open-questions.md.","copy":true},
@@ -137,8 +137,8 @@
     },
     {
       "id": "F02-review-commit-boundary", "sequence": 9, "title": "Review the one-file commit boundary", "actor": "learner", "surface": null,
-      "instruction": "Paste the matching prompt into the active CodeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
-      "rationale": "The learner approves the exact staged change before CodeArbiter creates durable evidence.", "resources": [],
+      "instruction": "Paste the matching prompt into the active codeArbiter harness. This is a request to your agent, not a terminal command; it never begins with an exclamation mark.",
+      "rationale": "The learner approves the exact staged change before codeArbiter creates durable evidence.", "resources": [],
       "variants": [
         {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff contains exactly schema_version, context_path, context_sha256, and stage.","copy":true},
         {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"text","command":"Show the staged path list and staged diff. Do not commit. Report whether the staged path list is exactly .codearbiter/reports/academy/F02-orientation.json and whether the diff contains exactly schema_version, context_path, context_sha256, and stage.","copy":true},
@@ -149,8 +149,8 @@
       "evidence": "Your approval is bounded to the orientation report rather than the whole worktree."
     },
     {
-      "id": "F02-run-commit-gate", "sequence": 10, "title": "Let the agent commit through CodeArbiter", "actor": "agent", "surface": null,
-      "instruction": "After the learner approves the staged boundary, invoke the host-native CodeArbiter commit gate. Do not use a shell exclamation mark and do not replace this with git commit.",
+      "id": "F02-run-commit-gate", "sequence": 10, "title": "Let the agent commit through codeArbiter", "actor": "agent", "surface": null,
+      "instruction": "After the learner approves the staged boundary, invoke the host-native codeArbiter commit gate. Do not use a shell exclamation mark and do not replace this with git commit.",
       "rationale": "The commit gate verifies and records the approved evidence boundary.", "resources": [],
       "variants": [
         {"id":"claude-code","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:commit","copy":true},
@@ -158,7 +158,7 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-commit","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-commit","copy":true}
       ],
-      "expected_result": "CodeArbiter creates one learner commit whose only changed path is .codearbiter/reports/academy/F02-orientation.json.",
+      "expected_result": "codeArbiter creates one learner commit whose only changed path is .codearbiter/reports/academy/F02-orientation.json.",
       "recovery": "If the gate blocks, preserve the finding and correct that boundary. Do not bypass it, commit directly, amend a different attempt, or add another file.",
       "evidence": "The attempt branch now contains one reconstructable orientation commit."
     },

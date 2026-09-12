@@ -28,7 +28,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "From a clean main branch at the Academy clone root, run Prepare in a native terminal. Academy creates the numbered attempt branch and seeds one known control-character defect. Stay on that branch for the capstone.",
-      "rationale": "The fixture makes the implementation boundary inspectable without replacing CodeArbiter's feature workflow.",
+      "rationale": "The fixture makes the implementation boundary inspectable without replacing codeArbiter's feature workflow.",
       "resources": [],
       "variants": [
         {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.30\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U07-capstone","copy":true},
@@ -45,7 +45,7 @@
       "title": "Run the real feature lane",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the selected CodeArbiter harness at that clone, invoke the copied feature command. Review the proposed mini-spec and criteria before confirmation. They must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
+      "instruction": "In the selected codeArbiter harness at that clone, invoke the copied feature command. Review the proposed mini-spec and criteria before confirmation. They must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
       "rationale": "The real feature lane owns specification, planning, test-first execution, its commit gate, and the terminal decision.",
       "resources": [],
       "variants": [
@@ -54,7 +54,7 @@
         {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-feature \"Reject control characters in ticket resolutions\"","copy":true},
         {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-feature \"Reject control characters in ticket resolutions\"","copy":true}
       ],
-      "expected_result": "For this bounded two-file change, CodeArbiter uses its small lane and appends the classification to .codearbiter/triage.log, then changes the focused regression and service behavior, completes its own commit gate, and presents its feature-branch terminal. It does not invent full-lane spec or plan files.",
+      "expected_result": "For this bounded two-file change, codeArbiter uses its small lane and appends the classification to .codearbiter/triage.log, then changes the focused regression and service behavior, completes its own commit gate, and presents its feature-branch terminal. It does not invent full-lane spec or plan files.",
       "recovery": "If the proposed scope expands or the feature lane reports a stop, do not hand-write substitute artifacts. Preserve the branch and resolve the named real gate, or use Reset for a new attempt.",
       "evidence": "The committed .codearbiter/triage.log small-lane entry, focused test, implementation, and clean worktree are local evidence that Academy Check can inspect."
     },
@@ -64,7 +64,7 @@
       "title": "Choose Open a PR at the real terminal",
       "actor": "learner",
       "surface": "browser",
-      "instruction": "When CodeArbiter presents the feature terminal, choose Open a PR. Do not merge or discard. In your fork's browser view, confirm that the feature branch has an open pull request to its default target.",
+      "instruction": "When codeArbiter presents the feature terminal, choose Open a PR. Do not merge or discard. In your fork's browser view, confirm that the feature branch has an open pull request to its default target.",
       "rationale": "A feature ends through a real hosted PR. Academy must not imitate that event with a local file.",
       "resources": [],
       "variants": [],

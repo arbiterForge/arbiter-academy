@@ -19,7 +19,7 @@ P02 is a public guided and runnable lesson in this preview. Its action cards use
 
 The installed receipt recorder creates the same contained, untracked local receipt on Windows, macOS, and Linux. Select your operating system on each native-terminal card.
 
-This is an offline-local pull-request rehearsal. Academy temporarily routes the checkout to two verifier-owned local bare repositories. It does not open GitHub, contact a hosted reviewer, run hosted CI, or prove that a person reviewed the change. The Browser explains the boundary; the native terminal and active CodeArbiter harness perform the lesson work.
+This is an offline-local pull-request rehearsal. Academy temporarily routes the checkout to two verifier-owned local bare repositories. It does not open GitHub, contact a hosted reviewer, run hosted CI, or prove that a person reviewed the change. The Browser explains the boundary; the native terminal and active codeArbiter harness perform the lesson work.
 
 {{action:P02-read-boundary}}
 
@@ -41,7 +41,7 @@ Prepare from outside the checkout, preserve the printed branch, prepared commit,
 
 ## Practice
 
-You decide whether the local review is cleared. Ask the active agent to inspect the staged two-file boundary and run the CodeArbiter review gate. A cleared learner declaration is evidence you supply; it is not authenticated human approval.
+You decide whether the local review is cleared. Ask the active agent to inspect the staged two-file boundary and run the codeArbiter review gate. A cleared learner declaration is evidence you supply; it is not authenticated human approval.
 
 {{action:P02-request-review}}
 

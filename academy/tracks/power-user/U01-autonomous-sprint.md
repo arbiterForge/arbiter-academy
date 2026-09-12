@@ -20,9 +20,9 @@ Academy CLI prepares the reviewed attempt, checks its local evidence boundary, a
 non-destructive numbered retry when recovery is needed.
 
 Complete P08 first. In your personal fork, keep the repository root open in a native terminal and
-the selected CodeArbiter harness. A command typed directly in a native terminal
+the selected codeArbiter harness. A command typed directly in a native terminal
 has no `!`. A shell command passed through a harness begins with exactly one `!`. A host-native
-CodeArbiter command belongs to the harness and has no `!`. The action cards label each case.
+codeArbiter command belongs to the harness and has no `!`. The action cards label each case.
 
 {{action:U01-confirm-fork-boundary}}
 

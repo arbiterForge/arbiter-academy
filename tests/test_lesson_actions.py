@@ -2710,7 +2710,7 @@ class U03LessonActionTests(unittest.TestCase):
         for limitation in (
             "behavioral parity",
             "human approval",
-            "CodeArbiter command execution",
+            "codeArbiter command execution",
             "tag push",
             "publication",
         ):

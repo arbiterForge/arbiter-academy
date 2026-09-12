@@ -24,9 +24,9 @@ how to make a GitHub fork, clone it locally, install Academy, or distinguish you
 your harness, use the prerequisite action below and return after F01.
 
 Keep two places open: a native terminal at the learner clone for Academy and Git commands, and one
-CodeArbiter harness at the same clone for agent and CodeArbiter actions. A native-terminal command
+codeArbiter harness at the same clone for agent and codeArbiter actions. A native-terminal command
 is entered directly and never starts with `!`. A shell command sent through a harness starts with
-exactly one `!`; this lesson does not ask you to type one. CodeArbiter commands and agent messages
+exactly one `!`; this lesson does not ask you to type one. codeArbiter commands and agent messages
 belong in the harness and never begin with `!`.
 
 {{action:P05-prerequisite}}

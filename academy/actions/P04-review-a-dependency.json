@@ -308,13 +308,13 @@
     {
       "id": "P04-ask-context",
       "sequence": 10,
-      "title": "Ask CodeArbiter the bounded no-install context question",
+      "title": "Ask codeArbiter the bounded no-install context question",
       "actor": "learner",
       "surface": null,
       "instruction": "Ask the read-only $ca-btw route one bounded project-context question about whether the prepared finite legacy date-format requirement has an existing local policy constraint. Its answer is conversational context only: it cannot inspect the supplied wheel artifacts, decide adoption, or write the Academy report.",
       "rationale": "The real no-adoption route can clarify repository context without pretending to review an artifact or create evidence.",
       "resources": [],
-      "expected_result": "CodeArbiter answers from the repository's existing context without changing a file, routing work, installing a package, or deciding the rejection.",
+      "expected_result": "codeArbiter answers from the repository's existing context without changing a file, routing work, installing a package, or deciding the rejection.",
       "recovery": "If the answer is absent from repository context, record that limit and continue from the supplied frozen artifacts; do not turn $ca-btw into package research or a write request.",
       "evidence": "The harness answer is ephemeral context, not a report or proof of the dependency assessment.",
       "variants": [
@@ -363,7 +363,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "No dependency is proposed for adoption, so do not invoke $ca-add-dep: its real lane reviews an intended dependency and can present an install for confirmation. After inspecting the frozen evidence, ask the active agent to draft learner-owned Academy evidence; it is not $ca-add-dep output and it must not install, change dependency files, or choose for you.",
-      "rationale": "The no-install decision is based on frozen local evidence. The separate Academy record makes that decision reviewable without pretending a CodeArbiter command wrote it.",
+      "rationale": "The no-install decision is based on frozen local evidence. The separate Academy record makes that decision reviewable without pretending a codeArbiter command wrote it.",
       "resources": [],
       "variants": [
         {
@@ -405,7 +405,7 @@
       ],
       "expected_result": "The agent drafts learner-owned Academy evidence at .codearbiter/reports/academy/P04-dependency-review.md with candidate, closure, license, provenance, supply-chain, compatibility, alternatives, and SMARTS evidence; dependency state is unchanged.",
       "recovery": "If the agent changes dependency state or claims this is $ca-add-dep output, stop and Reset.",
-      "evidence": "The draft is an Academy record of reviewed local evidence, not proof that a CodeArbiter dependency command ran."
+      "evidence": "The draft is an Academy record of reviewed local evidence, not proof that a codeArbiter dependency command ran."
     },
     {
       "id": "P04-review-draft",

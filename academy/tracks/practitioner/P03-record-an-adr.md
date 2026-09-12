@@ -17,7 +17,7 @@ next_lab: P04-review-a-dependency
 
 P03 is a public guided and runnable lesson in this preview. It uses the shared Markdown-plus-action-manifest renderer and the installed Academy Prepare, Check, and Reset commands. The immutable scenario, checkpoint, and action contract ID stay `P03-record-an-adr`.
 
-Keep a native terminal at the clone root and one CodeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native CodeArbiter commands and harness requests never begin with `!` either.
+Keep a native terminal at the clone root and one codeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native codeArbiter commands and harness requests never begin with `!` either.
 
 Academy accepts a prepared author name only when it has 1–80 Unicode scalar values. It captures `%an`, never echo a rejected name, and keeps no learner email. No learner email is retained, rendered, or required. The prepared decision log is an append-only byte prefix.
 

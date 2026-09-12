@@ -117,6 +117,53 @@ test("mobile standalone course links keep a usable touch target", async ({ page 
   }
 });
 
+test("every command variant remains visible without JavaScript", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({
+    ...testInfo.project.use,
+    javaScriptEnabled: false,
+  });
+  const page = await context.newPage();
+  const routes = [
+    "/index.html",
+    "/recovery/index.html",
+    ...[
+      "F01-fork-clone-doctor",
+      "F02-orient-to-state",
+      "F03-work-the-board",
+      "F04-fix-with-evidence",
+      "P01-feature-through-plan",
+      "P02-commit-review-pr",
+      "P03-record-an-adr",
+      "P04-review-a-dependency",
+      "P05-checkpoint-remediation",
+      "P06-context-drift-recovery",
+      "P07-threat-model",
+      "P08-repository-hygiene",
+      "U01-autonomous-sprint",
+      "U02-override-audit-metrics",
+      "U03-refactor-chore-release",
+      "U04-initialize-projects",
+      "U05-debug-spike-conflict",
+      "U06-preview-and-advanced-surfaces",
+      "U07-capstone",
+    ].map((lesson) => `/labs/${lesson}/index.html`),
+  ];
+  let variantCount = 0;
+
+  for (const route of routes) {
+    await page.goto(route, { waitUntil: "load" });
+    const variants = page.locator(".command-variant");
+    const count = await variants.count();
+    variantCount += count;
+    for (let index = 0; index < count; index += 1) {
+      await expect(variants.nth(index), `${route} variant ${index + 1}`).toBeVisible();
+    }
+  }
+
+  expect(variantCount).toBe(989);
+  await context.close();
+});
+
 for (const [lesson, name] of [
   ["F01-fork-clone-doctor", "f01"],
   ["F02-orient-to-state", "f02"],

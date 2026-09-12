@@ -18,7 +18,7 @@
         }
       ],
       "variants": [],
-      "expected_result": "You have a clean Academy learner clone, an installed Academy CLI from F01, and a CodeArbiter harness pointed at that clone.",
+      "expected_result": "You have a clean Academy learner clone, an installed Academy CLI from F01, and a codeArbiter harness pointed at that clone.",
       "recovery": "If you are unsure which repository is your fork or where Academy is installed, stop and repeat F01. Do not run P05 in an unfamiliar checkout.",
       "evidence": "This is a prerequisite check by you. Academy Check does not authenticate how you created the fork or clone."
     },
@@ -112,7 +112,7 @@
       "title": "Ask the agent to read the prepared boundary",
       "actor": "agent",
       "surface": null,
-      "instruction": "In your active CodeArbiter harness, send the copied message. This is a request to the agent, not a shell command, so it never begins with !. The agent reads; it must not edit or commit in this step.",
+      "instruction": "In your active codeArbiter harness, send the copied message. This is a request to the agent, not a shell command, so it never begins with !. The agent reads; it must not edit or commit in this step.",
       "rationale": "The learner and agent need the domain, persistence, reporting, decision, and scenario boundaries before deciding what the finding proves.",
       "resources": [],
       "variants": [
@@ -151,10 +151,10 @@
     {
       "id": "P05-surface-finding",
       "sequence": 5,
-      "title": "Ask CodeArbiter to surface the checkpoint finding",
+      "title": "Ask codeArbiter to surface the checkpoint finding",
       "actor": "agent",
       "surface": null,
-      "instruction": "In the selected harness, send the host-native checkpoint command. This is a CodeArbiter command, not a shell command, so it never begins with !.",
+      "instruction": "In the selected harness, send the host-native checkpoint command. This is a codeArbiter command, not a shell command, so it never begins with !.",
       "rationale": "The checkpoint lane frames the observed product defect before the repair lane begins.",
       "resources": [],
       "variants": [

@@ -42,7 +42,7 @@
     {
       "id": "F03-start-task",
       "sequence": 3,
-      "title": "Start the docs task through CodeArbiter",
+      "title": "Start the docs task through codeArbiter",
       "actor": "agent",
       "surface": null,
       "instruction": "In the prepared attempt, use the host-native task command to start academy.docs.0001. This is an agent command, not a shell command.",

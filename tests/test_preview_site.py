@@ -336,7 +336,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("You · Native terminal", html)
         self.assertIn("You · Codex harness", html)
         self.assertIn("Your agent · Codex harness", html)
-        self.assertIn("agent-owned CodeArbiter command", html)
+        self.assertIn("agent-owned codeArbiter command", html)
         for action_id, pi_fallback in (
             ("P08-run-standup", "/skill:ca-standup"),
             ("P08-run-commit-gate", "/skill:ca-commit"),
@@ -523,7 +523,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('data-copy-target="command-P06-prepare-windows"', html)
         self.assertIn('data-copy-target="command-P06-check-linux"', html)
         self.assertIn('data-action-id="P06-return-base"', html)
-        self.assertIn("CodeArbiter command", html)
+        self.assertIn("codeArbiter command", html)
         self.assertIn("Check does not prove that the host command ran", html)
         headings = re.findall(
             r"^## (.+)$",
@@ -981,7 +981,7 @@ class PreviewSiteTests(unittest.TestCase):
             'href="https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/"',
             home,
         )
-        self.assertIn("Choose and install your CodeArbiter host", home)
+        self.assertIn("Choose and install your codeArbiter host", home)
         self.assertIn("run Home Doctor", f01)
         self.assertIn("missing <code>upstream</code> finding proceeds to F01", f01)
         self.assertNotIn("passed Home Doctor", f01)
@@ -3431,7 +3431,7 @@ class U03PreviewContractTests(unittest.TestCase):
         for limitation in (
             "behavioral parity",
             "human approval",
-            "CodeArbiter command execution",
+            "codeArbiter command execution",
             "tag push",
             "publication",
         ):

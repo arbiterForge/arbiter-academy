@@ -19,10 +19,10 @@ P07 is a public guided and runnable Academy lesson in this preview. It is opt-in
 Start in the Academy clone that completed P06. Switch to `main`, then confirm `git status --short` has
 no output before Prepare.
 
-Keep a native terminal at the clone root and one CodeArbiter harness open at that same clone. Native
+Keep a native terminal at the clone root and one codeArbiter harness open at that same clone. Native
 terminal commands go directly into the terminal and never begin with `!`. Harness-shell commands,
 when a lesson uses them, begin with exactly one `!`. This lesson uses no harness-shell commands.
-CodeArbiter commands and agent messages are entered in the selected harness and never begin with `!`.
+codeArbiter commands and agent messages are entered in the selected harness and never begin with `!`.
 
 The bounded target is `academy_engine/paths.py`. It handles learner-controlled archive-member or
 overlay-destination input beneath the selected repository root. P07 checks containment or rejection

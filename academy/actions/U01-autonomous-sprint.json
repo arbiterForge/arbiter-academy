@@ -130,7 +130,7 @@
       "title": "Use the host-native sprint command on the prepared attempt",
       "actor": "agent",
       "surface": null,
-      "instruction": "On the prepared U01 attempt, run this CodeArbiter command in the selected harness. It is not a shell command, so it never begins with !. The real sprint lane requires explicit learner approval of both its proposed specification and its derived plan before autonomous work begins; it ends by pushing the learner fork branch and opening a pull request.",
+      "instruction": "On the prepared U01 attempt, run this codeArbiter command in the selected harness. It is not a shell command, so it never begins with !. The real sprint lane requires explicit learner approval of both its proposed specification and its derived plan before autonomous work begins; it ends by pushing the learner fork branch and opening a pull request.",
       "rationale": "An autonomous sprint may execute only after its specification and plan gates. It cannot self-authorize the scope of an Academy exercise or merge its own pull request.",
       "resources": [],
       "variants": [

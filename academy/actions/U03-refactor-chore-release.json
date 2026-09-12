@@ -15,7 +15,7 @@
       "variants": [],
       "expected_result": "You can name the exact local boundaries that Check can evaluate after Prepare.",
       "recovery": "If the boundary is unclear, stop before Prepare and reread this card. Next safe step: prepare the sealed U03 attempt.",
-      "evidence": "Check can observe repository bytes, commit topology, the declared release target, generated CHANGELOG section, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, CodeArbiter command execution, tag push, or publication."
+      "evidence": "Check can observe repository bytes, commit topology, the declared release target, generated CHANGELOG section, a clean worktree, and a local tag. It does not prove behavioral parity, human approval, codeArbiter command execution, tag push, or publication."
     },
     {
       "id": "U03-prepare",
@@ -79,7 +79,7 @@
       "title": "Start the host-native refactor route",
       "actor": "agent",
       "surface": null,
-      "instruction": "Invoke the host-native refactor route. Supply the exact sealed scope when the host asks for it. This is a CodeArbiter command, never a ! terminal passthrough command.",
+      "instruction": "Invoke the host-native refactor route. Supply the exact sealed scope when the host asks for it. This is a codeArbiter command, never a ! terminal passthrough command.",
       "rationale": "The refactor route should be bounded by the sealed U03 surface before the learner examines a change.",
       "resources": [],
       "variants": [
@@ -90,7 +90,7 @@
       ],
       "expected_result": "The host gathers the sealed scope before producing a proposed refactor boundary.",
       "recovery": "If the host requests a value that the sealed brief does not provide, stop. Do not supply a made-up scope. Next safe step: inspect the proposed refactor diff.",
-      "evidence": "This lesson does not treat the command text as proof of behavioral parity or CodeArbiter command execution."
+      "evidence": "This lesson does not treat the command text as proof of behavioral parity or codeArbiter command execution."
     },
     {
       "id": "U03-inspect-refactor",
@@ -148,7 +148,7 @@
       "title": "Commit the accepted refactor boundary",
       "actor": "agent",
       "surface": null,
-      "instruction": "After the learner reviews the staged boundary, invoke the host-native commit gate. It is a CodeArbiter command, never a ! terminal passthrough command.",
+      "instruction": "After the learner reviews the staged boundary, invoke the host-native commit gate. It is a codeArbiter command, never a ! terminal passthrough command.",
       "rationale": "Check expects the refactor commit before the docs-only commit.",
       "resources": [],
       "variants": [
@@ -250,7 +250,7 @@
       "title": "Start the host-native docs chore route",
       "actor": "agent",
       "surface": null,
-      "instruction": "Invoke the host-native docs chore route. Supply the exact approved README fact from the sealed brief when the host asks. This is a CodeArbiter command, never a ! terminal passthrough command.",
+      "instruction": "Invoke the host-native docs chore route. Supply the exact approved README fact from the sealed brief when the host asks. This is a codeArbiter command, never a ! terminal passthrough command.",
       "rationale": "The second change is a docs-only boundary, not a disguised implementation change.",
       "resources": [],
       "variants": [
@@ -319,7 +319,7 @@
       "title": "Commit the accepted docs-only boundary",
       "actor": "agent",
       "surface": null,
-      "instruction": "After the learner reviews the staged README boundary, invoke the host-native commit gate. It is a CodeArbiter command, never a ! terminal passthrough command.",
+      "instruction": "After the learner reviews the staged README boundary, invoke the host-native commit gate. It is a codeArbiter command, never a ! terminal passthrough command.",
       "rationale": "Check expects the docs-only commit after the refactor commit.",
       "resources": [],
       "variants": [
@@ -338,7 +338,7 @@
       "title": "Start the host-native release route",
       "actor": "agent",
       "surface": null,
-      "instruction": "Invoke the host-native release route. Supply the exact declared target academy-private-training. It first presents the derived 0.0.1 patch release for learner confirmation; only after that confirmation may it write and commit CHANGELOG.md and compose an annotated local tag. This is a CodeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not authorize a tag push or publication.",
+      "instruction": "Invoke the host-native release route. Supply the exact declared target academy-private-training. It first presents the derived 0.0.1 patch release for learner confirmation; only after that confirmation may it write and commit CHANGELOG.md and compose an annotated local tag. This is a codeArbiter command, never a ! terminal passthrough command. Do not invent a target and do not authorize a tag push or publication.",
       "rationale": "The route is a local evidence step in this lesson, not a promise of published software.",
       "resources": [],
       "variants": [

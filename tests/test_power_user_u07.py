@@ -76,7 +76,7 @@ class U07CapstoneContractTests(unittest.TestCase):
                 "## Understand the mechanism",
             ),
         )
-        self.assertIn("real CodeArbiter feature lane", guide)
+        self.assertIn("real codeArbiter feature lane", guide)
         self.assertIn("hosted pull request", guide)
         self.assertIn("does not prove that the feature command ran", guide)
         self.assertIn("existing resolution behavior", guide)

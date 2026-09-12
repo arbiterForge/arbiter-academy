@@ -9,12 +9,12 @@
       "title": "confirm project boundary",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Confirm that this is the Academy attempt root. U04 creates two child repositories under .academy/workspaces/; do not initialize CodeArbiter in the Academy root.",
+      "instruction": "Confirm that this is the Academy attempt root. U04 creates two child repositories under .academy/workspaces/; do not initialize codeArbiter in the Academy root.",
       "rationale": "It distinguishes the controller repository from the two child repositories before any tool writes state.",
       "resources": [],
       "variants": [],
       "expected_result": "You know the Academy root controls the attempt and the two child paths are .academy/workspaces/U04-greenfield and .academy/workspaces/U04-brownfield. Next safe step: prepare attempt.",
-      "recovery": "If you have already initialized CodeArbiter in the Academy root, preserve the status and stop; do not delete or rewrite a repository to hide the mistake.",
+      "recovery": "If you have already initialized codeArbiter in the Academy root, preserve the status and stop; do not delete or rewrite a repository to hide the mistake.",
       "evidence": "Preserve the Academy-root path and the two child paths; no child repository exists yet."
     },
     {
@@ -112,7 +112,7 @@
       "resources": [],
       "variants": [],
       "expected_result": "The host visibly names .academy/workspaces/U04-greenfield as its project root; merely changing a terminal directory is not sufficient. Next safe step: run greenfield init.",
-      "recovery": "If the host still shows the Academy root or U04-brownfield, do not invoke CodeArbiter; reopen U04-greenfield with Open Folder or the workspace switcher first.",
+      "recovery": "If the host still shows the Academy root or U04-brownfield, do not invoke codeArbiter; reopen U04-greenfield with Open Folder or the workspace switcher first.",
       "evidence": "Preserve the host's visible root label or breadcrumb naming U04-greenfield; Check can verify repository bytes later, but cannot prove which folder the host displayed."
     },
     {
@@ -619,7 +619,7 @@
       "resources": [],
       "variants": [],
       "expected_result": "The greenfield remains committed and clean while the host visibly names .academy/workspaces/U04-brownfield as its new project root. Next safe step: run brownfield init.",
-      "recovery": "If greenfield is dirty or the host displays any root other than U04-brownfield, stop; preserve both statuses and switch folders visibly before invoking CodeArbiter.",
+      "recovery": "If greenfield is dirty or the host displays any root other than U04-brownfield, stop; preserve both statuses and switch folders visibly before invoking codeArbiter.",
       "evidence": "Preserve the clean greenfield status and the host's visible U04-brownfield root label so the route transition is auditable."
     },
     {

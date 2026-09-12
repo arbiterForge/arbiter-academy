@@ -17,7 +17,7 @@ next_lab: F02-orient-to-state
 
 **No prior Academy lesson is required.** Complete [five Academy Home setup steps](../../index.html#complete-these-five-setup-steps-before-f01)
 before Prepare. New here? Stop on this page until you have created
-your personal GitHub fork, cloned that fork, installed Academy, [chosen and installed your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/), and run Home Doctor in the clone.
+your personal GitHub fork, cloned that fork, installed Academy, [chosen and installed your codeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/), and run Home Doctor in the clone.
 An expected missing `upstream` finding proceeds to F01; this lesson repairs that boundary.
 Those steps require Git 2.39 or newer, Python 3.11 or newer, and Claude Code, Codex, or Pi.
 
@@ -29,12 +29,12 @@ upstream, but this lesson makes pushing there fail locally.
 Begin on a clean `main`: `clean` means the repository has no staged or unstaged changes. Keep the
 Installed Academy commands available in a **Native terminal** for preparation, Doctor, Check, and Reset. Use that terminal for a
 command you run directly. When a command appears for your Claude Code, Codex, or Pi **harness**, its
-single leading `!` passes that shell command to the terminal. CodeArbiter commands never use `!`.
+single leading `!` passes that shell command to the terminal. codeArbiter commands never use `!`.
 
 ## What you will prove
 
 You will create one numbered attempt, make push routing safe, pass both Doctors, and commit only the
-bounded Doctor report through CodeArbiter. Then the externally installed Academy verifier will read
+bounded Doctor report through codeArbiter. Then the externally installed Academy verifier will read
 the committed report and current Git configuration before recording progress. It does not trust
 code imported from this learner checkout.
 

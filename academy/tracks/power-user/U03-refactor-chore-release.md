@@ -18,7 +18,7 @@ This guided lesson prepares a sealed local release exercise in your fork. It cre
 
 ## Know before you begin
 
-Read the boundary before running anything. U03 proves a local refactor, a docs chore, and the local release artifacts that the real CodeArbiter release lane creates.
+Read the boundary before running anything. U03 proves a local refactor, a docs chore, and the local release artifacts that the real codeArbiter release lane creates.
 
 {{action:U03-read-boundary}}
 
@@ -26,7 +26,7 @@ Read the boundary before running anything. U03 proves a local refactor, a docs c
 
 The contract is deliberately narrow. Check can observe a sealed refactor of `workshop_queue/store.py`, a later docs-only `README.md` commit, the generated `CHANGELOG.md` release commit, unchanged pre-existing `tests/test_store.py`, a clean worktree, and local annotated `academy-v0.0.1` at the attempt head. Its tag body reproduces the generated 0.0.1 changelog section followed by the matching `Released-at` date.
 
-It does not prove behavioral parity, human approval, CodeArbiter command execution, tag push, or publication.
+It does not prove behavioral parity, human approval, codeArbiter command execution, tag push, or publication.
 
 ## Prepare safely
 
@@ -98,4 +98,4 @@ Do not destroy a failed attempt to make it look clean. Preserve the state and us
 
 ## Understand the mechanism
 
-The guide and its action manifest are one shared renderer contract. Every command card names who acts and where. Native terminal commands never use `!`. CodeArbiter commands use the selected host directly. Check can compare repository state, but it cannot infer a learner's judgment or an external release event.
+The guide and its action manifest are one shared renderer contract. Every command card names who acts and where. Native terminal commands never use `!`. codeArbiter commands use the selected host directly. Check can compare repository state, but it cannot infer a learner's judgment or an external release event.

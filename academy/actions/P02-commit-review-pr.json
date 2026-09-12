@@ -233,7 +233,7 @@
             "title": "Let the agent run the review gate",
             "actor": "agent",
             "surface": null,
-            "instruction": "Use the host-native CodeArbiter review command after the learner asks for the bounded review. This is a harness command, never a shell command.",
+            "instruction": "Use the host-native codeArbiter review command after the learner asks for the bounded review. This is a harness command, never a shell command.",
             "rationale": "The review gate produces the agent-side review result without the learner imitating a terminal command.",
             "resources": [],
             "variants": [
@@ -284,7 +284,7 @@
             "title": "Let the agent commit the reviewed work",
             "actor": "agent",
             "surface": null,
-            "instruction": "After the learner approves the exact two staged paths and clears the review, invoke the host-native CodeArbiter commit gate.",
+            "instruction": "After the learner approves the exact two staged paths and clears the review, invoke the host-native codeArbiter commit gate.",
             "rationale": "The work commit remains separate from the later receipt-only commit.",
             "resources": [],
             "variants": [
@@ -461,7 +461,7 @@
             "title": "Let the agent commit the receipt",
             "actor": "agent",
             "surface": null,
-            "instruction": "After the learner approves the one staged receipt path, invoke the host-native CodeArbiter commit gate for the receipt-only commit.",
+            "instruction": "After the learner approves the one staged receipt path, invoke the host-native codeArbiter commit gate for the receipt-only commit.",
             "rationale": "A separate commit distinguishes reviewed work from the declaration about it.",
             "resources": [],
             "variants": [
