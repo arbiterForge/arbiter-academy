@@ -155,24 +155,29 @@ test("copyCommand reports a missing target without touching clipboard", async ()
 
 test("selectVariant filters with independent OS and host wildcards without deleting variants", () => {
   const variants = [
-    new FakeElement({ dataset: { os: "windows", host: "none" } }),
-    new FakeElement({ dataset: { os: "windows", host: "codex" } }),
-    new FakeElement({ dataset: { os: "all", host: "none" } }),
-    new FakeElement({ dataset: { os: "linux", host: "codex" } }),
-    new FakeElement({ dataset: { os: "windows", host: "pi" } }),
+    new FakeElement({ dataset: { os: "windows", host: "none" }, textContent: "native-windows" }),
+    new FakeElement({ dataset: { os: "windows", host: "codex" }, textContent: "$ca-status" }),
+    new FakeElement({ dataset: { os: "all", host: "none" }, textContent: "browser guidance" }),
+    new FakeElement({ dataset: { os: "linux", host: "codex" }, textContent: "$ca-checkpoint" }),
+    new FakeElement({ dataset: { os: "windows", host: "pi" }, textContent: "/skill:ca-status" }),
   ];
+  const commandBytes = variants.map((variant) => variant.textContent);
   const root = new FakeDocument({ variants });
   selectVariant(root, "windows", "codex");
   assert.deepEqual(variants.map((variant) => variant.hidden), [false, false, false, true, true]);
   assert.equal(root.variants.length, 5);
+  assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
 
   selectVariant(root, "linux", "codex");
   assert.deepEqual(variants.map((variant) => variant.hidden), [true, true, false, false, true]);
+  assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
 
   selectVariant(root, "windows", null);
   assert.deepEqual(variants.map((variant) => variant.hidden), [false, false, false, true, false]);
+  assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
   selectVariant(root, null, "codex");
   assert.deepEqual(variants.map((variant) => variant.hidden), [false, false, false, false, true]);
+  assert.deepEqual(variants.map((variant) => variant.textContent), commandBytes);
 });
 
 test("restorePreferences rejects incomplete, malformed, or unknown stored choices", () => {

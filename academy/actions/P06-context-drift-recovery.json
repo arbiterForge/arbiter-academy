@@ -27,7 +27,7 @@
       "title": "Have the agent expose the contradictory evidence",
       "actor": "agent",
       "surface": null,
-      "instruction": "In your selected CodeArbiter harness, ask the agent to read the prepared context, provenance, preserved note, current CLI source, and ADR-0005 without editing. The agent must show why the context is stale before you select a recovery route.",
+      "instruction": "In your selected codeArbiter harness, ask the agent to read the prepared context, provenance, preserved note, current CLI source, and ADR-0005 without editing. The agent must show why the context is stale before you select a recovery route.",
       "rationale": "The correction is justified by a tracked source contradiction, not by guessing that documentation is old.",
       "resources": [],
       "variants": [
@@ -45,7 +45,7 @@
       "title": "Run the host context audit",
       "actor": "agent",
       "surface": null,
-      "instruction": "Run this CodeArbiter command in the selected harness. It is a CodeArbiter command, not a shell command, so it never begins with !. Read the finding before choosing the route.",
+      "instruction": "Run this codeArbiter command in the selected harness. It is a codeArbiter command, not a shell command, so it never begins with !. Read the finding before choosing the route.",
       "rationale": "The host audit makes the available context-recovery routes visible before the scope is changed.",
       "resources": [],
       "variants": [
@@ -111,10 +111,10 @@
     {
       "id": "P06-commit-correction",
       "sequence": 7,
-      "title": "Commit the correction through CodeArbiter",
+      "title": "Commit the correction through codeArbiter",
       "actor": "agent",
       "surface": null,
-      "instruction": "After your staged-boundary review, run the CodeArbiter commit gate in the selected harness. This command never begins with !.",
+      "instruction": "After your staged-boundary review, run the codeArbiter commit gate in the selected harness. This command never begins with !.",
       "rationale": "The correction must become the first of exactly two linear commits after Prepare.",
       "resources": [],
       "variants": [
@@ -184,10 +184,10 @@
     {
       "id": "P06-commit-handoff",
       "sequence": 11,
-      "title": "Commit the handoff through CodeArbiter",
+      "title": "Commit the handoff through codeArbiter",
       "actor": "agent",
       "surface": null,
-      "instruction": "After your handoff review, run the CodeArbiter commit gate in the selected harness. This is the second and final learner commit for P06.",
+      "instruction": "After your handoff review, run the codeArbiter commit gate in the selected harness. This is the second and final learner commit for P06.",
       "rationale": "A dedicated evidence commit preserves the ordered distinction between correction and recovery record.",
       "resources": [],
       "variants": [

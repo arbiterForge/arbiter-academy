@@ -106,7 +106,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "After the learner sends one exact choice and explicitly approves drafting the ADR/log boundary, invoke the selected host-native ADR command. The agent drafts the record; it does not decide for the learner.",
-      "rationale": "The shared CodeArbiter ADR lane creates a structured record while preserving learner authority over the content.",
+      "rationale": "The shared codeArbiter ADR lane creates a structured record while preserving learner authority over the content.",
       "resources": [],
       "variants": [
         {"id": "claude", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "codearbiter", "command": "/ca:adr \"Choose the Workshop Queue summary-format boundary\"", "copy": true},

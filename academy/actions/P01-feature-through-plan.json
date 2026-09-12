@@ -24,10 +24,10 @@
     {
       "id": "P01-draft-spec",
       "sequence": 2,
-      "title": "Ask CodeArbiter to draft the specification",
+      "title": "Ask codeArbiter to draft the specification",
       "actor": "agent",
       "surface": null,
-      "instruction": "In your selected CodeArbiter harness, send the copied host-native feature command. It is a CodeArbiter command, not a shell command, so it never begins with !. The agent drafts the specification and stops for your review.",
+      "instruction": "In your selected codeArbiter harness, send the copied host-native feature command. It is a codeArbiter command, not a shell command, so it never begins with !. The agent drafts the specification and stops for your review.",
       "rationale": "The feature lane makes the observable contract explicit before work is planned or implemented.",
       "resources": [],
       "variants": [

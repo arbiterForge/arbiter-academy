@@ -663,11 +663,11 @@
     {
       "id": "F01-host-doctor",
       "sequence": 7,
-      "title": "Ask CodeArbiter to inspect the host boundary",
+      "title": "Ask codeArbiter to inspect the host boundary",
       "actor": "agent",
       "surface": null,
       "instruction": "Ask the agent in your active harness to run the host-native Doctor command. Pi users may use the fallback when direct dispatch is unavailable.",
-      "rationale": "Host Doctor confirms CodeArbiter activation and enforcement separately from Academy lesson evidence.",
+      "rationale": "Host Doctor confirms codeArbiter activation and enforcement separately from Academy lesson evidence.",
       "resources": [],
       "variants": [
         {
@@ -707,7 +707,7 @@
           "copy": true
         }
       ],
-      "expected_result": "Host Doctor reports that the active host owns its CodeArbiter commands and that repository enforcement is enabled.",
+      "expected_result": "Host Doctor reports that the active host owns its codeArbiter commands and that repository enforcement is enabled.",
       "recovery": "If Host Doctor reports an installation, ownership, or enforcement failure, stop. Repair that host boundary before generating or committing Academy evidence.",
       "evidence": "A passing Host Doctor is a prerequisite; it is not the Academy report or checkpoint."
     },
@@ -1005,7 +1005,7 @@
       "title": "Review and approve the proposed boundary",
       "actor": "learner",
       "surface": null,
-      "instruction": "Ask your agent to show the staged path and proposed CodeArbiter commit boundary. Confirm that only the F01 Doctor report is included, then supply any genuine approval the commit gate requests.",
+      "instruction": "Ask your agent to show the staged path and proposed codeArbiter commit boundary. Confirm that only the F01 Doctor report is included, then supply any genuine approval the commit gate requests.",
       "rationale": "The learner approves what will become durable evidence; the agent owns the governed commit operation.",
       "resources": [],
       "variants": [
@@ -1020,10 +1020,10 @@
     {
       "id": "F01-commit-report",
       "sequence": 12,
-      "title": "Let the agent commit through CodeArbiter",
+      "title": "Let the agent commit through codeArbiter",
       "actor": "agent",
       "surface": null,
-      "instruction": "Ask the agent in your active harness to invoke the host-native CodeArbiter commit gate. The learner does not run git commit for this evidence.",
+      "instruction": "Ask the agent in your active harness to invoke the host-native codeArbiter commit gate. The learner does not run git commit for this evidence.",
       "rationale": "The commit gate verifies and records the exact approved boundary.",
       "resources": [],
       "variants": [
@@ -1064,7 +1064,7 @@
           "copy": true
         }
       ],
-      "expected_result": "CodeArbiter creates one commit whose changed path is only .codearbiter/reports/academy/F01-doctor.json.",
+      "expected_result": "codeArbiter creates one commit whose changed path is only .codearbiter/reports/academy/F01-doctor.json.",
       "recovery": "If the gate blocks, preserve its finding and correct that boundary. Do not bypass the gate, run git commit directly, or commit when either Doctor failed.",
       "evidence": "The attempt branch now contains durable, governed learner evidence."
     },

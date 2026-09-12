@@ -3,7 +3,7 @@ id: U07-capstone
 track: power-user
 order: 7
 title: Complete a bounded feature capstone
-outcome: Use the real CodeArbiter feature lane to repair one known defect, preserve its local evidence, and open the resulting feature branch as a hosted pull request.
+outcome: Use the real codeArbiter feature lane to repair one known defect, preserve its local evidence, and open the resulting feature branch as a hosted pull request.
 prerequisites: U06-preview-and-advanced-surfaces
 estimated_minutes: 60
 scenario_command: {{action:U07-prepare}}
@@ -16,10 +16,10 @@ next_lab: none
 ## Know before you begin
 
 U07 is the capstone in the public Academy course. Start at your Academy fork and clone on `main` with
-an empty `git status --short`. Keep a native terminal at the clone root and one CodeArbiter harness
+an empty `git status --short`. Keep a native terminal at the clone root and one codeArbiter harness
 opened at the same repository.
 
-This capstone uses the real CodeArbiter feature lane. Its terminal offers a real hosted pull request.
+This capstone uses the real codeArbiter feature lane. Its terminal offers a real hosted pull request.
 Academy can inspect local Git state, but it cannot authenticate a harness invocation, browser event,
 hosted review, CI run, or merge.
 
@@ -47,7 +47,7 @@ another branch before the real feature terminal finishes.
 {{action:U07-run-feature}}
 
 Read the proposed mini-spec and criteria before you confirm them. Reject a draft that adds unrelated workflow,
-dependencies, data migration, or an unrelated public API. If CodeArbiter stops for a real decision,
+dependencies, data migration, or an unrelated public API. If codeArbiter stops for a real decision,
 answer that decision in the harness. Do not imitate the feature lane by creating an Academy-only spec,
 plan, review marker, or pull-request record.
 

@@ -3,7 +3,7 @@ id: U06-preview-and-advanced-surfaces
 track: power-user
 order: 6
 title: Preview a bounded change without turning advice into authority
-outcome: Produce a two-commit, read-only documentation preview packet and recognize when advanced CodeArbiter surfaces do not belong in a training exercise.
+outcome: Produce a two-commit, read-only documentation preview packet and recognize when advanced codeArbiter surfaces do not belong in a training exercise.
 prerequisites: U05-debug-spike-conflict
 estimated_minutes: 30
 scenario_command: {{action:U06-prepare-attempt}}
@@ -20,7 +20,7 @@ Reset commands from this page; do not substitute repository-local source executi
 
 The website is the course interface. Academy CLI is a setup, Check, and recovery helper when a
 lesson is released. A direct native-terminal command has no `!`; a shell command passed through a
-harness begins with exactly one `!`; a host-native CodeArbiter command belongs in the harness and
+harness begins with exactly one `!`; a host-native codeArbiter command belongs in the harness and
 has no `!`. Each rendered action card labels the surface and supplies a copy button.
 
 {{action:U06-confirm-public-boundary}}

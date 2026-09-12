@@ -23,7 +23,7 @@ between those transitions.
 
 Keep the repository root open in a native terminal and in your chosen harness. A native-terminal
 command is entered directly and has no `!`. A harness shell command begins with exactly one `!`.
-Harness text is a request you type to the agent, not a shell command. An agent-owned CodeArbiter
+Harness text is a request you type to the agent, not a shell command. An agent-owned codeArbiter
 command belongs to the harness and has no `!`. The action cards label each case.
 
 This lab authorizes observation, classification, a report draft, learner review, and a bounded

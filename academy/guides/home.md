@@ -2,7 +2,7 @@
 
 Arbiter Academy is a practice course for codeArbiter. You work in a real Git repository that belongs to you, so every lesson can produce real commits and evidence without sending changes to the official Academy repository.
 
-Before F01, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. [Choose and install your CodeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/) first, then return here to create your practice fork. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course. A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.
+Before F01, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. [Choose and install your codeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/) first, then return here to create your practice fork. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course. A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.
 
 ## Complete these five setup steps before F01
 

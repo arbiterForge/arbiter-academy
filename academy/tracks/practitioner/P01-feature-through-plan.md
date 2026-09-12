@@ -19,7 +19,7 @@ P01 is the first Practitioner lesson in this preview. It starts from the F04 rep
 
 Complete F04 and begin in the same Academy fork and clone. Before Prepare, switch to `main` and
 confirm that `git status --short` prints nothing. Keep a native terminal open at the clone root for
-Academy Prepare, Check, and Reset. Keep one CodeArbiter harness open at that same clone for the
+Academy Prepare, Check, and Reset. Keep one codeArbiter harness open at that same clone for the
 feature workflow.
 
 This lesson has two honest review paths. In **Solo practice**, you review the drafted specification
@@ -29,7 +29,7 @@ available, return to Solo practice. Neither path asks you to make up feedback or
 that pretends to prove another person approved the work.
 
 Commands shown as native-terminal actions are entered directly and never begin with `!`. A shell
-command shown for a harness begins with exactly one `!`. CodeArbiter commands and agent messages are
+command shown for a harness begins with exactly one `!`. codeArbiter commands and agent messages are
 entered in the selected harness and never begin with `!`.
 
 ## What you will prove

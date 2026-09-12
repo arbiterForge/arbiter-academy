@@ -19,7 +19,7 @@ P06 is a public guided and runnable Academy lesson in this preview. Its shared a
 
 Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
 your worktree is clean: `git status --short` should print nothing. Keep a native terminal open at
-the clone root for Academy Prepare, Check, and Reset. Keep one CodeArbiter harness open at that
+the clone root for Academy Prepare, Check, and Reset. Keep one codeArbiter harness open at that
 same clone for inspection, the context audit, and the two governed commits.
 
 This is a recovery lesson, not a cleanup lesson. The prepared scenario contains a stale
@@ -27,7 +27,7 @@ This is a recovery lesson, not a cleanup lesson. The prepared scenario contains 
 `docs/preserved-note.md`. You will prove that the note survived byte-for-byte. Never delete,
 recreate, normalize, or “tidy” it.
 
-Native-terminal commands are entered directly and never start with `!`. CodeArbiter commands and
+Native-terminal commands are entered directly and never start with `!`. codeArbiter commands and
 agent messages are entered in your selected harness and never start with `!`. Every action card
 names the actor and the surface so you do not have to infer where a command belongs.
 

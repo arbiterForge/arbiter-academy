@@ -17,10 +17,10 @@ next_lab: P01-feature-through-plan
 
 Complete F02 first, then start from a clean `main` branch in the same Academy clone.
 Keep two surfaces open at the clone root: a native terminal for Academy and shell commands, and your
-Claude Code, Codex, or Pi harness for messages to your agent and CodeArbiter commands.
+Claude Code, Codex, or Pi harness for messages to your agent and codeArbiter commands.
 
 This page names the surface for every action. Put a native-terminal command directly in PowerShell
-or your shell; it never starts with `!`. Put a learner prompt or CodeArbiter command in the selected
+or your shell; it never starts with `!`. Put a learner prompt or codeArbiter command in the selected
 harness; neither starts with `!`. The `!` prefix is only for a shell command deliberately sent
 through a harness, and this lesson does not use that route. Do not use `git commit` yourself: the
 agent runs the governed commit gate after you inspect and approve each boundary.
@@ -186,5 +186,5 @@ pass. The external verifier checks both snapshots, both path boundaries, and the
 worktree.
 
 The operations surface stays small on purpose. Academy prepares, checks, resets, and returns an
-attempt; the website teaches the decisions; CodeArbiter governs the agent work. Each part has one
+attempt; the website teaches the decisions; codeArbiter governs the agent work. Each part has one
 job, so a learner can tell which command belongs where and a reviewer can reproduce the result.
