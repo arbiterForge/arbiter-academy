@@ -1062,19 +1062,38 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("fast installer", guide)
         self.assertNotIn('$ErrorActionPreference = "Stop"', html)
         self.assertIn(
-            "fetches the canonical immutable release tag with Git, extracts the installer locally, then executes that local file",
+            "extracts the installer locally, verifies its reviewed SHA-256 digest, then executes that local file",
             html,
         )
         self.assertNotIn("Invoke-WebRequest -Uri $releaseUrl/install.ps1", html)
         self.assertNotIn("curl -fsSLo", html)
         self.assertIn('git -C $source fetch --depth 1 origin "refs/tags/$releaseTag"', install_commands["windows"])
         self.assertIn("FETCH_HEAD:install/install.ps1", install_commands["windows"])
+        self.assertIn(
+            '$expectedInstallerSha256 = "55a5901e13d58e0db54b5b34ebb80eebc562a762888737c63e9e6bb6edc37121"',
+            install_commands["windows"],
+        )
+        self.assertIn("Get-FileHash -LiteralPath $installer -Algorithm SHA256", install_commands["windows"])
+        self.assertIn("installer digest did not match Preview 0.31", install_commands["windows"])
+        self.assertLess(
+            install_commands["windows"].index("Get-FileHash"),
+            install_commands["windows"].index("& $installer"),
+        )
         self.assertIn("&amp; $installer", html)
         self.assertIn(
             'git -C "$workdir" fetch --depth 1 origin "refs/tags/$release_tag"',
             install_commands["macos"],
         )
         self.assertIn('FETCH_HEAD:install/install.sh', install_commands["macos"])
+        for operating_system in ("macos", "linux"):
+            command = install_commands[operating_system]
+            self.assertIn(
+                "expected_installer_sha256='5846fc117000fe162589203cc67d98fc1d19d513ab7a31df51d734c54223f21e'",
+                command,
+            )
+            self.assertIn('sha256sum "$workdir/install.sh"', command)
+            self.assertIn("installer digest did not match Preview 0.31", command)
+            self.assertLess(command.index("sha256sum"), command.index('sh "$workdir/install.sh"'))
         self.assertTrue(
             all(
                 "https://github.com/arbiterForge/arbiter-academy.git" in command
@@ -1096,7 +1115,7 @@ class PreviewSiteTests(unittest.TestCase):
             any(
                 token in command
                 for command in install_commands.values()
-                for token in ("Invoke-WebRequest", "curl ", "Get-FileHash", "shasum", "sha256sum")
+                for token in ("Invoke-WebRequest", "curl ", "shasum")
             )
         )
         for label in ("You \u00b7 Browser", "You \u00b7 Native terminal"):
@@ -1112,7 +1131,7 @@ class PreviewSiteTests(unittest.TestCase):
             html,
         )
         self.assertIn(
-            "The immutable release tag binds the installer you run",
+            "The pinned installer digest keeps a moved or replaced release tag from changing the code you execute",
             html,
         )
         for host in ("Claude Code", "Codex", "Pi"):

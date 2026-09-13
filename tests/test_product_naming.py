@@ -22,7 +22,7 @@ PROSE_FIELDS = (
     "evidence",
 )
 BASELINE_VARIANT_COUNT = 989
-BASELINE_VARIANT_SHA256 = "e9634fdbea496ae5da5d1edc860fcf6fb655bf304cee06a0e83cc16a2fbb8c0d"
+BASELINE_VARIANT_SHA256 = "5b48cae8d65c551fe4d0f54dab59f82e4f388168b20867299130abb0462b2619"
 
 
 def _markdown_prose(path: Path) -> str:
