@@ -1069,10 +1069,12 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("curl -fsSLo", html)
         self.assertIn('git -C $source fetch --depth 1 origin "refs/tags/$releaseTag"', install_commands["windows"])
         self.assertIn("FETCH_HEAD:install/install.ps1", install_commands["windows"])
+        self.assertIn("{{INSTALL_PS1_SHA256}}", install_commands["windows"])
         self.assertIn(
-            '$expectedInstallerSha256 = "55a5901e13d58e0db54b5b34ebb80eebc562a762888737c63e9e6bb6edc37121"',
-            install_commands["windows"],
+            (self.root / "install" / "install.ps1.sha256").read_text(encoding="ascii").split()[0],
+            html,
         )
+        self.assertNotIn("{{INSTALL_PS1_SHA256}}", html)
         self.assertIn("Get-FileHash -LiteralPath $installer -Algorithm SHA256", install_commands["windows"])
         self.assertIn("installer digest did not match Preview 0.31", install_commands["windows"])
         self.assertLess(
@@ -1087,13 +1089,15 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn('FETCH_HEAD:install/install.sh', install_commands["macos"])
         for operating_system in ("macos", "linux"):
             command = install_commands[operating_system]
-            self.assertIn(
-                "expected_installer_sha256='5846fc117000fe162589203cc67d98fc1d19d513ab7a31df51d734c54223f21e'",
-                command,
-            )
-            self.assertIn('sha256sum "$workdir/install.sh"', command)
+            self.assertIn("{{INSTALL_SH_SHA256}}", command)
+            self.assertIn("python3 -c 'import hashlib, pathlib, sys;", command)
             self.assertIn("installer digest did not match Preview 0.31", command)
-            self.assertLess(command.index("sha256sum"), command.index('sh "$workdir/install.sh"'))
+            self.assertLess(command.index("hashlib.sha256"), command.index('sh "$workdir/install.sh"'))
+        self.assertIn(
+            (self.root / "install" / "install.sh.sha256").read_text(encoding="ascii").split()[0],
+            html,
+        )
+        self.assertNotIn("{{INSTALL_SH_SHA256}}", html)
         self.assertTrue(
             all(
                 "https://github.com/arbiterForge/arbiter-academy.git" in command
@@ -1144,6 +1148,20 @@ class PreviewSiteTests(unittest.TestCase):
             "<strong>Course boundary.</strong>",
         ):
             self.assertIn(state, html)
+
+    def test_home_build_rejects_a_noncanonical_installer_checksum(self) -> None:
+        """Catches publication substituting an ambiguous bootstrap trust anchor."""
+        source = self._copy_public_source("bad-installer-checksum")
+        (source / "install" / "install.ps1.sha256").write_text(
+            f"{'a' * 64} install.ps1\n",
+            encoding="ascii",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "reviewed installer checksum is not canonical: install.ps1",
+        ):
+            build_preview_site(source, self.out, release_sha="1" * 40)
 
     def test_home_does_not_derive_public_copy_from_unpublished_lesson_metadata(self) -> None:
         """Catches an unpublished lesson changing the public Academy promise."""
@@ -2971,6 +2989,9 @@ class PreviewSiteTests(unittest.TestCase):
             )
         shutil.copytree(self.root / "academy" / "guides", academy / "guides")
         shutil.copytree(self.root / "academy" / "actions", academy / "actions")
+        (source / "install").mkdir()
+        for checksum in ("install.ps1.sha256", "install.sh.sha256"):
+            shutil.copy2(self.root / "install" / checksum, source / "install" / checksum)
         shutil.copytree(self.root / "site" / "templates", source / "site" / "templates")
         shutil.copytree(self.root / "site" / "assets", source / "site" / "assets")
         return source
