@@ -22,7 +22,7 @@ PROSE_FIELDS = (
     "evidence",
 )
 BASELINE_VARIANT_COUNT = 989
-BASELINE_VARIANT_SHA256 = "6e528abc8bb89b4026c794036823d2a5e31632bca83d11c82cfb3ede85d465f3"
+BASELINE_VARIANT_SHA256 = "18ba1a1a3eb422b3c5b84b8eaab2559c292316aeae057e7a6f6a90b3c0a2f404"
 
 
 def _markdown_prose(path: Path) -> str:
@@ -108,8 +108,18 @@ class ProductNamingAndCommandParityTests(unittest.TestCase):
             hashlib.sha256(canonical_variants).hexdigest(),
             "command variants changed without an intentional reviewed baseline update",
         )
+        installer_digests = {
+            "{{INSTALL_PS1_SHA256}}": (ROOT / "install" / "install.ps1.sha256")
+            .read_text(encoding="ascii")
+            .split()[0],
+            "{{INSTALL_SH_SHA256}}": (ROOT / "install" / "install.sh.sha256")
+            .read_text(encoding="ascii")
+            .split()[0],
+        }
         expected_commands = {
             command_id: variant["command"]
+            .replace("{{INSTALL_PS1_SHA256}}", installer_digests["{{INSTALL_PS1_SHA256}}"])
+            .replace("{{INSTALL_SH_SHA256}}", installer_digests["{{INSTALL_SH_SHA256}}"])
             for command_id, variant in expected_variants.items()
         }
         expected_metadata = {

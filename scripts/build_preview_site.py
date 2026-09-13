@@ -9,6 +9,7 @@ import re
 import stat
 import sys
 from collections.abc import Mapping
+from dataclasses import replace
 from html import escape
 from pathlib import Path
 from string import Template
@@ -17,12 +18,16 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
-from academy_engine.lesson_actions import LessonAction, load_action_manifest
+from academy_engine.lesson_actions import LessonAction, LessonActionManifest, load_action_manifest
 from academy_engine.paths import ensure_within
 from academy_engine.preview import PreviewManifest, load_preview_manifest
 
 
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+_INSTALLER_DIGEST_TOKENS = {
+    "{{INSTALL_PS1_SHA256}}": ("install.ps1", 1),
+    "{{INSTALL_SH_SHA256}}": ("install.sh", 2),
+}
 _FRONTMATTER_FIELDS = ("title", "outcome", "estimated_minutes", "next_lab")
 _FENCE_LANGUAGES = {"powershell", "text", "sh", "json"}
 _HEADING = re.compile(r"^(#{1,3}) ([^#].*)$")
@@ -129,6 +134,46 @@ def _load_templates(root: Path) -> dict[str, Template]:
         except OSError as error:
             raise ValueError(f"could not read site template {name}: {error}") from error
     return templates
+
+
+def _hydrate_home_installer_digests(
+    root: Path, manifest: LessonActionManifest
+) -> LessonActionManifest:
+    if not any(action.id == "home-install" for action in manifest.actions):
+        return manifest
+    replacements: dict[str, str] = {}
+    commands = tuple(variant.command for action in manifest.actions for variant in action.variants)
+    for token, (installer_name, expected_count) in _INSTALLER_DIGEST_TOKENS.items():
+        if sum(command.count(token) for command in commands) != expected_count:
+            raise ValueError(f"home installer command must contain {token} exactly {expected_count} time(s)")
+        checksum_path = ensure_within(root, root / "install" / f"{installer_name}.sha256")
+        try:
+            checksum = checksum_path.read_text(encoding="ascii")
+        except (OSError, UnicodeDecodeError) as error:
+            raise ValueError(f"could not read reviewed installer checksum: {installer_name}") from error
+        match = re.fullmatch(rf"([0-9a-f]{{64}})  {re.escape(installer_name)}\n", checksum)
+        if match is None:
+            raise ValueError(f"reviewed installer checksum is not canonical: {installer_name}")
+        replacements[token] = match.group(1)
+
+    actions = tuple(
+        replace(
+            action,
+            variants=tuple(
+                replace(
+                    variant,
+                    command=variant.command.replace(
+                        "{{INSTALL_PS1_SHA256}}", replacements["{{INSTALL_PS1_SHA256}}"]
+                    ).replace(
+                        "{{INSTALL_SH_SHA256}}", replacements["{{INSTALL_SH_SHA256}}"]
+                    ),
+                )
+                for variant in action.variants
+            ),
+        )
+        for action in manifest.actions
+    )
+    return replace(manifest, actions=actions)
 
 
 def _load_public_assets(root: Path) -> dict[Path, bytes]:
@@ -336,6 +381,8 @@ def _read_markdown_document(
         content_start = end + 1
 
     manifest = load_action_manifest(root, document_id)
+    if document_id == "home":
+        manifest = _hydrate_home_installer_digests(root, manifest)
     actions = {action.id: action for action in manifest.actions}
     content, headings, referenced_actions = _render_markdown(
         document_id, lines[content_start:], actions
