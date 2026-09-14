@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "target": "academy-preview",
+      "commit_sha": "58eae666ce0013366cabb5c4d9674d6de4ac94c0",
+      "changelog": "Make Academy Preview release checks reusable across versions.",
+      "reason": "The published squash commit stored escaped newlines before its CHANGELOG footer.",
+      "authorization": "Campaign owner approved evidence-backed correction on 2026-09-14."
+    }
+  ]
+}
