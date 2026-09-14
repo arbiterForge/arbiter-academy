@@ -25,7 +25,7 @@ SOURCE = Path(__file__).resolve().parents[1]
 def preview_codearbiter_source_sha(root: Path = SOURCE) -> str:
     """Return the one codeArbiter source reviewed for the current Preview."""
     publication = json.loads(
-        (root / "academy/publication/preview-0.31.json").read_text(encoding="utf-8")
+        (root / "academy/publication/preview-0.32.json").read_text(encoding="utf-8")
     )
     compatibility = publication["integration_compatibility"]
     components = compatibility["components"]
@@ -228,7 +228,7 @@ def run_task_writer(
 class PreviewCompatibilitySourceTests(unittest.TestCase):
     def test_f03_source_identity_is_derived_from_the_current_preview_manifest(self) -> None:
         publication = json.loads(
-            (SOURCE / "academy/publication/preview-0.31.json").read_text(
+            (SOURCE / "academy/publication/preview-0.32.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -242,10 +242,10 @@ class PreviewCompatibilitySourceTests(unittest.TestCase):
     def test_f03_source_identity_rejects_component_source_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            publication_path = root / "academy/publication/preview-0.31.json"
+            publication_path = root / "academy/publication/preview-0.32.json"
             publication_path.parent.mkdir(parents=True)
             publication = json.loads(
-                (SOURCE / "academy/publication/preview-0.31.json").read_text(
+                (SOURCE / "academy/publication/preview-0.32.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -463,7 +463,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 "pi": "/ca-task start academy.docs.0001\n/skill:ca-task start academy.docs.0001",
             },
         )
-        self.assertIn("Preview 0.31", body)
+        self.assertIn("Preview 0.32", body)
         self.assertIn("$ca-chore docs", body)
         self.assertIn("academy.docs.0001", body)
         self.assertIn("clean retained F03 attempt branch", body)

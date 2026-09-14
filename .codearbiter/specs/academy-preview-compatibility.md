@@ -16,19 +16,19 @@ The declaration proves exact release and command-contract alignment, not unexecu
 
 ## Scope
 
-- Add an exact three-host compatibility declaration to `academy/publication/preview-0.31.json`, binding the Academy release, component names, release tags, semantic versions, shared source commit, component manifest paths, and component manifest SHA-256 values.
+- Add an exact three-host compatibility declaration to `academy/publication/preview-0.32.json`, binding the Academy release, component names, release tags, semantic versions, shared source commit, component manifest paths, and component manifest SHA-256 values.
 - Extend the Academy Preview loader with strict local schema, identifier, tag/version, digest, evidence-level, and shared-source validation for the declaration.
 - Add a standard-library checker that validates the declared tags, tag commits, component manifests, versions, and digests against an exact codeArbiter Git checkout and rejects a declaration whose component tag is not the highest published release-tag version visible in that checkout.
 - Make pull-request, scheduled, manual, and main Pages verification derive the codeArbiter checkout from the declaration, fetch full tag history, and run the compatibility checker instead of relying on the older hard-coded source SHA.
 - Render the exact compatibility rows and their evidence limitation on the Academy homepage and generated `release.json`.
 
-Out of scope: moving or rewriting the immutable Preview 0.31 tag; publishing Preview 0.32; editing deferred PR #56; asserting end-to-end runtime compatibility that was not executed; changing codeArbiter release tags or manifests; adding learner runtime networking, dependencies, authentication, secrets, telemetry, or a hosted service; changing the verifier trust boundary; updating the codeArbiter site's Academy gitlink in this separately bound checkpoint.
+Out of scope: moving or rewriting the immutable Preview 0.31 tag; editing deferred PR #56; asserting end-to-end runtime compatibility that was not executed; changing codeArbiter release tags or manifests; adding learner runtime networking, dependencies, authentication, secrets, telemetry, or a hosted service; changing the verifier trust boundary; updating the codeArbiter site's Academy gitlink in this separately bound checkpoint. The user explicitly extended this checkpoint on 2026-09-14 to publish the resulting compatibility contract as immutable Preview 0.32 through the existing release lane.
 
 ## Decided parameters
 
 - The declaration lives inside each versioned `academy/publication/preview-*.json`; `academy/release.json` remains the generic release lane's stable version pointer.
 - The three component IDs are `codearbiter`, `ca-codex`, and `ca-pi`; display names preserve `codeArbiter`, `Codex`, and `Pi` where user-facing.
-- Preview 0.31 records `v2.17.11`, `ca-codex-v0.9.11`, and `ca-pi-v0.10.13`, all peeled to `d6900d96f0b61f66d420b6a424fddfd89ac0f71e`.
+- Preview 0.32 records `v2.17.11`, `ca-codex-v0.9.11`, and `ca-pi-v0.10.13`, all peeled to `d6900d96f0b61f66d420b6a424fddfd89ac0f71e`; Preview 0.31 remains unchanged at its published tag.
 - The component manifest paths are `plugins/ca/.claude-plugin/plugin.json`, `plugins/ca-codex/.codex-plugin/plugin.json`, and `plugins/ca-pi/package.json`.
 - The exact manifest SHA-256 values are `6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964`, `9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5`, and `5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4` respectively.
 - The evidence level is `release-and-command-contract`; public copy explicitly says this is not end-to-end host certification.
@@ -38,7 +38,7 @@ Out of scope: moving or rewriting the immutable Preview 0.31 tag; publishing Pre
 
 ## Acceptance criteria
 
-1. Loading Preview 0.31 returns exactly three ordered compatibility records whose Academy release, component IDs, tags, versions, shared source commit, manifest paths, manifest digests, and `release-and-command-contract` evidence level equal the reviewed values in this spec; the local loader rejects missing, unknown, duplicate, malformed, floating, cross-release, cross-source, tag/version-mismatched, or invalid-digest data.
+1. Loading Preview 0.32 returns exactly three ordered compatibility records whose Academy release, component IDs, tags, versions, shared source commit, manifest paths, manifest digests, and `release-and-command-contract` evidence level equal the reviewed values in this spec; the local loader rejects missing, unknown, duplicate, malformed, floating, cross-release, cross-source, tag/version-mismatched, or invalid-digest data.
 2. Given a local codeArbiter Git checkout with the declared tags, the checker peels every tag to the one declared source commit, reads each declared component manifest from that tag, and accepts only when its version and raw-byte SHA-256 match the declaration; a wrong tag target, path, version, or digest fails with a bounded diagnostic.
 3. Given complete tag refs, the checker compares semantic numeric versions within `v`, `ca-codex-v`, and `ca-pi-v` families and fails when any declared component is behind the highest visible release tag, including the `0.9.9` versus `0.9.10` ordering case.
 4. Academy Verify runs on pull requests, a bounded schedule, and manual dispatch, while the existing Pages verifier covers main publication; both read the source commit from the validated Preview declaration, check out that exact public codeArbiter commit with complete tag history and credentials disabled, and run the compatibility checker with no separately hard-coded source SHA.

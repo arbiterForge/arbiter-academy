@@ -57,14 +57,14 @@ PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 COMPATIBILITY_SOURCE_COMMIT = "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"
 COMPATIBILITY_EVIDENCE_LEVEL = "release-and-command-contract"
 EXPECTED_COMPATIBILITY_ROWS = (
     (
-        "preview-0.31",
+        "preview-0.32",
         "codearbiter",
         "codeArbiter",
         "v2.17.11",
@@ -75,7 +75,7 @@ EXPECTED_COMPATIBILITY_ROWS = (
         COMPATIBILITY_EVIDENCE_LEVEL,
     ),
     (
-        "preview-0.31",
+        "preview-0.32",
         "ca-codex",
         "Codex",
         "ca-codex-v0.9.11",
@@ -86,7 +86,7 @@ EXPECTED_COMPATIBILITY_ROWS = (
         COMPATIBILITY_EVIDENCE_LEVEL,
     ),
     (
-        "preview-0.31",
+        "preview-0.32",
         "ca-pi",
         "Pi",
         "ca-pi-v0.10.13",
@@ -113,7 +113,7 @@ class PreviewManifestTests(unittest.TestCase):
         """The Pages repair advances the immutable release instead of retagging it."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.30.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -121,11 +121,11 @@ class PreviewManifestTests(unittest.TestCase):
         )
         self.assertTrue(current.is_file())
         manifest = load_preview_manifest(self.root)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(
             manifest.known_limits[0],
-            "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
+            "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
         )
 
     def test_preview_zero_thirty_promotes_the_form_review_without_rewriting_zero_twenty_nine(
@@ -134,7 +134,7 @@ class PreviewManifestTests(unittest.TestCase):
         """The learner-path release advances immutably after its reviewed source changes."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.29.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -142,9 +142,9 @@ class PreviewManifestTests(unittest.TestCase):
         )
         self.assertTrue(current.is_file())
         manifest = load_preview_manifest(self.root)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
-        self.assertEqual(manifest.known_limits[0], "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.")
+        self.assertEqual(manifest.known_limits[0], "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.")
 
     def test_preview_zero_twenty_six_promotes_f03_without_rewriting_zero_twenty_five(
         self,
@@ -152,7 +152,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a partial F03 promotion or a rewrite of immutable Preview 0.25."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.25.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -163,7 +163,7 @@ class PreviewManifestTests(unittest.TestCase):
         old_data = json.loads(historical.read_text(encoding="utf-8"))
         new_data = json.loads(current.read_text(encoding="utf-8"))
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -177,7 +177,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = json.loads((self.root / "academy/catalog.json").read_text(encoding="utf-8"))
         f04 = next(lab for lab in catalog["labs"] if lab["id"] == "F04-fix-with-evidence")
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -188,7 +188,7 @@ class PreviewManifestTests(unittest.TestCase):
         """U03 is public only with its prerequisites; U04-U07 remain private."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -198,7 +198,7 @@ class PreviewManifestTests(unittest.TestCase):
         """U06 becomes public only with its five accepted Power User prerequisites."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -207,7 +207,7 @@ class PreviewManifestTests(unittest.TestCase):
     def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
         root = root or self.root
         manifest: dict[str, object] = {
-            "release": "preview-0.31",
+            "release": "preview-0.32",
             "lesson_contract_version": 1,
             "available_labs": PREVIEW_0_26,
             "runnable_labs": PREVIEW_0_26,
@@ -226,7 +226,7 @@ class PreviewManifestTests(unittest.TestCase):
 
     def make_integration_compatibility(self) -> dict[str, object]:
         return {
-            "academy_release": "preview-0.31",
+            "academy_release": "preview-0.32",
             "evidence_level": COMPATIBILITY_EVIDENCE_LEVEL,
             "components": [
                 {
@@ -387,7 +387,7 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_manifest_rejects_malformed_compatibility_values(self) -> None:
         """AC-01: compatibility identifiers and evidence values are strictly shaped."""
         cases = (
-            ("academy_release", "Preview 0.31", r"academy_release"),
+            ("academy_release", "Preview 0.32", r"academy_release"),
             ("evidence_level", "runtime-certified", r"evidence_level"),
             ("component_id", "CodeArbiter", r"component_id"),
             ("display_name", "codearbiter", r"display_name"),
@@ -426,7 +426,7 @@ class PreviewManifestTests(unittest.TestCase):
         cross_source["components"][2]["source_commit"] = "1" * 40
 
         cases = (
-            (cross_release, r"academy_release.*preview-0.31"),
+            (cross_release, r"academy_release.*preview-0.32"),
             (cross_source, r"source_commit.*shared"),
         )
         for compatibility, diagnostic in cases:
@@ -462,7 +462,7 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_zero_fifteen_preserves_the_practitioner_closure_and_adds_u01(self) -> None:
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -471,7 +471,7 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_zero_fifteen_keeps_u02_through_u07_private(self) -> None:
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         expected_public = tuple(PREVIEW_0_26)
         self.assertEqual(manifest.available_labs, expected_public)
         self.assertEqual(manifest.runnable_labs, expected_public)
@@ -500,9 +500,9 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertTrue((publication / "preview-0.24.json").is_file())
         self.assertTrue((publication / "preview-0.25.json").is_file())
         self.assertTrue((publication / "preview-0.26.json").is_file())
-        self.assertTrue((publication / "preview-0.31.json").is_file())
+        self.assertTrue((publication / "preview-0.32.json").is_file())
         expected = tuple(PREVIEW_0_26)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, expected)
         self.assertEqual(manifest.runnable_labs, expected)
         self.assertEqual(manifest.guided_labs, expected)
@@ -515,7 +515,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a public manifest that conflates runnable and guided readiness."""
         manifest = validate_preview_manifest(self.root, self.make_manifest())
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
@@ -526,7 +526,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a previous immutable preview identity being republished."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -551,7 +551,7 @@ class PreviewManifestTests(unittest.TestCase):
 
     def test_preview_manifest_rejects_the_immediately_stale_release_identity(self) -> None:
         """Catches immutable Preview 0.9 remaining the current publication identity."""
-        with self.assertRaisesRegex(ValueError, "release must be preview-0.31"):
+        with self.assertRaisesRegex(ValueError, "release must be preview-0.32"):
             validate_preview_manifest(
                 self.root,
                 self.make_manifest(release="preview-0.9"),
@@ -692,7 +692,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = (self.root / "academy" / "catalog.json").read_bytes()
         self.assertNotIn(b"\r\n", catalog)
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.31.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.32.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -705,7 +705,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.31.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.32.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -815,7 +815,7 @@ class PreviewManifestTests(unittest.TestCase):
         coming_next = schema["properties"]["coming_next"]
         known_limits = schema["properties"]["known_limits"]
 
-        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.31")
+        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.32")
         self.assertEqual(schema["properties"]["lesson_contract_version"]["const"], 1)
         self.assertEqual((available["minItems"], available["maxItems"]), (19, 19))
         self.assertEqual(
@@ -912,7 +912,7 @@ class PreviewManifestTests(unittest.TestCase):
 
         self.assertEqual(
             release_files,
-            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.24.json", "preview-0.25.json", "preview-0.26.json", "preview-0.27.json", "preview-0.28.json", "preview-0.29.json", "preview-0.30.json", "preview-0.31.json", "preview-0.4.json", "preview-0.9.json"],
+            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.24.json", "preview-0.25.json", "preview-0.26.json", "preview-0.27.json", "preview-0.28.json", "preview-0.29.json", "preview-0.30.json", "preview-0.31.json", "preview-0.32.json", "preview-0.4.json", "preview-0.9.json"],
         )
         historical = json.loads(
             (self.root / "academy" / "publication" / "preview-0.9.json").read_text(encoding="utf-8")
@@ -934,7 +934,7 @@ class PreviewManifestTests(unittest.TestCase):
             hashlib.sha256(preview_0_28).hexdigest(),
             "701b1a6bd76b1ea1af0b6b495a4def313bdee14e822907824b13f104c51fb418",
         )
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))

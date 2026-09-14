@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.31 publication manifest",
+  "title": "Arbiter Academy Preview 0.32 publication manifest",
   "type": "object",
   "additionalProperties": false,
   "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256", "integration_compatibility"],
   "properties": {
-    "release": {"const": "preview-0.31"},
+    "release": {"const": "preview-0.32"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
@@ -113,7 +113,7 @@
       "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31."},
+        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32."},
         {"const": "Graduation is available after all 19 Academy Checks pass in the same repository."}
       ]
     },
@@ -127,7 +127,7 @@
       "additionalProperties": false,
       "required": ["academy_release", "evidence_level", "components"],
       "properties": {
-        "academy_release": {"type": "string", "const": "preview-0.31"},
+        "academy_release": {"type": "string", "const": "preview-0.32"},
         "evidence_level": {"type": "string", "const": "release-and-command-contract"},
         "components": {
           "type": "array",

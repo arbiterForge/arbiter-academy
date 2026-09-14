@@ -9,18 +9,18 @@
       "title": "Confirm the fork-first lesson boundary",
       "actor": "learner",
       "surface": "browser",
-      "instruction": "Open the reviewed immutable Preview 0.31 U01 boundary manifest before using any command. U01 is public only in your personal fork with origin as the fork, upstream fetch-only, and origin as the effective push remote.",
+      "instruction": "Open the reviewed immutable Preview 0.32 U01 boundary manifest before using any command. U01 is public only in your personal fork with origin as the fork, upstream fetch-only, and origin as the effective push remote.",
       "rationale": "The scenario and sprint can create commits, a fork branch, and a pull request; keeping upstream non-pushable is the exercise's safety boundary.",
       "resources": [
         {
-          "label": "Review the immutable Preview 0.31 U01 boundary manifest",
-          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/academy/actions/U01-autonomous-sprint.json"
+          "label": "Review the immutable Preview 0.32 U01 boundary manifest",
+          "href": "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/academy/actions/U01-autonomous-sprint.json"
         }
       ],
       "variants": [],
       "expected_result": "You are in a clean forked checkout that completed P08 and can safely create a U01 attempt.",
       "recovery": "If origin can push to arbiterForge or the topology is incomplete, stop and return to P08. Do not rewrite remotes or bypass the safety check for this lesson.",
-      "evidence": "The public Preview 0.31 manifest lists U01, while the Prepare preflight independently validates the live fork topology."
+      "evidence": "The public Preview 0.32 manifest lists U01, while the Prepare preflight independently validates the live fork topology."
     },
     {
       "id": "U01-prepare-attempt",
@@ -38,7 +38,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.31\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -47,7 +47,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -56,7 +56,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U01-autonomous-sprint",
           "copy": true
         }
       ],
@@ -261,7 +261,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.31\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -270,7 +270,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -279,7 +279,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U01-autonomous-sprint",
           "copy": true
         }
       ],
@@ -345,7 +345,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.31\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -354,7 +354,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
           "copy": true
         },
         {
@@ -363,7 +363,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.31/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U01-autonomous-sprint",
           "copy": true
         }
       ],

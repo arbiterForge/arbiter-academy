@@ -35,7 +35,7 @@ from tests._temporary import cleanup_temporary_directory
 
 
 EXPECTED_INTEGRATION_COMPATIBILITY = {
-    "academy_release": "preview-0.31",
+    "academy_release": "preview-0.32",
     "evidence_level": "release-and-command-contract",
     "components": [
         {
@@ -185,7 +185,7 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches manifest promotion without the public F03 page and action payload."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertIn("F03-work-the-board", manifest.guided_labs)
         build_preview_site(self.root, self.out, release_sha="6" * 40)
         route = self.out / "labs" / "F03-work-the-board" / "index.html"
@@ -200,7 +200,7 @@ class PreviewSiteTests(unittest.TestCase):
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
-        manifest_path = publication / "preview-0.31.json"
+        manifest_path = publication / "preview-0.32.json"
         self.assertTrue(manifest_path.is_file())
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         public_labs = [
@@ -225,7 +225,7 @@ class PreviewSiteTests(unittest.TestCase):
             "U07-capstone",
         ]
         coming_next = []
-        self.assertEqual(manifest["release"], "preview-0.31")
+        self.assertEqual(manifest["release"], "preview-0.32")
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             self.assertEqual(manifest[field], public_labs, field)
         self.assertEqual(manifest["coming_next"], coming_next)
@@ -264,7 +264,7 @@ class PreviewSiteTests(unittest.TestCase):
             self.assertIn(f'data-action-id="{action_id}"', rendered)
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("<strong>Current release inventory.</strong>", index)
-        self.assertIn("Preview 0.31", index)
+        self.assertIn("Preview 0.32", index)
         self.assertIn("P08-repository-hygiene", index)
         self.assertIn('href="labs/U07-capstone/index.html"', index)
         self.assertNotIn("Power User</strong>: U07", index)
@@ -278,7 +278,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_shared_release_chrome_derives_from_the_validated_preview_manifest(self) -> None:
         """Catches a future preview leaving a title, footer, or unavailable-next label stale."""
         source = self._copy_public_source("release-chrome")
-        current = source / "academy" / "publication" / "preview-0.31.json"
+        current = source / "academy" / "publication" / "preview-0.32.json"
         alternate = json.loads(current.read_text(encoding="utf-8"))
         alternate["release"] = "preview-9.9"
         alternate["integration_compatibility"]["academy_release"] = "preview-9.9"
@@ -534,7 +534,7 @@ class PreviewSiteTests(unittest.TestCase):
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
             with self.subTest(action=action_id):
                 rendered = preview_site._render_action(actions[action_id])
-                self.assertIn("preview-0.31", rendered)
+                self.assertIn("preview-0.32", rendered)
                 self.assertIn("command-variant", rendered)
                 self.assertIn("command-copy", rendered)
                 self.assertIn("<pre>", rendered)
@@ -876,7 +876,7 @@ class PreviewSiteTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             r"^home (?:runnable lab links|coming-next entries) do not match the exact "
-    r"(?:guided )?Preview 0\.31 (?:inventory|guided-rewrite sequence)$",
+    r"(?:guided )?Preview 0\.32 (?:inventory|guided-rewrite sequence)$",
         ):
             check_preview_site(self.out)
 
@@ -1204,10 +1204,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
@@ -1228,7 +1228,7 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotIn("{{INSTALL_PS1_SHA256}}", html)
         self.assertIn("Get-FileHash -LiteralPath $installer -Algorithm SHA256", install_commands["windows"])
-        self.assertIn("installer digest did not match Preview 0.31", install_commands["windows"])
+        self.assertIn("installer digest did not match Preview 0.32", install_commands["windows"])
         self.assertLess(
             install_commands["windows"].index("Get-FileHash"),
             install_commands["windows"].index("& $installer"),
@@ -1243,7 +1243,7 @@ class PreviewSiteTests(unittest.TestCase):
             command = install_commands[operating_system]
             self.assertIn("{{INSTALL_SH_SHA256}}", command)
             self.assertIn("python3 -c 'import hashlib, pathlib, sys;", command)
-            self.assertIn("installer digest did not match Preview 0.31", command)
+            self.assertIn("installer digest did not match Preview 0.32", command)
             self.assertLess(command.index("hashlib.sha256"), command.index('sh "$workdir/install.sh"'))
         self.assertIn(
             (self.root / "install" / "install.sh.sha256").read_text(encoding="ascii").split()[0],
@@ -1279,11 +1279,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.sh"',
             html,
         )
         self.assertIn(
@@ -1348,7 +1348,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.31.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.32.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -1525,7 +1525,7 @@ class PreviewSiteTests(unittest.TestCase):
         expected_links = [f'labs/{lab_id}/index.html' for lab_id in expected_labs]
         actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
         self.assertEqual(actual_links, expected_links)
-        self.assertIn('<meta name="academy-release" content="preview-0.31">', index)
+        self.assertIn('<meta name="academy-release" content="preview-0.32">', index)
         self.assertIn("Current release inventory.", index)
         self.assertIn("Graduation is available after all 19 Academy Checks pass in the same repository.", index)
         self.assertNotIn("Preview 0.11", index)
@@ -1649,7 +1649,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
-        """Catches stale release identity or a changed public inventory in Preview 0.31 output."""
+        """Catches stale release identity or a changed public inventory in Preview 0.32 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -1765,7 +1765,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.31"',
+                '"release": "preview-0.32"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1986,7 +1986,7 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("Preview 0.31 publishes nineteen guided labs:", readme)
+        self.assertIn("Preview 0.32 publishes nineteen guided labs:", readme)
         self.assertIn(
             "https://arbiterforge.github.io/arbiter-academy/labs/F03-work-the-board/",
             readme,
@@ -2277,7 +2277,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.31">'
+        current = '<meta name="academy-release" content="preview-0.32">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2454,7 +2454,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
 
     def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U06 renders as a complete public lesson in Preview 0.31."""
+        """U06 renders as a complete public lesson in Preview 0.32."""
         lab_id = "U06-preview-and-advanced-surfaces"
         guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
         source = (self.root / guide_path).read_text(encoding="utf-8")
@@ -3229,8 +3229,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.31.json",
-            academy / "publication" / "preview-0.31.json",
+            self.root / "academy" / "publication" / "preview-0.32.json",
+            academy / "publication" / "preview-0.32.json",
         )
         for track in ("foundations", "practitioner", "power-user"):
             shutil.copytree(
@@ -3665,7 +3665,7 @@ class PublicU02PreviewContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("does not practice `$ca-override`", guide)
         self.assertIn("cannot prove the event chronology", guide)
-        self.assertIn("U02 is a published Power User lesson in Preview 0.31", guide)
+        self.assertIn("U02 is a published Power User lesson in Preview 0.32", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
         self.assertIn("Prepare creates a numbered U02 branch", guide)

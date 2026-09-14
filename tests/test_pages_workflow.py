@@ -22,8 +22,8 @@ RELEASE_ASSETS = (
     "install.ps1.sha256",
     "install.sh",
     "install.sh.sha256",
-    "arbiter-academy-preview-0.31.zip",
-    "arbiter-academy-preview-0.31.zip.sha256",
+    "arbiter-academy-preview-0.32.zip",
+    "arbiter-academy-preview-0.32.zip.sha256",
 )
 
 NODE_SETUP_STEP = (
@@ -232,7 +232,7 @@ def _assert_codearbiter_compatibility_gate_is_fail_closed(
     required_check_lines = (
         "set -euo pipefail",
         'test "$(git -C .ci/codearbiter-source rev-parse HEAD)" = "$CODEARBITER_SOURCE_SHA"',
-        "python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.31.json --codearbiter-root .ci/codearbiter-source",
+        "python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.32.json --codearbiter-root .ci/codearbiter-source",
     )
     if check_lines != list(required_check_lines):
         raise AssertionError("compatibility verifier lost its exact fail-closed command sequence")
@@ -336,7 +336,7 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     for manifest in (
         "install.ps1.sha256",
         "install.sh.sha256",
-        "arbiter-academy-preview-0.31.zip.sha256",
+        "arbiter-academy-preview-0.32.zip.sha256",
     ):
         if not re.search(
             rf"(?m)^sha256sum --check {re.escape(manifest)}$",
@@ -391,12 +391,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.build = _block(self.pages_workflow, "  build:", r"  [a-zA-Z0-9_-]+:")
         self.deploy = _block(self.pages_workflow, "  deploy:", r"  [a-zA-Z0-9_-]+:")
 
-    def test_pages_release_gate_advances_to_preview_zero_thirty_one(self) -> None:
+    def test_pages_release_gate_advances_to_preview_zero_thirty_two(self) -> None:
         """The exact-tag gate must target the successor release, never mutable 0.30."""
         release_job = _workflow_jobs(self.pages_workflow).get("verify-release", "")
 
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
-        self.assertIn("arbiter-academy-preview-0.31.zip", release_job)
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
+        self.assertIn("arbiter-academy-preview-0.32.zip", release_job)
         self.assertNotIn("arbiter-academy-preview-0.30.zip", release_job)
 
     def test_pages_release_gate_targets_the_exact_preview_zero_twenty_seven_candidate(self) -> None:
@@ -408,12 +408,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.ps1.sha256",
                 "install.sh",
                 "install.sh.sha256",
-                "arbiter-academy-preview-0.31.zip",
-                "arbiter-academy-preview-0.31.zip.sha256",
+                "arbiter-academy-preview-0.32.zip",
+                "arbiter-academy-preview-0.32.zip.sha256",
             ),
         )
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
         self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1789257600\s*$")
         self.assertNotIn("preview-0.7", release_job)
 
@@ -482,7 +482,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
 
         self.assertIn("python scripts/check_codearbiter_compatibility.py", check)
         self.assertIn(
-            "--manifest academy/publication/preview-0.31.json",
+            "--manifest academy/publication/preview-0.32.json",
             check,
         )
         self.assertIn("--codearbiter-root .ci/codearbiter-source", check)
@@ -539,10 +539,10 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 ),
                 "commented-checker": workflow.replace(
                     "          python scripts/check_codearbiter_compatibility.py "
-                    "--manifest academy/publication/preview-0.31.json "
+                    "--manifest academy/publication/preview-0.32.json "
                     "--codearbiter-root .ci/codearbiter-source",
                     "          # python scripts/check_codearbiter_compatibility.py "
-                    "--manifest academy/publication/preview-0.31.json "
+                    "--manifest academy/publication/preview-0.32.json "
                     "--codearbiter-root .ci/codearbiter-source\n"
                     "          echo compatibility checker skipped",
                     1,
@@ -1164,7 +1164,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "release verification job with the exact six-asset inventory is missing",
         )
         release_job = release_jobs[0]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
         self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
         self.assertIn(
             "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",
@@ -1181,7 +1181,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for checksum in (
             "install.ps1.sha256",
             "install.sh.sha256",
-            "arbiter-academy-preview-0.31.zip.sha256",
+            "arbiter-academy-preview-0.32.zip.sha256",
         ):
             with self.subTest(checksum=checksum):
                 self.assertRegex(
@@ -1302,7 +1302,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 (root / "release.json").write_text(
                     json.dumps(
                         {
-                            "tag_name": "preview-0.31",
+                            "tag_name": "preview-0.32",
                             "immutable": immutable,
                             "draft": False,
                             "published_at": "2026-08-10T12:00:00Z",
@@ -1314,15 +1314,15 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 checksums = {
                     "install.ps1.sha256": f"{'a' * 64}  install.ps1\n".encode(),
                     "install.sh.sha256": f"{'b' * 64}  install.sh\n".encode(),
-                    "arbiter-academy-preview-0.31.zip.sha256": (
-                        f"{'c' * 64}  arbiter-academy-preview-0.31.zip\n".encode()
+                    "arbiter-academy-preview-0.32.zip.sha256": (
+                        f"{'c' * 64}  arbiter-academy-preview-0.32.zip\n".encode()
                     ),
                 }
                 checksums.update(checksum_overrides or {})
                 for name, content in checksums.items():
                     (root / name).write_bytes(content)
                 environment = os.environ.copy()
-                environment["RELEASE_TAG"] = "preview-0.31"
+                environment["RELEASE_TAG"] = "preview-0.32"
                 environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                 return subprocess.run(
                     [sys.executable, "-c", validator],
@@ -1340,7 +1340,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "name": name,
                 "browser_download_url": (
                     f"https://github.com/arbiterForge/arbiter-academy/releases/download/"
-                    f"preview-0.31/{name}"
+                    f"preview-0.32/{name}"
                 ),
                 "state": "uploaded",
             }
@@ -1365,7 +1365,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 with tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     release = {
-                        "tag_name": "preview-0.31",
+                        "tag_name": "preview-0.32",
                         "immutable": True,
                         "draft": False,
                         "published_at": "2026-08-10T12:00:00Z",
@@ -1376,12 +1376,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                     for name, digest in (
                         ("install.ps1.sha256", "a"),
                         ("install.sh.sha256", "b"),
-                        ("arbiter-academy-preview-0.31.zip.sha256", "c"),
+                        ("arbiter-academy-preview-0.32.zip.sha256", "c"),
                     ):
                         target = name.removesuffix(".sha256")
                         (root / name).write_bytes(f"{digest * 64}  {target}\n".encode())
                     environment = os.environ.copy()
-                    environment["RELEASE_TAG"] = "preview-0.31"
+                    environment["RELEASE_TAG"] = "preview-0.32"
                     environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                     rejected = subprocess.run(
                         [sys.executable, "-c", validator], cwd=root, env=environment,
@@ -1392,8 +1392,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for mutation in (
             {"state": "new"},
             {"state": None},
-            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.ps1"},
-            {"browser_download_url": "https://evil.example/preview-0.31/install.ps1"},
+            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.ps1"},
+            {"browser_download_url": "https://evil.example/preview-0.32/install.ps1"},
         ):
             with self.subTest(asset_state=mutation):
                 assets = [dict(asset) for asset in valid_assets]
@@ -1419,8 +1419,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.sh.sha256": f"{'b' * 64}  other.sh\n".encode()
             },
             "uppercase": {
-                "arbiter-academy-preview-0.31.zip.sha256": (
-                    f"{'C' * 64}  arbiter-academy-preview-0.31.zip\n"
+                "arbiter-academy-preview-0.32.zip.sha256": (
+                    f"{'C' * 64}  arbiter-academy-preview-0.32.zip\n"
                 ).encode()
             },
             "single-space": {
