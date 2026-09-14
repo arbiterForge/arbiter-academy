@@ -6,6 +6,7 @@ version-policy: numeric-sequence
 initial-version: 0.1
 manifest: academy/release.json
 changelog: CHANGELOG.md
+changelog-reconciliations: .codearbiter/release-changelog-reconciliations.json
 payload: .
 payload-exclude: .codearbiter/gate-events.log
 payload-exclude: .codearbiter/.markers

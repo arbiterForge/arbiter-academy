@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = ROOT / ".codearbiter" / "release-targets.md"
+RECONCILIATIONS = ROOT / ".codearbiter" / "release-changelog-reconciliations.json"
 RELEASE_MANIFEST = ROOT / "academy" / "release.json"
 PAGES_WORKFLOW = ROOT / ".github" / "workflows" / "academy-pages.yml"
 
@@ -95,6 +96,29 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         self.assertEqual(
             fields.get("payload-exclude"),
             [".codearbiter/gate-events.log", ".codearbiter/.markers"],
+        )
+
+    def test_ac01_declares_the_exact_published_footer_reconciliation(self) -> None:
+        _text, fields = self.declaration()
+        self.assertEqual(
+            fields.get("changelog-reconciliations"),
+            [".codearbiter/release-changelog-reconciliations.json"],
+        )
+
+        ledger = json.loads(self.required_text(RECONCILIATIONS))
+        self.assertEqual(set(ledger), {"schema_version", "entries"})
+        self.assertEqual(ledger["schema_version"], 1)
+        self.assertEqual(
+            ledger["entries"],
+            [
+                {
+                    "target": "academy-preview",
+                    "commit_sha": "58eae666ce0013366cabb5c4d9674d6de4ac94c0",
+                    "changelog": "Make Academy Preview release checks reusable across versions.",
+                    "reason": "The published squash commit stored escaped newlines before its CHANGELOG footer.",
+                    "authorization": "Campaign owner approved evidence-backed correction on 2026-09-14.",
+                }
+            ],
         )
 
     def test_ac02_renders_exactly_six_safe_assets_without_a_candidate_literal(self) -> None:
