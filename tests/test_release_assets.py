@@ -162,6 +162,7 @@ class PosixPathTests(unittest.TestCase):
             with self.subTest(bash=bash):
                 self.assertEqual(posix_path(drive_path, bash), expected)
 
+    @unittest.skipUnless(os.name == "nt", "Windows shell path semantics")
     def test_shell_selector_preserves_the_path_selected_bash(self) -> None:
         git_bash = r"C:\Program Files\Git\bin\bash.exe"
         with patch("shutil.which", return_value=git_bash):
