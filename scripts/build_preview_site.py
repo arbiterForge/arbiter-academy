@@ -820,6 +820,26 @@ def _render_pages(
 ) -> dict[Path, str]:
     release_label = _release_label(manifest.release)
     graduation_notice = manifest.known_limits[-1]
+    compatibility = _serialize_integration_compatibility(manifest)
+    compatibility_rows = "\n".join(
+        "<tr><td>{display_name}</td><td>{version}</td><td>{release_tag}</td></tr>".format(
+            display_name=escape(record.display_name),
+            version=escape(record.version),
+            release_tag=escape(record.release_tag),
+        )
+        for record in manifest.integration_compatibility
+    )
+    compatibility_section = (
+        '<section aria-labelledby="integration-compatibility-heading">\n'
+        '<h2 id="integration-compatibility-heading">Integration compatibility</h2>\n'
+        f'<p>Evidence level: {escape(compatibility["evidence_level"])}. '
+        "This is not end-to-end host certification.</p>\n"
+        "<table>\n"
+        "<thead><tr><th>Component</th><th>Version</th><th>Release tag</th></tr></thead>\n"
+        f"<tbody>\n{compatibility_rows}\n</tbody>\n"
+        "</table>\n"
+        "</section>"
+    )
     available_labs = "\n".join(
         '<li><a href="labs/{id}/index.html">{heading}</a><p>{outcome}</p></li>'.format(
             id=escape(lab_id, quote=True),
@@ -879,7 +899,10 @@ def _render_pages(
                     "" if guides["home"] is None else str(guides["home"]["content"])
                 ),
                 available_labs=available_labs,
-                coming_next_section=coming_next_section,
+                coming_next_section=(
+                    compatibility_section
+                    + (f"\n{coming_next_section}" if coming_next_section else "")
+                ),
                 discussion_url=escape(manifest.discussion_url, quote=True),
                 release_label=escape(release_label),
                 graduation_notice=escape(graduation_notice),
@@ -913,6 +936,7 @@ def _render_pages(
                 "prerequisites": manifest.prerequisites,
                 "known_limits": manifest.known_limits,
                 "discussion_url": manifest.discussion_url,
+                "integration_compatibility": compatibility,
             },
             indent=2,
         ) + "\n",
@@ -974,6 +998,28 @@ def _render_pages(
             release=manifest.release,
         )
     return pages
+
+
+def _serialize_integration_compatibility(manifest: PreviewManifest) -> dict[str, object]:
+    records = manifest.integration_compatibility
+    if not records:
+        raise ValueError("preview manifest has no integration compatibility records")
+    return {
+        "academy_release": manifest.release,
+        "evidence_level": records[0].evidence_level,
+        "components": [
+            {
+                "component_id": record.component_id,
+                "display_name": record.display_name,
+                "release_tag": record.release_tag,
+                "version": record.version,
+                "source_commit": record.source_commit,
+                "manifest_path": record.manifest_path,
+                "manifest_sha256": record.manifest_sha256,
+            }
+            for record in records
+        ],
+    }
 
 
 def _page(

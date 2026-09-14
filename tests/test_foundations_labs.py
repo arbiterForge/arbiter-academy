@@ -20,7 +20,28 @@ from tests._temporary import cleanup_temporary_directory
 
 
 SOURCE = Path(__file__).resolve().parents[1]
-OFFICIAL_CODEARBITER_SHA = "debb49da71aa1b97bca0988f72e46bb5875a23e3"
+
+
+def preview_codearbiter_source_sha(root: Path = SOURCE) -> str:
+    """Return the one codeArbiter source reviewed for the current Preview."""
+    publication = json.loads(
+        (root / "academy/publication/preview-0.31.json").read_text(encoding="utf-8")
+    )
+    compatibility = publication["integration_compatibility"]
+    components = compatibility["components"]
+    codearbiter = [
+        component for component in components if component["component_id"] == "codearbiter"
+    ]
+    source_commits = {component["source_commit"] for component in components}
+    if len(codearbiter) != 1 or len(source_commits) != 1:
+        raise AssertionError("Preview compatibility must declare one shared codeArbiter source")
+    source_commit = source_commits.pop()
+    if codearbiter[0]["source_commit"] != source_commit:
+        raise AssertionError("codeArbiter component does not use the shared Preview source")
+    return source_commit
+
+
+OFFICIAL_CODEARBITER_SHA = preview_codearbiter_source_sha()
 OFFICIAL_TASKWRITE_BLOB = "287d49a24cd8aaf7e33ee3852c2092aca03c4b78"
 OFFICIAL_TASKWRITE_SHA256 = "f834f3fcc9dafcdf31db16ad4f52cd232c17162dc1711bdba112c2cac8a30d29"
 FOUNDATIONS = (
@@ -202,6 +223,41 @@ def run_task_writer(
     )
     if result.returncode:
         raise AssertionError(result.stdout + result.stderr)
+
+
+class PreviewCompatibilitySourceTests(unittest.TestCase):
+    def test_f03_source_identity_is_derived_from_the_current_preview_manifest(self) -> None:
+        publication = json.loads(
+            (SOURCE / "academy/publication/preview-0.31.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        declared = {
+            component["source_commit"]
+            for component in publication["integration_compatibility"]["components"]
+        }
+
+        self.assertEqual(declared, {OFFICIAL_CODEARBITER_SHA})
+
+    def test_f03_source_identity_rejects_component_source_divergence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            publication_path = root / "academy/publication/preview-0.31.json"
+            publication_path.parent.mkdir(parents=True)
+            publication = json.loads(
+                (SOURCE / "academy/publication/preview-0.31.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            publication["integration_compatibility"]["components"][1][
+                "source_commit"
+            ] = "0" * 40
+            publication_path.write_text(json.dumps(publication), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                AssertionError, "one shared codeArbiter source"
+            ):
+                preview_codearbiter_source_sha(root)
 
 
 class PinnedTaskWriterTests(unittest.TestCase):

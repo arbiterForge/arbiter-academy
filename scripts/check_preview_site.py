@@ -152,6 +152,49 @@ _KNOWN_LIMITS = (
     "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
+_EXPECTED_INTEGRATION_COMPATIBILITY = {
+    "academy_release": "preview-0.31",
+    "evidence_level": "release-and-command-contract",
+    "components": [
+        {
+            "component_id": "codearbiter",
+            "display_name": "codeArbiter",
+            "release_tag": "v2.17.11",
+            "version": "2.17.11",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
+            "manifest_sha256": "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+        },
+        {
+            "component_id": "ca-codex",
+            "display_name": "Codex",
+            "release_tag": "ca-codex-v0.9.11",
+            "version": "0.9.11",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
+            "manifest_sha256": "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+        },
+        {
+            "component_id": "ca-pi",
+            "display_name": "Pi",
+            "release_tag": "ca-pi-v0.10.13",
+            "version": "0.10.13",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca-pi/package.json",
+            "manifest_sha256": "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+        },
+    ],
+}
+_COMPATIBILITY_LIMITATION = (
+    "Evidence level: release-and-command-contract. "
+    "This is not end-to-end host certification."
+)
+_COMPATIBILITY_ROWS = (
+    (("th", "th", "th"), ("Component", "Version", "Release tag")),
+    (("td", "td", "td"), ("codeArbiter", "2.17.11", "v2.17.11")),
+    (("td", "td", "td"), ("Codex", "0.9.11", "ca-codex-v0.9.11")),
+    (("td", "td", "td"), ("Pi", "0.10.13", "ca-pi-v0.10.13")),
+)
 _EXPECTED_ACTION_IDS = {
     Path("index.html"): (
         "home-fork",
@@ -531,6 +574,81 @@ class _LinkCollector(HTMLParser):
         raise ValueError("disallowed HTML processing instruction")
 
 
+class _CompatibilityCollector(HTMLParser):
+    """Collect the exact accessible compatibility surface from the home page."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.section_count = 0
+        self.heading = ""
+        self.paragraphs: list[str] = []
+        self.direct_children: list[tuple[str, int | None]] = []
+        self.rows: list[tuple[tuple[str, ...], tuple[str, ...]]] = []
+        self._section_depth = 0
+        self._heading_parts: list[str] | None = None
+        self._paragraph_parts: list[str] | None = None
+        self._row_cells: list[str] | None = None
+        self._row_cell_tags: list[str] | None = None
+        self._cell_parts: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if self._section_depth == 0:
+            if (
+                tag == "section"
+                and attributes.get("aria-labelledby")
+                == "integration-compatibility-heading"
+            ):
+                self.section_count += 1
+                self._section_depth = 1
+            return
+
+        if self._section_depth == 1:
+            if tag == "p":
+                self.direct_children.append((tag, len(self.paragraphs)))
+                self._paragraph_parts = []
+            elif tag == "table":
+                self.direct_children.append((tag, None))
+        self._section_depth += 1
+
+        if tag == "h2" and attributes.get("id") == "integration-compatibility-heading":
+            self._heading_parts = []
+        if tag == "tr":
+            self._row_cells = []
+            self._row_cell_tags = []
+        if tag in {"th", "td"} and self._row_cells is not None:
+            self._row_cell_tags.append(tag)
+            self._cell_parts = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._section_depth == 0:
+            return
+        if tag in {"th", "td"} and self._cell_parts is not None:
+            assert self._row_cells is not None
+            self._row_cells.append(" ".join("".join(self._cell_parts).split()))
+            self._cell_parts = None
+        if tag == "tr" and self._row_cells is not None:
+            assert self._row_cell_tags is not None
+            self.rows.append((tuple(self._row_cell_tags), tuple(self._row_cells)))
+            self._row_cells = None
+            self._row_cell_tags = None
+        if tag == "h2" and self._heading_parts is not None:
+            self.heading = " ".join("".join(self._heading_parts).split())
+            self._heading_parts = None
+        if tag == "p" and self._paragraph_parts is not None:
+            self.paragraphs.append(" ".join("".join(self._paragraph_parts).split()))
+            self._paragraph_parts = None
+        self._section_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._heading_parts is not None:
+            self._heading_parts.append(data)
+        if self._paragraph_parts is not None:
+            self._paragraph_parts.append(data)
+        if self._cell_parts is not None:
+            self._cell_parts.append(data)
+
+
 def _is_symlink_or_reparse(path: Path) -> bool:
     try:
         details = path.lstat()
@@ -615,6 +733,7 @@ def _check_release(root: Path) -> str:
             "release", "commit", "lesson_contract_version", "catalog_sha256",
             "available_labs", "runnable_labs", "guided_labs", "coming_next",
             "prerequisites", "known_limits", "discussion_url",
+            "integration_compatibility",
         }
         or data.get("release") != "preview-0.31"
         or type(data.get("lesson_contract_version")) is not int
@@ -630,6 +749,7 @@ def _check_release(root: Path) -> str:
         or data.get("prerequisites") != list(_PUBLIC_PREREQUISITES)
         or data.get("known_limits") != list(_KNOWN_LIMITS)
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
+        or data.get("integration_compatibility") != _EXPECTED_INTEGRATION_COMPATIBILITY
     ):
         raise ValueError("release.json does not contain the exact Preview 0.31 provenance contract")
     return data["release"]
@@ -709,6 +829,22 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             )
 
 
+def _check_home_compatibility(home: str) -> None:
+    collector = _CompatibilityCollector()
+    collector.feed(home)
+    collector.close()
+    if (
+        collector.section_count != 1
+        or collector.heading != "Integration compatibility"
+        or collector.paragraphs != [_COMPATIBILITY_LIMITATION]
+        or collector.direct_children != [("p", 0), ("table", None)]
+        or tuple(collector.rows) != _COMPATIBILITY_ROWS
+    ):
+        raise ValueError(
+            "home integration compatibility does not match the exact Preview 0.31 contract"
+        )
+
+
 def check_preview_site(site_root: Path) -> None:
     _reject_unsafe_lexical_components(site_root)
     root = site_root.resolve()
@@ -726,6 +862,7 @@ def check_preview_site(site_root: Path) -> None:
     release = _check_release(root)
     _check_asset_digests(root)
     pages: dict[Path, _LinkCollector] = {}
+    home_text = ""
     for relative in sorted(path for path in actual if path.suffix == ".html"):
         page = root / relative
         try:
@@ -734,6 +871,8 @@ def check_preview_site(site_root: Path) -> None:
             raise ValueError(f"generated HTML is unreadable: {relative.as_posix()}: {error}") from error
         collector = _LinkCollector()
         collector.feed(text)
+        if relative == Path("index.html"):
+            home_text = text
         duplicate_ids = sorted(
             identifier for identifier in set(collector.ids) if collector.ids.count(identifier) > 1
         )
@@ -803,6 +942,7 @@ def check_preview_site(site_root: Path) -> None:
                 )
 
     _check_publication_truth(root, pages)
+    _check_home_compatibility(home_text)
 
     stylesheet = root / "assets/academy.css"
     try:

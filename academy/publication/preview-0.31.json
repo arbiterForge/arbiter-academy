@@ -32,5 +32,38 @@
     "Graduation is available after all 19 Academy Checks pass in the same repository."
   ],
   "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",
-  "catalog_sha256": "1e2198aa281cc409dfe9b91bb42001236dafcd231477202e3a24de5dadf7a09c"
+  "catalog_sha256": "1e2198aa281cc409dfe9b91bb42001236dafcd231477202e3a24de5dadf7a09c",
+  "integration_compatibility": {
+    "academy_release": "preview-0.31",
+    "evidence_level": "release-and-command-contract",
+    "components": [
+      {
+        "component_id": "codearbiter",
+        "display_name": "codeArbiter",
+        "release_tag": "v2.17.11",
+        "version": "2.17.11",
+        "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+        "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
+        "manifest_sha256": "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964"
+      },
+      {
+        "component_id": "ca-codex",
+        "display_name": "Codex",
+        "release_tag": "ca-codex-v0.9.11",
+        "version": "0.9.11",
+        "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+        "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
+        "manifest_sha256": "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5"
+      },
+      {
+        "component_id": "ca-pi",
+        "display_name": "Pi",
+        "release_tag": "ca-pi-v0.10.13",
+        "version": "0.10.13",
+        "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+        "manifest_path": "plugins/ca-pi/package.json",
+        "manifest_sha256": "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4"
+      }
+    ]
+  }
 }

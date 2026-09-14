@@ -2,6 +2,9 @@ name: Academy Verify
 
 on:
   pull_request:
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,7 +24,6 @@ jobs:
         shard-index: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
       CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      CODEARBITER_SOURCE_SHA: debb49da71aa1b97bca0988f72e46bb5875a23e3
       CODEARBITER_TASKWRITE: ${{ github.workspace }}/.ci/codearbiter-source/core/pysrc/taskwrite.py
       WORKSHOP_QUEUE_TEST_WHEELHOUSE: ${{ github.workspace }}/.github/wheelhouse
     steps:
@@ -32,27 +34,59 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check out the pinned local CodeArbiter source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: arbiterForge/codeArbiter
-          ref: debb49da71aa1b97bca0988f72e46bb5875a23e3
-          path: .ci/codearbiter-source
-          persist-credentials: false
-
-      - name: Remove checkout-only Git configuration
-        run: git config --local --unset-all gc.auto
-
       - name: Select Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Verify pinned hosted prerequisites
+      - name: Read the validated Preview compatibility source
+        id: compatibility-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from academy_engine.preview import load_preview_manifest
+
+          manifest = load_preview_manifest(Path("."))
+          source_commits = {
+              record.source_commit
+              for record in manifest.integration_compatibility
+          }
+          if len(source_commits) != 1:
+              raise SystemExit("Preview compatibility does not declare one shared source")
+          source_commit = source_commits.pop()
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"sha={source_commit}\n")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as environment:
+              environment.write(f"CODEARBITER_SOURCE_SHA={source_commit}\n")
+          PY
+
+      - name: Check out the declared codeArbiter source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: arbiterForge/codeArbiter
+          ref: ${{ steps.compatibility-source.outputs.sha }}
+          path: .ci/codearbiter-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Remove checkout-only Git configuration
+        run: git config --local --unset-all gc.auto
+
+      - name: Verify declared codeArbiter compatibility
         shell: bash
         run: |
           set -euo pipefail
           test "$(git -C .ci/codearbiter-source rev-parse HEAD)" = "$CODEARBITER_SOURCE_SHA"
+          python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.31.json --codearbiter-root .ci/codearbiter-source
+
+      - name: Verify pinned offline build wheel
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
           import hashlib
           from pathlib import Path
