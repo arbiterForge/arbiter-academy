@@ -111,13 +111,61 @@ def published_release_source(destination: Path, release: str = RELEASE) -> Path:
     return extract_tagged_release(destination, release) if immutable_release_tag_exists(release) else REPOSITORY
 
 
-def posix_path(path: Path) -> str:
+def posix_bash() -> str | None:
+    return shutil.which("bash")
+
+
+def is_git_bash(bash: str) -> bool:
+    normalized = bash.replace("\\", "/").lower()
+    return normalized.endswith(("/git/bin/bash.exe", "/git/usr/bin/bash.exe"))
+
+
+def wsl_bash() -> str | None:
+    if os.name != "nt":
+        return posix_bash()
+    system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    candidate = system_root / "System32" / "bash.exe"
+    if not candidate.is_file():
+        return None
+    probe = subprocess.run(
+        [str(candidate), "-lc", "true"],
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=30,
+    )
+    return str(candidate) if probe.returncode == 0 else None
+
+
+def posix_path(path: Path, bash: str | None = None) -> str:
     if os.name != "nt":
         return str(path)
     resolved = path.resolve().as_posix()
     if len(resolved) < 3 or resolved[1:3] != ":/":
         raise unittest.SkipTest("a drive-backed WSL path is required")
+    selected_bash = bash or posix_bash() or ""
+    if is_git_bash(selected_bash):
+        return f"/{resolved[0].lower()}/{resolved[3:]}"
     return f"/mnt/{resolved[0].lower()}/{resolved[3:]}"
+
+
+class PosixPathTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows shell path semantics")
+    def test_path_matches_the_selected_bash_implementation(self) -> None:
+        drive_path = Path("C:/Academy/scratch")
+        cases = (
+            (r"C:\Program Files\Git\bin\bash.exe", "/c/Academy/scratch"),
+            (r"C:\Windows\System32\bash.exe", "/mnt/c/Academy/scratch"),
+        )
+
+        for bash, expected in cases:
+            with self.subTest(bash=bash):
+                self.assertEqual(posix_path(drive_path, bash), expected)
+
+    def test_shell_selector_preserves_the_path_selected_bash(self) -> None:
+        git_bash = r"C:\Program Files\Git\bin\bash.exe"
+        with patch("shutil.which", return_value=git_bash):
+            self.assertEqual(posix_bash(), git_bash)
 
 
 def release_builder_module() -> object:
@@ -761,7 +809,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_rejects_and_preserves_an_unowned_install_path(self) -> None:
         """Catches the POSIX installer overwriting files it did not create and own."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         data_home = self.scratch / "posix-conflict"
@@ -879,7 +927,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_installs_only_manifest_owned_paths_and_runs_doctor(self) -> None:
         """Catches the POSIX path resolving packages online or leaving undeclared files."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         ensurepip = subprocess.run(
@@ -890,7 +938,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             timeout=30,
         )
         path_prefix = ""
-        if ensurepip.returncode:
+        if ensurepip.returncode or is_git_bash(bash):
             fake_bin = self.scratch / "posix-success-python"
             fake_bin.mkdir()
             real_python = subprocess.run(
@@ -967,7 +1015,7 @@ class InstallerBehaviorTests(unittest.TestCase):
     @unittest.skipIf(os.name == "nt", "POSIX venv symlink behavior")
     def test_posix_installer_accepts_its_owned_internal_venv_symlink(self) -> None:
         """Catches rejecting the in-root compatibility links made by a successful POSIX venv."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         fake_bin = self.scratch / "posix-owned-venv-link-python"
@@ -1015,7 +1063,7 @@ class InstallerBehaviorTests(unittest.TestCase):
     @unittest.skipIf(os.name == "nt", "POSIX venv symlink behavior")
     def test_posix_installer_rejects_an_external_venv_symlink(self) -> None:
         """Catches treating a venv-created link to data outside the owned root as installed content."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         external = self.scratch / "posix-external-venv-link-target"
@@ -1104,7 +1152,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_rolls_back_a_partial_owned_environment(self) -> None:
         """Catches a failed POSIX venv build leaving an installer-owned partial path behind."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         data_home = self.scratch / "posix-rollback"
@@ -1149,7 +1197,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_rolls_back_when_interrupted_after_claiming_the_install_root(self) -> None:
         """Catches cleanup expanding an unset install marker during an ownership-window interrupt."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         interrupted_installer = self.scratch / "posix-interrupted-after-ownership.sh"
@@ -1252,9 +1300,9 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_preserves_a_substituted_install_root_on_rollback(self) -> None:
         """Catches POSIX substitution after precheck escaping quarantine revalidation."""
-        bash = shutil.which("bash")
+        bash = wsl_bash() if os.name == "nt" else posix_bash()
         if bash is None:
-            self.skipTest("a POSIX shell is required")
+            self.skipTest("a Linux shell with symlink support is required")
         data_home = self.scratch / "posix-substitution-data"
         external = self.scratch / "posix-substitution-external"
         external.mkdir()
@@ -1287,15 +1335,16 @@ class InstallerBehaviorTests(unittest.TestCase):
             "esac\n"
             "exec /usr/bin/mv \"$@\"\n"
         ).encode("utf-8"))
-        controlled_path = f"{posix_path(fake_bin)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-        install_root_posix = f"{posix_path(data_home)}/arbiter-academy/{RELEASE}"
+        controlled_path = f"{posix_path(fake_bin, bash)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        install_root_posix = f"{posix_path(data_home, bash)}/arbiter-academy/{RELEASE}"
         command = (
-            f"chmod 700 {shlex.quote(posix_path(fake_python))} {shlex.quote(posix_path(fake_mv))}; "
-            f"PATH={shlex.quote(controlled_path)} XDG_DATA_HOME={shlex.quote(posix_path(data_home))} "
-            f"ATTACK_TARGET={shlex.quote(posix_path(external))} "
+            f"chmod 700 {shlex.quote(posix_path(fake_python, bash))} {shlex.quote(posix_path(fake_mv, bash))}; "
+            f"PATH={shlex.quote(controlled_path)} XDG_DATA_HOME={shlex.quote(posix_path(data_home, bash))} "
+            f"ATTACK_TARGET={shlex.quote(posix_path(external, bash))} "
             f"ATTACK_SOURCE={shlex.quote(install_root_posix)} "
-            f"ATTACK_EVENT={shlex.quote(posix_path(self.scratch / 'posix-quarantine-race.txt'))} "
-            f"sh {shlex.quote(posix_path(self.assets / 'install.sh'))} --bundle {shlex.quote(posix_path(self.assets / ARCHIVE))}"
+            f"ATTACK_EVENT={shlex.quote(posix_path(self.scratch / 'posix-quarantine-race.txt', bash))} "
+            f"sh {shlex.quote(posix_path(self.assets / 'install.sh', bash))} "
+            f"--bundle {shlex.quote(posix_path(self.assets / ARCHIVE, bash))}"
         )
         result = subprocess.run(
             [bash, "-lc", command], cwd=REPOSITORY, text=True, capture_output=True,
@@ -1312,13 +1361,13 @@ class InstallerBehaviorTests(unittest.TestCase):
         quarantines = list((data_home / "arbiter-academy").glob(".academy-delete-*"))
         self.assertEqual(len(quarantines), 1, result.stdout + result.stderr)
         link_result = subprocess.run(
-            [bash, "-lc", f"test -L {shlex.quote(posix_path(quarantines[0]))}"],
+            [bash, "-lc", f"test -L {shlex.quote(posix_path(quarantines[0], bash))}"],
             check=False, capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(link_result.returncode, 0, link_result.stdout + link_result.stderr)
         self.assertEqual(sentinel.read_bytes(), b"outside\n")
         subprocess.run(
-            [bash, "-lc", f"rm -- {shlex.quote(posix_path(quarantines[0]))}"],
+            [bash, "-lc", f"rm -- {shlex.quote(posix_path(quarantines[0], bash))}"],
             check=True, capture_output=True, text=True, timeout=30,
         )
 
@@ -1375,7 +1424,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             self.assertIn("extraction was not attempted", result.stderr)
             self.assertFalse((local_app_data / "ArbiterAcademy").exists())
 
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is not None:
             data_home = self.scratch / "posix-tampered"
             command = (
@@ -1389,7 +1438,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_download_rejects_untrusted_redirect_without_installing(self) -> None:
         """Catches the required GitHub redirect allowance becoming an open redirect."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         fake_bin = self.scratch / "untrusted-redirect-bin"
@@ -1405,7 +1454,14 @@ class InstallerBehaviorTests(unittest.TestCase):
             "printf 302\n"
         ).encode("utf-8"))
         data_home = self.scratch / "untrusted-redirect-data"
-        controlled_path = f"{posix_path(fake_bin)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        runtime_bin = subprocess.run(
+            [bash, "-lc", "dirname -- \"$(command -v python3)\""],
+            text=True,
+            capture_output=True,
+            check=True,
+            timeout=30,
+        ).stdout.strip()
+        controlled_path = f"{posix_path(fake_bin)}:{runtime_bin}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         command = (
             f"chmod 700 {shlex.quote(posix_path(fake_curl))}; "
             f"PATH={shlex.quote(controlled_path)} XDG_DATA_HOME={shlex.quote(posix_path(data_home))} "
@@ -1418,7 +1474,7 @@ class InstallerBehaviorTests(unittest.TestCase):
 
     def test_posix_download_allows_only_the_required_trusted_redirect_chain(self) -> None:
         """Catches rejecting GitHub's immutable CDN hop or skipping hash verification after it."""
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is None:
             self.skipTest("a POSIX shell is required")
         fake_bin = self.scratch / "trusted-redirect-bin"
@@ -1494,7 +1550,7 @@ class InstallerBehaviorTests(unittest.TestCase):
             self.assertIn("unsafe archive path", result.stderr)
             self.assertFalse(any(local_app_data.rglob("escaped.whl")))
 
-        bash = shutil.which("bash")
+        bash = posix_bash()
         if bash is not None:
             script = self.scratch / "hostile-install.sh"
             script.write_bytes((self.assets / "install.sh").read_bytes().replace(canonical_digest.encode(), hostile_digest.encode()))
@@ -1536,7 +1592,7 @@ class InstallerBehaviorTests(unittest.TestCase):
         }
         canonical_digest = sha256(self.assets / ARCHIVE)
         powershell = shutil.which("powershell") or shutil.which("pwsh")
-        bash = shutil.which("bash")
+        bash = posix_bash()
         for label, entries in cases.items():
             hostile = self.scratch / f"hostile-{label}.zip"
             with zipfile.ZipFile(hostile, "w") as archive:
@@ -1583,7 +1639,12 @@ class InstallerBehaviorTests(unittest.TestCase):
                     )
                     result = subprocess.run([bash, "-lc", command], cwd=REPOSITORY, text=True, capture_output=True, check=False, timeout=60)
                     self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                    self.assertIn("bundle contains", result.stdout + result.stderr)
+                    expected_error = (
+                        "bundle inventory differs"
+                        if label == "backslash" and is_git_bash(bash)
+                        else "bundle contains"
+                    )
+                    self.assertIn(expected_error, result.stdout + result.stderr)
                     self.assertFalse((data_home / "arbiter-academy" / RELEASE).exists())
                     self.assertFalse((parent_link_target / Path(wheel_path).name).exists())
 
