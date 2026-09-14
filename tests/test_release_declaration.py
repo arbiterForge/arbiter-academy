@@ -20,6 +20,21 @@ EXPECTED_ASSETS = (
     "arbiter-academy-preview-0.31.zip.sha256",
 )
 
+NUMERIC_VERSION = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
+
+
+def validate_release_step(stable: str, candidate: str) -> None:
+    if NUMERIC_VERSION.fullmatch(stable) is None:
+        raise ValueError(f"invalid stable version: {stable}")
+    if NUMERIC_VERSION.fullmatch(candidate) is None:
+        raise ValueError(f"invalid candidate version: {candidate}")
+
+    stable_parts = tuple(int(part) for part in stable.split("."))
+    candidate_parts = tuple(int(part) for part in candidate.split("."))
+    allowed = (stable_parts, (*stable_parts[:-1], stable_parts[-1] + 1))
+    if candidate_parts not in allowed:
+        raise ValueError(f"candidate {candidate} is not stable or the next release after {stable}")
+
 
 class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
     def required_text(self, path: Path) -> str:
@@ -55,7 +70,7 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         self.assertIsInstance(manifest, dict)
         version = manifest.get("version")
         self.assertIsInstance(version, str)
-        self.assertRegex(version, r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
+        self.assertRegex(version, NUMERIC_VERSION)
         return version
 
     def test_ac01_declares_one_generic_numeric_preview_target(self) -> None:
@@ -114,10 +129,13 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         candidates = {match.group(1) for match in patterns.values() if match is not None}
         self.assertEqual(len(candidates), 1)
 
-        stable_parts = tuple(int(part) for part in stable.split("."))
-        candidate_parts = tuple(int(part) for part in candidates.pop().split("."))
-        self.assertEqual(len(candidate_parts), len(stable_parts))
-        self.assertIn(candidate_parts, (stable_parts, (*stable_parts[:-1], stable_parts[-1] + 1)))
+        validate_release_step(stable, candidates.pop())
+
+    def test_ac04_rejects_malformed_regressing_skipped_and_shape_changed_candidates(self) -> None:
+        invalid_candidates = ("0.3x", "0.29", "0.32", "0.30.0")
+        for candidate in invalid_candidates:
+            with self.subTest(candidate=candidate), self.assertRaises(ValueError):
+                validate_release_step("0.30", candidate)
 
     def test_ac05_builder_uses_release_variables_and_pages_epoch(self) -> None:
         _text, fields = self.declaration()
@@ -125,12 +143,14 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         epoch_match = re.search(r"(?m)^\s*RELEASE_EPOCH:\s*(\d+)\s*$", workflow)
         self.assertIsNotNone(epoch_match)
         command = fields.get("release-build", [])
-        self.assertEqual(len(command), 1)
-        build = command[0]
-        self.assertIn('"$PY" scripts/build_release_assets.py', build)
-        self.assertIn('--output "$RELEASE_ASSET_DIR"', build)
-        self.assertIn('--release "$RELEASE_TAG"', build)
-        self.assertIn(f"--epoch {epoch_match.group(1)}", build)
+        self.assertEqual(
+            command,
+            [
+                '"$PY" scripts/build_release_assets.py --source . '
+                '--output "$RELEASE_ASSET_DIR" '
+                f'--epoch {epoch_match.group(1)} --release "$RELEASE_TAG"'
+            ],
+        )
 
     def test_ac06_pre_tag_checks_are_portable_complete_and_check_only(self) -> None:
         _text, fields = self.declaration()
