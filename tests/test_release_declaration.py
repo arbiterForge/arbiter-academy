@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import re
 import unittest
@@ -89,6 +90,13 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
             with self.subTest(field=key):
                 self.assertEqual(fields.get(key), value)
 
+    def test_ac01_excludes_only_governance_scratch_from_the_release_payload(self) -> None:
+        _text, fields = self.declaration()
+        self.assertEqual(
+            fields.get("payload-exclude"),
+            [".codearbiter/gate-events.log", ".codearbiter/.markers"],
+        )
+
     def test_ac02_renders_exactly_six_safe_assets_without_a_candidate_literal(self) -> None:
         text, fields = self.declaration()
         self.assertIsNone(re.search(r"preview-(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", text))
@@ -103,8 +111,28 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
             with self.subTest(asset=name):
                 self.assertRegex(name, r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 
-    def test_ac03_stable_manifest_starts_at_immutable_predecessor(self) -> None:
-        self.assertEqual(self.stable_version(), "0.30")
+    def test_ac03_stable_manifest_uses_the_declared_numeric_policy(self) -> None:
+        _text, fields = self.declaration()
+        self.assertEqual(fields.get("version-policy"), ["numeric-sequence"])
+        self.assertRegex(self.stable_version(), NUMERIC_VERSION)
+
+    def test_ac03_declaration_suite_does_not_pin_a_mutable_stable_version(self) -> None:
+        tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+        pinned_versions = [
+            constant.value
+            for method in ast.walk(tree)
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name.startswith("test_ac03")
+            for constant in ast.walk(method)
+            if isinstance(constant, ast.Constant)
+            and isinstance(constant.value, str)
+            and NUMERIC_VERSION.fullmatch(constant.value)
+        ]
+        self.assertEqual(
+            pinned_versions,
+            [],
+            "the reusable release declaration must not pin a mutable Preview version",
+        )
 
     def test_ac04_candidate_surfaces_form_one_valid_release_step(self) -> None:
         stable = self.stable_version()
@@ -135,6 +163,11 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         invalid_candidates = ("0.3x", "0.29", "0.32", "0.30.0")
         for candidate in invalid_candidates:
             with self.subTest(candidate=candidate), self.assertRaises(ValueError):
+                validate_release_step("0.30", candidate)
+
+    def test_ac04_accepts_the_stable_and_exactly_next_versions(self) -> None:
+        for candidate in ("0.30", "0.31"):
+            with self.subTest(candidate=candidate):
                 validate_release_step("0.30", candidate)
 
     def test_ac05_builder_uses_release_variables_and_pages_epoch(self) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import subprocess
 import unittest
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -290,10 +291,16 @@ class ProjectStateTests(unittest.TestCase):
             self.assertEqual(simulated_append.splitlines()[-2], raw.splitlines()[-1], relative)
             self.assertEqual(simulated_append.splitlines()[-1], b"[fixture next-record]", relative)
 
-    def test_no_marker_files_are_present(self):
-        markers = STATE_ROOT / ".markers"
-        if markers.exists():
-            self.assertEqual([path for path in markers.rglob("*") if path.is_file()], [])
+    def test_no_marker_files_are_tracked(self):
+        result = subprocess.run(
+            ["git", "ls-files", "--", ".codearbiter/.markers"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [])
 
 
 if __name__ == "__main__":
