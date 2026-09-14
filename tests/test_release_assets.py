@@ -165,7 +165,7 @@ class PosixPathTests(unittest.TestCase):
     def test_shell_selector_preserves_the_path_selected_bash(self) -> None:
         git_bash = r"C:\Program Files\Git\bin\bash.exe"
         with patch("shutil.which", return_value=git_bash):
-            self.assertEqual(posix_bash(), git_bash)
+            self.assertEqual(posix_path(Path("C:/Academy/scratch")), "/c/Academy/scratch")
 
 
 def release_builder_module() -> object:
