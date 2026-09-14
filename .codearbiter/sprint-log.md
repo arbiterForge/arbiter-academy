@@ -94,3 +94,24 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: retain F03 as source-only; expose its route without package evidence; publish its reviewed guide, scenario, Check binding, package payload, manifest, installers, and site together.
 - SMARTS: Reliable and Testable favor the atomic release because Prepare, Check, the public wheel, and the route then share one reviewed contract. Available favors a small Foundation lesson that teaches the real task-start rule. Securable favors no fabricated command telemetry, no hosted pull request, and an immutable predecessor release. Maintainable favors one versioned inventory and deterministic assets.
 - Chosen: promote F03 only in Preview 0.26 after its public guide, semantic Check, package data, release assets, rendered site, and hosted CI prove the same real task-start co-commit path.
+
+## SD-ACA-016 - Declare Academy Preview through a stable numeric release target - confidence: high - intent: per user-approved campaign checkpoint 036
+- Date: 2026-09-13
+- Point: Which repository-owned version surface should drive the generic release lane when package.json, pyproject.toml, and version-named publication manifests each describe a different concern.
+- Options: overload the browser-tool package or Workshop Queue fixture version; point the row at a version-named publication file; add one stable Academy release manifest with a numeric-sequence policy and cross-surface tests.
+- SMARTS: Reliable and Testable favor the stable manifest because the installed helper can parse and advance it while a focused state-machine test catches drift across workflow, publication, package, README, and asset surfaces. Available favors reusing the existing deterministic builder and exact six assets. Securable favors reviewed operator commands, immutable predecessor tags, and no new network or credential path. Maintainable favors a version-agnostic target row and asset templates over a declaration coupled to Preview 0.31.
+- Chosen: add academy/release.json at predecessor version 0.30 and one academy-preview numeric-sequence target; permit prepared surfaces to equal that version or lead it by exactly one final component, then require equality after the release bump.
+
+## SD-ACA-017 - Resume autonomously under the recorded approval - confidence: high - intent: per user direction to continue without duplicate between-checkpoint prompts
+- Date: 2026-09-13
+- Point: Whether to pause again for the release-declaration spec and plan after the campaign already records the exact scope, constraints, release authority, and instruction not to request duplicate authorization absent a materially different decision.
+- Options: ask again; proceed without artifacts; write the bounded spec and bijective plan, auto-approve them under SMARTS, and retain all hard gates.
+- SMARTS: Reliable and Testable favor durable spec and plan artifacts. Available favors continuing without a redundant pause. Securable keeps release publication, secrets, and validation as hard gates. Maintainable preserves the normal sprint pipeline and resume ledger. The active campaign acceptance criteria and explicit release authorization fully constrain the choice.
+- Chosen: approve the written Academy Preview release-contract spec and plan under the existing user decision, then execute them end to end; no hard gate is waived.
+
+## SD-ACA-018 - Keep installer digest verification independent of ambient module discovery - confidence: high - intent: checkpoint 036 gate correction
+- Date: 2026-09-13
+- Point: Correct Windows installer SHA-256 verification when inherited environment-key casing prevents module command discovery.
+- Options: normalize the module path; import a discoverable module; or use the runtime cryptography API.
+- SMARTS: The runtime API is reliable, testable, available, securable without search paths, and maintainable as one helper.
+- Chosen: use the runtime SHA256 API for both digests while preserving comparison, verification order, regression coverage, and checksum.

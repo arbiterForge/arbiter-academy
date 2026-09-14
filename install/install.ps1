@@ -35,6 +35,18 @@ function New-OwnershipToken {
     return [BitConverter]::ToString($bytes).Replace("-", "").ToLowerInvariant()
 }
 
+function Get-Sha256Digest {
+    param([string]$Path)
+    $stream = [IO.File]::OpenRead($Path)
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        return [BitConverter]::ToString($sha256.ComputeHash($stream)).Replace("-", "").ToLowerInvariant()
+    } finally {
+        $sha256.Dispose()
+        $stream.Dispose()
+    }
+}
+
 function Write-OwnershipMarker {
     param([string]$Path, [string]$Token)
     $payload = [Text.Encoding]::ASCII.GetBytes($Token + "`n")
@@ -228,7 +240,7 @@ try {
         Get-ImmutableReleaseAsset -Url $AssetUrl -Destination $downloadPath
         $bundle = $downloadPath
     }
-    $actualDigest = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+    $actualDigest = Get-Sha256Digest -Path $bundle
     if ($actualDigest -cne $BundleSha256) {
         throw "bundle SHA-256 mismatch; extraction was not attempted"
     }
@@ -250,7 +262,7 @@ try {
         throw "bundle manifest Academy wheel is missing"
     }
     $wheelItem = Get-Item -LiteralPath $wheel
-    if ($wheelItem.Length -ne [int64]$wheelRecord.size -or (Get-FileHash -LiteralPath $wheel -Algorithm SHA256).Hash.ToLowerInvariant() -cne $wheelRecord.sha256) {
+    if ($wheelItem.Length -ne [int64]$wheelRecord.size -or (Get-Sha256Digest -Path $wheel) -cne $wheelRecord.sha256) {
         throw "bundle manifest Academy wheel digest or size mismatch"
     }
 
