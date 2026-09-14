@@ -839,16 +839,20 @@ class InstallerBehaviorTests(unittest.TestCase):
             self.skipTest("Windows PowerShell is required")
         local_app_data = self.scratch / "powershell-no-module-path"
         module_path = next(
-            value
-            for key, value in os.environ.items()
-            if key.casefold() == "psmodulepath"
+            (
+                value
+                for key, value in os.environ.items()
+                if key.casefold() == "psmodulepath"
+            ),
+            None,
         )
         environment = {
             key: value
             for key, value in os.environ.items()
             if key.casefold() != "psmodulepath"
         }
-        environment["PSMODULEPATH"] = module_path
+        if module_path is not None:
+            environment["PSMODULEPATH"] = module_path
         environment["LOCALAPPDATA"] = str(local_app_data)
         environment["PIP_INDEX_URL"] = "https://index.invalid/must-not-be-used"
         result = subprocess.run(
