@@ -832,6 +832,47 @@ class InstallerBehaviorTests(unittest.TestCase):
         self.assertEqual(set(manifest["owned_paths"]), actual)
         self.assertFalse(any(path.name.startswith(f".{RELEASE}-") for path in install_root.parent.iterdir()))
 
+    def test_powershell_install_does_not_depend_on_module_path_key_casing(self) -> None:
+        """Catches digest verification depending on ambient environment-key casing."""
+        powershell = shutil.which("powershell") or shutil.which("pwsh")
+        if powershell is None or os.name != "nt":
+            self.skipTest("Windows PowerShell is required")
+        local_app_data = self.scratch / "powershell-no-module-path"
+        module_path = next(
+            value
+            for key, value in os.environ.items()
+            if key.casefold() == "psmodulepath"
+        )
+        environment = {
+            key: value
+            for key, value in os.environ.items()
+            if key.casefold() != "psmodulepath"
+        }
+        environment["PSMODULEPATH"] = module_path
+        environment["LOCALAPPDATA"] = str(local_app_data)
+        environment["PIP_INDEX_URL"] = "https://index.invalid/must-not-be-used"
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(self.assets / "install.ps1"),
+                "-BundlePath",
+                str(self.assets / ARCHIVE),
+            ],
+            cwd=REPOSITORY,
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=300,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"Installed Arbiter Academy {RELEASE}", result.stdout)
+
     def test_posix_installs_only_manifest_owned_paths_and_runs_doctor(self) -> None:
         """Catches the POSIX path resolving packages online or leaving undeclared files."""
         bash = shutil.which("bash")
