@@ -7,6 +7,8 @@ initial-version: 0.1
 manifest: academy/release.json
 changelog: CHANGELOG.md
 payload: .
+payload-exclude: .codearbiter/gate-events.log
+payload-exclude: .codearbiter/.markers
 latest-eligible: true
 release-build: "$PY" scripts/build_release_assets.py --source . --output "$RELEASE_ASSET_DIR" --epoch 1789257600 --release "$RELEASE_TAG"
 release-asset: install.ps1
