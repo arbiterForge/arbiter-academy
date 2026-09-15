@@ -260,8 +260,9 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     """Reject security-significant workflow mutations without executing GitHub Actions."""
     job = _workflow_jobs(workflow).get("verify-release", "")
     shell = _literal_step_script(job, "Verify immutable Preview release assets")
+    ancestry_check = 'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then'
     required = (
-        'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
+        ancestry_check,
         'test "$(git -C "$release_source" rev-parse HEAD)" = "$resolved_sha"',
         'asset_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"',
         'raise SystemExit("release asset inventory mismatch")',
@@ -287,6 +288,16 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     for fragment in required:
         if fragment not in shell:
             raise AssertionError(f"release gate lost fail-closed fragment: {fragment}")
+    ancestry_failure = "\n".join(
+        (
+            ancestry_check,
+            '  echo "ERROR: exact Pages candidate does not descend from the immutable release tag." >&2',
+            "  exit 1",
+            "fi",
+        )
+    )
+    if ancestry_failure not in shell:
+        raise AssertionError("release ancestry failure no longer exits before verification continues")
     checkout = _named_step(job, "Check out the exact Pages candidate")
     setup = _named_step(job, "Select release-builder Python 3.12")
     if "ref: ${{ github.sha }}" not in checkout or "persist-credentials: false" not in checkout:
@@ -299,7 +310,6 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
         if line.strip() and not line.lstrip().startswith("#")
     ]
     release_tag_fetch = 'git -C "$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin "$resolved_sha"'
-    ancestry_check = 'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then'
     if release_tag_fetch not in executable_lines:
         raise AssertionError("release source is not fetched after its immutable tag resolves")
     if executable_lines.index(release_tag_fetch) > executable_lines.index(ancestry_check):
@@ -1443,6 +1453,11 @@ class PagesWorkflowContractTests(unittest.TestCase):
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
         fail_open_job = release_job.replace("set -euo pipefail", "set +e", 1)
         mutations = {
+            "ancestry-no-exit": self.pages_workflow.replace(
+                '            exit 1\n          fi\n          release_source="$RUNNER_TEMP/academy-release-source"',
+                '            :\n          fi\n          release_source="$RUNNER_TEMP/academy-release-source"',
+                1,
+            ),
             "ancestry-echo": self.pages_workflow.replace(
                 'if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" "$CANDIDATE_SHA"; then',
                 'echo "$resolved_sha $CANDIDATE_SHA"',
