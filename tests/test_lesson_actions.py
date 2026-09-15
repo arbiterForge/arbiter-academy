@@ -2056,7 +2056,7 @@ class LessonActionTests(unittest.TestCase):
                 command="$ca-doctor",
             )
         )
-        with self.assertRaisesRegex(ValueError, "CodeArbiter commands require a harness"):
+        with self.assertRaisesRegex(ValueError, "codeArbiter commands require a harness"):
             validate_action_manifest(data, expected_document_id=DOCUMENT_ID)
 
     def test_codearbiter_commands_use_each_hosts_native_invocation(self) -> None:

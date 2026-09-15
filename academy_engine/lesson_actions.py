@@ -227,9 +227,9 @@ def _validate_execution_identity(
     if language != "codearbiter":
         return
     if command.startswith("!"):
-        raise ValueError("CodeArbiter commands must not begin with !")
+        raise ValueError("codeArbiter commands must not begin with !")
     if surface != "harness" or host == "none":
-        raise ValueError("CodeArbiter commands require a harness and named host")
+        raise ValueError("codeArbiter commands require a harness and named host")
     patterns = {
         "claude-code": re.compile(r"/ca:[A-Za-z0-9-]+(?: [^\r\n]+)?"),
         "codex": re.compile(r"\$ca-[A-Za-z0-9-]+(?: [^\r\n]+)?"),
@@ -237,7 +237,7 @@ def _validate_execution_identity(
     }
     if patterns[host].fullmatch(command) is None:
         host_label = {"claude-code": "Claude Code", "codex": "Codex", "pi": "Pi"}[host]
-        raise ValueError(f"CodeArbiter command does not use {host_label} host-native syntax")
+        raise ValueError(f"codeArbiter command does not use {host_label} host-native syntax")
 
 
 def _validate_variant(value: object) -> CommandVariant:
@@ -309,7 +309,7 @@ def _validate_action(value: object) -> LessonAction:
         if surface_value == "harness":
             raise ValueError(
                 "non-command actions cannot use harness; use active-harness for a "
-                "learner action in the already selected CodeArbiter host"
+                "learner action in the already selected codeArbiter host"
             )
         surface = _require_enum(
             surface_value, ACTION_SURFACES, "lesson action surface"

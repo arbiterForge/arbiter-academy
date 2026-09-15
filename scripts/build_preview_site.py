@@ -535,7 +535,7 @@ def _execution_label(action: LessonAction, *, surface: str, host: str, operating
             "browser": "Browser",
             "native-terminal": "Native terminal",
             "academy-console": "Academy console",
-            "active-harness": "Active CodeArbiter harness",
+            "active-harness": "Active codeArbiter harness",
         }[surface]
     os_label = {
         "all": "All operating systems",
@@ -647,7 +647,7 @@ def _render_command_preferences(actions: Mapping[str, LessonAction]) -> str:
         )
         groups.append(
             '<div class="academy-command-preference" role="group" aria-labelledby="academy-host-heading">'
-            f'<p id="academy-host-heading">CodeArbiter host</p>{host_controls}</div>'
+            f'<p id="academy-host-heading">codeArbiter host</p>{host_controls}</div>'
         )
     if not groups:
         return ""
