@@ -13,6 +13,7 @@ import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlsplit
@@ -31,6 +32,114 @@ from academy_engine.preview import load_preview_manifest
 from scripts.build_preview_site import build_preview_site
 from scripts.check_preview_site import check_preview_site
 from tests._temporary import cleanup_temporary_directory
+
+
+EXPECTED_INTEGRATION_COMPATIBILITY = {
+    "academy_release": "preview-0.32",
+    "evidence_level": "release-and-command-contract",
+    "components": [
+        {
+            "component_id": "codearbiter",
+            "display_name": "codeArbiter",
+            "release_tag": "v2.17.11",
+            "version": "2.17.11",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
+            "manifest_sha256": "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+        },
+        {
+            "component_id": "ca-codex",
+            "display_name": "Codex",
+            "release_tag": "ca-codex-v0.9.11",
+            "version": "0.9.11",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
+            "manifest_sha256": "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+        },
+        {
+            "component_id": "ca-pi",
+            "display_name": "Pi",
+            "release_tag": "ca-pi-v0.10.13",
+            "version": "0.10.13",
+            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "manifest_path": "plugins/ca-pi/package.json",
+            "manifest_sha256": "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+        },
+    ],
+}
+
+
+class CompatibilitySectionParser(HTMLParser):
+    """Collect the user-visible compatibility table and its accessible context."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.heading = ""
+        self.paragraphs: list[str] = []
+        self.direct_children: list[tuple[str, int | None]] = []
+        self.rows: list[tuple[tuple[str, ...], tuple[str, ...]]] = []
+        self._section_depth = 0
+        self._heading_parts: list[str] | None = None
+        self._paragraph_parts: list[str] | None = None
+        self._row_cells: list[str] | None = None
+        self._row_cell_tags: list[str] | None = None
+        self._cell_parts: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if self._section_depth == 0:
+            if (
+                tag == "section"
+                and attributes.get("aria-labelledby")
+                == "integration-compatibility-heading"
+            ):
+                self._section_depth = 1
+            return
+
+        if self._section_depth == 1:
+            if tag == "p":
+                self.direct_children.append((tag, len(self.paragraphs)))
+                self._paragraph_parts = []
+            elif tag == "table":
+                self.direct_children.append((tag, None))
+        self._section_depth += 1
+
+        if tag == "h2" and attributes.get("id") == "integration-compatibility-heading":
+            self._heading_parts = []
+        if tag == "tr":
+            self._row_cells = []
+            self._row_cell_tags = []
+        if tag in {"th", "td"} and self._row_cells is not None:
+            self._row_cell_tags.append(tag)
+            self._cell_parts = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._section_depth == 0:
+            return
+        if tag in {"th", "td"} and self._cell_parts is not None:
+            assert self._row_cells is not None
+            self._row_cells.append(" ".join("".join(self._cell_parts).split()))
+            self._cell_parts = None
+        if tag == "tr" and self._row_cells is not None:
+            assert self._row_cell_tags is not None
+            self.rows.append((tuple(self._row_cell_tags), tuple(self._row_cells)))
+            self._row_cells = None
+            self._row_cell_tags = None
+        if tag == "h2" and self._heading_parts is not None:
+            self.heading = " ".join("".join(self._heading_parts).split())
+            self._heading_parts = None
+        if tag == "p" and self._paragraph_parts is not None:
+            self.paragraphs.append(" ".join("".join(self._paragraph_parts).split()))
+            self._paragraph_parts = None
+        self._section_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._heading_parts is not None:
+            self._heading_parts.append(data)
+        if self._paragraph_parts is not None:
+            self._paragraph_parts.append(data)
+        if self._cell_parts is not None:
+            self._cell_parts.append(data)
 
 
 def build_and_list_html(root: Path, out: Path) -> list[Path]:
@@ -76,7 +185,7 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches manifest promotion without the public F03 page and action payload."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertIn("F03-work-the-board", manifest.guided_labs)
         build_preview_site(self.root, self.out, release_sha="6" * 40)
         route = self.out / "labs" / "F03-work-the-board" / "index.html"
@@ -91,7 +200,7 @@ class PreviewSiteTests(unittest.TestCase):
         publication = self.root / "academy" / "publication"
         self.assertFalse((publication / "preview-0.6.json").exists())
         self.assertTrue((publication / "preview-0.9.json").is_file())
-        manifest_path = publication / "preview-0.31.json"
+        manifest_path = publication / "preview-0.32.json"
         self.assertTrue(manifest_path.is_file())
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         public_labs = [
@@ -116,7 +225,7 @@ class PreviewSiteTests(unittest.TestCase):
             "U07-capstone",
         ]
         coming_next = []
-        self.assertEqual(manifest["release"], "preview-0.31")
+        self.assertEqual(manifest["release"], "preview-0.32")
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             self.assertEqual(manifest[field], public_labs, field)
         self.assertEqual(manifest["coming_next"], coming_next)
@@ -155,7 +264,7 @@ class PreviewSiteTests(unittest.TestCase):
             self.assertIn(f'data-action-id="{action_id}"', rendered)
         index = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("<strong>Current release inventory.</strong>", index)
-        self.assertIn("Preview 0.31", index)
+        self.assertIn("Preview 0.32", index)
         self.assertIn("P08-repository-hygiene", index)
         self.assertIn('href="labs/U07-capstone/index.html"', index)
         self.assertNotIn("Power User</strong>: U07", index)
@@ -169,9 +278,10 @@ class PreviewSiteTests(unittest.TestCase):
     def test_shared_release_chrome_derives_from_the_validated_preview_manifest(self) -> None:
         """Catches a future preview leaving a title, footer, or unavailable-next label stale."""
         source = self._copy_public_source("release-chrome")
-        current = source / "academy" / "publication" / "preview-0.31.json"
+        current = source / "academy" / "publication" / "preview-0.32.json"
         alternate = json.loads(current.read_text(encoding="utf-8"))
         alternate["release"] = "preview-9.9"
+        alternate["integration_compatibility"]["academy_release"] = "preview-9.9"
         (source / "academy" / "publication" / "preview-9.9.json").write_text(
             json.dumps(alternate), encoding="utf-8"
         )
@@ -424,7 +534,7 @@ class PreviewSiteTests(unittest.TestCase):
         for action_id in ("P03-prepare", "P03-check", "P03-reset"):
             with self.subTest(action=action_id):
                 rendered = preview_site._render_action(actions[action_id])
-                self.assertIn("preview-0.31", rendered)
+                self.assertIn("preview-0.32", rendered)
                 self.assertIn("command-variant", rendered)
                 self.assertIn("command-copy", rendered)
                 self.assertIn("<pre>", rendered)
@@ -566,7 +676,49 @@ class PreviewSiteTests(unittest.TestCase):
                 "prerequisites": list(manifest.prerequisites),
                 "known_limits": list(manifest.known_limits),
                 "discussion_url": manifest.discussion_url,
+                "integration_compatibility": EXPECTED_INTEGRATION_COMPATIBILITY,
             },
+        )
+
+    def test_public_release_record_exposes_exact_integration_compatibility(self) -> None:
+        """AC-05: release.json publishes every reviewed compatibility record and field."""
+        build_preview_site(self.root, self.out, release_sha="a" * 40)
+        record = json.loads((self.out / "release.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            record["integration_compatibility"],
+            EXPECTED_INTEGRATION_COMPATIBILITY,
+        )
+
+    def test_home_renders_accessible_compatibility_rows_with_adjacent_evidence_limit(self) -> None:
+        """AC-05: the public matrix identifies exact releases without overstating proof."""
+        home = read_home(self.root, self.out)
+        parser = CompatibilitySectionParser()
+        parser.feed(home)
+        parser.close()
+
+        limitation = (
+            "Evidence level: release-and-command-contract. "
+            "This is not end-to-end host certification."
+        )
+        self.assertEqual(parser.heading, "Integration compatibility")
+        self.assertIn(limitation, parser.paragraphs)
+        limitation_index = parser.paragraphs.index(limitation)
+        self.assertIn(
+            (("p", limitation_index), ("table", None)),
+            tuple(zip(parser.direct_children, parser.direct_children[1:])),
+        )
+        self.assertEqual(
+            parser.rows,
+            [
+                (("th", "th", "th"), ("Component", "Version", "Release tag")),
+                (("td", "td", "td"), ("codeArbiter", "2.17.11", "v2.17.11")),
+                (
+                    ("td", "td", "td"),
+                    ("Codex", "0.9.11", "ca-codex-v0.9.11"),
+                ),
+                (("td", "td", "td"), ("Pi", "0.10.13", "ca-pi-v0.10.13")),
+            ],
         )
 
     def test_stylesheet_prevents_root_horizontal_shift_without_disabling_command_card_scroll(self) -> None:
@@ -724,7 +876,7 @@ class PreviewSiteTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             r"^home (?:runnable lab links|coming-next entries) do not match the exact "
-    r"(?:guided )?Preview 0\.31 (?:inventory|guided-rewrite sequence)$",
+    r"(?:guided )?Preview 0\.32 (?:inventory|guided-rewrite sequence)$",
         ):
             check_preview_site(self.out)
 
@@ -1052,10 +1204,10 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(
             tuple(resource.href for resource in install.resources),
             (
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.ps1",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.ps1.sha256",
-                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.sh",
-                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.sh.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.ps1",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.ps1.sha256",
+                "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.sh",
+                "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.sh.sha256",
             ),
         )
         self.assertNotIn("```", guide)
@@ -1076,7 +1228,7 @@ class PreviewSiteTests(unittest.TestCase):
         )
         self.assertNotIn("{{INSTALL_PS1_SHA256}}", html)
         self.assertIn("Get-FileHash -LiteralPath $installer -Algorithm SHA256", install_commands["windows"])
-        self.assertIn("installer digest did not match Preview 0.31", install_commands["windows"])
+        self.assertIn("installer digest did not match Preview 0.32", install_commands["windows"])
         self.assertLess(
             install_commands["windows"].index("Get-FileHash"),
             install_commands["windows"].index("& $installer"),
@@ -1091,7 +1243,7 @@ class PreviewSiteTests(unittest.TestCase):
             command = install_commands[operating_system]
             self.assertIn("{{INSTALL_SH_SHA256}}", command)
             self.assertIn("python3 -c 'import hashlib, pathlib, sys;", command)
-            self.assertIn("installer digest did not match Preview 0.31", command)
+            self.assertIn("installer digest did not match Preview 0.32", command)
             self.assertLess(command.index("hashlib.sha256"), command.index('sh "$workdir/install.sh"'))
         self.assertIn(
             (self.root / "install" / "install.sh.sha256").read_text(encoding="ascii").split()[0],
@@ -1127,11 +1279,11 @@ class PreviewSiteTests(unittest.TestCase):
 
         self.assertIn('href="https://github.com/arbiterForge/arbiter-academy/fork"', html)
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.ps1"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.ps1"',
             html,
         )
         self.assertIn(
-            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/install/install.sh"',
+            'href="https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/install/install.sh"',
             html,
         )
         self.assertIn(
@@ -1196,7 +1348,7 @@ class PreviewSiteTests(unittest.TestCase):
     def test_build_rejects_missing_or_out_of_boundary_discussion_url_before_writing(self) -> None:
         """Catches a missing or attacker-controlled feedback destination reaching generated HTML."""
         source = self._copy_public_source()
-        manifest_path = source / "academy" / "publication" / "preview-0.31.json"
+        manifest_path = source / "academy" / "publication" / "preview-0.32.json"
         original = json.loads(manifest_path.read_text(encoding="utf-8"))
         invalid_urls = (
             None,
@@ -1373,7 +1525,7 @@ class PreviewSiteTests(unittest.TestCase):
         expected_links = [f'labs/{lab_id}/index.html' for lab_id in expected_labs]
         actual_links = re.findall(r'href="(labs/[^\"]+/index\.html)"', index)
         self.assertEqual(actual_links, expected_links)
-        self.assertIn('<meta name="academy-release" content="preview-0.31">', index)
+        self.assertIn('<meta name="academy-release" content="preview-0.32">', index)
         self.assertIn("Current release inventory.", index)
         self.assertIn("Graduation is available after all 19 Academy Checks pass in the same repository.", index)
         self.assertNotIn("Preview 0.11", index)
@@ -1415,6 +1567,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "prerequisites": list(manifest.prerequisites),
                 "known_limits": list(manifest.known_limits),
                 "discussion_url": manifest.discussion_url,
+                "integration_compatibility": EXPECTED_INTEGRATION_COMPATIBILITY,
             },
         )
 
@@ -1496,7 +1649,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertIn("broken internal link", rejected.stderr)
 
     def test_static_checker_rejects_public_inventory_and_asset_mutations(self) -> None:
-        """Catches stale release identity or a changed public inventory in Preview 0.31 output."""
+        """Catches stale release identity or a changed public inventory in Preview 0.32 output."""
         build_preview_site(self.root, self.out, release_sha="1" * 40)
         f01 = Path("labs/F01-fork-clone-doctor/index.html")
         cases = (
@@ -1612,7 +1765,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "release version mismatch",
                 "replace",
                 Path("release.json"),
-                '"release": "preview-0.31"',
+                '"release": "preview-0.32"',
                 '"release": "preview-0.4"',
             ),
             (
@@ -1642,6 +1795,102 @@ class PreviewSiteTests(unittest.TestCase):
                     text = target.read_text(encoding="utf-8")
                     self.assertIn(original, text)
                     target.write_text(text.replace(original, replacement, 1), encoding="utf-8")
+
+                with self.assertRaises(
+                    ValueError,
+                    msg=f"static checker accepted mutation: {label}",
+                ):
+                    check_preview_site(destination)
+
+    def test_static_checker_rejects_integration_compatibility_mutations(self) -> None:
+        """AC-05: compatibility JSON, matrix structure, and proof limit fail closed."""
+        build_preview_site(self.root, self.out, release_sha="2" * 40)
+
+        json_mutations = (
+            (
+                "compatibility Academy release drift",
+                ("integration_compatibility", "academy_release"),
+                "preview-0.30",
+            ),
+            (
+                "component version drift",
+                ("integration_compatibility", "components", 0, "version"),
+                "2.17.10",
+            ),
+            (
+                "component release tag drift",
+                ("integration_compatibility", "components", 1, "release_tag"),
+                "ca-codex-v0.9.10",
+            ),
+            (
+                "component manifest digest drift",
+                ("integration_compatibility", "components", 2, "manifest_sha256"),
+                "0" * 64,
+            ),
+        )
+        for index, (label, path, replacement) in enumerate(json_mutations):
+            with self.subTest(mutation=label):
+                destination = self.out.parent / f"compatibility-json-mutation-{index}"
+                shutil.copytree(self.out, destination)
+                release_path = destination / "release.json"
+                document = json.loads(release_path.read_text(encoding="utf-8"))
+                target = document
+                for part in path[:-1]:
+                    target = target[part]
+                target[path[-1]] = replacement
+                release_path.write_text(json.dumps(document), encoding="utf-8")
+
+                with self.assertRaises(
+                    ValueError,
+                    msg=f"static checker accepted mutation: {label}",
+                ):
+                    check_preview_site(destination)
+
+        html_mutations = (
+            (
+                "component display name drift",
+                "<tr><td>codeArbiter</td><td>2.17.11</td><td>v2.17.11</td></tr>",
+                "<tr><td>Code Arbiter</td><td>2.17.11</td><td>v2.17.11</td></tr>",
+            ),
+            (
+                "table header drift",
+                "<th>Component</th><th>Version</th><th>Release tag</th>",
+                "<th>Host</th><th>Version</th><th>Release tag</th>",
+            ),
+            (
+                "component row removal",
+                "<tr><td>Pi</td><td>0.10.13</td><td>ca-pi-v0.10.13</td></tr>\n",
+                "",
+            ),
+            (
+                "compatibility section structure drift",
+                '<section aria-labelledby="integration-compatibility-heading">',
+                "<section>",
+            ),
+            (
+                "evidence limitation removal",
+                "<p>Evidence level: release-and-command-contract. "
+                "This is not end-to-end host certification.</p>\n",
+                "",
+            ),
+            (
+                "evidence limitation separated from matrix",
+                "This is not end-to-end host certification.</p>\n<table>",
+                "This is not end-to-end host certification.</p>\n"
+                "</section>\n<section>\n<table>",
+            ),
+        )
+        for index, (label, original, replacement) in enumerate(html_mutations):
+            with self.subTest(mutation=label):
+                destination = self.out.parent / f"compatibility-html-mutation-{index}"
+                shutil.copytree(self.out, destination)
+                home_path = destination / "index.html"
+                home = home_path.read_text(encoding="utf-8")
+                self.assertIn(original, home)
+                home_path.write_text(
+                    home.replace(original, replacement, 1),
+                    encoding="utf-8",
+                )
 
                 with self.assertRaises(
                     ValueError,
@@ -1737,7 +1986,7 @@ class PreviewSiteTests(unittest.TestCase):
         """Catches the repository entrypoint drifting from the rendered public Academy routes."""
         readme = (self.root / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("Preview 0.31 publishes nineteen guided labs:", readme)
+        self.assertIn("Preview 0.32 publishes nineteen guided labs:", readme)
         self.assertIn(
             "https://arbiterforge.github.io/arbiter-academy/labs/F03-work-the-board/",
             readme,
@@ -2018,6 +2267,7 @@ class PreviewSiteTests(unittest.TestCase):
                 "prerequisites": list(manifest.prerequisites),
                 "known_limits": list(manifest.known_limits),
                 "discussion_url": manifest.discussion_url,
+                "integration_compatibility": EXPECTED_INTEGRATION_COMPATIBILITY,
             },
         )
         self.assertFalse((self.out / "academy" / "catalog.json").exists())
@@ -2027,7 +2277,7 @@ class PreviewSiteTests(unittest.TestCase):
         build_preview_site(self.root, self.out, release_sha="b" * 40)
         index = self.out / "index.html"
         html = index.read_text(encoding="utf-8")
-        current = '<meta name="academy-release" content="preview-0.31">'
+        current = '<meta name="academy-release" content="preview-0.32">'
         stale = '<meta name="academy-release" content="preview-0.4">'
         self.assertEqual(html.count(current), 1)
         index.write_text(html.replace(current, stale), encoding="utf-8")
@@ -2204,7 +2454,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertNotIn("{{action:", content)
 
     def test_u06_private_document_uses_shared_actions_without_a_public_route(self) -> None:
-        """U06 renders as a complete public lesson in Preview 0.31."""
+        """U06 renders as a complete public lesson in Preview 0.32."""
         lab_id = "U06-preview-and-advanced-surfaces"
         guide_path = Path("academy/tracks/power-user/U06-preview-and-advanced-surfaces.md")
         source = (self.root / guide_path).read_text(encoding="utf-8")
@@ -2979,8 +3229,8 @@ class PreviewSiteTests(unittest.TestCase):
         shutil.copy2(self.root / "academy" / "catalog.json", academy / "catalog.json")
         shutil.copy2(self.root / "academy" / "catalog.schema.json", academy / "catalog.schema.json")
         shutil.copy2(
-            self.root / "academy" / "publication" / "preview-0.31.json",
-            academy / "publication" / "preview-0.31.json",
+            self.root / "academy" / "publication" / "preview-0.32.json",
+            academy / "publication" / "preview-0.32.json",
         )
         for track in ("foundations", "practitioner", "power-user"):
             shutil.copytree(
@@ -3415,7 +3665,7 @@ class PublicU02PreviewContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("does not practice `$ca-override`", guide)
         self.assertIn("cannot prove the event chronology", guide)
-        self.assertIn("U02 is a published Power User lesson in Preview 0.31", guide)
+        self.assertIn("U02 is a published Power User lesson in Preview 0.32", guide)
         self.assertIn("scenario_command: {{action:U02-prepare}}", guide)
         self.assertIn("checkpoint_command: {{action:U02-check}}", guide)
         self.assertIn("Prepare creates a numbered U02 branch", guide)

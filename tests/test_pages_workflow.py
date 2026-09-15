@@ -22,8 +22,8 @@ RELEASE_ASSETS = (
     "install.ps1.sha256",
     "install.sh",
     "install.sh.sha256",
-    "arbiter-academy-preview-0.31.zip",
-    "arbiter-academy-preview-0.31.zip.sha256",
+    "arbiter-academy-preview-0.32.zip",
+    "arbiter-academy-preview-0.32.zip.sha256",
 )
 
 NODE_SETUP_STEP = (
@@ -171,6 +171,80 @@ def _literal_step_script(job: str, name: str) -> str:
     )
 
 
+def _assert_codearbiter_compatibility_gate_is_fail_closed(
+    workflow: str, job_name: str
+) -> None:
+    """Reject mutations that make the rolling compatibility gate advisory."""
+    job = _workflow_jobs(workflow).get(job_name, "")
+    source = _named_step(job, "Read the validated Preview compatibility source")
+    checkout = _named_step(job, "Check out the declared codeArbiter source")
+    check = _named_step(job, "Verify declared codeArbiter compatibility")
+    source_script = _literal_step_script(
+        job, "Read the validated Preview compatibility source"
+    )
+    check_script = _literal_step_script(
+        job, "Verify declared codeArbiter compatibility"
+    )
+    source_lines = {
+        line.strip()
+        for line in source_script.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    check_lines = [
+        line.strip()
+        for line in check_script.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+    required_source_lines = {
+        "from academy_engine.preview import load_preview_manifest",
+        'manifest = load_preview_manifest(Path("."))',
+        "for record in manifest.integration_compatibility",
+        "source_commit = source_commits.pop()",
+        'with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:',
+        'output.write(f"sha={source_commit}\\n")',
+        'with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as environment:',
+        'environment.write(f"CODEARBITER_SOURCE_SHA={source_commit}\\n")',
+    }
+    missing = required_source_lines - source_lines
+    if missing:
+        raise AssertionError(
+            "compatibility source derivation lost executable lines: "
+            f"{sorted(missing)}"
+        )
+    if re.search(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])", source_script):
+        raise AssertionError("compatibility source derivation contains a workflow-local SHA")
+    if not re.search(r"(?m)^        id: compatibility-source$", source):
+        raise AssertionError("compatibility source output ID is not exact")
+
+    checkout_contract = (
+        r"(?m)^          repository: arbiterForge/codeArbiter$",
+        r"(?m)^          ref: \$\{\{ steps\.compatibility-source\.outputs\.sha \}\}$",
+        r"(?m)^          path: \.ci/codearbiter-source$",
+        r"(?m)^          fetch-depth: 0$",
+        r"(?m)^          persist-credentials: false$",
+    )
+    if not all(re.search(pattern, checkout) for pattern in checkout_contract):
+        raise AssertionError(
+            "codeArbiter checkout is not exact, complete, and credential-free"
+        )
+
+    required_check_lines = (
+        "set -euo pipefail",
+        'test "$(git -C .ci/codearbiter-source rev-parse HEAD)" = "$CODEARBITER_SOURCE_SHA"',
+        "python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.32.json --codearbiter-root .ci/codearbiter-source",
+    )
+    if check_lines != list(required_check_lines):
+        raise AssertionError("compatibility verifier lost its exact fail-closed command sequence")
+    if not (
+        job.index("Read the validated Preview compatibility source")
+        < job.index("Check out the declared codeArbiter source")
+        < job.index("Verify declared codeArbiter compatibility")
+        < job.index("Run one exhaustive milestone shard")
+    ):
+        raise AssertionError("compatibility verification steps are out of order")
+
+
 def _release_validation_script(workflow: str) -> str:
     """Extract the standard-library release metadata validator from the gate."""
     job = _workflow_jobs(workflow).get("verify-release", "")
@@ -262,7 +336,7 @@ def _assert_release_gate_is_fail_closed(workflow: str) -> None:
     for manifest in (
         "install.ps1.sha256",
         "install.sh.sha256",
-        "arbiter-academy-preview-0.31.zip.sha256",
+        "arbiter-academy-preview-0.32.zip.sha256",
     ):
         if not re.search(
             rf"(?m)^sha256sum --check {re.escape(manifest)}$",
@@ -317,12 +391,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.build = _block(self.pages_workflow, "  build:", r"  [a-zA-Z0-9_-]+:")
         self.deploy = _block(self.pages_workflow, "  deploy:", r"  [a-zA-Z0-9_-]+:")
 
-    def test_pages_release_gate_advances_to_preview_zero_thirty_one(self) -> None:
+    def test_pages_release_gate_advances_to_preview_zero_thirty_two(self) -> None:
         """The exact-tag gate must target the successor release, never mutable 0.30."""
         release_job = _workflow_jobs(self.pages_workflow).get("verify-release", "")
 
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
-        self.assertIn("arbiter-academy-preview-0.31.zip", release_job)
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
+        self.assertIn("arbiter-academy-preview-0.32.zip", release_job)
         self.assertNotIn("arbiter-academy-preview-0.30.zip", release_job)
 
     def test_pages_release_gate_targets_the_exact_preview_zero_twenty_seven_candidate(self) -> None:
@@ -334,12 +408,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.ps1.sha256",
                 "install.sh",
                 "install.sh.sha256",
-                "arbiter-academy-preview-0.31.zip",
-                "arbiter-academy-preview-0.31.zip.sha256",
+                "arbiter-academy-preview-0.32.zip",
+                "arbiter-academy-preview-0.32.zip.sha256",
             ),
         )
         release_job = _workflow_jobs(self.pages_workflow)["verify-release"]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
         self.assertRegex(release_job, r"(?m)^      RELEASE_EPOCH: 1789257600\s*$")
         self.assertNotIn("preview-0.7", release_job)
 
@@ -351,6 +425,135 @@ class PagesWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("pull_request", pages_trigger)
         self.assertRegex(pages_trigger, r"(?ms)^  push:\s+branches:\s+- main\s*$")
         self.assertIn("github.ref == 'refs/heads/main'", self.deploy)
+
+    def test_academy_verify_has_pull_request_weekly_and_manual_triggers(self) -> None:
+        """AC-04: compatibility drift is checked on review, bounded cadence, and demand."""
+        verify_trigger = _block(self.verify_workflow, "on:", r"[a-zA-Z0-9_-]+:")
+
+        self.assertRegex(verify_trigger, r"(?m)^  pull_request:\s*$")
+        self.assertRegex(verify_trigger, r"(?m)^  workflow_dispatch:\s*$")
+        self.assertEqual(
+            re.findall(r'(?m)^    - cron: "([^"]+)"\s*$', verify_trigger),
+            ["17 7 * * 1"],
+        )
+
+    def test_codearbiter_source_is_derived_only_from_the_validated_preview(self) -> None:
+        """AC-04: no workflow-local source SHA can drift from the Preview declaration."""
+        for label, workflow, job in (
+            ("pull request", self.verify_workflow, self.verify),
+            ("main", self.pages_workflow, self.main_verify),
+        ):
+            with self.subTest(job=label):
+                source = _named_step(
+                    job, "Read the validated Preview compatibility source"
+                )
+                self.assertIn("id: compatibility-source", source)
+                self.assertIn(
+                    "from academy_engine.preview import load_preview_manifest", source
+                )
+                self.assertIn('load_preview_manifest(Path("."))', source)
+                self.assertIn("manifest.integration_compatibility", source)
+                self.assertIn('os.environ["GITHUB_OUTPUT"]', source)
+                self.assertIn('f"sha={source_commit}\\n"', source)
+                self.assertIn('os.environ["GITHUB_ENV"]', source)
+                self.assertIn(
+                    'f"CODEARBITER_SOURCE_SHA={source_commit}\\n"',
+                    source,
+                )
+                self.assertNotIn("CODEARBITER_SOURCE_SHA:", workflow)
+                self.assertNotRegex(
+                    workflow,
+                    r"(?m)^\s+(?:CODEARBITER_SOURCE_SHA:|ref:)\s+[0-9a-f]{40}\s*$",
+                )
+
+    def test_codearbiter_checkout_is_exact_complete_and_credential_free(self) -> None:
+        """AC-04: the declared source is checked out exactly with complete tag refs."""
+        checkout = _named_step(self.verify, "Check out the declared codeArbiter source")
+
+        self.assertIn("repository: arbiterForge/codeArbiter", checkout)
+        self.assertIn("ref: ${{ steps.compatibility-source.outputs.sha }}", checkout)
+        self.assertIn("path: .ci/codearbiter-source", checkout)
+        self.assertIn("fetch-depth: 0", checkout)
+        self.assertIn("persist-credentials: false", checkout)
+
+    def test_codearbiter_compatibility_check_precedes_the_milestone_shard(self) -> None:
+        """AC-04: hosted verification exercises the declaration against the exact checkout."""
+        check = _named_step(self.verify, "Verify declared codeArbiter compatibility")
+
+        self.assertIn("python scripts/check_codearbiter_compatibility.py", check)
+        self.assertIn(
+            "--manifest academy/publication/preview-0.32.json",
+            check,
+        )
+        self.assertIn("--codearbiter-root .ci/codearbiter-source", check)
+        self.assertLess(
+            self.verify.index("Read the validated Preview compatibility source"),
+            self.verify.index("Check out the declared codeArbiter source"),
+        )
+        self.assertLess(
+            self.verify.index("Verify declared codeArbiter compatibility"),
+            self.verify.index("Run one exhaustive milestone shard"),
+        )
+
+    def test_codearbiter_compatibility_gate_rejects_adversarial_workflow_mutations(self) -> None:
+        """AC-04: comments and conflicting YAML cannot impersonate executable controls."""
+        for label, workflow, job_name, job in (
+            ("pull request", self.verify_workflow, "verify", self.verify),
+            ("main", self.pages_workflow, "verify-main", self.main_verify),
+        ):
+            with self.subTest(job=label):
+                _assert_codearbiter_compatibility_gate_is_fail_closed(
+                    workflow, job_name
+                )
+            checkout = _named_step(job, "Check out the declared codeArbiter source")
+            mutations = {
+                "commented-fetch-depth": workflow.replace(
+                    checkout,
+                    checkout.replace(
+                        "          fetch-depth: 0",
+                        "          fetch-depth: 1 # fetch-depth: 0",
+                        1,
+                    ),
+                    1,
+                ),
+                "conflicting-credentials": workflow.replace(
+                    checkout,
+                    checkout.replace(
+                        "          persist-credentials: false",
+                        "          persist-credentials: true # persist-credentials: false",
+                        1,
+                    ),
+                    1,
+                ),
+                "commented-derived-ref": workflow.replace(
+                    "          ref: ${{ steps.compatibility-source.outputs.sha }}",
+                    "          ref: main # ref: "
+                    "${{ steps.compatibility-source.outputs.sha }}",
+                    1,
+                ),
+                "hard-coded-derived-source": workflow.replace(
+                    "          source_commit = source_commits.pop()",
+                    "          # source_commit = source_commits.pop()\n"
+                    '          source_commit = "0000000000000000000000000000000000000000"',
+                    1,
+                ),
+                "commented-checker": workflow.replace(
+                    "          python scripts/check_codearbiter_compatibility.py "
+                    "--manifest academy/publication/preview-0.32.json "
+                    "--codearbiter-root .ci/codearbiter-source",
+                    "          # python scripts/check_codearbiter_compatibility.py "
+                    "--manifest academy/publication/preview-0.32.json "
+                    "--codearbiter-root .ci/codearbiter-source\n"
+                    "          echo compatibility checker skipped",
+                    1,
+                ),
+            }
+            for mutation, mutated_workflow in mutations.items():
+                with self.subTest(job=label, mutation=mutation):
+                    with self.assertRaises(AssertionError):
+                        _assert_codearbiter_compatibility_gate_is_fail_closed(
+                            mutated_workflow, job_name
+                        )
 
     def test_p02_windows_receipt_path_is_a_required_pull_request_gate(self) -> None:
         """Catches the native Windows receipt path being absent from hosted verification."""
@@ -961,7 +1164,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
             "release verification job with the exact six-asset inventory is missing",
         )
         release_job = release_jobs[0]
-        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.31\s*$")
+        self.assertRegex(release_job, r"(?m)^      RELEASE_TAG: preview-0\.32\s*$")
         self.assertRegex(release_job, r"(?m)^      CANDIDATE_SHA: \$\{\{ github\.sha \}\}\s*$")
         self.assertIn(
             "api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}",
@@ -978,7 +1181,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for checksum in (
             "install.ps1.sha256",
             "install.sh.sha256",
-            "arbiter-academy-preview-0.31.zip.sha256",
+            "arbiter-academy-preview-0.32.zip.sha256",
         ):
             with self.subTest(checksum=checksum):
                 self.assertRegex(
@@ -1099,7 +1302,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 (root / "release.json").write_text(
                     json.dumps(
                         {
-                            "tag_name": "preview-0.31",
+                            "tag_name": "preview-0.32",
                             "immutable": immutable,
                             "draft": False,
                             "published_at": "2026-08-10T12:00:00Z",
@@ -1111,15 +1314,15 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 checksums = {
                     "install.ps1.sha256": f"{'a' * 64}  install.ps1\n".encode(),
                     "install.sh.sha256": f"{'b' * 64}  install.sh\n".encode(),
-                    "arbiter-academy-preview-0.31.zip.sha256": (
-                        f"{'c' * 64}  arbiter-academy-preview-0.31.zip\n".encode()
+                    "arbiter-academy-preview-0.32.zip.sha256": (
+                        f"{'c' * 64}  arbiter-academy-preview-0.32.zip\n".encode()
                     ),
                 }
                 checksums.update(checksum_overrides or {})
                 for name, content in checksums.items():
                     (root / name).write_bytes(content)
                 environment = os.environ.copy()
-                environment["RELEASE_TAG"] = "preview-0.31"
+                environment["RELEASE_TAG"] = "preview-0.32"
                 environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                 return subprocess.run(
                     [sys.executable, "-c", validator],
@@ -1137,7 +1340,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "name": name,
                 "browser_download_url": (
                     f"https://github.com/arbiterForge/arbiter-academy/releases/download/"
-                    f"preview-0.31/{name}"
+                    f"preview-0.32/{name}"
                 ),
                 "state": "uploaded",
             }
@@ -1162,7 +1365,7 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 with tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     release = {
-                        "tag_name": "preview-0.31",
+                        "tag_name": "preview-0.32",
                         "immutable": True,
                         "draft": False,
                         "published_at": "2026-08-10T12:00:00Z",
@@ -1173,12 +1376,12 @@ class PagesWorkflowContractTests(unittest.TestCase):
                     for name, digest in (
                         ("install.ps1.sha256", "a"),
                         ("install.sh.sha256", "b"),
-                        ("arbiter-academy-preview-0.31.zip.sha256", "c"),
+                        ("arbiter-academy-preview-0.32.zip.sha256", "c"),
                     ):
                         target = name.removesuffix(".sha256")
                         (root / name).write_bytes(f"{digest * 64}  {target}\n".encode())
                     environment = os.environ.copy()
-                    environment["RELEASE_TAG"] = "preview-0.31"
+                    environment["RELEASE_TAG"] = "preview-0.32"
                     environment["GITHUB_REPOSITORY"] = "arbiterForge/arbiter-academy"
                     rejected = subprocess.run(
                         [sys.executable, "-c", validator], cwd=root, env=environment,
@@ -1189,8 +1392,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
         for mutation in (
             {"state": "new"},
             {"state": None},
-            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.31/install.ps1"},
-            {"browser_download_url": "https://evil.example/preview-0.31/install.ps1"},
+            {"browser_download_url": "http://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.32/install.ps1"},
+            {"browser_download_url": "https://evil.example/preview-0.32/install.ps1"},
         ):
             with self.subTest(asset_state=mutation):
                 assets = [dict(asset) for asset in valid_assets]
@@ -1216,8 +1419,8 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 "install.sh.sha256": f"{'b' * 64}  other.sh\n".encode()
             },
             "uppercase": {
-                "arbiter-academy-preview-0.31.zip.sha256": (
-                    f"{'C' * 64}  arbiter-academy-preview-0.31.zip\n"
+                "arbiter-academy-preview-0.32.zip.sha256": (
+                    f"{'C' * 64}  arbiter-academy-preview-0.32.zip\n"
                 ).encode()
             },
             "single-space": {
@@ -1424,13 +1627,35 @@ class PagesWorkflowContractTests(unittest.TestCase):
                 checkout = _named_step(job, step_name)
                 self.assertIn("fetch-depth: 0", checkout)
 
-    def test_hosted_verifier_has_pinned_codearbiter_and_offline_build_wheel(self) -> None:
+    def test_hosted_verifier_has_codearbiter_source_and_offline_build_wheel(self) -> None:
         """Catches hosted acceptance running without its reviewed local prerequisites."""
         for label, job in (("pull request", self.verify), ("main", self.main_verify)):
             with self.subTest(job=label):
                 self.assertIn("repository: arbiterForge/codeArbiter", job)
-                self.assertIn("ref: debb49da71aa1b97bca0988f72e46bb5875a23e3", job)
-                self.assertIn("CODEARBITER_SOURCE_SHA: debb49da71aa1b97bca0988f72e46bb5875a23e3", job)
+                if label == "pull request":
+                    self.assertIn(
+                        "ref: ${{ steps.compatibility-source.outputs.sha }}",
+                        job,
+                    )
+                    source = _named_step(
+                        job, "Read the validated Preview compatibility source"
+                    )
+                    self.assertIn(
+                        'environment.write(f"CODEARBITER_SOURCE_SHA={source_commit}\\n")',
+                        source,
+                    )
+                else:
+                    self.assertIn(
+                        "ref: ${{ steps.compatibility-source.outputs.sha }}",
+                        job,
+                    )
+                    source = _named_step(
+                        job, "Read the validated Preview compatibility source"
+                    )
+                    self.assertIn(
+                        'environment.write(f"CODEARBITER_SOURCE_SHA={source_commit}\\n")',
+                        source,
+                    )
                 self.assertIn("CODEARBITER_TASKWRITE:", job)
                 self.assertIn("WORKSHOP_QUEUE_TEST_WHEELHOUSE:", job)
                 self.assertRegex(job, r'python-version:\s*\["3\.11", "3\.12"\]')

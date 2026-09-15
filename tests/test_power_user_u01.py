@@ -75,8 +75,8 @@ class U01GuidedContractTests(unittest.TestCase):
             tuple((resource.label, resource.href) for resource in fork_boundary.resources),
             (
                 (
-                    "Review the immutable Preview 0.31 U01 boundary manifest",
-                    "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.31/academy/actions/U01-autonomous-sprint.json",
+                    "Review the immutable Preview 0.32 U01 boundary manifest",
+                    "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/academy/actions/U01-autonomous-sprint.json",
                 ),
             ),
         )
@@ -123,7 +123,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
                 self.assertIn("Academy", action.expected_result)
                 self.assertTrue(
-                    all("preview-0.31" in variant.command for variant in action.variants)
+                    all("preview-0.32" in variant.command for variant in action.variants)
                 )
 
         inspect = by_id["U01-inspect-scenario"]

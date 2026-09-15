@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Arbiter Academy Preview 0.31 publication manifest",
+  "title": "Arbiter Academy Preview 0.32 publication manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256"],
+  "required": ["release", "lesson_contract_version", "available_labs", "runnable_labs", "guided_labs", "coming_next", "prerequisites", "known_limits", "discussion_url", "catalog_sha256", "integration_compatibility"],
   "properties": {
-    "release": {"const": "preview-0.31"},
+    "release": {"const": "preview-0.32"},
     "lesson_contract_version": {"type": "integer", "const": 1},
     "available_labs": {
       "type": "array",
@@ -92,8 +92,7 @@
       "type": "array",
       "minItems": 0,
       "maxItems": 0,
-      "items": false,
-      "prefixItems": []
+      "items": false
     },
     "prerequisites": {
       "type": "array",
@@ -114,7 +113,7 @@
       "maxItems": 2,
       "items": false,
       "prefixItems": [
-        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31."},
+        {"const": "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32."},
         {"const": "Graduation is available after all 19 Academy Checks pass in the same repository."}
       ]
     },
@@ -122,6 +121,65 @@
       "type": "string",
       "pattern": "^https://github\\.com/arbiterForge/arbiter-academy/discussions(?:/[A-Za-z0-9_~-][A-Za-z0-9._~-]*)*/?$"
     },
-    "catalog_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "catalog_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "integration_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["academy_release", "evidence_level", "components"],
+      "properties": {
+        "academy_release": {"type": "string", "const": "preview-0.32"},
+        "evidence_level": {"type": "string", "const": "release-and-command-contract"},
+        "components": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": false,
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["component_id", "display_name", "release_tag", "version", "source_commit", "manifest_path", "manifest_sha256"],
+              "properties": {
+                "component_id": {"type": "string", "const": "codearbiter"},
+                "display_name": {"type": "string", "const": "codeArbiter"},
+                "release_tag": {"type": "string", "const": "v2.17.11"},
+                "version": {"type": "string", "const": "2.17.11"},
+                "source_commit": {"type": "string", "const": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"},
+                "manifest_path": {"type": "string", "const": "plugins/ca/.claude-plugin/plugin.json"},
+                "manifest_sha256": {"type": "string", "const": "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["component_id", "display_name", "release_tag", "version", "source_commit", "manifest_path", "manifest_sha256"],
+              "properties": {
+                "component_id": {"type": "string", "const": "ca-codex"},
+                "display_name": {"type": "string", "const": "Codex"},
+                "release_tag": {"type": "string", "const": "ca-codex-v0.9.11"},
+                "version": {"type": "string", "const": "0.9.11"},
+                "source_commit": {"type": "string", "const": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"},
+                "manifest_path": {"type": "string", "const": "plugins/ca-codex/.codex-plugin/plugin.json"},
+                "manifest_sha256": {"type": "string", "const": "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["component_id", "display_name", "release_tag", "version", "source_commit", "manifest_path", "manifest_sha256"],
+              "properties": {
+                "component_id": {"type": "string", "const": "ca-pi"},
+                "display_name": {"type": "string", "const": "Pi"},
+                "release_tag": {"type": "string", "const": "ca-pi-v0.10.13"},
+                "version": {"type": "string", "const": "0.10.13"},
+                "source_commit": {"type": "string", "const": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"},
+                "manifest_path": {"type": "string", "const": "plugins/ca-pi/package.json"},
+                "manifest_sha256": {"type": "string", "const": "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4"}
+              }
+            }
+          ]
+        }
+      }
+    }
   }
 }

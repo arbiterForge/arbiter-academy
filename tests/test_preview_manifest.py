@@ -57,8 +57,45 @@ PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
+)
+COMPATIBILITY_SOURCE_COMMIT = "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"
+COMPATIBILITY_EVIDENCE_LEVEL = "release-and-command-contract"
+EXPECTED_COMPATIBILITY_ROWS = (
+    (
+        "preview-0.32",
+        "codearbiter",
+        "codeArbiter",
+        "v2.17.11",
+        "2.17.11",
+        COMPATIBILITY_SOURCE_COMMIT,
+        "plugins/ca/.claude-plugin/plugin.json",
+        "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+        COMPATIBILITY_EVIDENCE_LEVEL,
+    ),
+    (
+        "preview-0.32",
+        "ca-codex",
+        "Codex",
+        "ca-codex-v0.9.11",
+        "0.9.11",
+        COMPATIBILITY_SOURCE_COMMIT,
+        "plugins/ca-codex/.codex-plugin/plugin.json",
+        "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+        COMPATIBILITY_EVIDENCE_LEVEL,
+    ),
+    (
+        "preview-0.32",
+        "ca-pi",
+        "Pi",
+        "ca-pi-v0.10.13",
+        "0.10.13",
+        COMPATIBILITY_SOURCE_COMMIT,
+        "plugins/ca-pi/package.json",
+        "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+        COMPATIBILITY_EVIDENCE_LEVEL,
+    ),
 )
 
 PREVIEW_0_24 = [lab_id for lab_id in PREVIEW_0_20 if lab_id != "F03-work-the-board"]
@@ -76,7 +113,7 @@ class PreviewManifestTests(unittest.TestCase):
         """The Pages repair advances the immutable release instead of retagging it."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.30.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -84,11 +121,11 @@ class PreviewManifestTests(unittest.TestCase):
         )
         self.assertTrue(current.is_file())
         manifest = load_preview_manifest(self.root)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(
             manifest.known_limits[0],
-            "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
+            "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
         )
 
     def test_preview_zero_thirty_promotes_the_form_review_without_rewriting_zero_twenty_nine(
@@ -97,7 +134,7 @@ class PreviewManifestTests(unittest.TestCase):
         """The learner-path release advances immutably after its reviewed source changes."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.29.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -105,9 +142,9 @@ class PreviewManifestTests(unittest.TestCase):
         )
         self.assertTrue(current.is_file())
         manifest = load_preview_manifest(self.root)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
-        self.assertEqual(manifest.known_limits[0], "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.")
+        self.assertEqual(manifest.known_limits[0], "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.")
 
     def test_preview_zero_twenty_six_promotes_f03_without_rewriting_zero_twenty_five(
         self,
@@ -115,7 +152,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a partial F03 promotion or a rewrite of immutable Preview 0.25."""
         publication = self.root / "academy" / "publication"
         historical = publication / "preview-0.25.json"
-        current = publication / "preview-0.31.json"
+        current = publication / "preview-0.32.json"
 
         self.assertEqual(
             hashlib.sha256(historical.read_bytes()).hexdigest(),
@@ -126,7 +163,7 @@ class PreviewManifestTests(unittest.TestCase):
         old_data = json.loads(historical.read_text(encoding="utf-8"))
         new_data = json.loads(current.read_text(encoding="utf-8"))
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -140,7 +177,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = json.loads((self.root / "academy/catalog.json").read_text(encoding="utf-8"))
         f04 = next(lab for lab in catalog["labs"] if lab["id"] == "F04-fix-with-evidence")
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -151,7 +188,7 @@ class PreviewManifestTests(unittest.TestCase):
         """U03 is public only with its prerequisites; U04-U07 remain private."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -161,7 +198,7 @@ class PreviewManifestTests(unittest.TestCase):
         """U06 becomes public only with its five accepted Power User prerequisites."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -170,7 +207,7 @@ class PreviewManifestTests(unittest.TestCase):
     def make_manifest(self, root: Path | None = None, **changes: object) -> dict[str, object]:
         root = root or self.root
         manifest: dict[str, object] = {
-            "release": "preview-0.31",
+            "release": "preview-0.32",
             "lesson_contract_version": 1,
             "available_labs": PREVIEW_0_26,
             "runnable_labs": PREVIEW_0_26,
@@ -182,14 +219,250 @@ class PreviewManifestTests(unittest.TestCase):
             "catalog_sha256": hashlib.sha256(
                 (root / "academy" / "catalog.json").read_bytes()
             ).hexdigest(),
+            "integration_compatibility": self.make_integration_compatibility(),
         }
         manifest.update(changes)
         return manifest
 
+    def make_integration_compatibility(self) -> dict[str, object]:
+        return {
+            "academy_release": "preview-0.32",
+            "evidence_level": COMPATIBILITY_EVIDENCE_LEVEL,
+            "components": [
+                {
+                    "component_id": component_id,
+                    "display_name": display_name,
+                    "release_tag": release_tag,
+                    "version": version,
+                    "source_commit": source_commit,
+                    "manifest_path": manifest_path,
+                    "manifest_sha256": manifest_sha256,
+                }
+                for (
+                    _academy_release,
+                    component_id,
+                    display_name,
+                    release_tag,
+                    version,
+                    source_commit,
+                    manifest_path,
+                    manifest_sha256,
+                    _evidence_level,
+                ) in EXPECTED_COMPATIBILITY_ROWS
+            ],
+        }
+
+    def make_compatibility_manifest(
+        self, integration_compatibility: object | None = None
+    ) -> dict[str, object]:
+        if integration_compatibility is None:
+            integration_compatibility = self.make_integration_compatibility()
+        return self.make_manifest(integration_compatibility=integration_compatibility)
+
+    def test_preview_manifest_exposes_the_reviewed_integration_compatibility_rows(self) -> None:
+        """AC-01: the checked-in Preview exposes exactly the three reviewed records."""
+        manifest = load_preview_manifest(self.root)
+
+        actual = tuple(
+            (
+                record.academy_release,
+                record.component_id,
+                record.display_name,
+                record.release_tag,
+                record.version,
+                record.source_commit,
+                record.manifest_path,
+                record.manifest_sha256,
+                record.evidence_level,
+            )
+            for record in manifest.integration_compatibility
+        )
+        self.assertEqual(actual, EXPECTED_COMPATIBILITY_ROWS)
+
+    def test_preview_manifest_requires_integration_compatibility(self) -> None:
+        """AC-01: omitting the release compatibility declaration fails closed."""
+        manifest = self.make_manifest()
+        del manifest["integration_compatibility"]
+
+        with self.assertRaisesRegex(
+            ValueError, r"missing key.*integration_compatibility"
+        ):
+            validate_preview_manifest(self.root, manifest)
+
+    def test_preview_manifest_rejects_non_object_compatibility_declarations(self) -> None:
+        """AC-01: the compatibility declaration itself must be an object."""
+        for compatibility in ([], "release-and-command-contract", 3):
+            with self.subTest(compatibility=compatibility):
+                with self.assertRaisesRegex(
+                    ValueError, r"integration_compatibility.*object"
+                ):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_non_list_or_wrong_size_component_sets(self) -> None:
+        """AC-01: the declaration contains exactly three component records."""
+        reviewed_components = self.make_integration_compatibility()["components"]
+        cases = (
+            {},
+            [],
+            reviewed_components[:1],
+            reviewed_components + reviewed_components[:1],
+        )
+        for components in cases:
+            compatibility = self.make_integration_compatibility()
+            compatibility["components"] = components
+            with self.subTest(components=components):
+                with self.assertRaisesRegex(
+                    ValueError, r"components.*exactly three"
+                ):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_non_object_component_records(self) -> None:
+        """AC-01: every member of the ordered component set is an object."""
+        compatibility = self.make_integration_compatibility()
+        compatibility["components"][1] = "ca-codex"
+
+        with self.assertRaisesRegex(ValueError, r"component.*object"):
+            validate_preview_manifest(
+                self.root,
+                self.make_compatibility_manifest(compatibility),
+            )
+
+    def test_preview_manifest_rejects_unknown_or_missing_compatibility_keys(self) -> None:
+        """AC-01: both compatibility object and component records use closed schemas."""
+        unknown_object_key = self.make_integration_compatibility()
+        unknown_object_key["unexpected"] = True
+
+        missing_component_key = self.make_integration_compatibility()
+        del missing_component_key["components"][0]["manifest_path"]
+
+        unknown_component_key = self.make_integration_compatibility()
+        unknown_component_key["components"][0]["unexpected"] = True
+
+        cases = (
+            (unknown_object_key, r"unknown key.*unexpected"),
+            (missing_component_key, r"missing key.*manifest_path"),
+            (unknown_component_key, r"unknown key.*unexpected"),
+        )
+        for compatibility, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                with self.assertRaisesRegex(ValueError, diagnostic):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_duplicate_unknown_or_unordered_components(self) -> None:
+        """AC-01: component IDs are unique and preserve the reviewed three-host order."""
+        duplicate = self.make_integration_compatibility()
+        duplicate["components"][1]["component_id"] = "codearbiter"
+
+        unknown = self.make_integration_compatibility()
+        unknown["components"][2]["component_id"] = "ca-unknown"
+
+        unordered = self.make_integration_compatibility()
+        unordered["components"][0], unordered["components"][1] = (
+            unordered["components"][1],
+            unordered["components"][0],
+        )
+
+        cases = (
+            (duplicate, r"duplicate component_id"),
+            (unknown, r"component_id.*ca-unknown"),
+            (unordered, r"components.*order"),
+        )
+        for compatibility, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                with self.assertRaisesRegex(ValueError, diagnostic):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_malformed_compatibility_values(self) -> None:
+        """AC-01: compatibility identifiers and evidence values are strictly shaped."""
+        cases = (
+            ("academy_release", "Preview 0.32", r"academy_release"),
+            ("evidence_level", "runtime-certified", r"evidence_level"),
+            ("component_id", "CodeArbiter", r"component_id"),
+            ("display_name", "codearbiter", r"display_name"),
+            ("version", "2.17", r"version"),
+            ("source_commit", "D" * 40, r"source_commit"),
+            ("manifest_path", "../plugin.json", r"manifest_path"),
+        )
+        for field, value, diagnostic in cases:
+            compatibility = self.make_integration_compatibility()
+            target = compatibility if field in compatibility else compatibility["components"][0]
+            target[field] = value
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, diagnostic):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_a_floating_component_tag(self) -> None:
+        """AC-01: compatibility tags identify immutable reviewed releases, never latest."""
+        compatibility = self.make_integration_compatibility()
+        compatibility["components"][0]["release_tag"] = "latest"
+
+        with self.assertRaisesRegex(ValueError, r"release_tag.*exact"):
+            validate_preview_manifest(
+                self.root,
+                self.make_compatibility_manifest(compatibility),
+            )
+
+    def test_preview_manifest_rejects_cross_release_or_cross_source_data(self) -> None:
+        """AC-01: every compatibility row binds this Academy release and one shared source."""
+        cross_release = self.make_integration_compatibility()
+        cross_release["academy_release"] = "preview-0.30"
+
+        cross_source = self.make_integration_compatibility()
+        cross_source["components"][2]["source_commit"] = "1" * 40
+
+        cases = (
+            (cross_release, r"academy_release.*preview-0.32"),
+            (cross_source, r"source_commit.*shared"),
+        )
+        for compatibility, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                with self.assertRaisesRegex(ValueError, diagnostic):
+                    validate_preview_manifest(
+                        self.root,
+                        self.make_compatibility_manifest(compatibility),
+                    )
+
+    def test_preview_manifest_rejects_a_tag_version_mismatch(self) -> None:
+        """AC-01: a component tag must encode the declared semantic version."""
+        compatibility = self.make_integration_compatibility()
+        compatibility["components"][1]["release_tag"] = "ca-codex-v0.9.10"
+
+        with self.assertRaisesRegex(ValueError, r"release_tag.*version"):
+            validate_preview_manifest(
+                self.root,
+                self.make_compatibility_manifest(compatibility),
+            )
+
+    def test_preview_manifest_rejects_an_invalid_component_manifest_digest(self) -> None:
+        """AC-01: component manifest identities require lowercase SHA-256 digests."""
+        compatibility = self.make_integration_compatibility()
+        compatibility["components"][0]["manifest_sha256"] = "A" * 64
+
+        with self.assertRaisesRegex(ValueError, r"manifest_sha256.*lowercase SHA-256"):
+            validate_preview_manifest(
+                self.root,
+                self.make_compatibility_manifest(compatibility),
+            )
+
     def test_preview_zero_fifteen_preserves_the_practitioner_closure_and_adds_u01(self) -> None:
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -198,7 +471,7 @@ class PreviewManifestTests(unittest.TestCase):
     def test_preview_zero_fifteen_keeps_u02_through_u07_private(self) -> None:
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         expected_public = tuple(PREVIEW_0_26)
         self.assertEqual(manifest.available_labs, expected_public)
         self.assertEqual(manifest.runnable_labs, expected_public)
@@ -227,9 +500,9 @@ class PreviewManifestTests(unittest.TestCase):
         self.assertTrue((publication / "preview-0.24.json").is_file())
         self.assertTrue((publication / "preview-0.25.json").is_file())
         self.assertTrue((publication / "preview-0.26.json").is_file())
-        self.assertTrue((publication / "preview-0.31.json").is_file())
+        self.assertTrue((publication / "preview-0.32.json").is_file())
         expected = tuple(PREVIEW_0_26)
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, expected)
         self.assertEqual(manifest.runnable_labs, expected)
         self.assertEqual(manifest.guided_labs, expected)
@@ -242,7 +515,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a public manifest that conflates runnable and guided readiness."""
         manifest = validate_preview_manifest(self.root, self.make_manifest())
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
@@ -253,7 +526,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches a previous immutable preview identity being republished."""
         manifest = load_preview_manifest(self.root)
 
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.guided_labs, tuple(PREVIEW_0_26))
@@ -278,7 +551,7 @@ class PreviewManifestTests(unittest.TestCase):
 
     def test_preview_manifest_rejects_the_immediately_stale_release_identity(self) -> None:
         """Catches immutable Preview 0.9 remaining the current publication identity."""
-        with self.assertRaisesRegex(ValueError, "release must be preview-0.31"):
+        with self.assertRaisesRegex(ValueError, "release must be preview-0.32"):
             validate_preview_manifest(
                 self.root,
                 self.make_manifest(release="preview-0.9"),
@@ -419,7 +692,7 @@ class PreviewManifestTests(unittest.TestCase):
         catalog = (self.root / "academy" / "catalog.json").read_bytes()
         self.assertNotIn(b"\r\n", catalog)
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.31.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.32.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -432,7 +705,7 @@ class PreviewManifestTests(unittest.TestCase):
         """Catches weakening the LF contract so Git rewrites identity-bound bytes."""
         catalog_path = "academy/catalog.json"
         manifest = json.loads(
-            (self.root / "academy" / "publication" / "preview-0.31.json").read_text(
+            (self.root / "academy" / "publication" / "preview-0.32.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -542,7 +815,7 @@ class PreviewManifestTests(unittest.TestCase):
         coming_next = schema["properties"]["coming_next"]
         known_limits = schema["properties"]["known_limits"]
 
-        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.31")
+        self.assertEqual(schema["properties"]["release"]["const"], "preview-0.32")
         self.assertEqual(schema["properties"]["lesson_contract_version"]["const"], 1)
         self.assertEqual((available["minItems"], available["maxItems"]), (19, 19))
         self.assertEqual(
@@ -559,15 +832,58 @@ class PreviewManifestTests(unittest.TestCase):
             PREVIEW_0_26,
         )
         self.assertEqual((coming_next["minItems"], coming_next["maxItems"]), (0, 0))
-        self.assertEqual(
-            [entry["const"] for entry in coming_next["prefixItems"]],
-            COMING_NEXT,
-        )
+        self.assertNotIn("prefixItems", coming_next)
         self.assertEqual((known_limits["minItems"], known_limits["maxItems"]), (2, 2))
         self.assertEqual(
             [entry["const"] for entry in known_limits["prefixItems"]],
             list(KNOWN_LIMITS),
         )
+
+    def test_publication_schema_pins_the_reviewed_integration_compatibility_contract(self) -> None:
+        """Catches the checked-in Preview declaration becoming invalid or under-modeled."""
+        schema = json.loads(
+            (self.root / "academy" / "publication" / "preview-manifest.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        compatibility = schema["properties"]["integration_compatibility"]
+        declaration = self.make_integration_compatibility()
+
+        self.assertIn("integration_compatibility", schema["required"])
+        self.assertFalse(compatibility["additionalProperties"])
+        self.assertEqual(
+            set(compatibility["required"]),
+            {"academy_release", "evidence_level", "components"},
+        )
+        self.assertEqual(
+            compatibility["properties"]["academy_release"],
+            {"type": "string", "const": declaration["academy_release"]},
+        )
+        self.assertEqual(
+            compatibility["properties"]["evidence_level"],
+            {"type": "string", "const": declaration["evidence_level"]},
+        )
+
+        components = compatibility["properties"]["components"]
+        self.assertEqual((components["minItems"], components["maxItems"]), (3, 3))
+        self.assertFalse(components["items"])
+        self.assertEqual(len(components["prefixItems"]), 3)
+        for component_schema, declared_component in zip(
+            components["prefixItems"], declaration["components"], strict=True
+        ):
+            with self.subTest(component=declared_component["component_id"]):
+                self.assertFalse(component_schema["additionalProperties"])
+                self.assertEqual(
+                    set(component_schema["required"]),
+                    set(declared_component),
+                )
+                self.assertEqual(
+                    component_schema["properties"],
+                    {
+                        field: {"type": "string", "const": value}
+                        for field, value in declared_component.items()
+                    },
+                )
 
     def test_preview_manifest_rejects_a_boolean_schema_order_pin(self) -> None:
         """Catches JSON Schema treating a boolean order pin as catalog integer 1."""
@@ -596,7 +912,7 @@ class PreviewManifestTests(unittest.TestCase):
 
         self.assertEqual(
             release_files,
-            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.24.json", "preview-0.25.json", "preview-0.26.json", "preview-0.27.json", "preview-0.28.json", "preview-0.29.json", "preview-0.30.json", "preview-0.31.json", "preview-0.4.json", "preview-0.9.json"],
+            ["preview-0.10.json", "preview-0.11.json", "preview-0.12.json", "preview-0.13.json", "preview-0.14.json", "preview-0.15.json", "preview-0.16.json", "preview-0.17.json", "preview-0.18.json", "preview-0.19.json", "preview-0.20.json", "preview-0.21.json", "preview-0.22.json", "preview-0.23.json", "preview-0.24.json", "preview-0.25.json", "preview-0.26.json", "preview-0.27.json", "preview-0.28.json", "preview-0.29.json", "preview-0.30.json", "preview-0.31.json", "preview-0.32.json", "preview-0.4.json", "preview-0.9.json"],
         )
         historical = json.loads(
             (self.root / "academy" / "publication" / "preview-0.9.json").read_text(encoding="utf-8")
@@ -618,7 +934,7 @@ class PreviewManifestTests(unittest.TestCase):
             hashlib.sha256(preview_0_28).hexdigest(),
             "701b1a6bd76b1ea1af0b6b495a4def313bdee14e822907824b13f104c51fb418",
         )
-        self.assertEqual(manifest.release, "preview-0.31")
+        self.assertEqual(manifest.release, "preview-0.32")
         self.assertEqual(manifest.lesson_contract_version, 1)
         self.assertEqual(manifest.available_labs, tuple(PREVIEW_0_26))
         self.assertEqual(manifest.runnable_labs, tuple(PREVIEW_0_26))

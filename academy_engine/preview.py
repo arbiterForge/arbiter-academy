@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.31"
+_RELEASE = "preview-0.32"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -44,7 +44,7 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.31.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"
@@ -54,7 +54,51 @@ _DISCUSSIONS_PATH_PATTERN = re.compile(
 )
 _ASCII_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GIT_COMMIT = re.compile(r"^[0-9a-f]{40}$")
+_SEMANTIC_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+_MANIFEST_PATH = re.compile(r"^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$")
+_COMPATIBILITY_EVIDENCE_LEVEL = "release-and-command-contract"
+_COMPATIBILITY_COMPONENTS = (
+    (
+        "codearbiter",
+        "codeArbiter",
+        "v",
+        "2.17.11",
+        "plugins/ca/.claude-plugin/plugin.json",
+        "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+    ),
+    (
+        "ca-codex",
+        "Codex",
+        "ca-codex-v",
+        "0.9.11",
+        "plugins/ca-codex/.codex-plugin/plugin.json",
+        "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+    ),
+    (
+        "ca-pi",
+        "Pi",
+        "ca-pi-v",
+        "0.10.13",
+        "plugins/ca-pi/package.json",
+        "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+    ),
+)
+_COMPATIBILITY_SOURCE_COMMIT = "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"
 _SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
+
+
+@dataclass(frozen=True)
+class CompatibilityRecord:
+    academy_release: str
+    component_id: str
+    display_name: str
+    release_tag: str
+    version: str
+    source_commit: str
+    manifest_path: str
+    manifest_sha256: str
+    evidence_level: str
 
 
 @dataclass(frozen=True)
@@ -69,6 +113,7 @@ class PreviewManifest:
     known_limits: tuple[str, ...]
     discussion_url: str
     catalog_sha256: str
+    integration_compatibility: tuple[CompatibilityRecord, ...] = ()
 
 
 def _require_object(value: object) -> Mapping[str, object]:
@@ -111,13 +156,201 @@ def _require_exact_keys(data: Mapping[str, object]) -> None:
         "known_limits",
         "discussion_url",
         "catalog_sha256",
+        "integration_compatibility",
     }
     unknown = set(data) - expected
     missing = expected - set(data)
     if unknown:
         raise ValueError(f"preview manifest has unknown key(s): {', '.join(sorted(unknown))}")
-    if missing:
+    if missing and missing != {"integration_compatibility"}:
         raise ValueError(f"preview manifest is missing key(s): {', '.join(sorted(missing))}")
+
+
+def _require_compatibility_keys(
+    data: Mapping[str, object], expected: set[str], label: str
+) -> None:
+    unknown = set(data) - expected
+    missing = expected - set(data)
+    if unknown:
+        names = ", ".join(sorted(str(key)[:64] for key in unknown)[:4])
+        raise ValueError(f"preview manifest {label} has unknown key(s): {names}")
+    if missing:
+        names = ", ".join(sorted(missing))
+        raise ValueError(f"preview manifest {label} is missing key(s): {names}")
+
+
+def _validate_integration_compatibility(
+    value: object, release: str
+) -> tuple[CompatibilityRecord, ...]:
+    if not isinstance(value, Mapping):
+        raise ValueError("preview manifest integration_compatibility must be an object")
+    _require_compatibility_keys(
+        value,
+        {"academy_release", "evidence_level", "components"},
+        "integration_compatibility",
+    )
+
+    academy_release = value["academy_release"]
+    if academy_release != release:
+        raise ValueError(
+            f"preview manifest integration_compatibility academy_release must be {release}"
+        )
+    evidence_level = value["evidence_level"]
+    if evidence_level != _COMPATIBILITY_EVIDENCE_LEVEL:
+        raise ValueError(
+            "preview manifest integration_compatibility evidence_level must be "
+            f"{_COMPATIBILITY_EVIDENCE_LEVEL}"
+        )
+
+    components = value["components"]
+    if not isinstance(components, list) or len(components) != len(
+        _COMPATIBILITY_COMPONENTS
+    ):
+        raise ValueError(
+            "preview manifest integration_compatibility components must contain exactly "
+            "three records"
+        )
+    component_keys = {
+        "component_id",
+        "display_name",
+        "release_tag",
+        "version",
+        "source_commit",
+        "manifest_path",
+        "manifest_sha256",
+    }
+    component_data: list[Mapping[str, object]] = []
+    for index, component in enumerate(components, start=1):
+        if not isinstance(component, Mapping):
+            raise ValueError(
+                "preview manifest integration_compatibility "
+                f"component {index} must be an object"
+            )
+        _require_compatibility_keys(
+            component,
+            component_keys,
+            f"integration_compatibility component {index}",
+        )
+        component_data.append(component)
+
+    component_ids = [component["component_id"] for component in component_data]
+    string_ids = [component_id for component_id in component_ids if isinstance(component_id, str)]
+    if len(set(string_ids)) != len(string_ids):
+        raise ValueError(
+            "preview manifest integration_compatibility has duplicate component_id"
+        )
+    reviewed_ids = tuple(component[0] for component in _COMPATIBILITY_COMPONENTS)
+    for component_id in component_ids:
+        if component_id not in reviewed_ids:
+            display = str(component_id)[:64]
+            raise ValueError(
+                "preview manifest integration_compatibility component_id "
+                f"{display} is not reviewed"
+            )
+    if tuple(component_ids) != reviewed_ids:
+        raise ValueError(
+            "preview manifest integration_compatibility components must preserve reviewed order"
+        )
+
+    records: list[CompatibilityRecord] = []
+    source_commits: list[str] = []
+    for component, reviewed in zip(
+        component_data, _COMPATIBILITY_COMPONENTS, strict=True
+    ):
+        (
+            component_id,
+            reviewed_display_name,
+            tag_prefix,
+            reviewed_version,
+            reviewed_manifest_path,
+            reviewed_manifest_sha256,
+        ) = reviewed
+        display_name = component["display_name"]
+        if display_name != reviewed_display_name:
+            raise ValueError(
+                f"preview manifest {component_id} display_name must be {reviewed_display_name}"
+            )
+
+        version = component["version"]
+        if not isinstance(version, str) or not _SEMANTIC_VERSION.fullmatch(version):
+            raise ValueError(
+                f"preview manifest {component_id} version must be an exact semantic version"
+            )
+        release_tag = component["release_tag"]
+        if (
+            not isinstance(release_tag, str)
+            or not re.fullmatch(
+                rf"{re.escape(tag_prefix)}[0-9]+\.[0-9]+\.[0-9]+", release_tag
+            )
+        ):
+            raise ValueError(
+                f"preview manifest {component_id} release_tag must identify an exact release"
+            )
+        if release_tag != f"{tag_prefix}{version}":
+            raise ValueError(
+                f"preview manifest {component_id} release_tag must encode its version"
+            )
+        if version != reviewed_version:
+            raise ValueError(
+                f"preview manifest {component_id} version must match the reviewed release"
+            )
+
+        source_commit = component["source_commit"]
+        if not isinstance(source_commit, str) or not _GIT_COMMIT.fullmatch(source_commit):
+            raise ValueError(
+                f"preview manifest {component_id} source_commit must be a lowercase full Git commit"
+            )
+        source_commits.append(source_commit)
+
+        manifest_path = component["manifest_path"]
+        if (
+            not isinstance(manifest_path, str)
+            or not _MANIFEST_PATH.fullmatch(manifest_path)
+            or any(part in {".", ".."} for part in manifest_path.split("/"))
+        ):
+            raise ValueError(
+                f"preview manifest {component_id} manifest_path must be a safe relative path"
+            )
+        if manifest_path != reviewed_manifest_path:
+            raise ValueError(
+                f"preview manifest {component_id} manifest_path must match the reviewed release"
+            )
+
+        manifest_sha256 = component["manifest_sha256"]
+        if not isinstance(manifest_sha256, str) or not _SHA256.fullmatch(
+            manifest_sha256
+        ):
+            raise ValueError(
+                f"preview manifest {component_id} manifest_sha256 must be a lowercase SHA-256 hex digest"
+            )
+        if manifest_sha256 != reviewed_manifest_sha256:
+            raise ValueError(
+                f"preview manifest {component_id} manifest_sha256 must match the reviewed release"
+            )
+
+        records.append(
+            CompatibilityRecord(
+                academy_release=academy_release,
+                component_id=component_id,
+                display_name=display_name,
+                release_tag=release_tag,
+                version=version,
+                source_commit=source_commit,
+                manifest_path=manifest_path,
+                manifest_sha256=manifest_sha256,
+                evidence_level=evidence_level,
+            )
+        )
+
+    if len(set(source_commits)) != 1:
+        raise ValueError(
+            "preview manifest integration_compatibility source_commit values must use one shared source"
+        )
+    if source_commits[0] != _COMPATIBILITY_SOURCE_COMMIT:
+        raise ValueError(
+            "preview manifest integration_compatibility source_commit must match the reviewed source"
+        )
+    return tuple(records)
 
 
 def _validate_discussion_url(value: object) -> str:
@@ -263,6 +496,13 @@ def validate_preview_manifest(
         raise ValueError(f"preview manifest prerequisites must match the reviewed {_RELEASE} onboarding contract")
     if known_limits != _KNOWN_LIMITS:
         raise ValueError(f"preview manifest known_limits must match the reviewed {_RELEASE} public limits")
+    if "integration_compatibility" not in manifest:
+        raise ValueError(
+            "preview manifest is missing key(s): integration_compatibility"
+        )
+    integration_compatibility = _validate_integration_compatibility(
+        manifest["integration_compatibility"], release
+    )
 
     return PreviewManifest(
         release,
@@ -275,6 +515,7 @@ def validate_preview_manifest(
         known_limits,
         discussion_url,
         catalog_sha256,
+        integration_compatibility,
     )
 
 

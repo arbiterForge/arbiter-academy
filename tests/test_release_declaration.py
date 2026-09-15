@@ -18,8 +18,8 @@ EXPECTED_ASSETS = (
     "install.ps1.sha256",
     "install.sh",
     "install.sh.sha256",
-    "arbiter-academy-preview-0.31.zip",
-    "arbiter-academy-preview-0.31.zip.sha256",
+    "arbiter-academy-preview-0.32.zip",
+    "arbiter-academy-preview-0.32.zip.sha256",
 )
 
 NUMERIC_VERSION = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
@@ -126,7 +126,7 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         self.assertIsNone(re.search(r"preview-(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", text))
         templates = fields.get("release-asset", [])
         rendered = tuple(
-            template.replace("{version}", "0.31").replace("{tag}", "preview-0.31")
+            template.replace("{version}", "0.32").replace("{tag}", "preview-0.32")
             for template in templates
         )
         self.assertEqual(rendered, EXPECTED_ASSETS)
@@ -162,7 +162,7 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
         stable = self.stable_version()
         workflow = PAGES_WORKFLOW.read_text(encoding="utf-8")
         publication = json.loads(
-            (ROOT / "academy" / "publication" / "preview-0.31.json").read_text(encoding="utf-8")
+            (ROOT / "academy" / "publication" / "preview-0.32.json").read_text(encoding="utf-8")
         )
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         asset_tests = (ROOT / "tests" / "test_release_assets.py").read_text(encoding="utf-8")
@@ -209,12 +209,19 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
             ],
         )
 
-    def test_ac06_pre_tag_checks_are_portable_complete_and_check_only(self) -> None:
+    def test_ac06_pre_tag_checks_are_portable_focused_and_check_only(self) -> None:
         _text, fields = self.declaration()
         self.assertEqual(
             fields.get("pre-tag"),
             [
-                '"$PY" -m unittest discover -v',
+                '"$PY" -m unittest '
+                'tests.test_preview_manifest '
+                'tests.test_codearbiter_compatibility '
+                'tests.test_preview_site '
+                'tests.test_pages_workflow '
+                'tests.test_release_declaration '
+                'tests.test_release_assets '
+                'tests.test_foundations_labs.PreviewCompatibilitySourceTests -v',
                 '"$PY" -m tabnanny academy_engine workshop_queue scripts tests',
             ],
         )

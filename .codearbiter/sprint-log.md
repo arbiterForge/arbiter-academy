@@ -115,3 +115,19 @@ the SMARTS rationale learners inspect; they do not describe a live sprint.
 - Options: normalize the module path; import a discoverable module; or use the runtime cryptography API.
 - SMARTS: The runtime API is reliable, testable, available, securable without search paths, and maintainable as one helper.
 - Chosen: use the runtime SHA256 API for both digests while preserving comparison, verification order, regression coverage, and checksum.
+
+## SD-ACA-019 - Bind each Preview to exact rolling component releases - confidence: high - intent: per active campaign checkpoint 043 and user rolling-enforcement direction
+- Date: 2026-09-14
+- Point: Where Academy should declare exact codeArbiter, ca-codex, and ca-pi compatibility and how it should stay current without freezing policy to one version.
+- Options: a prose-only compatibility table; a separate unbound compatibility file; a strict release-scoped publication-manifest block validated against the newest public component tags.
+- SMARTS: Scalable: Strong. Every Preview carries its own immutable record. Maintainable: Strong. One existing manifest feeds validation and presentation. Available: Strong. Learner use remains offline. Reliable: Strong. Exact tags, commits, paths, versions, and digests fail closed. Testable: Strong. Local Git fixtures cover stale and corrupt states. Securable: Strong. Public read-only Git and SHA-256 preserve current controls.
+- Strength: strong.
+- Chosen: extend each versioned publication manifest and derive maintainer CI's exact codeArbiter checkout from it; require numeric newest-tag alignment while labeling evidence as release-and-command-contract rather than runtime certification.
+
+## SD-ACA-020 - Reuse the campaign approval for compatibility sprint planning - confidence: high - intent: per SD-ACA-017 and explicit standing campaign authority
+- Date: 2026-09-14
+- Point: Whether checkpoint 043 requires another duplicate planning pause before its already-bounded, reversible implementation work begins.
+- Options: ask again; proceed without governance artifacts; write the bounded spec and bijective plan, approve them under the recorded campaign authority, and retain every hard gate.
+- SMARTS: Reliable: Strong. The checkpoint and spec preserve exact acceptance. Maintainable: Strong. Normal sprint artifacts and resume state remain intact. Available: Strong. Work continues without repeated prompting. Testable: Strong. Every criterion maps to a failing test. Securable: Strong. Release, merge, secrets, validation, and trust-boundary gates remain unchanged. Scalable: Indifferent. Approval mechanics do not affect runtime scale.
+- Strength: strong.
+- Chosen: SMARTS-approve the written spec for planning under SD-ACA-017 and the active campaign; no implementation, review, commit, PR, merge, release, or publication gate is waived.
