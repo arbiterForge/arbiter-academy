@@ -18,6 +18,6 @@ release-asset: install.sh
 release-asset: install.sh.sha256
 release-asset: arbiter-academy-preview-{version}.zip
 release-asset: arbiter-academy-preview-{version}.zip.sha256
-pre-tag: "$PY" -m unittest discover -v
+pre-tag: "$PY" -m unittest tests.test_preview_manifest tests.test_codearbiter_compatibility tests.test_preview_site tests.test_pages_workflow tests.test_release_declaration tests.test_release_assets tests.test_foundations_labs.PreviewCompatibilitySourceTests -v
 pre-tag: "$PY" -m tabnanny academy_engine workshop_queue scripts tests
 <!-- /release-targets -->

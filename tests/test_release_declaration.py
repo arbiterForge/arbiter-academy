@@ -209,12 +209,19 @@ class AcademyPreviewReleaseDeclarationTests(unittest.TestCase):
             ],
         )
 
-    def test_ac06_pre_tag_checks_are_portable_complete_and_check_only(self) -> None:
+    def test_ac06_pre_tag_checks_are_portable_focused_and_check_only(self) -> None:
         _text, fields = self.declaration()
         self.assertEqual(
             fields.get("pre-tag"),
             [
-                '"$PY" -m unittest discover -v',
+                '"$PY" -m unittest '
+                'tests.test_preview_manifest '
+                'tests.test_codearbiter_compatibility '
+                'tests.test_preview_site '
+                'tests.test_pages_workflow '
+                'tests.test_release_declaration '
+                'tests.test_release_assets '
+                'tests.test_foundations_labs.PreviewCompatibilitySourceTests -v',
                 '"$PY" -m tabnanny academy_engine workshop_queue scripts tests',
             ],
         )

@@ -32,7 +32,7 @@ Out of scope: changing learner behavior, modifying Preview 0.30, editing deferre
 - Changelog: `CHANGELOG.md`, created by the release lane when Preview 0.31 is cut.
 - The exact asset inventory is the two installers, their two checksum files, the version-templated Academy ZIP, and its checksum.
 - The release build invokes the existing deterministic builder with the reviewed Preview 0.31 epoch; changing that operator-authored command invalidates the release-command confirmation hash.
-- Pre-tag checks run the complete unittest suite and Python indentation check through the resolved interpreter.
+- Pre-tag checks run the focused release and compatibility consumers plus the Python indentation check through the resolved interpreter. The pull request's exact-head hosted shards own the exhaustive test inventory; until repository settings enforce that check, the governed merge operator must verify the `verify-candidate` aggregate at the exact PR head before merge.
 - This sole declared series is eligible for the repository's Latest release badge.
 
 ## Acceptance criteria
@@ -42,7 +42,7 @@ Out of scope: changing learner behavior, modifying Preview 0.30, editing deferre
 3. The stable manifest is valid JSON with canonical string version `0.30`, matching the latest immutable `preview-0.30` tag before the release lane advances it.
 4. The current prepared candidate identity read from the Pages workflow, publication manifest, README heading, release-asset tests, and package-data path is identical and is either the manifest identity or exactly one final-component increment beyond it; malformed, regressing, skipped, or shape-changing identities fail.
 5. The declared build command targets the existing deterministic builder, supplies the release lane's exact tag and empty asset directory variables, and uses the same reviewed epoch as the Pages reproduction gate.
-6. The declared pre-tag commands are check-only, interpreter-portable, and cover the complete Python unittest suite plus the repository indentation check.
+6. The declared pre-tag commands are check-only and interpreter-portable, cover the focused release and compatibility consumers plus the repository indentation check, do not invoke exhaustive unittest discovery locally, and leave the exhaustive inventory to the pull request's exact-head hosted shards. The governed merge operator treats a successful `verify-candidate` aggregate at that exact head as a mandatory procedural gate while GitHub branch protection is absent.
 7. Focused declaration tests, the installed helper's row parsing and asset rendering, the affected release and Pages tests, and the repository's required governed validation all pass without changing Preview 0.30 or PR #56.
 
 ## Open questions

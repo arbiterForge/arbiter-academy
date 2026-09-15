@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.32] — 2026-09-14
+
+### Added
+
+- Publish and enforce the Preview adapter compatibility matrix.
+
+### Fixed
+
+- Prepare Academy Preview 0.32 release assets and Pages identity for rolling adapter compatibility.
+- Keep local Preview pre-tag validation focused while exact-head GitHub CI runs the exhaustive matrix.
+
 ## [0.31] — 2026-09-14
 
 ### Added
