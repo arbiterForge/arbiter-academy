@@ -428,7 +428,7 @@ def _parse_lab(path: Path) -> CurriculumLab:
         )
         if host_action is None and not refusal_only:
             raise CurriculumError(
-                f"{path.name} is missing a guided CodeArbiter action for all three hosts."
+                f"{path.name} is missing a guided codeArbiter action for all three hosts."
             )
         if host_action is not None:
             host_commands = {

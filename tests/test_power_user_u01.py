@@ -323,7 +323,7 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         (root / ".codearbiter/plans").mkdir(exist_ok=True)
         (root / "docs").mkdir(exist_ok=True)
         scope_clause = scope_clause or (
-            "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It never pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+            "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the codeArbiter pull request terminal. It never pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
         )
         (root / ".codearbiter/specs/academy-sprint.md").write_text(
             "# Academy sprint: operator guide\n\n"
@@ -452,7 +452,7 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
             head = self._commit_packet(
                 root,
                 scope_clause=(
-                    "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the CodeArbiter pull request terminal. It pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
+                    "The allowed final commit contains docs/academy-sprint-summary.md. It may push only the learner fork branch through the codeArbiter pull request terminal. It pushes directly to upstream and never merges. It does not change product code, tests, dependencies, or remotes."
                 ),
             )
             context = _SemanticContext(

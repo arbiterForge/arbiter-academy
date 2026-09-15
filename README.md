@@ -13,7 +13,7 @@ Preview 0.32 publishes nineteen guided labs:
 
 - **F01 is guided and runnable.** Its lesson provides the complete novice path,
   including fork, clone, Doctor, safe remotes, evidence, Check, and recovery.
-- **F02 is guided and runnable.** Its lesson turns live CodeArbiter state into a
+- **F02 is guided and runnable.** Its lesson turns live codeArbiter state into a
   bounded, committed orientation record without changing the context it proves.
 - **F03 is guided and runnable.** Its lesson starts one queued task with the real
   task writer and co-commits one precise documentation correction.
@@ -35,7 +35,7 @@ Preview 0.32 publishes nineteen guided labs:
   STRIDE report without modifying the reviewed production path.
 - **P08 is guided and runnable.** Its lesson classifies live Git refs and
   worktrees without authorizing destructive cleanup.
-- **U01 is guided and runnable.** Its lesson governs a real CodeArbiter sprint
+- **U01 is guided and runnable.** Its lesson governs a real codeArbiter sprint
   in the learner's fork: the learner approves scope, the sprint opens a fork
   pull request after its commit gate, and it never self-merges.
 - **U02 is guided and runnable.** Its lesson records one narrow override, keeps
@@ -45,12 +45,12 @@ Preview 0.32 publishes nineteen guided labs:
   refactor, a docs-only chore, and a real local annotated release without
   claiming a remote tag or hosted publication.
 - **U04 is guided and runnable.** Its lesson initializes separate greenfield
-  and brownfield child projects, commits each through CodeArbiter, then writes
+  and brownfield child projects, commits each through codeArbiter, then writes
   a canonical parent binding report from their committed state.
 - **U05 is guided and runnable.** Its lesson records a real no-action debug
   note, transfers only committed spike findings to the parent branch, then
   deletes the disposable spike without merging it.
-- **U06 is guided and runnable.** Its lesson keeps CodeArbiter preview advice
+- **U06 is guided and runnable.** Its lesson keeps codeArbiter preview advice
   separate from durable repository evidence and does not fabricate telemetry.
 - **U07 is guided and runnable.** Its capstone follows the real feature lane,
   preserves local behavior evidence, and opens a real hosted pull request.
@@ -84,7 +84,7 @@ repository.
 
 Start on the Academy Home page even if you have never forked a repository. It
 explains each prerequisite, shows the reviewed install path, distinguishes the
-Browser, Native terminal, and active CodeArbiter harness, and gives copyable
+Browser, Native terminal, and active codeArbiter harness, and gives copyable
 commands for your operating system and host. The website remains the course. A
 narrow operations TUI for setup, Check, reset, and lesson changes will be
 published only after it clears its own acceptance evidence. Lesson commands and

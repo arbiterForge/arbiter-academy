@@ -2372,6 +2372,7 @@ class PreviewSiteTests(unittest.TestCase):
         self.assertEqual(rendered.count('class="academy-command-preferences"'), 1)
         self.assertIn('aria-labelledby="academy-os-heading"', rendered)
         self.assertIn('aria-labelledby="academy-host-heading"', rendered)
+        self.assertIn('<p id="academy-host-heading">codeArbiter host</p>', rendered)
         self.assertIn('class="academy-command-preferences" hidden', rendered)
         self.assertIn(
             '<section class="lesson-action" data-action-id="F01-prepare" '
@@ -2590,7 +2591,7 @@ class PreviewSiteTests(unittest.TestCase):
             "browser": "You \u00b7 Browser \u00b7 All operating systems",
             "native-terminal": "You \u00b7 Native terminal \u00b7 All operating systems",
             "academy-console": "You \u00b7 Academy console \u00b7 All operating systems",
-            "active-harness": "You \u00b7 Active CodeArbiter harness \u00b7 All operating systems",
+            "active-harness": "You \u00b7 Active codeArbiter harness \u00b7 All operating systems",
         }
         for surface, label in expected_labels.items():
             with self.subTest(surface=surface):

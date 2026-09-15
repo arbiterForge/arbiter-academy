@@ -4,10 +4,12 @@ import html
 import hashlib
 import json
 import re
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
+from academy_engine import preview as preview_contract
 from scripts.build_preview_site import build_preview_site
 
 
@@ -23,6 +25,20 @@ PROSE_FIELDS = (
 )
 BASELINE_VARIANT_COUNT = 989
 BASELINE_VARIANT_SHA256 = "dd53e90cd5d73a45ac64c2c5534fb1db9d9a7ac8edfb8715c89495aff902ba57"
+MUTABLE_DISPLAY_COPY_PATHS = (
+    "README.md",
+    "academy_engine/curriculum.py",
+    "academy_engine/lesson_actions.py",
+    "scripts/build_preview_site.py",
+    "tests/test_lesson_actions.py",
+    "tests/test_power_user_u01.py",
+    "tests/test_preview_site.py",
+)
+LAST_LEGACY_PUBLICATION = (0, 32)
+PROTECTED_LEGACY_OCCURRENCE_COUNT = 95
+PROTECTED_LEGACY_OCCURRENCE_SHA256 = (
+    "ae5edb5831eedce67bedeba4c80fabdd5e8cbde4471c49b25f70876dd2558bf5"
+)
 
 
 def _markdown_prose(path: Path) -> str:
@@ -40,6 +56,28 @@ def _markdown_prose(path: Path) -> str:
         line = re.sub(r"\]\([^)]+\)", "]", line)
         prose.append(line)
     return "\n".join(prose)
+
+
+def _protected_legacy_occurrences() -> list[str]:
+    """Return exact tracked legacy references outside this enforcement test."""
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout.decode("utf-8").split("\0")
+    occurrences: list[str] = []
+    for relative in tracked:
+        if not relative or relative == "tests/test_product_naming.py":
+            continue
+        try:
+            lines = (ROOT / relative).read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        occurrences.extend(
+            f"{relative}:{line}" for line in lines if "CodeArbiter" in line
+        )
+    return occurrences
 
 
 def _source_variants() -> dict[str, dict[str, object]]:
@@ -93,6 +131,61 @@ def _generated_commands(
 
 
 class ProductNamingAndCommandParityTests(unittest.TestCase):
+    def test_protected_legacy_occurrences_require_reclassification(self) -> None:
+        """Makes any new or changed legacy reference an explicit review event."""
+        occurrences = _protected_legacy_occurrences()
+        self.assertEqual(PROTECTED_LEGACY_OCCURRENCE_COUNT, len(occurrences))
+        self.assertEqual(
+            PROTECTED_LEGACY_OCCURRENCE_SHA256,
+            hashlib.sha256("\n".join(occurrences).encode("utf-8")).hexdigest(),
+        )
+
+    def test_mutable_display_copy_uses_the_product_name(self) -> None:
+        """Keeps mutable repository, diagnostic, and rendered labels on codeArbiter."""
+        violations = [
+            relative
+            for relative in MUTABLE_DISPLAY_COPY_PATHS
+            if "CodeArbiter" in (ROOT / relative).read_text(encoding="utf-8")
+        ]
+        self.assertEqual([], violations)
+
+    def test_future_publications_cannot_inherit_legacy_product_copy(self) -> None:
+        """Allows frozen releases while making the next Preview correct the legacy copy."""
+        release = tuple(
+            int(part)
+            for part in preview_contract._RELEASE.removeprefix("preview-").split(".")
+        )
+        if release > LAST_LEGACY_PUBLICATION:
+            self.assertFalse(
+                any("CodeArbiter" in item for item in preview_contract._PREREQUISITES)
+            )
+
+        schema = json.loads(
+            (ROOT / "academy/publication/preview-manifest.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        schema_release = tuple(
+            int(part)
+            for part in schema["properties"]["release"]["const"]
+            .removeprefix("preview-")
+            .split(".")
+        )
+        if schema_release > LAST_LEGACY_PUBLICATION:
+            prerequisites = schema["properties"]["prerequisites"]["prefixItems"]
+            self.assertNotIn("CodeArbiter", json.dumps(prerequisites))
+
+        for path in sorted((ROOT / "academy/publication").glob("preview-*.json")):
+            if path.name == "preview-manifest.schema.json":
+                continue
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            manifest_release = tuple(
+                int(part)
+                for part in manifest["release"].removeprefix("preview-").split(".")
+            )
+            if manifest_release > LAST_LEGACY_PUBLICATION:
+                self.assertNotIn("CodeArbiter", json.dumps(manifest["prerequisites"]))
+
     def test_mutable_product_copy_and_generated_commands_obey_contract(self) -> None:
         """Catches brand drift without changing command bytes or fallback presentation."""
         expected_variants = _source_variants()
