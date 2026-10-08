@@ -3640,6 +3640,46 @@ raise SystemExit(result.returncode)
 
 
 class PublicU02PreviewContractTests(unittest.TestCase):
+    def test_readme_u02_summary_and_link_match_the_observation_lesson(self) -> None:
+        """Catches the README promising work outside the published U02 lesson."""
+        root = Path(__file__).parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        summaries = re.findall(
+            r"(?m)^- \*\*U02 is guided and runnable\.\*\*[^\n]*(?:\n  [^\n]+)*",
+            readme,
+        )
+        self.assertEqual(len(summaries), 1)
+        summary = " ".join(summaries[0].split())
+        for claim in (
+            "H-05 guard",
+            "content-neutral restore request",
+            "preserves the audit log byte-for-byte",
+            "bounded local observation",
+            "without claiming its chronology",
+        ):
+            with self.subTest(claim=claim):
+                self.assertIn(claim, summary)
+        for excluded in ("override", "audit packet", "metrics"):
+            with self.subTest(excluded=excluded):
+                self.assertNotIn(excluded, summary)
+
+        document = preview_site._read_markdown_document(
+            root,
+            Path("academy/tracks/power-user/U02-override-audit-metrics.md"),
+            "U02-override-audit-metrics",
+            require_h1=True,
+        )
+        self.assertEqual(
+            re.findall(r"(?m)^- \[(Continue to U02 - [^\]]+)\]\(([^)]+)\)$", readme),
+            [
+                (
+                    f"Continue to U02 - {document['title']}",
+                    "https://arbiterforge.github.io/arbiter-academy/"
+                    "labs/U02-override-audit-metrics/",
+                )
+            ],
+        )
+
     def test_u02_guide_uses_shared_action_renderer_for_the_real_h05_boundary(self) -> None:
         """Catches public U02 claiming an override or omitting its observation limitation."""
         root = Path(__file__).parents[1]
