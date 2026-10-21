@@ -81,7 +81,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C .ci/codearbiter-source rev-parse HEAD)" = "$CODEARBITER_SOURCE_SHA"
-          python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.32.json --codearbiter-root .ci/codearbiter-source
+          python scripts/check_codearbiter_compatibility.py --manifest academy/publication/preview-0.33.json --codearbiter-root .ci/codearbiter-source
+          python scripts/check_lesson_source_review.py --codearbiter-root .ci/codearbiter-source --ref origin/main
 
       - name: Verify pinned offline build wheel
         shell: bash

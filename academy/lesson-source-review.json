@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "source_commit": "0badb588dc1179b06e13db1ca5322590962b586a",
+  "lessons": [
+    {
+      "id": "F01-fork-clone-doctor",
+      "sources": {
+        "core/surface/commands/doctor.md": "f551e672cac05df0c66c7b16e516447fc88cdd42bd3e0b00d5347a24b6512e6c",
+        "core/pysrc/doctor.py": "f198edf7e0bbd20366d0a018830db38e0d32950170a9dc79ea8edb412a3e2764"
+      }
+    },
+    {
+      "id": "F02-orient-to-state",
+      "sources": {
+        "core/surface/commands/status.md": "6e6d4caef560c49468c835851792c449b0a99531ecea352296a219df053450cf",
+        "core/surface/commands/adr-status.md": "5ebf347bbf893c8256159d0d1953e152eec6135fbc4b48052ff968c2de0d05eb",
+        "core/surface/commands/commands.md": "8b5a38e9f947ac5e34e9ec2a0c83d2024441d11521cb312935bbfebf40acc030"
+      }
+    },
+    {
+      "id": "F03-work-the-board",
+      "sources": {
+        "core/surface/commands/task.md": "8f28c6390877e50bf98f26043cc53aba34ab94f9bbce9e9aa0c60a06bc77ff55",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/pysrc/taskwrite.py": "f834f3fcc9dafcdf31db16ad4f52cd232c17162dc1711bdba112c2cac8a30d29"
+      }
+    },
+    {
+      "id": "F04-fix-with-evidence",
+      "sources": {
+        "core/surface/commands/fix.md": "1bcc7216daa487632e79236dd57d3421c06bda3ab07f6dc4c12a49780fdbb471",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/skills/tdd/SKILL.md": "db16f470b5bc3ef493c3775602bee3679ed046c3585b04ae47b95bb2830d7e2e",
+        "core/surface/skills/commit-gate/SKILL.md": "836fc5619f7d67dd67b95a8982d05b80b6bb122756b94fe6c87760b82b020fe2"
+      }
+    },
+    {
+      "id": "P01-feature-through-plan",
+      "sources": {
+        "core/surface/commands/feature.md": "62140a1bc7bdfb54abb92d6aea38abfc7f30295e25bc83521f90f6e1462a25d2",
+        "core/surface/commands/task.md": "8f28c6390877e50bf98f26043cc53aba34ab94f9bbce9e9aa0c60a06bc77ff55",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/includes/artifacts.md": "6c0f6956d0d9fa5506e73c4f715badd0314d6aaa9880688ea302ee70c49b68c5",
+        "core/surface/skills/brainstorming/SKILL.md": "b149d08684cbc8cfb40ed65bd93398ba41691fe107ff7b299a05a037c48c026e",
+        "core/surface/skills/writing-plans/SKILL.md": "5a4f5d9f8d7aa6d965ff79189d2e2b27ea3a7edaf78b1615bb3aebad3b49be99",
+        "core/pysrc/_artifactlib.py": "5761e096518fc760ba1aa8fc73dd3a84de7148e9aa88c01ecf66bf129a0eabeb"
+      }
+    },
+    {
+      "id": "P02-commit-review-pr",
+      "sources": {
+        "core/surface/commands/review.md": "e9fbfc97acfccc2cc7d9f38bf1a0096bdaf4cb90f2ccec59fdb5cc191e18605a",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/commands/pr.md": "06a91e16ace3b742caeba08de4108004ac64a69bbb9d368ff5e5643e39436f42"
+      }
+    },
+    {
+      "id": "P03-record-an-adr",
+      "sources": {
+        "core/surface/commands/adr.md": "027aa4b12e68025adfa5e3f6fab87c8812e89e186e44a8728e2b50ab59be2d7c",
+        "core/surface/commands/adr-status.md": "5ebf347bbf893c8256159d0d1953e152eec6135fbc4b48052ff968c2de0d05eb",
+        "core/surface/skills/decision-lifecycle/SKILL.md": "a8f97f8e880d5aeeaa74e4cb259279212348616c61ba974501654d66600a5891",
+        "core/surface/skills/decision-lifecycle/references/authoring.md": "98c8741b04e80b71754950c029e119dae592472c48877c43f034dd9a1cc74f0e",
+        "core/pysrc/_adrlifecycle.py": "925e0602c2c1935edc0cdce9d03d5a549fb128b0de6279c7f9595717243609fe"
+      }
+    },
+    {
+      "id": "P04-review-a-dependency",
+      "sources": {
+        "core/surface/commands/add-dep.md": "caa5d86962d33f7fdf49e230d1a3997d2d1db01503f422c1f99db00b7c3c2a14"
+      }
+    },
+    {
+      "id": "P05-checkpoint-remediation",
+      "sources": {
+        "core/surface/commands/checkpoint.md": "135cd2ed3043ea8f6dc77fce3743d7bd6c296b05779f57fc9d0f8ed99a0664bd",
+        "core/surface/commands/fix.md": "1bcc7216daa487632e79236dd57d3421c06bda3ab07f6dc4c12a49780fdbb471",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/skills/tdd/SKILL.md": "db16f470b5bc3ef493c3775602bee3679ed046c3585b04ae47b95bb2830d7e2e",
+        "core/surface/skills/commit-gate/SKILL.md": "836fc5619f7d67dd67b95a8982d05b80b6bb122756b94fe6c87760b82b020fe2"
+      }
+    },
+    {
+      "id": "P06-context-drift-recovery",
+      "sources": {
+        "core/surface/commands/context-check.md": "bc523c2c8ede4e77d58c975af0604fad30d5d33e6a2308f4779530b93801841d",
+        "core/surface/commands/create-context.md": "a5911b97a2591fdc88f148b72e28dd120d7c6c5291029d28c5be79a292094d24",
+        "core/surface/skills/context-check/SKILL.md": "0a6190445bcdbcac069c630b610314b4f6a200d5826c1a14f25ce016a22416f7",
+        "core/surface/skills/context-creation/SKILL.md": "0eb29e95533b9febb02ea394e8d1d2abcc80fe8b6598d1915e0eefa65f346d74",
+        "core/pysrc/_contextwriterlib.py": "1a2c1856a2ba17ac17b947e0823b1dece6f355a2de600f70e0d392b09263607f"
+      }
+    },
+    {
+      "id": "P07-threat-model",
+      "sources": {
+        "core/surface/commands/threat-model.md": "c2a09005f04516dfbfb3b57d6bfb983bca027382ef66c2bb6ede668484653382",
+        "core/surface/skills/security-architecture/SKILL.md": "6ebeaffb3669cab207948ac0c99f81b62709741ae50a30b9882b6ee7a44cbc94"
+      }
+    },
+    {
+      "id": "P08-repository-hygiene",
+      "sources": {
+        "core/surface/commands/standup.md": "a16bb26170b55a2b4295ff4f7889306d00f587699ab6378ff97b5449166b80ba",
+        "core/surface/commands/cleanup.md": "b14f3542873efdbcf2b600c1ccfe060467b4ca299b3687e717a495d652f9b339"
+      }
+    },
+    {
+      "id": "U01-autonomous-sprint",
+      "sources": {
+        "core/surface/commands/sprint.md": "fbf61fba085471a759f7f404bc73a1137991f724cd216a839cd3a40381d445f3",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/commands/pr.md": "06a91e16ace3b742caeba08de4108004ac64a69bbb9d368ff5e5643e39436f42",
+        "core/surface/SPRINT.md": "b6f72996873bc37348e86383a61cffc9557e32b05a60a2dd0e65c66b64e486ed",
+        "core/surface/includes/artifacts.md": "6c0f6956d0d9fa5506e73c4f715badd0314d6aaa9880688ea302ee70c49b68c5",
+        "core/pysrc/_artifactlib.py": "5761e096518fc760ba1aa8fc73dd3a84de7148e9aa88c01ecf66bf129a0eabeb"
+      }
+    },
+    {
+      "id": "U02-override-audit-metrics",
+      "sources": {
+        "core/surface/commands/override.md": "dd0a88dc70eb17dcb982e09b20cd3d5089fe88d23c077982692a48531b9a732a",
+        "core/surface/commands/audit.md": "d25ae0768d05b039912e792606ddbbdfa4acb00f3d4dc0a68670ace4be4f1750",
+        "core/surface/commands/metrics.md": "c2238e20fd51dc6867039efd89f2a2b93f67ecf1af186975bea4e485966d74b0",
+        "core/pysrc/_bashguardlib.py": "054f80631dcf20b947eb5d952418e9f9d1090bece2857cb7826c6a18e79ca17b",
+        "core/pysrc/pre-bash.py": "b2cf1a875a6ec0aa4c36e59bfdc2c9f64a81a70dcc901a5bbc46465b087e4873"
+      }
+    },
+    {
+      "id": "U03-refactor-chore-release",
+      "sources": {
+        "core/surface/commands/refactor.md": "301429359448ac0614e20a63bb95a6603435a45e5ddd6eab054eae57041c0177",
+        "core/surface/commands/chore.md": "85f0c06c9070f72b0bc33d819ae3acf72af8e7142f043cdd0438d48d99a11e31",
+        "core/surface/commands/release.md": "38ea3697585f72a15d003be5be926090977586e7820311e8911a28575e5db509",
+        "core/surface/skills/release/SKILL.md": "f83d3cd76d1484d14389f08b96c9b64cabd4180c30c46c37615e6e9f1aaa1d56",
+        "core/surface/skills/refactor/SKILL.md": "31d6d0c93be173114b7907cb74c8587723dc59e19b62b1396545f067d066d0a8"
+      }
+    },
+    {
+      "id": "U04-initialize-projects",
+      "sources": {
+        "core/surface/commands/init.md": "3f6c676693bf0ab670e38b18c37184bb0917bb22342b7b08f5fe91d62068796c",
+        "core/surface/commands/decompose.md": "f354d94f1b7357967df3394230b9cecdd59743640df0b51bd29414ece74cce1e",
+        "core/surface/commands/create-context.md": "a5911b97a2591fdc88f148b72e28dd120d7c6c5291029d28c5be79a292094d24",
+        "core/surface/skills/decompose/SKILL.md": "a28543d4bdb4286bd9bb688ee7ee0969b80a8824f6e421aa239fd52d9192a39a",
+        "core/surface/skills/context-creation/SKILL.md": "0eb29e95533b9febb02ea394e8d1d2abcc80fe8b6598d1915e0eefa65f346d74",
+        "core/surface/skills/decision-variance/SKILL.md": "be1d34c708e68689042ea1588f85ed800803ff8b9da6274f1ec307cf08c9089c",
+        "core/surface/skills/decision-lifecycle/references/authoring.md": "98c8741b04e80b71754950c029e119dae592472c48877c43f034dd9a1cc74f0e"
+      }
+    },
+    {
+      "id": "U05-debug-spike-conflict",
+      "sources": {
+        "core/surface/commands/debug.md": "3c510d576a35feed9294d3746a6aabdaad42d276067b9486867ad7e145f59714",
+        "core/surface/commands/spike.md": "2fc4b6ae4ed858f437d4242356e69e84878d849b2ccd65ff0fe9cedead1e625b",
+        "core/surface/commands/conflict.md": "ea96bc18a20f8096211ffea954456d41593bdbdc139cafd3bf1a8a0bdb8e819b",
+        "core/surface/skills/debug/SKILL.md": "3cc2c952cc7bd81c782c9366a619ba94426edb1e2951c602b95d63d4ae3e2283"
+      }
+    },
+    {
+      "id": "U06-preview-and-advanced-surfaces",
+      "sources": {
+        "core/surface/commands/preview.md": "615c5ee71f465b0de4b9008a77e12961bcd4e0a80458fa9a0ea89c3327414b31",
+        "core/surface/commands/tribunal.md": "3424e7d7f90557baa6c3cbd2864abe06f0aa55050b76f0a0e0edd491872ac79f",
+        "core/surface/commands/commands.md": "8b5a38e9f947ac5e34e9ec2a0c83d2024441d11521cb312935bbfebf40acc030"
+      }
+    },
+    {
+      "id": "U07-capstone",
+      "sources": {
+        "core/surface/commands/fix.md": "1bcc7216daa487632e79236dd57d3421c06bda3ab07f6dc4c12a49780fdbb471",
+        "core/surface/commands/commit.md": "e4499982c3281fcb85cc02ee50400e7d35d3c6a0b54e39af1bf8b21deba30b58",
+        "core/surface/commands/pr.md": "06a91e16ace3b742caeba08de4108004ac64a69bbb9d368ff5e5643e39436f42",
+        "core/surface/skills/tdd/SKILL.md": "db16f470b5bc3ef493c3775602bee3679ed046c3585b04ae47b95bb2830d7e2e",
+        "core/surface/skills/finishing-a-development-branch/SKILL.md": "81babe5b35615eccf9c56e85e12b4aaa0660c23a04c8e0d65c67fa922065d636"
+      }
+    }
+  ]
+}
