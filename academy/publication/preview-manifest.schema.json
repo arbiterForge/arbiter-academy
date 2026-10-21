@@ -103,7 +103,7 @@
         {"const": "A GitHub account that can create a personal fork."},
         {"const": "Git 2.39 or newer."},
         {"const": "Python 3.11 or newer."},
-        {"const": "A supported CodeArbiter host: Claude Code, Codex, or Pi."},
+        {"const": "A supported codeArbiter host: Claude Code, Codex, or Pi."},
         {"const": "Complete Academy Home setup steps 1-5 before starting F01."}
       ]
     },

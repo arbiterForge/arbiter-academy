@@ -23,8 +23,9 @@ PROSE_FIELDS = (
     "recovery",
     "evidence",
 )
-BASELINE_VARIANT_COUNT = 989
-BASELINE_VARIANT_SHA256 = "dd53e90cd5d73a45ac64c2c5534fb1db9d9a7ac8edfb8715c89495aff902ba57"
+# Preview 0.33: reviewed native planning and current owner workflow commands.
+BASELINE_VARIANT_COUNT = 975
+BASELINE_VARIANT_SHA256 = "3efefdb2e702c2c7ba69930ef19f12ca6cd6f9a0226fe098b1fcca4b316c27b0"
 MUTABLE_DISPLAY_COPY_PATHS = (
     "README.md",
     "academy_engine/curriculum.py",
@@ -35,9 +36,11 @@ MUTABLE_DISPLAY_COPY_PATHS = (
     "tests/test_preview_site.py",
 )
 LAST_LEGACY_PUBLICATION = (0, 32)
-PROTECTED_LEGACY_OCCURRENCE_COUNT = 95
+# Nine obsolete P01/P05 command lines and three mutable prerequisite lines removed.
+# Frozen publication manifests retain their original bytes.
+PROTECTED_LEGACY_OCCURRENCE_COUNT = 83
 PROTECTED_LEGACY_OCCURRENCE_SHA256 = (
-    "ae5edb5831eedce67bedeba4c80fabdd5e8cbde4471c49b25f70876dd2558bf5"
+    "b36244d303238eb41119d0c1d1ab17da308b57e33e8684d6f85f18849d7e3c78"
 )
 
 

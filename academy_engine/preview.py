@@ -40,7 +40,7 @@ _PREREQUISITES = (
     "A GitHub account that can create a personal fork.",
     "Git 2.39 or newer.",
     "Python 3.11 or newer.",
-    "A supported CodeArbiter host: Claude Code, Codex, or Pi.",
+    "A supported codeArbiter host: Claude Code, Codex, or Pi.",
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (

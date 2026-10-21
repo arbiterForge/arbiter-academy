@@ -122,7 +122,7 @@ class U07PrivateCapstoneTests(unittest.TestCase):
             LAB,
             require_h1=True,
         )
-        self.assertIn('data-action-id="U07-run-feature"', document["content"])
+        self.assertIn('data-action-id="U07-run-fix"', document["content"])
         self.assertIn('data-action-id="U07-open-pr"', document["content"])
         manifest = load_preview_manifest(SOURCE)
         for inventory in (manifest.available_labs, manifest.runnable_labs, manifest.guided_labs):

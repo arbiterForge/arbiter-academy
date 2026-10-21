@@ -160,7 +160,7 @@ test("every command variant remains visible without JavaScript", async ({ browse
     }
   }
 
-  expect(variantCount).toBe(989);
+  expect(variantCount).toBe(975);
   await context.close();
 });
 
@@ -232,7 +232,7 @@ for (const colorScheme of ["dark", "light"]) {
 }
 
 for (const [locator, name] of [
-  ['h3:has-text("The proof map")', "f04-proof-map"],
+  ['#what-you-will-prove', "f04-proof-map"],
   ['[data-action-id="F04-request-repair"]', "f04-repair-boundary"],
 ]) {
   test(`F04 ${name} remains visually explicit`, async ({ page }, testInfo) => {
@@ -241,11 +241,11 @@ for (const [locator, name] of [
     const target = page.locator(locator);
     await target.scrollIntoViewIfNeeded();
     await expect(target).toBeInViewport();
-    if (name === "f04-proof-map" && page.viewportSize()?.width <= 384) {
-      const table = page.locator(".academy-content table").first();
-      await expect
-        .poll(() => table.evaluate((node) => node.scrollWidth <= node.clientWidth))
-        .toBe(true);
+    if (name === "f04-proof-map") {
+      const proof = page.locator("#what-you-will-prove + p");
+      await expect(proof).toContainText("RED");
+      await expect(proof).toContainText("GREEN");
+      await expect(page.locator("#what-you-will-prove + p + p")).toContainText("One final commit");
     }
     await expect(page).toHaveScreenshot(`${name}-${testInfo.project.name}.png`, {
       animations: "disabled",

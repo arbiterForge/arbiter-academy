@@ -25,7 +25,7 @@
   "coming_next": [],
   "prerequisites": [
     "A GitHub account that can create a personal fork.", "Git 2.39 or newer.", "Python 3.11 or newer.",
-    "A supported CodeArbiter host: Claude Code, Codex, or Pi.", "Complete Academy Home setup steps 1-5 before starting F01."
+    "A supported codeArbiter host: Claude Code, Codex, or Pi.", "Complete Academy Home setup steps 1-5 before starting F01."
   ],
   "known_limits": [
     "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.33.",
