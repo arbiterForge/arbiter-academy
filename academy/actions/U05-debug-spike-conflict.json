@@ -140,7 +140,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "git diff -- .codearbiter/open-tasks.md\ngit diff --check",
+          "command": "git status --short --untracked-files=all\ngit diff -- .codearbiter/open-tasks.md\ngit diff --check",
           "copy": true
         },
         {
@@ -149,7 +149,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "git diff -- .codearbiter/open-tasks.md\ngit diff --check",
+          "command": "git status --short --untracked-files=all\ngit diff -- .codearbiter/open-tasks.md\ngit diff --check",
           "copy": true
         },
         {
@@ -158,12 +158,12 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "git diff -- .codearbiter/open-tasks.md\ngit diff --check",
+          "command": "git status --short --untracked-files=all\ngit diff -- .codearbiter/open-tasks.md\ngit diff --check",
           "copy": true
         }
       ],
       "expected_result": "No board diff or pending changes.",
-      "recovery": "If other paths or an entry without taskwrite's Desc: form appear, stop and preserve the diff; do not edit a receipt to imitate taskwrite.",
+      "recovery": "If any pending change or board entry appears, stop and preserve the status and diff. Investigate why the read-only debug step changed the repository before continuing; do not manufacture a task or receipt.",
       "evidence": "The prepared board is preserved."
     },
     {
@@ -238,7 +238,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Return to the Academy attempt branch and restore only the committed finding from spike/u05-cache-key. This is a native Git transfer, not a merge.",
-      "rationale": "The released spike contract permits the finding�s contents to cross back but forbids the spike commit and exploratory code.",
+      "rationale": "The released spike contract permits the finding's contents to cross back but forbids the spike commit and exploratory code.",
       "resources": [],
       "variants": [
         {

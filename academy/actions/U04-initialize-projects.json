@@ -164,7 +164,7 @@
       ],
       "expected_result": "Initialization populates the U04-greenfield child context and matching v2 provenance, retains real decisions and boards, and finalizes its initialized marker. The next card inspects or resumes this same run.",
       "recovery": "If ca-init ran against another visible root, stop and preserve its output and every affected git status; do not commit or conceal the misplaced initialization.",
-      "evidence": "Preserve ca-init output and U04-greenfield git status showing the new .codearbiter paths before decomposition."
+      "evidence": "Preserve ca-init output and U04-greenfield git status showing the populated .codearbiter paths and the reported initialization outcome."
     },
     {
       "id": "U04-run-greenfield-decompose",
@@ -721,7 +721,7 @@
         }
       ],
       "expected_result": "The child has populated context, or one concrete unfinished step is identified.",
-      "recovery": "If the host proposes ca-decompose, synthetic reconciliation plans, or context unrelated to the existing source, stop and preserve the transcript; rerun ca-create-context only from the visible brownfield root.",
+      "recovery": "If context is unrelated to the existing source, stop and preserve the transcript. Confirm the visible brownfield root and resume context creation only if initialization reports that work remains unfinished. Do not repeat completed population.",
       "evidence": "Inspect actual child files and workflow output."
     },
     {

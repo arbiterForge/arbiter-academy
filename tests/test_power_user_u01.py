@@ -71,6 +71,12 @@ class U01GuidedContractTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         sprint = by_id["U01-run-sprint"]
         self.assertEqual({v.host for v in sprint.variants}, {"claude-code", "codex", "pi"})
+        by_variant = {variant.id: variant.command for variant in sprint.variants}
+        self.assertTrue(by_variant["pi-direct"].startswith("/ca-sprint "))
+        self.assertEqual(
+            by_variant["pi-fallback"],
+            by_variant["pi-direct"].replace("/ca-sprint ", "/skill:ca-sprint ", 1),
+        )
         for variant in sprint.variants:
             self.assertIn("sprint academy-sprint:", variant.command)
             self.assertIn("native spec and plan", variant.command)

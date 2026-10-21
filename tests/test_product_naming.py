@@ -25,22 +25,23 @@ PROSE_FIELDS = (
 )
 # Preview 0.33: reviewed native planning and current owner workflow commands.
 BASELINE_VARIANT_COUNT = 975
-BASELINE_VARIANT_SHA256 = "3efefdb2e702c2c7ba69930ef19f12ca6cd6f9a0226fe098b1fcca4b316c27b0"
+BASELINE_VARIANT_SHA256 = "df18e0c8983229c59fb25b5ee53bf8e80c6ca1e6202bc6c394835f9d380f6d27"
 MUTABLE_DISPLAY_COPY_PATHS = (
     "README.md",
     "academy_engine/curriculum.py",
     "academy_engine/lesson_actions.py",
     "scripts/build_preview_site.py",
+    "scripts/check_preview_site.py",
     "tests/test_lesson_actions.py",
     "tests/test_power_user_u01.py",
     "tests/test_preview_site.py",
 )
 LAST_LEGACY_PUBLICATION = (0, 32)
-# Nine obsolete P01/P05 command lines and three mutable prerequisite lines removed.
+# Nine obsolete P01/P05 command lines and four mutable prerequisite lines removed.
 # Frozen publication manifests retain their original bytes.
-PROTECTED_LEGACY_OCCURRENCE_COUNT = 83
+PROTECTED_LEGACY_OCCURRENCE_COUNT = 82
 PROTECTED_LEGACY_OCCURRENCE_SHA256 = (
-    "b36244d303238eb41119d0c1d1ab17da308b57e33e8684d6f85f18849d7e3c78"
+    "d0e5b8939c32cda0c49d790794b7d752064ec6ea71f1821f8a516ba22113a945"
 )
 
 

@@ -434,7 +434,7 @@
         }
       ],
       "expected_result": "One green commit changes tests/test_cli.py and workshop_queue/cli.py.",
-      "recovery": "If the staged boundary includes the test or another path, stop and Reset. Do not make the history look right by amending or rebasing it.",
+      "recovery": "Before committing, confirm that both the regression test and repair are staged. If either is missing or unrelated paths are staged, correct the staged selection and review it again. Do not amend or rebase the attempt history.",
       "evidence": "RED remains an observed result, not a failing commit."
     },
     {
@@ -528,7 +528,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Before Check, inspect the worktree in a native terminal. This is a direct terminal command and never begins with !.",
-      "rationale": "P05 Check rejects uncommitted or unrelated state so the committed four-step history is the whole claim.",
+      "rationale": "P05 Check rejects uncommitted or unrelated state so the three commits record the finding, verified repair, and receipt.",
       "resources": [],
       "variants": [
         {

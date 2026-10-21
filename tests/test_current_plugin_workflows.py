@@ -1,7 +1,9 @@
 """Current plugin workflows must not require red commits or invented state writes."""
 
 import json
+import shlex
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,9 +13,23 @@ from tests import test_foundations_labs as foundations
 from tests import test_checkpoints as checkpoints
 from tests import test_power_user_u05 as u05
 from academy_engine.scenario import prepare_lab
+from academy_engine.lesson_actions import load_action_manifest
 
 
 class CurrentPluginWorkflows(unittest.TestCase):
+    def test_u05_debug_check_exposes_untracked_changes_on_every_platform(self):
+        fixture = foundations.AcademyRepository()
+        self.addCleanup(fixture.close)
+        (fixture.root / 'unexpected.txt').write_text('pending change', encoding='utf-8')
+        manifest = load_action_manifest(Path(__file__).parents[1], 'U05-debug-spike-conflict')
+        action = next(action for action in manifest.actions if action.id == 'U05-review-debug-board')
+        for variant in action.variants:
+            with self.subTest(platform=variant.operating_system):
+                outputs = [subprocess.run(shlex.split(command), cwd=fixture.root,
+                                          check=True, capture_output=True, text=True).stdout
+                           for command in variant.command.splitlines()]
+                self.assertIn('?? unexpected.txt', ''.join(outputs))
+
     def test_planning_labs_start_fresh_for_the_native_authoring_route(self):
         for lab, slug in [('P01-feature-through-plan', 'academy-feature'), ('U01-autonomous-sprint', 'academy-sprint')]:
             with self.subTest(lab=lab):
@@ -43,7 +59,7 @@ class CurrentPluginWorkflows(unittest.TestCase):
         marker = '    def test_complete_requires_a_claimed_ticket_and_records_resolution(self) -> None:\n'
         self.assertIn(marker, text)
         test.write_text(text.replace(marker, method + marker), encoding='utf-8', newline='\n')
-        result = subprocess.run(['python', '-m', 'unittest', 'tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label'], cwd=fixture.root, capture_output=True, text=True)
+        result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label'], cwd=fixture.root, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('ValueError not raised', result.stderr)
         code = fixture.root / 'workshop_queue/service.py'
@@ -52,7 +68,7 @@ class CurrentPluginWorkflows(unittest.TestCase):
         guard = '            if any(ord(character) < 32 or ord(character) == 127 for character in volunteer):\n                raise ValueError("volunteer must not contain control characters")\n'
         self.assertIn(needle, before)
         code.write_text(before.replace(needle, needle + guard), encoding='utf-8', newline='\n')
-        result = subprocess.run(['python', '-m', 'unittest', 'tests.test_service'], cwd=fixture.root, capture_output=True, text=True)
+        result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service'], cwd=fixture.root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         fixture.commit('fix: validate claimant labels with regression', 'tests/test_service.py', 'workshop_queue/service.py')
         self.assertTrue(evaluate_checkpoint(fixture.root, 'F04-fix-with-evidence').passed)

@@ -131,7 +131,7 @@
       "actor": "agent",
       "surface": null,
       "instruction": "Request the complete bounded sprint. Your original request supplies its scope and needs no second spec or plan approval. The agent asks only when an actual consequential choice is missing.",
-      "rationale": "An autonomous sprint may execute only after its specification and plan gates. It cannot self-authorize the scope of an Academy exercise or merge its own pull request.",
+      "rationale": "Your original request authorizes the sprint. The native specification and plan keep its scope and checks visible as work proceeds. This exercise authorizes a fork PR; merging or publishing requires a separate request.",
       "resources": [],
       "variants": [
         {
@@ -167,13 +167,13 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
+          "command": "/skill:ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
           "copy": true
         }
       ],
       "expected_result": "A native specification and plan, the operator guide, observed verification, and a fork-only PR handoff. Real missing choices remain visible.",
       "recovery": "If the installed writer fails, preserve its diagnostic and repair the installation. If scope or a consequential choice is unclear, answer that specific question before affected work continues.",
-      "evidence": "Preserve the proposed specification, derived plan, operator guide, and appended sprint-log decision record. Check validates repository facts, not host invocation, approval, or pull-request creation."
+      "evidence": "Preserve the saved specification, plan, operator guide, and any material decisions recorded in the sprint log. Check validates repository facts, not host invocation, approval, or pull-request creation."
     },
     {
       "id": "U01-inspect-scope",
@@ -224,7 +224,7 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Open the rendered plan and check whether it reflects your request. No further approval reply is required for in-scope work. Correct a real misunderstanding when you see it.",
-      "rationale": "The learner owns the plan approval that permits autonomous execution; approving a specification alone is not enough.",
+      "rationale": "Reviewing the plan helps you catch scope misunderstandings and missing checks. Work already covered by your request can continue without another approval reply.",
       "resources": [],
       "variants": [
         {

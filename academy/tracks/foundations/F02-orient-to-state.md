@@ -109,7 +109,7 @@ is no longer exact.
 ### Hint 1
 
 Start with the `arbiter` and `stage` front-matter fields, then read the project identity, scope, and
-the decision, standards, and task sources cited in your report.
+the decision, standards, and task sources linked from `.codearbiter/CONTEXT.md`.
 
 ### Hint 2
 
