@@ -18,6 +18,8 @@ This guided lesson prepares a sealed local release exercise in your fork. It cre
 
 ## Know before you begin
 
+Separate three kinds of work: preserve behavior while refactoring, improve documentation, then prepare a local release. Each has a different reason for checking and reviewing it.
+
 Read the boundary before running anything. U03 proves a local refactor, a docs chore, and the local release artifacts that the real codeArbiter release lane creates.
 
 {{action:U03-read-boundary}}
@@ -99,3 +101,5 @@ Do not destroy a failed attempt to make it look clean. Preserve the state and us
 ## Understand the mechanism
 
 The guide and its action manifest are one shared renderer contract. Every command card names who acts and where. Native terminal commands never use `!`. codeArbiter commands use the selected host directly. Check can compare repository state, but it cannot infer a learner's judgment or an external release event.
+
+**Use this in your own project.** Choose refactor when behavior must stay the same, chore for non-behavioral work, and release for a declared delivery target. Run the existing behavior tests before and after refactoring. A local annotated tag is not a remote publication. On Windows the release workflow needs Git for Windows Bash; let the installed workflow select its shell and interpreter.

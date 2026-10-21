@@ -15,6 +15,8 @@ next_lab: P05-checkpoint-remediation
 
 ## Know before you begin
 
+A dependency adds behavior you must maintain and trust. Compare a frozen package candidate with a small standard-library solution before deciding whether the package is needed.
+
 P04 is a guided, runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P03 in the same Academy fork and clone. Keep a native terminal at the clone root for Academy operations and file inspection. Keep one codeArbiter harness open at that same clone for agent work. Native-terminal commands are entered directly and never begin with `!`. A shell command inside a harness begins with exactly one `!`. codeArbiter commands and agent messages belong in the harness and never begin with `!`.
@@ -107,3 +109,5 @@ After Check passes, leave the completed branch intact and return to `main` when 
 ## Understand the mechanism
 
 Dependency governance separates proposal, evidence, decision, and adoption. This lesson stops at a reviewed rejection because the bounded standard library parser meets the stated need with no new runtime closure. The stored report makes that tradeoff inspectable; it does not invent live facts, delegate the learner decision, or silently promote review evidence into installation authority.
+
+**Use this in your own project.** For a real proposed dependency, ask codeArbiter to vet the actual version, license, provenance, maintenance, and supply-chain risks before installation. Use current primary evidence. This exercise uses frozen offline artifacts and ends with rejection; it cannot establish the present safety of a package.

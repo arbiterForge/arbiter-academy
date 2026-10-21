@@ -78,14 +78,15 @@ def _reject_unsafe_progress_path(progress_path: Path) -> None:
             raise ValueError("unsafe progress path is not an unshared regular file.")
 
 
-def record_checkpoint(progress_path: Path, result: CheckpointResult) -> None:
+def record_checkpoint(progress_path: Path, result: CheckpointResult, *, plugin_root: Path | None = None) -> None:
     """Recompute and atomically upsert one fully-bound checkpoint result."""
     if progress_path.name != "progress.json" or progress_path.parent.name != ".academy":
         raise ValueError("progress path must be the canonical Academy progress document.")
     _reject_unsafe_progress_path(progress_path)
     if result.lab_id not in LAB_INVENTORY:
         raise ValueError("checkpoint result is not a known Academy lab.")
-    recomputed = evaluate_checkpoint(progress_path.parent.parent, result.lab_id)
+    native_options = {"plugin_root": plugin_root} if plugin_root is not None else {}
+    recomputed = evaluate_checkpoint(progress_path.parent.parent, result.lab_id, **native_options)
     if recomputed != result or not recomputed.passed:
         raise ValueError("checkpoint result is not fresh repository evidence.")
     entry = {

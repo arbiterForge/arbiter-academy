@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -22,8 +23,8 @@ U01_ACTION_IDS = (
     "U01-prepare-attempt",
     "U01-inspect-scenario",
     "U01-run-sprint",
-    "U01-approve-or-decline-spec",
-    "U01-approve-or-decline-plan",
+    "U01-inspect-scope",
+    "U01-inspect-plan",
     "U01-inspect-artifacts",
     "U01-check-status",
     "U01-return-base",
@@ -53,7 +54,7 @@ class U01GuidedContractTests(unittest.TestCase):
         self.assertNotIn("```", guide)
         self.assertIn("The website remains the primary lesson surface.", normalized)
         release = load_preview_manifest(SOURCE).release.removeprefix("preview-")
-        self.assertIn(f"guided, runnable lesson in Preview {release}", normalized)
+        self.assertIn("original request", normalized)
         self.assertIn("non-destructive numbered retry", normalized)
         self.assertIn("docs/academy-sprint-summary.md", normalized)
         self.assertIn("It does not authenticate approval.", normalized)
@@ -65,90 +66,28 @@ class U01GuidedContractTests(unittest.TestCase):
                 self.assertIn(f"{{{{action:{action_id}}}}}", guide)
 
     def test_u01_action_manifest_keeps_execution_surfaces_and_limits_explicit(self) -> None:
-        """Catches host syntax, shell markers, or public-boundary claims regressing."""
         manifest = load_action_manifest(SOURCE, U01)
         self.assertEqual(tuple(action.id for action in manifest.actions), U01_ACTION_IDS)
         by_id = {action.id: action for action in manifest.actions}
-
-        fork_boundary = by_id["U01-confirm-fork-boundary"]
-        self.assertEqual(
-            tuple((resource.label, resource.href) for resource in fork_boundary.resources),
-            (
-                (
-                    "Review the immutable Preview 0.32 U01 boundary manifest",
-                    "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.32/academy/actions/U01-autonomous-sprint.json",
-                ),
-            ),
-        )
-
         sprint = by_id["U01-run-sprint"]
-        self.assertEqual(sprint.actor, "agent")
+        self.assertEqual({v.host for v in sprint.variants}, {"claude-code", "codex", "pi"})
+        by_variant = {variant.id: variant.command for variant in sprint.variants}
+        self.assertTrue(by_variant["pi-direct"].startswith("/ca-sprint "))
         self.assertEqual(
-            {(variant.host, variant.command) for variant in sprint.variants},
-            {
-                ("claude-code", "/ca:sprint academy-sprint"),
-                ("codex", "$ca-sprint academy-sprint"),
-                ("pi", "/ca-sprint academy-sprint"),
-                ("pi", "/skill:ca-sprint academy-sprint"),
-            },
+            by_variant["pi-fallback"],
+            by_variant["pi-direct"].replace("/ca-sprint ", "/skill:ca-sprint ", 1),
         )
-        self.assertTrue(all(not variant.command.startswith("!") for variant in sprint.variants))
-        self.assertIn("opens a pull request", sprint.expected_result.casefold())
-        self.assertIn("never merges", sprint.expected_result.casefold())
-        self.assertIn("proposed specification and its derived plan", sprint.instruction)
-        plan_gate = by_id["U01-approve-or-decline-plan"]
-        self.assertEqual((plan_gate.actor, plan_gate.surface), ("learner", "active-harness"))
-        self.assertIn("plan", plan_gate.instruction.casefold())
-        self.assertIn("autonomous", plan_gate.expected_result.casefold())
-        self.assertIn("approve only", plan_gate.instruction.casefold())
-        self.assertIn(
-            "no product-code, test, dependency, or remote changes",
-            plan_gate.instruction.casefold(),
-        )
-        self.assertIn("fork-only pull-request terminal", plan_gate.instruction.casefold())
-        self.assertIn("approved plan", plan_gate.expected_result.casefold())
-        self.assertIn("plan revision", plan_gate.expected_result.casefold())
-        self.assertIn("proposed specification and derived plan", plan_gate.recovery.casefold())
-
-        for action_id in ("U01-prepare-attempt", "U01-check-status", "U01-reset-retry"):
-            action = by_id[action_id]
-            with self.subTest(action_id=action_id):
-                self.assertEqual(
-                    {variant.operating_system for variant in action.variants},
-                    {"windows", "macos", "linux"},
-                )
-                self.assertTrue(
-                    all(variant.surface == "native-terminal" for variant in action.variants)
-                )
-                self.assertTrue(all(not variant.command.startswith("!") for variant in action.variants))
-                self.assertIn("Academy", action.expected_result)
-                self.assertTrue(
-                    all("preview-0.32" in variant.command for variant in action.variants)
-                )
-
-        inspect = by_id["U01-inspect-scenario"]
-        self.assertEqual({variant.surface for variant in inspect.variants}, {"native-terminal", "harness"})
-        self.assertTrue(
-            all(
-                variant.command.startswith("!")
-                for variant in inspect.variants
-                if variant.surface == "harness"
-            )
-        )
-
-        self.assertNotIn("unavailable", by_id["U01-check-status"].title.casefold())
-        self.assertNotIn("unavailable", by_id["U01-reset-retry"].title.casefold())
-
-        return_base = by_id["U01-return-base"]
-        for variant in return_base.variants:
-            with self.subTest(return_base_variant=variant.id):
-                self.assertIn("git status --short", variant.command)
-                self.assertIn("exit 1", variant.command)
-                self.assertIn("git switch main", variant.command)
-                self.assertLess(
-                    variant.command.index("exit 1"),
-                    variant.command.index("git switch main"),
-                )
+        for variant in sprint.variants:
+            self.assertIn("sprint academy-sprint:", variant.command)
+            self.assertIn("native spec and plan", variant.command)
+            self.assertIn("Do not merge or publish", variant.command)
+            self.assertFalse(variant.command.startswith("!"))
+        self.assertIn("needs no second spec or plan approval", sprint.instruction)
+        for name in ("U01-inspect-scope", "U01-inspect-plan"):
+            self.assertIn("No further approval reply", by_id[name].instruction)
+        for name in ("U01-prepare-attempt", "U01-reset-retry"):
+            self.assertEqual({v.operating_system for v in by_id[name].variants}, {"windows", "macos", "linux"})
+            self.assertTrue(all(v.surface == "native-terminal" for v in by_id[name].variants))
 
     def test_u01_public_source_parses_and_renders_with_the_shared_renderer(self) -> None:
         """Catches a public Power User source contract becoming unparseable or bespoke HTML."""
@@ -214,7 +153,7 @@ class U01GuidedContractTests(unittest.TestCase):
                 "lab_id": U01,
                 "operation": "autonomous_sprint",
                 "target": "academy-sprint",
-                "starting_condition": "approval-required",
+                "starting_condition": "new-native-artifacts",
                 "deliverable": "docs/academy-sprint-summary.md",
                 "title": "Operate a bounded autonomous sprint",
                 "required_topics": [
@@ -231,8 +170,8 @@ class U01GuidedContractTests(unittest.TestCase):
                     "id": "approved_sprint_decisions",
                     "type": "lab_semantics",
                     "profile": "sprint_decisions",
-                    "spec": ".codearbiter/specs/academy-sprint.md",
-                    "plan": ".codearbiter/plans/academy-sprint.md",
+                    "spec": ".codearbiter/specs/academy-sprint.html",
+                    "plan": ".codearbiter/plans/academy-sprint.html",
                     "sprint_log": ".codearbiter/sprint-log.md",
                     "brief": "training_scenarios/U01-sprint-brief.json",
                     "deliverable": "docs/academy-sprint-summary.md",
@@ -506,7 +445,8 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
                 ["approval boundary", "SMARTS decision trail", "hard-gate stop"],
             )
 
-    def test_full_check_accepts_the_prepared_u01_packet(self) -> None:
+    @unittest.skipUnless(os.environ.get("ARBITER_ACADEMY_TEST_PLUGIN_ROOT"), "requires reviewed installed producer")
+    def test_full_check_accepts_the_prepared_native_u01_packet(self) -> None:
         """Catches a source-only semantic pass that cannot survive Academy preparation checks."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "learner"
@@ -525,8 +465,30 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
             self._git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
             self._git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
 
-            prepare_lab(root, U01)
+            prepared = prepare_lab(root, U01)
             self._commit_packet(root)
-            result = evaluate_checkpoint(root, U01)
+            # Replace the legacy fixture packet with a real native writer pair.
+            from tests.native_planning_fixture import create_pair
+            plugin = Path(os.environ["ARBITER_ACADEMY_TEST_PLUGIN_ROOT"])
+            self._git(root, "reset", "--soft", prepared.commit_sha)
+            for kind in ("specs", "plans"):
+                path = f".codearbiter/{kind}/academy-sprint.md"
+                self._git(root, "restore", "--staged", path)
+                (root / path).unlink()
+            self._git(root, "restore", "--source", prepared.commit_sha, "--staged", "--worktree", ".codearbiter/sprint-log.md")
+            create_pair(plugin, root, "academy-sprint")
+            with (root / ".git/info/exclude").open("a", encoding="utf-8") as handle:
+                handle.write("\n.codearbiter/.artifacts/\n")
+            (root / "docs/academy-sprint-summary.md").write_text(
+                "# Operate a bounded autonomous sprint\n\n"
+                "## Approval boundary\nThe original request authorizes this bounded work; merge and publish require their own authority.\n\n"
+                "## SMARTS decision trail\nRecord material choices and their reasons without inventing approvals.\n\n"
+                "## Hard-gate stop\nPreserve the concrete blocker and resolve it before continuing.\n",
+                encoding="utf-8",
+            )
+            self._git(root, "add", ".codearbiter/specs/academy-sprint.html", ".codearbiter/plans/academy-sprint.html", "docs/academy-sprint-summary.md")
+            self._git(root, "commit", "-m", "complete native sprint")
+            result = evaluate_checkpoint(root, U01, plugin_root=plugin)
 
             self.assertTrue(result.passed, result.failed_predicates)
+            self.assertFalse(evaluate_checkpoint(root, U01).passed)

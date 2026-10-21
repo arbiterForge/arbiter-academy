@@ -15,6 +15,8 @@ next_lab: U01-autonomous-sprint
 
 ## Know before you begin
 
+A clean-looking branch list can hide unique commits and dirty worktrees. Inspect the whole repository state before proposing cleanup.
+
 P08 is a public guided and runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P07 and begin in the prepared Academy clone. The website is the primary lesson surface.
@@ -153,3 +155,5 @@ The verifier is strict about the final state but narrow about the process. It ca
 report, commit boundary, and current prepared resources. It cannot observe every conversation or
 decide whether a future cleanup is appropriate. Preserve live state and require a separate explicit
 review before any cleanup decision.
+
+**Use this in your own project.** Check merge containment, unique commits, and worktree dirt separately. Name each exact branch or directory before authorizing deletion. A merged branch is only a candidate for review; its worktree can still contain work worth preserving.

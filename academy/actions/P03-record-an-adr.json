@@ -13,9 +13,33 @@
       "rationale": "The exercise records a real architectural choice without assigning decision authority to the agent.",
       "resources": [],
       "variants": [
-        {"id": "claude", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.", "copy": true},
-        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.", "copy": true},
-        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.", "copy": true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.",
+          "copy": true
+        },
+        {
+          "id": "pi",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Read the P03 decision boundary. I choose and approve the ADR/log boundary; do not choose it for me.",
+          "copy": true
+        }
       ],
       "expected_result": "The learner and agent share the boundary: analysis and drafting can be delegated, but the decision and approval remain learner-owned.",
       "recovery": "If the agent selects an alternative or commits before learner approval, preserve the attempt and reset rather than treating that action as learner evidence.",
@@ -31,9 +55,33 @@
       "rationale": "The lesson needs attributable committed evidence without retaining unnecessary personal data.",
       "resources": [],
       "variants": [
-        {"id": "claude", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Keep the prepared author identity private. Do not request, display, or record an email address.", "copy": true},
-        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Keep the prepared author identity private. Do not request, display, or record an email address.", "copy": true},
-        {"id": "pi", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Keep the prepared author identity private. Do not request, display, or record an email address.", "copy": true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Keep the prepared author identity private. Do not request, display, or record an email address.",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Keep the prepared author identity private. Do not request, display, or record an email address.",
+          "copy": true
+        },
+        {
+          "id": "pi",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Keep the prepared author identity private. Do not request, display, or record an email address.",
+          "copy": true
+        }
       ],
       "expected_result": "The ADR and log use only the prepared display-safe name, while no learner email is retained or rendered.",
       "recovery": "If the prepared name is rejected, preserve the error and retry through Academy; never echo the rejected value as evidence.",
@@ -49,9 +97,33 @@
       "rationale": "Prepare establishes the verifier-owned attempt baseline and branch before the learner creates evidence.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path prepare P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" prepare P03-record-an-adr",
+          "copy": true
+        }
       ],
       "expected_result": "Academy prints the prepared attempt branch and baseline without changing the decision artifacts yet.",
       "recovery": "If P03 is not guided in the installed release or Prepare fails, preserve the message and do not invent an attempt number or branch.",
@@ -67,9 +139,33 @@
       "rationale": "The existing record establishes the occupied number and the byte prefix that P03 must preserve.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "Get-Content .codearbiter\\decisions\\0003-local-verifier-trust-boundary.md\nGet-Content .codearbiter\\decisions\\decision-log.md", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "sed -n '1,240p' .codearbiter/decisions/0003-local-verifier-trust-boundary.md\nsed -n '1,240p' .codearbiter/decisions/decision-log.md", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "sed -n '1,240p' .codearbiter/decisions/0003-local-verifier-trust-boundary.md\nsed -n '1,240p' .codearbiter/decisions/decision-log.md", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "Get-Content .codearbiter\\decisions\\0003-local-verifier-trust-boundary.md\nGet-Content .codearbiter\\decisions\\decision-log.md",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "sed -n '1,240p' .codearbiter/decisions/0003-local-verifier-trust-boundary.md\nsed -n '1,240p' .codearbiter/decisions/decision-log.md",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "sed -n '1,240p' .codearbiter/decisions/0003-local-verifier-trust-boundary.md\nsed -n '1,240p' .codearbiter/decisions/decision-log.md",
+          "copy": true
+        }
       ],
       "expected_result": "ADR-0003 remains occupied and the learner can identify the current log as the append-only prefix.",
       "recovery": "If either artifact is missing or unexpectedly edited, stop and reset to a prepared baseline; do not recreate governance history by hand.",
@@ -85,15 +181,87 @@
       "rationale": "A comparison can make consequences legible without making an architecture decision on the learner's behalf.",
       "resources": [],
       "variants": [
-        {"id": "claude-analysis", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.", "copy": true},
-        {"id": "claude-stable-text", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Use stable text for Workshop Queue summaries.", "copy": true},
-        {"id": "claude-structured-json", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "text", "command": "Use structured JSON for Workshop Queue summaries.", "copy": true},
-        {"id": "codex-analysis", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.", "copy": true},
-        {"id": "codex-stable-text", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Use stable text for Workshop Queue summaries.", "copy": true},
-        {"id": "codex-structured-json", "surface": "harness", "operating_system": "all", "host": "codex", "language": "text", "command": "Use structured JSON for Workshop Queue summaries.", "copy": true},
-        {"id": "pi-analysis", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.", "copy": true},
-        {"id": "pi-stable-text", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Use stable text for Workshop Queue summaries.", "copy": true},
-        {"id": "pi-structured-json", "surface": "harness", "operating_system": "all", "host": "pi", "language": "text", "command": "Use structured JSON for Workshop Queue summaries.", "copy": true}
+        {
+          "id": "claude-analysis",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.",
+          "copy": true
+        },
+        {
+          "id": "claude-stable-text",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Use stable text for Workshop Queue summaries.",
+          "copy": true
+        },
+        {
+          "id": "claude-structured-json",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Use structured JSON for Workshop Queue summaries.",
+          "copy": true
+        },
+        {
+          "id": "codex-analysis",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.",
+          "copy": true
+        },
+        {
+          "id": "codex-stable-text",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Use stable text for Workshop Queue summaries.",
+          "copy": true
+        },
+        {
+          "id": "codex-structured-json",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Use structured JSON for Workshop Queue summaries.",
+          "copy": true
+        },
+        {
+          "id": "pi-analysis",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Compare stable text and structured JSON for Workshop Queue summaries across compatibility, automation, schema evolution, and local-first consequences. Do not choose, draft, append, stage, or commit. Wait for my exact choice.",
+          "copy": true
+        },
+        {
+          "id": "pi-stable-text",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Use stable text for Workshop Queue summaries.",
+          "copy": true
+        },
+        {
+          "id": "pi-structured-json",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Use structured JSON for Workshop Queue summaries.",
+          "copy": true
+        }
       ],
       "expected_result": "The agent presents analysis, and the learner supplies one of the two exact choice statements before any ADR or log draft exists.",
       "recovery": "If the agent chooses or writes before the learner sends one exact choice, preserve the attempt and reset instead of treating agent direction as learner evidence.",
@@ -109,10 +277,42 @@
       "rationale": "The shared codeArbiter ADR lane creates a structured record while preserving learner authority over the content.",
       "resources": [],
       "variants": [
-        {"id": "claude", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "codearbiter", "command": "/ca:adr \"Choose the Workshop Queue summary-format boundary\"", "copy": true},
-        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "codearbiter", "command": "$ca-adr \"Choose the Workshop Queue summary-format boundary\"", "copy": true},
-        {"id": "pi-direct", "surface": "harness", "operating_system": "all", "host": "pi", "language": "codearbiter", "command": "/ca-adr \"Choose the Workshop Queue summary-format boundary\"", "copy": true},
-        {"id": "pi-fallback", "surface": "harness", "operating_system": "all", "host": "pi", "language": "codearbiter", "command": "/skill:ca-adr \"Choose the Workshop Queue summary-format boundary\"", "copy": true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:adr \"Choose the Workshop Queue summary-format boundary\" Use the unused stem 0004-academy-lab for this exercise. Record only my confirmed decision; when I authorize acceptance, complete the current Accepted/Planned lifecycle, including sealed obligations and the separate source-bound ledger commit.",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-adr \"Choose the Workshop Queue summary-format boundary\" Use the unused stem 0004-academy-lab for this exercise. Record only my confirmed decision; when I authorize acceptance, complete the current Accepted/Planned lifecycle, including sealed obligations and the separate source-bound ledger commit.",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-adr \"Choose the Workshop Queue summary-format boundary\" Use the unused stem 0004-academy-lab for this exercise. Record only my confirmed decision; when I authorize acceptance, complete the current Accepted/Planned lifecycle, including sealed obligations and the separate source-bound ledger commit.",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-adr \"Choose the Workshop Queue summary-format boundary\" Use the unused stem 0004-academy-lab for this exercise. Record only my confirmed decision; when I authorize acceptance, complete the current Accepted/Planned lifecycle, including sealed obligations and the separate source-bound ledger commit.",
+          "copy": true
+        }
       ],
       "expected_result": "The agent drafts ADR-0004 and its matching log entry for the learner-approved boundary.",
       "recovery": "If the command cannot preserve the learner-owned choice or writes a different boundary, stop and reset; do not hand-edit around the ADR lane.",
@@ -121,19 +321,51 @@
     {
       "id": "P03-run-commit-gate",
       "sequence": 7,
-      "title": "Run the host-native commit gate after approval",
+      "title": "Complete and inspect the acceptance binding",
       "actor": "agent",
       "surface": null,
-      "instruction": "After the learner reviews and explicitly approves the ADR/log content, invoke the selected host-native commit gate. Do not use a raw git commit as a substitute.",
+      "instruction": "If the ADR workflow has already committed the source and acceptance binding, inspect that result. Otherwise resume its unfinished commit steps under the same authorization; do not make a redundant commit.",
       "rationale": "The shared commit gate records the approved evidence through the supported host workflow.",
       "resources": [],
       "variants": [
-        {"id": "claude", "surface": "harness", "operating_system": "all", "host": "claude-code", "language": "codearbiter", "command": "/ca:commit", "copy": true},
-        {"id": "codex", "surface": "harness", "operating_system": "all", "host": "codex", "language": "codearbiter", "command": "$ca-commit", "copy": true},
-        {"id": "pi-direct", "surface": "harness", "operating_system": "all", "host": "pi", "language": "codearbiter", "command": "/ca-commit", "copy": true},
-        {"id": "pi-fallback", "surface": "harness", "operating_system": "all", "host": "pi", "language": "codearbiter", "command": "/skill:ca-commit", "copy": true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "Complete the current ADR acceptance workflow for 0004-academy-lab. Commit the accepted ADR and decision-log append through the commit gate first. Bind the exact committed ADR bytes and independently reviewed sealed obligations in adr-lifecycle.jsonl, then commit that append separately. Preserve existing ledger bytes. If already complete, inspect both commits without repeating them. Accepted/Planned does not mean implemented or verified.",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "Complete the current ADR acceptance workflow for 0004-academy-lab. Commit the accepted ADR and decision-log append through the commit gate first. Bind the exact committed ADR bytes and independently reviewed sealed obligations in adr-lifecycle.jsonl, then commit that append separately. Preserve existing ledger bytes. If already complete, inspect both commits without repeating them. Accepted/Planned does not mean implemented or verified.",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Complete the current ADR acceptance workflow for 0004-academy-lab. Commit the accepted ADR and decision-log append through the commit gate first. Bind the exact committed ADR bytes and independently reviewed sealed obligations in adr-lifecycle.jsonl, then commit that append separately. Preserve existing ledger bytes. If already complete, inspect both commits without repeating them. Accepted/Planned does not mean implemented or verified.",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "Complete the current ADR acceptance workflow for 0004-academy-lab. Commit the accepted ADR and decision-log append through the commit gate first. Bind the exact committed ADR bytes and independently reviewed sealed obligations in adr-lifecycle.jsonl, then commit that append separately. Preserve existing ledger bytes. If already complete, inspect both commits without repeating them. Accepted/Planned does not mean implemented or verified.",
+          "copy": true
+        }
       ],
-      "expected_result": "One commit or two linear commits record only the approved ADR/log evidence, with ADR before log when split.",
+      "expected_result": "Two or three linear commits record the ADR/log evidence followed by a separate acceptance-ledger commit. When ADR and log are split, commit the ADR first.",
       "recovery": "If the gate blocks or the staged boundary includes another path, preserve the finding and reset; do not amend or force a commit.",
       "evidence": "Git can show the resulting commit range and changed paths, but not the learner's approval process."
     },
@@ -143,16 +375,40 @@
       "title": "Confirm native evidence at the clone root",
       "actor": "learner",
       "surface": null,
-      "instruction": "In a native terminal at the clone root, inspect the clean worktree, the latest one or two commits, and the ADR/log paths. Native terminal commands never begin with !.",
+      "instruction": "In a native terminal at the clone root, inspect the two or three commits since Prepare. The command locates the latest P03 Prepare commit, then shows the full attempt range, including the separate acceptance-ledger append. Native terminal commands never begin with !.",
       "rationale": "Native Git evidence makes the narrow committed boundary visible before Check reconstructs it.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "git status --short\ngit log --format='%h %ad %an %s' --date=short -2\ngit diff --name-only HEAD~2..HEAD\ngit diff --check HEAD~2..HEAD", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "git status --short\ngit log --format='%h %ad %an %s' --date=short -2\ngit diff --name-only HEAD~2..HEAD\ngit diff --check HEAD~2..HEAD", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "git status --short\ngit log --format='%h %ad %an %s' --date=short -2\ngit diff --name-only HEAD~2..HEAD\ngit diff --check HEAD~2..HEAD", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git status --short\n$preparedCommit = git log --format=%H --grep='^academy: prepare P03-record-an-adr attempt [0-9][0-9]*$' -1\nif (-not $preparedCommit) { throw 'P03 Prepare commit not found' }\ngit log --format='%h %ad %an %s' --date=short \"$preparedCommit..HEAD\"\ngit diff --name-only \"$preparedCommit..HEAD\"\ngit diff --check \"$preparedCommit..HEAD\"",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short\nprepared_commit=$(git log --format=%H --grep='^academy: prepare P03-record-an-adr attempt [0-9][0-9]*$' -1)\nif [ -z \"$prepared_commit\" ]; then\n  printf '%s\\n' 'P03 Prepare commit not found' >&2\nelse\n  git log --format='%h %ad %an %s' --date=short \"$prepared_commit..HEAD\"\n  git diff --name-only \"$prepared_commit..HEAD\"\n  git diff --check \"$prepared_commit..HEAD\"\nfi",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git status --short\nprepared_commit=$(git log --format=%H --grep='^academy: prepare P03-record-an-adr attempt [0-9][0-9]*$' -1)\nif [ -z \"$prepared_commit\" ]; then\n  printf '%s\\n' 'P03 Prepare commit not found' >&2\nelse\n  git log --format='%h %ad %an %s' --date=short \"$prepared_commit..HEAD\"\n  git diff --name-only \"$prepared_commit..HEAD\"\n  git diff --check \"$prepared_commit..HEAD\"\nfi",
+          "copy": true
+        }
       ],
-      "expected_result": "The worktree is clean and the visible range contains only the ADR and decision-log paths in the permitted ordering.",
-      "recovery": "If another path, a merge, an uncommitted change, or reversed ADR/log order appears, preserve the evidence and reset; do not rewrite the attempt.",
+      "expected_result": "The worktree is clean. Two or three linear commits change only .codearbiter/decisions/0004-academy-lab.md, .codearbiter/decisions/decision-log.md, and .codearbiter/decisions/adr-lifecycle.jsonl. The ledger-only commit is last; if ADR and log were split, ADR comes first.",
+      "recovery": "If a path outside those three appears, the ledger is missing or mixed into a source commit, or the range contains a merge or reversed ADR/log order, preserve the evidence and use Reset. The required ledger is part of this exercise. Resolve uncommitted work before Check.",
       "evidence": "The native output exposes the same narrow final-state facts that Check can validate."
     },
     {
@@ -165,9 +421,33 @@
       "rationale": "Check evaluates the committed evidence against the immutable P03 checkpoint rather than trusting a transcript.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path check P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path check P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" check P03-record-an-adr",
+          "copy": true
+        }
       ],
       "expected_result": "Check reports whether the prepared evidence satisfies the immutable P03 checkpoint.",
       "recovery": "If Check fails, preserve the predicate output and reset instead of amending, rebasing, or fabricating history.",
@@ -183,9 +463,33 @@
       "rationale": "Reset protects the failed attempt as evidence before restoring a new prepared baseline.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path reset P03-record-an-adr", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Resolve-Path -LiteralPath '<learner-repository>').Path reset P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$(cd '<learner-repository>' && pwd)\" reset P03-record-an-adr",
+          "copy": true
+        }
       ],
       "expected_result": "Academy archives the failed attempt and restores a fresh prepared baseline.",
       "recovery": "If Reset is unavailable or fails, preserve the current attempt and do not delete the ADR, rewrite the log, or discard Git evidence.",

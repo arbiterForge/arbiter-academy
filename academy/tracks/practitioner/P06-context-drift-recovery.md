@@ -15,6 +15,8 @@ next_lab: P07-threat-model
 
 ## Know before you begin
 
+An agent can make the wrong change when project context describes old behavior. Find one claim contradicted by source, correct it through the context writer, and preserve an unrelated note exactly.
+
 P06 is a public guided and runnable Academy lesson in this preview. Its shared action cards are the public course route.
 
 Complete P05 in the same Academy fork and clone. Before Prepare, return to `main` and confirm that
@@ -34,13 +36,10 @@ names the actor and the surface so you do not have to infer where a command belo
 ## What you will prove
 
 The prepared context says `Workshop Queue report output is JSON-only.` The prepared source proves
-the opposite: stable text is the default and structured JSON is optional. The old lifecycle link
-also points to ADR-0002 even though P05 accepted ADR-0005. The provenance record names the older
-CLI object `042746e43698e5d2a6de4c536f1024f893aef805`; the prepared source object is
-`5b41fb168a8b258cfae7eebc46e8b9ea7696ba56`.
+the opposite: stable text is the default and structured JSON is optional. This exercise corrects only the CLI claim. Preserve the lifecycle link and all other claims;
+reviewing a different source belongs in a separate scoped refresh. The legacy provenance points to older source. Let the installed native writer adopt it into v2 after inspecting the current source; never repair provenance by replacing a hash yourself.
 
-You will make exactly two ordered single-parent commits after Prepare. The first changes only the
-context and provenance record. The second introduces only a canonical recovery handoff. Academy
+You will make exactly two ordered single-parent commits after Prepare. The first records only the native writer's corrected context and v2 provenance pair. The second introduces only a canonical recovery handoff. Academy
 Check independently compares those commits with the prepared baseline and verifies that the
 unrelated note has identical raw Git-object bytes before and after the repair.
 
@@ -86,6 +85,8 @@ The first learner commit after Prepare changes exactly `.codearbiter/CONTEXT.md`
 `.codearbiter/.provenance/CONTEXT.json`. The second changes exactly
 `.codearbiter/reports/academy/P06-recovery.json`. The corrected context states:
 `Workshop Queue report output defaults to stable text and supports structured JSON with --format json.`
+
+The native writer retains the old provenance preimage in its local transaction history. Its file transaction is not a Git commit. The matching digests do not claim semantic review or host qualification.
 
 The handoff declares `re-scout`, identifies the prepared and correction commits, records the
 before/after SHA-256 values for context, provenance, and the preserved note, and has identical
@@ -137,3 +138,5 @@ them. A re-scout repairs a contradiction without pretending all repository conte
 reviewed. The two commits separate the source-backed correction from the record that describes it;
 the external verifier then reconstructs both against the prepared baseline. Keeping unrelated work
 byte-identical makes recovery auditable instead of destructive.
+
+**Use this in your own project.** When code and context disagree, ask for a scoped drift check and follow the cited source. Refresh only supported claims. Keep unrelated work, distinguish planned from implemented behavior, and resume the existing task after the correction.

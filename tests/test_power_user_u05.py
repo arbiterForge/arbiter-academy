@@ -188,19 +188,16 @@ class U05PluginContractTests(unittest.TestCase):
         by_id = {action.id: action for action in manifest.actions}
         self.assertEqual(tuple(by_id), (
             "U05-confirm-readiness", "U05-prepare-attempt", "U05-read-observation",
-            "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
+            "U05-run-debug", "U05-review-debug-board",
             "U05-run-spike", "U05-confirm-spike-question", "U05-transfer-findings", "U05-review-findings",
             "U05-commit-findings", "U05-delete-spike", "U05-halt-for-conflict",
             "U05-check-status", "U05-reset-retry",
         ))
-        self.assertIn("taskwrite", by_id["U05-run-debug"].expected_result)
-        self.assertIn("taskwrite", by_id["U05-run-debug"].rationale)
-        self.assertIn("taskwrite", by_id["U05-commit-debug-board"].evidence or "")
-        self.assertNotIn("debug-note", by_id["U05-commit-debug-board"].evidence or "")
-        self.assertIn("U05 cache key", by_id["U05-run-spike"].instruction)
-        self.assertIn("codeArbiter 2.15.1", by_id["U05-confirm-readiness"].instruction)
-        self.assertIn("ca-codex 0.7.2", by_id["U05-confirm-readiness"].instruction)
-        self.assertIn("ca-pi 0.8.1", by_id["U05-confirm-readiness"].instruction)
+        self.assertIn("unchanged worktree", by_id["U05-run-debug"].expected_result)
+        self.assertIn("without writing", by_id["U05-run-debug"].instruction)
+        self.assertNotIn("U05-commit-debug-board", by_id)
+        self.assertIn("explicit confirmation", by_id["U05-delete-spike"].instruction)
+        self.assertIn("current read-only", by_id["U05-confirm-readiness"].instruction)
         self.assertIn("confirm", by_id["U05-confirm-spike-question"].instruction.casefold())
         self.assertIn("pauses before creating", by_id["U05-run-spike"].expected_result)
         self.assertIn("commits only .codearbiter/spikes/u05-cache-key.md", by_id["U05-confirm-spike-question"].expected_result)
@@ -213,13 +210,13 @@ class U05PluginContractTests(unittest.TestCase):
                 tuple(variant.operating_system for variant in by_id[action_id].variants),
                 ("windows", "macos", "linux"),
             )
-            self.assertTrue(all("preview-0.32" in variant.command for variant in by_id[action_id].variants))
+            self.assertTrue(all("preview-0.33" in variant.command for variant in by_id[action_id].variants))
         check_variants = {variant.id: variant for variant in by_id["U05-check-status"].variants}
         self.assertEqual(set(check_variants), {"windows", "macos", "linux"})
         self.assertIn("check U05-debug-spike-conflict", check_variants["linux"].command)
         self.assertNotIn("prepare U05-debug-spike-conflict", check_variants["linux"].command)
         self.assertIn(
-            "Next safe step: continue to U06.",
+            "findings-only commit",
             by_id["U05-check-status"].expected_result,
         )
         self.assertNotIn(
@@ -231,9 +228,9 @@ class U05PluginContractTests(unittest.TestCase):
         guide = (SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md").read_text(encoding="utf-8")
         lab = curriculum._parse_lab(SOURCE / "academy/tracks/power-user/U05-debug-spike-conflict.md")
         self.assertEqual(lab.id, U05)
-        self.assertIn("released codeArbiter contract", guide)
-        self.assertIn("$ca-conflict", guide)
-        self.assertIn("cannot prove an agent's private reasoning", guide)
+        self.assertIn("current no-action debug exit", guide)
+        self.assertIn("actual sources disagree", guide)
+        self.assertIn("cannot prove debug invocation, reasoning quality", guide)
         self.assertIn("{{action:U05-reset-retry}}", guide)
 
     def test_public_u05_cards_are_runnable_without_private_source_framing(self) -> None:
@@ -243,7 +240,7 @@ class U05PluginContractTests(unittest.TestCase):
 
         self.assertTrue(all("Future private-source walkthrough only" not in action.instruction for action in manifest.actions))
         self.assertIn("creates a clean U05 attempt", by_id["U05-prepare-attempt"].expected_result)
-        self.assertIn("evaluates the prepared U05 attempt", by_id["U05-check-status"].expected_result)
+        self.assertIn("findings-only commit", by_id["U05-check-status"].expected_result)
         self.assertNotIn("not published", by_id["U05-prepare-attempt"].expected_result.casefold())
         self.assertNotIn("not published", by_id["U05-check-status"].expected_result.casefold())
 

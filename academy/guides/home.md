@@ -4,6 +4,21 @@ Arbiter Academy is a practice course for codeArbiter. You work in a real Git rep
 
 Before F01, you need a GitHub account, Git, Python 3.11 or newer, a supported codeArbiter host, and an internet connection. [Choose and install your codeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/) first, then return here to create your practice fork. Choose Claude Code, Codex, or Pi (Feature Forge preview). Pi requires project trust; if direct `/ca-*` dispatch is unavailable, use the documented `/skill:ca-*` fallback. Use a Browser to create the GitHub copy. Use a Native terminal for Git and installation. The website remains the course. A narrow operations TUI for setup, Check, reset, and lesson changes will be published only after it clears its own acceptance evidence.
 
+## How to use the course
+
+Read what a lesson is trying to teach before copying its actions. Use the card's
+named surface: Browser for a website, Native terminal for shell commands, and
+Harness for a request to your coding agent. Select your host and operating system.
+A native terminal command has no leading exclamation mark.
+
+Ask yourself three questions after each lesson: What changed? What evidence supports
+the result? How would I use this on my own project? Academy Check validates a narrow
+exercise contract. It cannot decide whether you understood the lesson.
+
+The exercises use exact paths, report formats, and sometimes exact commit counts so
+Check can compare attempts. Those are training constraints. Your own projects need
+clear outcomes and useful checks, not Academy-shaped receipts.
+
 ## Complete these five setup steps before F01
 
 Complete these steps in order before Prepare in F01:
@@ -60,6 +75,44 @@ Start with F01, Fork, clone, and Doctor. Read the complete F01 page in the Brows
 
 **Course boundary.** U01-U07 are published in this release. Graduation is available after all 19 Academy Checks pass in the same repository.
 
+To graduate, ask your agent: "Run the installed Academy graduation check for this
+repository. Supply `--plugin-root` from your loaded external Arbiter installation,
+as in P01 and U01, and show the result." Graduation rechecks the course evidence;
+it needs the same reviewed native reader used for those HTML plans.
+
 ## Get help
 
 Stop when the observed result differs from the lesson. Recovery guidance helps you preserve the attempt and choose a safe next action. Questions and course feedback belong in Academy GitHub Discussions.
+
+## Build your first project with codeArbiter
+
+Pick one small tool you would actually use: a reading list, local inventory, or
+personal activity log. Keep the first version small enough to demonstrate.
+
+1. Create a separate Git repository and open that folder in your coding host.
+   Keep Academy attempts in their existing clone.
+2. For a new project, ask: "Initialize this new project with codeArbiter's greenfield
+   workflow. Help me define the user, first useful outcome, exclusions, and checks."
+   For existing code, request the brownfield workflow so context comes from source.
+3. Give a concrete feature request: "Add a reading-list filter by status. A user can
+   select unread or completed books; an empty result has a clear message. Keep storage
+   local and do not add accounts or external services."
+4. Read the criteria and proposed behavior. Answer genuinely missing product choices.
+   Ask for a pause before implementation if you want one. Otherwise the original
+   request permits ordinary work and in-scope plan maintenance.
+5. Inspect the diff and actual check results. Ask for the governed commit when ready,
+   then a PR to your own repository. Inspect its base and head, hosted checks, and
+   review findings before separately deciding to merge or release.
+
+Use feature for a new capability, fix for a known bug, debug for an unknown cause,
+refactor when behavior must stay the same, and chore for documentation or other
+non-behavioral work. Plain-language requests route to those owners; memorizing every
+command is not a prerequisite.
+
+New full feature and sprint artifacts use the installed native writer. Review their
+rendered pages and ask Arbiter to maintain them. A failed artifact operation needs
+diagnosis; it is not a reason to invent another pair or an approval receipt.
+
+You are ready to continue when you can explain the outcome, review the proposed
+scope, distinguish an actual test result from a claim, and decide what happens next.
+Passing all Academy Checks is a course milestone, not a substitute for those skills.

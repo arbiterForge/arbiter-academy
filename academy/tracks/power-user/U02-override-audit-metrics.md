@@ -15,7 +15,9 @@ next_lab: U03-refactor-chore-release
 
 ## Know before you begin
 
-U02 is a published Power User lesson in Preview 0.32. The action cards are the primary route. Academy provides local Prepare, Check, and Reset helpers.
+Learn to recognize an actual guard refusal and preserve its cause. This exercise makes one content-neutral request against an append-only log and records only what you observed.
+
+U02 is a published Power User lesson in Preview 0.33. The action cards are the primary route. Academy provides local Prepare, Check, and Reset helpers.
 
 Keep a native terminal and one supported CodeArbiter harness at the same clone. Native shell commands never begin with `!`. Harness shell commands begin with exactly one `!`. Host CodeArbiter commands never begin with `!`.
 
@@ -80,3 +82,5 @@ If Check reports a mismatch, correct only the observation note. Do not edit `.co
 ## Understand the mechanism
 
 The guide and action manifest are one contract. The renderer turns each action reference into the same website card, with the correct operating-system, harness, and copy control. Check is the deterministic authority for the local artifact boundary. It does not claim a command invocation, approval, or event chronology that repository state cannot establish.
+
+**Use this in your own project.** When a guard blocks work, read the message and inspect the triggering action. Diagnose a possible false positive before retrying. An override is a separate, explicitly confirmed and logged exception; do not edit a protected log or manufacture evidence to make a gate pass.

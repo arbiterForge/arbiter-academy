@@ -2,8 +2,8 @@
 id: P01-feature-through-plan
 track: practitioner
 order: 1
-title: Feature through a user-approved spec and derived plan
-outcome: Deliver unresolved-ticket summary behavior through an approved spec, coverage-valid derived plan, sanctioned task transition, and test-before-code workflow.
+title: Feature through a reviewed specification and derived plan
+outcome: Deliver unresolved-ticket summary behavior through a reviewed specification, coverage-valid derived plan, sanctioned task transition, and test-before-code workflow.
 prerequisites: F04-fix-with-evidence
 estimated_minutes: 45
 scenario_command: arbiter-academy --repository <learner-repository> prepare P01-feature-through-plan
@@ -11,7 +11,7 @@ checkpoint_command: arbiter-academy --repository <learner-repository> check P01-
 next_lab: P02-commit-review-pr
 ---
 
-# P01 - Feature through a user-approved spec and derived plan
+# P01 - Feature through a reviewed specification and derived plan
 
 ## Know before you begin
 
@@ -52,8 +52,13 @@ Stay on that numbered branch for the whole attempt.
 
 {{action:P01-draft-spec}}
 
-The feature command creates the draft and stops at the specification decision. It does not grant
-approval, derive a plan, start the task, or change production code.
+Prepare leaves this feature unplanned. Arbiter creates the native specification when
+asked, then opens it for you to review. Your request explicitly asks for this pause;
+it is a learning checkpoint, not a default approval ceremony.
+
+The agent maintains the saved specification and plan through the plugin. You review
+the intended behavior and the rendered pages. If authoring fails, keep the diagnostic
+and repair the installation before continuing.
 
 ## Practice
 
@@ -84,7 +89,7 @@ specification, derived plan, canonical task-board transition, focused regression
 production repair. The task has a writer-produced start date, and `git status --short` prints
 nothing before Check.
 
-The specification is the review boundary. The plan has authority because it maps each approved
+The specification is the review boundary. The plan is useful because it maps each reviewed
 criterion to implementation and verification work. It is not a separate approval ceremony.
 
 ## Check
@@ -92,7 +97,7 @@ criterion to implementation and verification work. It is not a separate approval
 {{action:P01-check}}
 
 A pass contains `checkpoint P01-feature-through-plan: passed; progress: .academy/progress.json`.
-Check validates the final descendant commit, exact spec and plan shape, task transition, focused regression, bounded repair, and a clean worktree. It does not authenticate a human approval. It does not authenticate a GitHub Discussion response. It does not prove that you ran the test before production code or the order in which the agent ran RED and GREEN commands. Those are workflow practices you observe during the lesson, not claims made by this final-state verifier.
+Check uses the loaded plugin’s native reader on a disposable copy of the committed artifacts. It validates the final descendant commit, native spec and plan readiness, task transition, focused regression, bounded repair, and a clean worktree. It does not authenticate a human approval. It does not authenticate a GitHub Discussion response. It does not prove that you ran the test before production code or the order in which the agent ran RED and GREEN commands. Those are workflow practices you observe during the lesson, not claims made by this final-state verifier.
 
 ## Recover or continue
 
@@ -135,3 +140,7 @@ what must be true; the plan traces that contract into work; the focused test pro
 boundary; and the commit gate records only the verified final change. Academy Check then compares
 the prepared baseline, commit ancestry, required artifacts, and live worktree without trusting a
 transcript supplied by the learner checkout.
+
+**Use this in your own project.** Describe an observable improvement and its limits. Review
+success and failure cases. Let the agent maintain a useful plan and show actual checks.
+Request a pause when it helps; routine plan changes do not need another approval.

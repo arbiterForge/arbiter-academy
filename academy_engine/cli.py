@@ -103,6 +103,7 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="include the declared positive/adversarial curriculum matrix",
     )
+    parser.add_argument("--plugin-root", type=Path, help="loaded external codeArbiter installation for native planning checks")
     return parser
 
 
@@ -125,6 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if (arguments.command in {"check", "graduate", "record", "write-handoff", "write-report"} or authoritative_exercise) and arguments.repository is None:
         parser.error(f"{arguments.command} requires --repository TARGET")
+    native_options = {"plugin_root": arguments.plugin_root} if arguments.plugin_root is not None else {}
     requested_repository = (
         arguments.repository.expanduser().resolve()
         if arguments.repository is not None
@@ -249,10 +251,10 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.command == "check":
             if not arguments.lab_id:
                 parser.error("check requires LAB_ID")
-            result = evaluate_checkpoint(repository, arguments.lab_id)
+            result = evaluate_checkpoint(repository, arguments.lab_id, **native_options)
             if result.passed:
                 progress_path = repository / ".academy" / "progress.json"
-                record_checkpoint(progress_path, result)
+                record_checkpoint(progress_path, result, **native_options)
                 print(
                     f"checkpoint {result.lab_id}: passed; progress: .academy/progress.json"
                 )
@@ -263,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         if arguments.command == "graduate":
-            receipt = graduate(repository)
+            receipt = graduate(repository, **native_options)
             print(f"{receipt.path.name} {receipt.digest}")
             return 0
         if arguments.command == "export-catalog":

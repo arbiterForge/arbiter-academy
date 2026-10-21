@@ -25,7 +25,7 @@ SOURCE = Path(__file__).resolve().parents[1]
 def preview_codearbiter_source_sha(root: Path = SOURCE) -> str:
     """Return the one codeArbiter source reviewed for the current Preview."""
     publication = json.loads(
-        (root / "academy/publication/preview-0.32.json").read_text(encoding="utf-8")
+        (root / "academy/publication/preview-0.33.json").read_text(encoding="utf-8")
     )
     compatibility = publication["integration_compatibility"]
     components = compatibility["components"]
@@ -228,7 +228,7 @@ def run_task_writer(
 class PreviewCompatibilitySourceTests(unittest.TestCase):
     def test_f03_source_identity_is_derived_from_the_current_preview_manifest(self) -> None:
         publication = json.loads(
-            (SOURCE / "academy/publication/preview-0.32.json").read_text(
+            (SOURCE / "academy/publication/preview-0.33.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -242,10 +242,10 @@ class PreviewCompatibilitySourceTests(unittest.TestCase):
     def test_f03_source_identity_rejects_component_source_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            publication_path = root / "academy/publication/preview-0.32.json"
+            publication_path = root / "academy/publication/preview-0.33.json"
             publication_path.parent.mkdir(parents=True)
             publication = json.loads(
-                (SOURCE / "academy/publication/preview-0.32.json").read_text(
+                (SOURCE / "academy/publication/preview-0.33.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -418,7 +418,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
             ("Know before you begin", "What you will prove", "Prepare safely", "Practice", "Recognize success", "Check", "Recover or continue", "Understand the mechanism"),
         )
         for action_id in (
-            "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix", "F04-request-regression", "F04-run-red-regression", "F04-inspect-test-boundary", "F04-stage-regression", "F04-review-regression-boundary", "F04-commit-regression", "F04-prove-red-commit", "F04-request-repair", "F04-prove-repair", "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary", "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry", "F04-return-base",
+            "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix", "F04-request-regression", "F04-run-red-regression", "F04-inspect-test-boundary", "F04-request-repair", "F04-prove-repair", "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary", "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry", "F04-return-base",
         ):
             self.assertEqual(text.count("{{action:" + action_id + "}}"), 1, action_id)
         self.assertNotIn("```", text)
@@ -463,7 +463,7 @@ class FoundationsCurriculumTests(unittest.TestCase):
                 "pi": "/ca-task start academy.docs.0001\n/skill:ca-task start academy.docs.0001",
             },
         )
-        self.assertIn("Preview 0.32", body)
+        self.assertIn("Preview 0.33", body)
         self.assertIn("$ca-chore docs", body)
         self.assertIn("academy.docs.0001", body)
         self.assertIn("clean retained F03 attempt branch", body)
@@ -1226,7 +1226,7 @@ Ticket list output shows a claimant for every ticket.
                     ).read_bytes()
 
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[1])
-                if case in {"intended", "equivalent"}:
+                if case in {"intended", "equivalent", "same-commit"}:
                     self.assertTrue(result.passed, result.failed_predicates)
                 else:
                     self.assertFalse(result.passed)
@@ -1484,7 +1484,7 @@ Ticket list output shows a claimant for every ticket.
                     ("task_start_co_commit",),
                 )
 
-    def test_f04_requires_regression_commit_before_a_later_service_repair(self) -> None:
+    def test_f04_accepts_one_green_commit_and_legacy_ordered_history(self) -> None:
         regression = '''
     def test_claim_rejects_control_characters_in_volunteer_label(self) -> None:
         for volunteer in ("Sam\\nAdmin", "Sam\\tAdmin", "Sam\\x7fAdmin"):
@@ -1638,7 +1638,7 @@ def complete_ticket'''
                     self.assertEqual(green.returncode, 0, green.stdout + green.stderr)
 
                 result = evaluate_checkpoint(fixture.root, FOUNDATIONS[3])
-                if case in {"intended", "equivalent"}:
+                if case in {"intended", "equivalent", "same-commit"}:
                     self.assertTrue(result.passed, result.failed_predicates)
                 else:
                     self.assertFalse(result.passed)
@@ -1653,6 +1653,9 @@ def complete_ticket'''
                 True,
             ),
             ("exact-service-cache", "tests/__pycache__/test_service.cpython-311.pyc", False),
+            ("imported-package-cache", "workshop_queue/__pycache__/__init__.cpython-314.pyc", False),
+            ("imported-model-cache", "workshop_queue/__pycache__/model.cpython-314.pyc", False),
+            ("unrelated-module-cache", "workshop_queue/__pycache__/unrelated.cpython-314.pyc", True),
         ):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)

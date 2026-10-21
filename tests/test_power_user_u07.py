@@ -17,82 +17,24 @@ U07 = "U07-capstone"
 class U07CapstoneContractTests(unittest.TestCase):
     """U07 teaches the real feature lane without fabricating hosted proof."""
 
-    def test_public_guide_uses_the_real_feature_lane_and_keeps_pr_proof_in_the_browser(self) -> None:
+    def test_public_guide_routes_a_known_bug_to_fix_and_keeps_pr_proof_external(self) -> None:
         manifest = load_action_manifest(SOURCE, U07)
-        action_ids = tuple(action.id for action in manifest.actions)
-        self.assertEqual(
-            action_ids,
-            (
-                "U07-return-to-main",
-                "U07-prepare",
-                "U07-run-feature",
-                "U07-open-pr",
-                "U07-check",
-                "U07-reset-retry",
-            ),
-        )
         by_id = {action.id: action for action in manifest.actions}
-        preflight = by_id["U07-return-to-main"]
-        self.assertEqual(preflight.actor, "learner")
-        for variant in preflight.variants:
-            with self.subTest(variant=variant.id):
-                self.assertIn("git switch main", variant.command)
-                self.assertIn("git status --short", variant.command)
-                self.assertLess(
-                    variant.command.index("git switch main"),
-                    variant.command.index("git status --short"),
-                )
-        self.assertIn("preserve", preflight.recovery.casefold())
-        self.assertIn("existing resolution behavior", by_id["U07-prepare"].expected_result)
-        self.assertIn("add the missing resolution regression", by_id["U07-run-feature"].instruction.casefold())
-        self.assertIn("mini-spec and criteria", by_id["U07-run-feature"].instruction.casefold())
-        self.assertIn("small lane", by_id["U07-run-feature"].expected_result.casefold())
-        self.assertIn("triage.log", by_id["U07-run-feature"].evidence)
-        self.assertEqual(
-            {(variant.host, variant.command) for variant in by_id["U07-run-feature"].variants},
-            {
-                ("claude-code", '/ca:feature "Reject control characters in ticket resolutions"'),
-                ("codex", '$ca-feature "Reject control characters in ticket resolutions"'),
-                ("pi", '/ca-feature "Reject control characters in ticket resolutions"'),
-                ("pi", '/skill:ca-feature "Reject control characters in ticket resolutions"'),
-            },
-        )
-        self.assertIn("browser URL", by_id["U07-open-pr"].evidence)
+        self.assertEqual(tuple(by_id), ("U07-return-to-main", "U07-prepare", "U07-run-fix", "U07-open-pr", "U07-check", "U07-reset-retry"))
+        for variant in by_id["U07-run-fix"].variants:
+            self.assertIn('fix "Reject control characters in ticket resolutions"', variant.command)
+            self.assertNotIn("feature", variant.command)
+            self.assertFalse(variant.command.startswith("!"))
+        self.assertIn("base repository is your personal fork", by_id["U07-open-pr"].instruction)
+        self.assertIn("do not merge", by_id["U07-open-pr"].instruction)
         self.assertIn("does not authenticate", by_id["U07-open-pr"].evidence)
-        self.assertNotIn("receipt", by_id["U07-check"].evidence.casefold())
-        guide_path = SOURCE / "academy/tracks/power-user/U07-capstone.md"
-        guide = guide_path.read_text(encoding="utf-8")
-        self.assertEqual(curriculum._parse_lab(guide_path).id, U07)
-        self.assertEqual(
-            tuple(line for line in guide.splitlines() if line.startswith("## ")),
-            (
-                "## Know before you begin",
-                "## What you will prove",
-                "## Prepare safely",
-                "## Practice",
-                "## Recognize success",
-                "## Check",
-                "## Recover or continue",
-                "## Understand the mechanism",
-            ),
-        )
-        self.assertIn("real codeArbiter feature lane", guide)
-        self.assertIn("hosted pull request", guide)
-        self.assertIn("does not prove that the feature command ran", guide)
-        self.assertIn("existing resolution behavior", guide)
-        self.assertIn("add the missing resolution regression", guide.casefold())
-        self.assertIn("small lane", guide.casefold())
-        self.assertIn("triage.log", guide)
-        self.assertIn("capstone in the public Academy course", guide)
-        self.assertIn("{{action:U07-return-to-main}}", guide)
-        self.assertNotIn("private source material", guide)
-        self.assertNotIn("not as a Preview route", guide)
-        self.assertNotIn("this draft", guide)
-        self.assertNotIn("U07-pr-receipt", guide)
-        self.assertNotIn("$ca-adr", guide)
-        self.assertNotIn("$ca-review", guide)
-        release = load_preview_manifest(SOURCE)
-        self.assertIn(U07, release.guided_labs)
+        guide = (SOURCE / "academy/tracks/power-user/U07-capstone.md").read_text(encoding="utf-8")
+        for action_id in by_id:
+            self.assertEqual(sum(line == "{{action:" + action_id + "}}" for line in guide.splitlines()), 1)
+        self.assertIn("known bug", guide)
+        self.assertIn("regression fail", guide)
+        self.assertIn("cannot prove", guide)
+        self.assertIn(U07, load_preview_manifest(SOURCE).guided_labs)
 
     def test_capstone_prepares_the_real_feature_fixture(self) -> None:
         """The accepted capstone starts from a bounded, inspectable defect."""

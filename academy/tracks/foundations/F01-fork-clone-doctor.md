@@ -15,6 +15,8 @@ next_lab: F02-orient-to-state
 
 ## Know before you begin
 
+Know where your work will go before your first push. In this lesson you make the fork the default push destination and keep the official course repository fetch-only.
+
 **No prior Academy lesson is required.** Complete [five Academy Home setup steps](../../index.html#complete-these-five-setup-steps-before-f01)
 before Prepare. New here? Stop on this page until you have created
 your personal GitHub fork, cloned that fork, installed Academy, [chosen and installed your codeArbiter host](https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/), and run Home Doctor in the clone.
@@ -122,9 +124,7 @@ numbered attempt is safer than rewriting evidence history.
 
 {{action:F01-reset-retry}}
 
-After Check passes, return to `main` when you want to leave the completed attempt untouched. The next
-Academy lesson appears on the course home only after its guided rewrite and acceptance evidence are
-complete. Do not use unpublished source exercises as a substitute for the next guided lesson. Use Reset
+After Check passes, return to `main` when you want to leave the completed attempt untouched. Continue with the next lesson linked from the course home. Use Reset
 only to preserve a failed attempt and prepare the next number.
 
 ## Understand the mechanism
@@ -135,3 +135,5 @@ the exact report committed on the numbered branch and the live Git configuration
 Changing either after Doctor breaks the proof. Keeping preparation, the governed evidence commit,
 clean state, and external verification separate makes the result reconstructable instead of merely
 plausible.
+
+**Use this in your own project.** Before sharing work, name the remote and branch that will receive it. Recheck them after cloning, changing accounts, or adding a worktree. Host Doctor checks the plugin; Academy Doctor checks this exercise checkout. Neither replaces reviewing a real push target.

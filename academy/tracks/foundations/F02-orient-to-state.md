@@ -15,6 +15,8 @@ next_lab: F03-work-the-board
 
 ## Know before you begin
 
+Before asking an agent to change a project, find its purpose, current tasks, decisions, and verification commands. This lesson teaches you to check those sources instead of trusting a status summary.
+
 Complete F01 first and begin from the same arbiter-academy fork and clone. Before Prepare, switch
 to `main` and confirm the clone is clean. Keep two surfaces open at the repository root: a native
 terminal for installed Academy and shell commands, and your Claude Code, Codex, or Pi harness for
@@ -54,9 +56,10 @@ Compare the Status summary with the tracked files instead of accepting either fr
 
 {{action:F02-follow-context-links}}
 
-The linked sources answer different questions: specifications and plans define intended work,
-ADRs preserve architecture choices, standards and security controls constrain changes, and the
-task and question boards show work that is still open.
+The linked sources answer different questions. ADRs preserve architecture choices,
+standards and security controls constrain changes, and the task and question boards
+show work that is still open. P01 will teach you to review a new feature through its
+rendered specification and plan.
 
 {{action:F02-hash-context}}
 
@@ -106,7 +109,7 @@ is no longer exact.
 ### Hint 1
 
 Start with the `arbiter` and `stage` front-matter fields, then read the project identity, scope, and
-every linked governing artifact.
+the decision, standards, and task sources linked from `.codearbiter/CONTEXT.md`.
 
 ### Hint 2
 
@@ -123,8 +126,7 @@ before Check and preserve that state for recovery.
 {{action:F02-reset-retry}}
 
 After Check passes, return to `main` and keep the completed attempt branch intact. Continue with F03,
-then F04. An Academy lesson appears on the course home only after its guided rewrite; unpublished
-source exercises are not a substitute for the accepted course.
+then F04. Use the next lesson linked from the course home.
 
 ## Understand the mechanism
 
@@ -137,3 +139,5 @@ The verifier also protects the shape of the attempt. It compares the prepared co
 attempt head, requires one post-Prepare learner commit containing only the report, and requires a
 clean worktree. That makes the lesson reconstructable later: the claim, source bytes, commit
 boundary, and external verdict all agree.
+
+**Use this in your own project.** Ask the agent to explain the project goal, the files that govern your change, and the checks it will run. Follow its citations. If a claim contradicts source, request a scoped context check; do not quietly rewrite history or assume an old summary is current.
