@@ -15,6 +15,8 @@ next_lab: P03-record-an-adr
 
 ## Know before you begin
 
+Practice inspecting a change before committing and checking where a push went. Local bare repositories make this rehearsal independent of GitHub availability.
+
 P02 is a public guided and runnable lesson in this preview. Its action cards use the installed Academy verifier and the shared public lesson renderer.
 
 The installed receipt recorder creates the same contained, untracked local receipt on Windows, macOS, and Linux. Select your operating system on each native-terminal card.
@@ -90,3 +92,5 @@ If origin or upstream evidence differs, stop. The local bare routes are verifier
 ## Understand the mechanism
 
 The receipt is a canonical local statement that binds your declared cleared review to Git facts the verifier can recompute. The separate receipt commit keeps the reviewed work range distinct from the declaration about it. Continue to P03 after Reset or after preserving this completed attempt.
+
+**Use this in your own project.** For a real delivery, inspect the diff, test results, PR base and head, and hosted checks. A local rehearsal receipt is not a PR. Confirm the saved GitHub remotes have been restored before later lessons that open hosted pull requests.

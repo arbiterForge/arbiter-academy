@@ -15,7 +15,9 @@ next_lab: U05-debug-spike-conflict
 
 ## Know before you begin
 
-U04 is a guided Preview 0.32 lesson. It prepares two separate child repositories beneath the Academy
+Learn how to start a new project and how to understand an existing one. The two child repositories let you practice both without confusing their context or commits.
+
+U04 is a guided Preview 0.33 lesson. It prepares two separate child repositories beneath the Academy
 attempt root. The Academy root controls the attempt and stores the final binding report; it is not a
 codeArbiter project for this lesson.
 
@@ -28,12 +30,10 @@ child project in the Academy root. Host-native commands act on
 the folder visible in that host. A terminal `cd` does not switch it, and neither native-terminal nor
 codeArbiter commands use `!`.
 
-Greenfield will use `ca-init`, then `ca-decompose`, which generates the three exact reconciliation
-inputs under `.codearbiter/plans/`. After learner review, greenfield alone will use `ca-reconcile`,
+Greenfield uses init --greenfield, which routes to decompose, which currently produces legacy reconciliation inputs. This greenfield route has not yet migrated to native HTML planning; let the owner produce its current outputs rather than drafting or converting plans yourself. After learner review, greenfield alone will use `ca-reconcile`,
 then `ca-adr` drafts the learner-attributed decision for the learner to review and explicitly
-accept. Reconciliation does not author ADRs or advance their status.
-Brownfield will use `ca-init`, then `ca-create-context`; the accepted walkthrough must use
-`ca-create-context` on the brownfield and must not use `ca-decompose` on the brownfield. The real
+accept. Complete the ADR owner's Accepted/Planned binding: commit its source first, then the separate source-bound acceptance ledger. Reconciliation does not author ADRs or advance their status.
+Brownfield uses init --brownfield, which routes to create-context; the next card inspects or resumes that same population run. Do not restart an already completed interview or scaffold. The
 brownfield route does not create the three `ca-reconcile` plan inputs, so this lesson does not
 invent them or run brownfield reconciliation.
 
@@ -149,3 +149,5 @@ safe step. Its verifier reads real codeArbiter layout from committed
 child heads: decompose plans live under `.codearbiter/plans/`; context-creation documents remain in
 their real root locations. The canonical writer and Check use the same byte renderer, so the report
 that you inspect is the report Check verifies.
+
+**Use this in your own project.** For a new project, describe the user, problem, first useful outcome, and exclusions. Use init --greenfield to develop that context. For existing code use init --brownfield to inspect it. In Codex these are $ca-init --greenfield and $ca-init --brownfield. Run the workflow once in the correct project; initial scaffolding alone is not complete context.

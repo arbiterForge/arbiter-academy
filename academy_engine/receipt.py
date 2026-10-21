@@ -300,10 +300,11 @@ def _ATTEMPT_FOR(lab_id: str) -> re.Pattern[str]:
     return re.compile(rf"^academy/{re.escape(lab_id)}/[1-9][0-9]*$")
 
 
-def graduate(root: Path) -> GraduationReceipt:
+def graduate(root: Path, *, plugin_root: Path | None = None) -> GraduationReceipt:
     repository = Path(root).resolve()
+    native_options = {"plugin_root": plugin_root} if plugin_root is not None else {}
     results = [
-        evaluate_checkpoint(repository, lab_id, require_current_attempt=False)
+        evaluate_checkpoint(repository, lab_id, require_current_attempt=False, **native_options)
         for lab_id in LAB_INVENTORY
     ]
     failed = [

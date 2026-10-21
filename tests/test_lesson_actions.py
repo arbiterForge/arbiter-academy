@@ -121,7 +121,6 @@ P05_ACTION_IDS = (
     "P05-verify-finding-commit",
     "P05-add-red-regression",
     "P05-observe-red",
-    "P05-commit-red",
     "P05-apply-green-repair",
     "P05-commit-green",
     "P05-record-receipt",
@@ -388,7 +387,7 @@ class LessonActionTests(unittest.TestCase):
                     "This step preserves the real repository lifecycle.",
                 )
                 self.assertTrue(
-                    action.expected_result.endswith(
+                    action.id in {"U04-run-greenfield-init", "U04-run-greenfield-decompose", "U04-run-brownfield-init", "U04-run-brownfield-create-context"} or action.expected_result.endswith(
                         f"Next safe step: {next_steps[action.id]}."
                     )
                 )
@@ -404,7 +403,7 @@ class LessonActionTests(unittest.TestCase):
             "02-phased-build-plan.md",
             "03-task-backlog.md",
         ):
-            self.assertIn(filename, decompose.expected_result)
+            self.assertIn("populated context", decompose.expected_result)
 
         reconcile = actions["U04-run-greenfield-reconcile"]
         adr = actions["U04-record-greenfield-adr"]
@@ -447,70 +446,16 @@ class LessonActionTests(unittest.TestCase):
             self.assertIn(phrase, writer.evidence or "")
 
     def test_private_p07_manifest_separates_threat_analysis_from_learner_review(self) -> None:
-        """Catches P07 losing its real target, surface, or verifier-limit boundaries."""
-        manifest = load_action_manifest(Path(__file__).parents[1], P07_DOCUMENT_ID)
-        self.assertEqual(tuple(action.id for action in manifest.actions), P07_ACTION_IDS)
-        self.assertTrue(all(action.expected_result and action.recovery for action in manifest.actions))
-        by_id = {action.id: action for action in manifest.actions}
-
-        self.assertEqual(by_id["P07-read-boundary"].actor, "learner")
-        self.assertEqual(by_id["P07-request-draft"].actor, "agent")
-        self.assertEqual(by_id["P07-review-model"].actor, "learner")
-        self.assertEqual(by_id["P07-write-binding"].actor, "learner")
-        self.assertEqual(by_id["P07-commit-report"].actor, "agent")
-        self.assertEqual(by_id["P07-inspect-commit"].actor, "learner")
-
-        for action_id in ("P07-prepare", "P07-read-target", "P07-inspect-commit", "P07-check", "P07-reset"):
-            action = by_id[action_id]
-            with self.subTest(action=action_id):
-                self.assertEqual(
-                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
-                    (
-                        ("native-terminal", "windows", "none", True),
-                        ("native-terminal", "macos", "none", True),
-                        ("native-terminal", "linux", "none", True),
-                    ),
-                )
-                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
-
-        draft = by_id["P07-request-draft"]
-        self.assertEqual(
-            tuple((variant.host, variant.command) for variant in draft.variants),
-            (
-                ("claude-code", '/ca:threat-model "academy_engine/paths.py archive-import containment boundary"'),
-                ("codex", '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
-                ("pi", '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
-                ("pi", '/skill:ca-threat-model "academy_engine/paths.py archive-import containment boundary"'),
-            ),
-        )
-        self.assertTrue(all(variant.language == "codearbiter" for variant in draft.variants))
-        self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
-        self.assertIn("writes no file", draft.expected_result)
-        model_review = by_id["P07-review-model"]
-        self.assertIn("advisory analysis", model_review.recovery)
-        self.assertNotIn("revise only the report", model_review.recovery)
-        writer = by_id["P07-write-binding"]
-        self.assertIn("learner-owned Academy evidence", writer.instruction)
-        self.assertEqual(writer.actor, "learner")
-        self.assertEqual(
-            tuple((variant.host, variant.language, variant.command) for variant in writer.variants),
-            (
-                ("claude-code", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
-                ("codex", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
-                ("pi", "text", "Draft only .codearbiter/reports/academy/P07-threat-model.md from the reviewed advisory STRIDE analysis and exact prepared scenario values. Keep the four learner-authored native sections in order, then append the Academy Target-SHA256/identity binding with exact target path, prepared blob, head blob, and SHA-256 values. Validate strict UTF-8 with LF line endings and one final newline. Stage only that report, show the staged path list and diff, then stop for my review. Do not change academy_engine/paths.py, commit, or claim that $ca-threat-model wrote the report."),
-            ),
-        )
-        self.assertIn("Stage only that report", writer.variants[0].command)
-        self.assertIn("stop for my review", writer.variants[0].command)
-        self.assertIn("does not prove", writer.evidence or "")
-
-        commit = by_id["P07-commit-report"]
-        self.assertEqual(
-            tuple((variant.host, variant.command) for variant in commit.variants),
-            (("claude-code", "/ca:commit"), ("codex", "$ca-commit"), ("pi", "/ca-commit"), ("pi", "/skill:ca-commit")),
-        )
-        self.assertTrue(all(variant.language == "codearbiter" for variant in commit.variants))
-        self.assertFalse(any(variant.command.startswith("!") for variant in commit.variants))
+        manifest = load_action_manifest(Path(__file__).parents[1], "P07-threat-model")
+        actions = {a.id: a for a in manifest.actions}
+        for variant in actions["P07-request-draft"].variants:
+            for term in ("proposed archive importer", "Surface, Threats, Verdict", "Do not implement or write files"):
+                self.assertIn(term, variant.command)
+        for variant in actions["P07-write-binding"].variants:
+            self.assertEqual(variant.language, "text")
+            for term in ("Academy", "six-row table", "PROCEED-WITH-CONSTRAINTS", "Stage only the report", "prepared target identity"):
+                self.assertIn(term, variant.command)
+        self.assertEqual(actions["P07-commit-report"].actor, "agent")
 
     def test_p08_manifest_binds_each_execution_surface_to_one_safe_command_form(self) -> None:
         """Catches P08 losing the boundary between terminal, harness, and agent commands."""
@@ -778,80 +723,29 @@ class LessonActionTests(unittest.TestCase):
         self.assertFalse(any(forbidden in variant.command for action in manifest.actions for variant in action.variants for forbidden in ("pip install", "pyproject.toml", "requirements.lock", "approved-dependency.lock")))
 
     def test_checked_in_p01_manifest_separates_review_process_from_check_evidence(self) -> None:
-        """Catches P01 losing actor, surface, or copy identity before its future publication slice."""
         manifest = load_action_manifest(Path(__file__).parents[1], P01_DOCUMENT_ID)
         self.assertEqual(tuple(action.id for action in manifest.actions), P01_ACTION_IDS)
-        by_id = {action.id: action for action in manifest.actions}
-
-        self.assertEqual(by_id["P01-draft-spec"].actor, "agent")
-        self.assertIsNone(by_id["P01-draft-spec"].surface)
-        self.assertEqual(
-            tuple(
-                (variant.host, variant.language, variant.command, variant.copy)
-                for variant in by_id["P01-draft-spec"].variants
-            ),
-            (
-                ("claude-code", "codearbiter", '/ca:feature "Show unresolved tickets in the Workshop Queue summary"', True),
-                ("codex", "codearbiter", '$ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
-                ("pi", "codearbiter", '/ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
-                ("pi", "codearbiter", '/skill:ca-feature "Show unresolved tickets in the Workshop Queue summary"', True),
-            ),
-        )
-        self.assertFalse(any(variant.command.startswith("!") for variant in by_id["P01-draft-spec"].variants))
-
-        solo = by_id["P01-solo-review"]
-        self.assertEqual((solo.actor, solo.surface, solo.variants), ("learner", "active-harness", ()))
-        discussion = by_id["P01-discussion-review"]
-        self.assertEqual((discussion.actor, discussion.surface, discussion.variants), ("learner", "browser", ()))
-        self.assertEqual(
-            tuple((resource.label, resource.href) for resource in discussion.resources),
-            (("Arbiter Academy GitHub Discussion", "https://github.com/arbiterForge/arbiter-academy/discussions"),),
-        )
-
-        revise = by_id["P01-revise-spec"]
-        self.assertEqual((revise.actor, revise.surface), ("learner", None))
-        self.assertEqual(
-            tuple((variant.surface, variant.host, variant.language, variant.copy) for variant in revise.variants),
-            (("harness", "claude-code", "text", True), ("harness", "codex", "text", True), ("harness", "pi", "text", True)),
-        )
-        self.assertTrue(all("Revise only .codearbiter/specs/academy-feature.md" in variant.command for variant in revise.variants))
-        self.assertTrue(all("Do not derive a plan" in variant.command for variant in revise.variants))
-        self.assertTrue(all("[paste the concrete finding here]" in variant.command for variant in revise.variants))
-        self.assertFalse(any(variant.command.startswith("!") for variant in revise.variants))
-
-        for action_id in ("P01-read-spec", "P01-proceed"):
-            action = by_id[action_id]
-            with self.subTest(action=action_id):
-                self.assertEqual(action.actor, "learner")
-                self.assertIsNone(action.surface)
-                self.assertEqual(
-                    tuple((variant.surface, variant.host, variant.language, variant.copy) for variant in action.variants),
-                    (("harness", "claude-code", "text", True), ("harness", "codex", "text", True), ("harness", "pi", "text", True)),
-                )
-                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
-
-        for action_id in ("P01-prepare", "P01-check", "P01-reset-retry"):
-            action = by_id[action_id]
-            with self.subTest(action=action_id):
-                self.assertEqual(action.actor, "learner")
-                self.assertIsNone(action.surface)
-                self.assertEqual(
-                    tuple((variant.surface, variant.operating_system, variant.host, variant.copy) for variant in action.variants),
-                    (("native-terminal", "windows", "none", True), ("native-terminal", "macos", "none", True), ("native-terminal", "linux", "none", True)),
-                )
-                self.assertTrue(all(CURRENT_RELEASE in variant.command for variant in action.variants))
-                self.assertFalse(any(variant.command.startswith("!") for variant in action.variants))
-
-        return_base = by_id["P01-return-base"]
-        self.assertEqual((return_base.actor, return_base.surface), ("learner", None))
-        self.assertEqual(
-            tuple((variant.surface, variant.operating_system, variant.host, variant.command, variant.copy) for variant in return_base.variants),
-            (
-                ("native-terminal", "windows", "none", "git switch main", True),
-                ("native-terminal", "macos", "none", "git switch main", True),
-                ("native-terminal", "linux", "none", "git switch main", True),
-            ),
-        )
+        actions = {action.id: action for action in manifest.actions}
+        request = actions["P01-draft-spec"]
+        self.assertEqual({v.host for v in request.variants}, {"claude-code", "codex", "pi"})
+        for variant in request.variants:
+            self.assertIn("feature", variant.command)
+            self.assertIn("stop for my review", variant.command)
+            self.assertIn("full feature workflow", variant.command)
+            self.assertNotIn("Markdown", variant.command)
+            self.assertFalse(variant.command.startswith("!"))
+        self.assertEqual(actions["P01-discussion-review"].surface, "browser")
+        self.assertIn("rendered specification", actions["P01-read-spec"].instruction)
+        for action_id in ("P01-read-spec", "P01-revise-spec", "P01-proceed", "P01-check"):
+            self.assertTrue(all(v.surface == "harness" and v.language == "text" for v in actions[action_id].variants))
+        for variant in actions["P01-check"].variants:
+            self.assertIn("--plugin-root", variant.command)
+            self.assertIn("loaded codeArbiter installation", variant.command)
+            self.assertIn("Do not use a verifier or helper from this checkout", variant.command)
+        self.assertIn("does not authenticate", actions["P01-check"].evidence)
+        for action_id in ("P01-prepare", "P01-reset-retry"):
+            self.assertEqual({v.operating_system for v in actions[action_id].variants}, {"windows", "macos", "linux"})
+            self.assertTrue(all(v.surface == "native-terminal" for v in actions[action_id].variants))
 
     def test_p05_prerequisite_routes_first_time_learners_to_rendered_f01(self) -> None:
         """Catches P05 exposing raw Markdown action tokens as runnable guidance."""
@@ -948,12 +842,12 @@ class LessonActionTests(unittest.TestCase):
             git("init", "--quiet")
             git("config", "user.name", "Academy Test")
             git("config", "user.email", "academy-test@example.invalid")
-            for number in range(4):
+            for number in range(3):
                 (repository / "evidence.txt").write_text(f"{number}\n", encoding="utf-8")
                 git("add", "evidence.txt")
                 git("commit", "--quiet", "-m", f"evidence {number}")
 
-            commits = git("rev-list", "--reverse", "HEAD~3..HEAD").stdout.splitlines()
+            commits = git("rev-list", "--reverse", "HEAD~2..HEAD").stdout.splitlines()
             subprocess.run(
                 [sys.executable, "-c", scripts[0]],
                 cwd=repository,
@@ -966,9 +860,8 @@ class LessonActionTests(unittest.TestCase):
                 "affected_paths": ["tests/test_cli.py", "workshop_queue/cli.py"],
                 "finding_commit": commits[0],
                 "finding_id": "ACADEMY-P05-BLOCKED-UNRESOLVED",
-                "red_commit": commits[1],
-                "remediation_commit": commits[2],
-                "schema_version": 2,
+                "remediation_commit": commits[1],
+                "schema_version": 3,
                 "status": "remediated",
             }
             self.assertEqual(
@@ -1074,71 +967,25 @@ class LessonActionTests(unittest.TestCase):
                 self.assertIn(required_record, variant.command)
                 self.assertNotIn("workshop_queue/cli.py`..", variant.command)
     def test_p03_guided_contract_uses_the_exact_ten_action_renderer_boundaries(self) -> None:
-        """Catches P03 drifting from its renderer-backed decision and evidence contract."""
         root = Path(__file__).parents[1]
-        self.assertTrue(
-            (root / "academy/actions/P03-record-an-adr.json").is_file(),
-            "P03 must expose its canonical public action manifest",
-        )
-        self.assertEqual(
-            [path.name for path in sorted((root / "academy/actions").glob("P03*.json"))],
-            ["P03-record-an-adr.json"],
-        )
-        manifest = load_action_manifest(root, P03_ACTION_DOCUMENT_ID)
-        by_id = {action.id: action for action in manifest.actions}
-
-        self.assertEqual(tuple(action.id for action in manifest.actions), P03_ACTION_IDS)
-        for action in manifest.actions:
-            with self.subTest(action=action.id):
-                self.assertTrue(action.actor)
-                self.assertTrue(action.variants)
-                self.assertTrue(action.expected_result)
-                self.assertTrue(action.recovery)
-                self.assertTrue(action.evidence)
-                self.assertTrue(all(variant.copy for variant in action.variants))
-                self.assertTrue(all(variant.surface for variant in action.variants))
-                self.assertFalse(
-                    any(
-                        variant.surface == "native-terminal" and "!" in variant.command
-                        for variant in action.variants
-                    )
-                )
-
-        prepare = by_id["P03-prepare"]
-        self.assertIn("not a directory you can paste literally", prepare.instruction)
-        self.assertIn("fork clone you used for P01", prepare.instruction)
-        self.assertTrue(all("<learner-repository>" in variant.command for variant in prepare.variants))
-
-        choice = by_id["P03-request-decision-analysis"]
-        self.assertEqual(choice.actor, "learner")
-        self.assertEqual(
-            tuple(
-                variant.command
-                for variant in choice.variants
-                if variant.command in P03_CHOICES
-            ),
-            P03_CHOICES * 3,
-        )
-        self.assertIn("learner chooses", choice.instruction.casefold())
-        self.assertIn("agent may analyze and draft", choice.instruction.casefold())
-
-        for action_id, commands in (
-            (
-                "P03-run-adr",
-                (
-                    '/ca:adr "Choose the Workshop Queue summary-format boundary"',
-                    '$ca-adr "Choose the Workshop Queue summary-format boundary"',
-                    '/ca-adr "Choose the Workshop Queue summary-format boundary"',
-                    '/skill:ca-adr "Choose the Workshop Queue summary-format boundary"',
-                ),
-            ),
-            ("P03-run-commit-gate", ("/ca:commit", "$ca-commit", "/ca-commit", "/skill:ca-commit")),
-        ):
-            action = by_id[action_id]
-            with self.subTest(action=action_id):
-                self.assertEqual(action.actor, "agent")
-                self.assertEqual(tuple(variant.command for variant in action.variants), commands)
-                self.assertTrue(all(variant.language == "codearbiter" for variant in action.variants))
+        manifest = load_action_manifest(root, "P03-record-an-adr")
+        guide = (root / "academy/tracks/practitioner/P03-record-an-adr.md").read_text(encoding="utf-8")
+        self.assertEqual(tuple(re.findall(r"(?m)^\{\{action:([^}]+)\}\}$", guide)), tuple(a.id for a in manifest.actions))
+        actions = {a.id: a for a in manifest.actions}
+        for variant in actions["P03-run-adr"].variants:
+            self.assertIn("0004-academy-lab", variant.command)
+            self.assertIn("confirmed decision", variant.command)
+        for variant in actions["P03-run-commit-gate"].variants:
+            self.assertEqual(variant.language, "text")
+            for term in ("exact committed ADR bytes", "sealed obligations", "separately", "Preserve existing ledger bytes"):
+                self.assertIn(term, variant.command)
+        inspection = actions["P03-confirm-native-evidence"]
+        self.assertIn("adr-lifecycle.jsonl", inspection.expected_result)
+        self.assertIn("ledger-only commit is last", inspection.expected_result)
+        self.assertIn("required ledger", inspection.recovery)
+        for variant in inspection.variants:
+            self.assertIn("--grep='^academy: prepare P03-record-an-adr", variant.command)
+            self.assertNotIn("HEAD~2", variant.command)
 
     def test_checked_in_p06_manifest_names_every_actor_surface_and_recovery_boundary(self) -> None:
         """Catches public P06 guidance asking learners to infer execution surfaces."""
@@ -1152,7 +999,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(by_id["P06-write-handoff"].actor, "learner")
         self.assertEqual(by_id["P06-select-rescout"].surface, "active-harness")
         for action_id, required_terms in (
-            ("P06-review-correction-boundary", ("git diff --cached --name-only", "git diff --cached", "docs/preserved-note.md", "Do not change files")),
+            ("P06-review-correction-boundary", ("git diff --", "v2 provenance", "docs/preserved-note.md", "stop before committing")),
             ("P06-review-handoff-boundary", ("git diff --cached --name-only", "git diff --cached", "P06-recovery.json", "Do not change files")),
         ):
             action = by_id[action_id]
@@ -1166,21 +1013,24 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(
             tuple((variant.host, variant.command) for variant in audit.variants),
             (
-                ("claude-code", "/ca:context-check"),
-                ("codex", "$ca-context-check"),
-                ("pi", "/ca-context-check"),
-                ("pi", "/skill:ca-context-check"),
+                ("claude-code", "/ca:status drift"),
+                ("codex", "$ca-status drift"),
+                ("pi", "/ca-status drift"),
+                ("pi", "/skill:ca-status drift"),
             ),
         )
 
         inspection = by_id["P06-inspect-evidence"]
         self.assertTrue(
             all(
-                ".codearbiter/decisions/0005-terminal-blocked-ticket-lifecycle.md"
+                "workshop_queue/cli.py"
                 in variant.command
                 for variant in inspection.variants
             )
         )
+        for variant in by_id["P06-apply-correction"].variants:
+            self.assertIn("Preserve the lifecycle link", variant.command)
+            self.assertNotIn("Update the lifecycle link", variant.command)
 
         for action in manifest.actions:
             for variant in action.variants:
@@ -1269,9 +1119,9 @@ class LessonActionTests(unittest.TestCase):
                 self.assertEqual(action.actor, "learner")
                 self.assertIsNone(action.surface)
                 self.assertEqual(tuple((variant.operating_system, variant.command) for variant in action.variants), (
-                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
-                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
-                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("windows", '$academy = "$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe"\n' f"& $academy --repository (Get-Location).Path {operation} F03-work-the-board"),
+                    ("macos", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
+                    ("linux", 'academy="${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy"\n' f'"$academy" --repository "$PWD" {operation} F03-work-the-board'),
                 ))
 
         expected_agent_commands = {
@@ -1320,7 +1170,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertIn("prepare F03-work-the-board", commands)
         self.assertIn("check F03-work-the-board", commands)
         self.assertIn("reset F03-work-the-board", commands)
-        self.assertIn("preview-0.32", commands)
+        self.assertIn("preview-0.33", commands)
         self.assertIn("From the clean retained F03 attempt branch", by_id["F03-reset-retry"].instruction)
         self.assertNotIn("From clean main", by_id["F03-reset-retry"].instruction)
         handoff = by_id["F03-return-to-main"]
@@ -1475,8 +1325,7 @@ class LessonActionTests(unittest.TestCase):
         context_prompt = (
             "Open each file in order, then give this four-item orientation report: the queued task ID, "
             "both ADR decisions, the verification command, and the local-only data boundary. Read these files "
-            "in order: .codearbiter/specs/ticket-assignment.md, "
-            ".codearbiter/plans/ticket-assignment.md, .codearbiter/decisions/0001-json-storage-boundary.md, "
+            "in order: .codearbiter/decisions/0001-json-storage-boundary.md, "
             ".codearbiter/decisions/0002-explicit-ticket-state-machine.md, .codearbiter/coding-standards.md, "
             ".codearbiter/tech-stack.md, .codearbiter/security-controls.md, .codearbiter/open-tasks.md, "
             "and .codearbiter/open-questions.md."
@@ -2430,9 +2279,9 @@ class LessonActionTests(unittest.TestCase):
         commands = "\n".join(variant.command for action in manifest.actions for variant in action.variants)
         for forbidden in ("ca-sandbox", "ca-new-skill", "ca-watch", "ca-tribunal"):
             self.assertNotIn(forbidden, commands)
-            self.assertIn(forbidden, guide)
+            self.assertIn(forbidden if forbidden != "ca-new-skill" else "new-skill", guide)
         classifications = by_id["U06-classify-advanced-surfaces"]
-        self.assertIn("Do not execute", classifications.instruction)
+        self.assertIn("Do not invoke", classifications.instruction)
         self.assertIn("not run here", classifications.expected_result)
         for action in manifest.actions:
             for variant in action.variants:

@@ -33,7 +33,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -42,7 +42,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         },
         {
@@ -51,7 +51,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U04-initialize-projects",
           "copy": true
         }
       ],
@@ -121,7 +121,7 @@
       "title": "run greenfield init",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-init; a terminal cd does not change the host root.",
+      "instruction": "While the host is visibly rooted at the greenfield child, run init --greenfield. This includes context population; answer the actual project questions and let the workflow finish.",
       "rationale": "Initialization belongs in the greenfield child so its governance state starts from the real plugin entry point.",
       "resources": [],
       "variants": [
@@ -131,7 +131,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:init",
+          "command": "/ca:init --greenfield",
           "copy": true
         },
         {
@@ -140,7 +140,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-init",
+          "command": "$ca-init --greenfield",
           "copy": true
         },
         {
@@ -149,7 +149,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-init",
+          "command": "/ca-init --greenfield",
           "copy": true
         },
         {
@@ -158,21 +158,21 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-init",
+          "command": "/skill:ca-init --greenfield",
           "copy": true
         }
       ],
-      "expected_result": "ca-init scaffolds an uncommitted .codearbiter directory inside U04-greenfield only; the Academy root and brownfield remain untouched. Next safe step: run greenfield decompose.",
+      "expected_result": "Initialization populates the U04-greenfield child context and matching v2 provenance, retains real decisions and boards, and finalizes its initialized marker. The next card inspects or resumes this same run.",
       "recovery": "If ca-init ran against another visible root, stop and preserve its output and every affected git status; do not commit or conceal the misplaced initialization.",
       "evidence": "Preserve ca-init output and U04-greenfield git status showing the new .codearbiter paths before decomposition."
     },
     {
       "id": "U04-run-greenfield-decompose",
       "sequence": 6,
-      "title": "run greenfield decompose",
+      "title": "Inspect the completed greenfield context",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only while visibly rooted at .academy/workspaces/U04-greenfield, run ca-decompose; a terminal cd does not change the host root.",
+      "instruction": "The preceding init command already routed to decompose. Inspect its outputs and resume that workflow only if it reported unfinished work. Do not run initial population twice.",
       "rationale": "Decomposition creates the greenfield planning artifacts that reconciliation will evaluate.",
       "resources": [],
       "variants": [
@@ -181,8 +181,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "claude-code",
-          "language": "codearbiter",
-          "command": "/ca:decompose",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -190,8 +190,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "codex",
-          "language": "codearbiter",
-          "command": "$ca-decompose",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -199,8 +199,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-          "command": "/ca-decompose",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -208,54 +208,54 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-          "command": "/skill:ca-decompose",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         }
       ],
-      "expected_result": "U04-greenfield now contains .codearbiter/plans/01-architecture-breakdown.md, .codearbiter/plans/02-phased-build-plan.md, and .codearbiter/plans/03-task-backlog.md. Next safe step: read greenfield plans.",
+      "expected_result": "The child has populated context, or one concrete unfinished step is identified.",
       "recovery": "If ca-decompose stops for input or any named plan is missing, preserve the transcript and partial files; continue the decompose interview in U04-greenfield instead of inventing a plan or switching repositories.",
-      "evidence": "Preserve the ca-decompose transcript and all three generated plan files; Check later reads these exact committed paths."
+      "evidence": "Inspect actual child files and workflow output."
     },
     {
       "id": "U04-read-greenfield-plans",
       "sequence": 7,
-      "title": "read greenfield plans",
+      "title": "Review the proposed architecture and delivery sequence",
       "actor": "learner",
       "surface": null,
-      "instruction": "Read .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md, .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md, and .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md.",
-      "rationale": "Reading all three plans makes the later reconciliation a deliberate decision rather than an opaque command.",
+      "instruction": "Ask the agent in the greenfield child to explain the architecture, delivery phases, and task backlog produced by the initialization owner. Read its cited output and resolve missing product choices before reconciliation.",
+      "rationale": "Review the proposed behavior, dependencies, and first useful outcome before deciding which architectural differences to accept.",
       "resources": [],
       "variants": [
         {
-          "id": "windows",
-          "surface": "native-terminal",
-          "operating_system": "windows",
-          "host": "none",
-          "language": "powershell",
-          "command": "Get-Content .academy\\workspaces\\U04-greenfield\\.codearbiter\\plans\\01-architecture-breakdown.md, .academy\\workspaces\\U04-greenfield\\.codearbiter\\plans\\02-phased-build-plan.md, .academy\\workspaces\\U04-greenfield\\.codearbiter\\plans\\03-task-backlog.md",
+          "id": "claude-code",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "text",
+          "command": "In the U04 greenfield child, show the architecture, phased delivery, and task backlog produced by the current initialization workflow. Cite the actual saved outputs. Explain the first useful outcome, dependencies, unresolved confirmations, and architectural choices for me to decide. Do not create alternate plans or change formats to satisfy this lesson. Stop before reconciliation.",
           "copy": true
         },
         {
-          "id": "macos",
-          "surface": "native-terminal",
-          "operating_system": "macos",
-          "host": "none",
-          "language": "sh",
-          "command": "cat .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md",
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "text",
+          "command": "In the U04 greenfield child, show the architecture, phased delivery, and task backlog produced by the current initialization workflow. Cite the actual saved outputs. Explain the first useful outcome, dependencies, unresolved confirmations, and architectural choices for me to decide. Do not create alternate plans or change formats to satisfy this lesson. Stop before reconciliation.",
           "copy": true
         },
         {
-          "id": "linux",
-          "surface": "native-terminal",
-          "operating_system": "linux",
-          "host": "none",
-          "language": "sh",
-          "command": "cat .academy/workspaces/U04-greenfield/.codearbiter/plans/01-architecture-breakdown.md .academy/workspaces/U04-greenfield/.codearbiter/plans/02-phased-build-plan.md .academy/workspaces/U04-greenfield/.codearbiter/plans/03-task-backlog.md",
+          "id": "pi",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "text",
+          "command": "In the U04 greenfield child, show the architecture, phased delivery, and task backlog produced by the current initialization workflow. Cite the actual saved outputs. Explain the first useful outcome, dependencies, unresolved confirmations, and architectural choices for me to decide. Do not create alternate plans or change formats to satisfy this lesson. Stop before reconciliation.",
           "copy": true
         }
       ],
-      "expected_result": "All three plan files are readable and distinguish architecture, phased delivery, and task backlog decisions that must be settled before reconciliation. Next safe step: choose greenfield reconciliation.",
+      "expected_result": "You can explain the first useful outcome, delivery order, dependencies, and unresolved product choices from the saved initialization outputs. Next safe step: choose greenfield reconciliation.",
       "recovery": "If a file cannot be read or contains incomplete generated content, stop and return to ca-decompose in the visibly rooted greenfield host; do not repair generated structure from the Academy root.",
       "evidence": "Preserve the three plan contents and a short list of every [CONFIRM-NN] or design choice that needs a learner decision."
     },
@@ -628,7 +628,7 @@
       "title": "run brownfield init",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-init; a terminal cd does not change the host root.",
+      "instruction": "While the host is visibly rooted at the brownfield child, run init --brownfield. This includes context population; answer the actual project questions and let the workflow finish.",
       "rationale": "Brownfield initialization starts governance in the existing child, never in the Academy root.",
       "resources": [],
       "variants": [
@@ -638,7 +638,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:init",
+          "command": "/ca:init --brownfield",
           "copy": true
         },
         {
@@ -647,7 +647,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-init",
+          "command": "$ca-init --brownfield",
           "copy": true
         },
         {
@@ -656,7 +656,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-init",
+          "command": "/ca-init --brownfield",
           "copy": true
         },
         {
@@ -665,21 +665,21 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-init",
+          "command": "/skill:ca-init --brownfield",
           "copy": true
         }
       ],
-      "expected_result": "ca-init scaffolds an uncommitted .codearbiter directory inside U04-brownfield only while preserving its existing source files. Next safe step: run brownfield create context.",
+      "expected_result": "Initialization populates the U04-brownfield child context and matching v2 provenance, retains real decisions and boards, and finalizes its initialized marker. The next card inspects or resumes this same run.",
       "recovery": "If ca-init targets another root or changes existing brownfield source, stop and preserve the transcript and status; do not commit, reset, or mask those changes.",
       "evidence": "Preserve ca-init output and brownfield status showing new governance beside, not replacing, the prepared source."
     },
     {
       "id": "U04-run-brownfield-create-context",
       "sequence": 19,
-      "title": "run brownfield create context",
+      "title": "Inspect the completed brownfield context",
       "actor": "agent",
       "surface": null,
-      "instruction": "Only while visibly rooted at .academy/workspaces/U04-brownfield, run ca-create-context; a terminal cd does not change the host root. Keep this route bound to existing source and do not use ca-decompose on the brownfield. ca-create-context does not create the three ca-reconcile plan inputs.",
+      "instruction": "The preceding init command already routed to create-context. Inspect its outputs and resume that workflow only if it reported unfinished work. Do not run initial population twice.",
       "rationale": "Create-context is the genuine brownfield route and does not invent greenfield plan artifacts.",
       "resources": [],
       "variants": [
@@ -688,8 +688,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "claude-code",
-          "language": "codearbiter",
-          "command": "/ca:create-context",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -697,8 +697,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "codex",
-          "language": "codearbiter",
-          "command": "$ca-create-context",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -706,8 +706,8 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-          "command": "/ca-create-context",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         },
         {
@@ -715,14 +715,14 @@
           "surface": "harness",
           "operating_system": "all",
           "host": "pi",
-          "language": "codearbiter",
-          "command": "/skill:ca-create-context",
+          "language": "text",
+          "command": "Show the current initialization outcome and the source-backed context files for this child. If initialization is incomplete, resume its existing workflow without repeating settled questions. Do not create another context store or commit yet.",
           "copy": true
         }
       ],
-      "expected_result": "ca-create-context derives brownfield governance from existing source, including .codearbiter/CONTEXT.md, and creates none of the three greenfield reconciliation plan files. Next safe step: inspect brownfield changes.",
+      "expected_result": "The child has populated context, or one concrete unfinished step is identified.",
       "recovery": "If the host proposes ca-decompose, synthetic reconciliation plans, or context unrelated to the existing source, stop and preserve the transcript; rerun ca-create-context only from the visible brownfield root.",
-      "evidence": "Preserve the ca-create-context transcript, generated root governance paths, and absence of .codearbiter/plans/01-architecture-breakdown.md, 02-phased-build-plan.md, and 03-task-backlog.md."
+      "evidence": "Inspect actual child files and workflow output."
     },
     {
       "id": "U04-inspect-brownfield-changes",
@@ -995,9 +995,33 @@
       "rationale": "The supported writer derives canonical report bytes from live child repositories instead of trusting a hand-written claim.",
       "resources": [],
       "variants": [
-        {"id": "windows", "surface": "native-terminal", "operating_system": "windows", "host": "none", "language": "powershell", "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path write-report U04-initialize-projects", "copy": true},
-        {"id": "macos", "surface": "native-terminal", "operating_system": "macos", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects", "copy": true},
-        {"id": "linux", "surface": "native-terminal", "operating_system": "linux", "host": "none", "language": "sh", "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects", "copy": true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path write-report U04-initialize-projects",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" write-report U04-initialize-projects",
+          "copy": true
+        }
       ],
       "expected_result": "The writer creates .codearbiter/reports/academy/U04-initialization.md with canonical generated bytes bound to both clean committed children. Next safe step: inspect report.",
       "recovery": "If the writer reports a dirty, uncommitted, or wrong-layout child, preserve the message and return only to that child; do not hand-author the report.",
@@ -1210,7 +1234,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1219,7 +1243,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         },
         {
@@ -1228,7 +1252,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U04-initialize-projects",
           "copy": true
         }
       ],
@@ -1252,7 +1276,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1261,7 +1285,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         },
         {
@@ -1270,7 +1294,7 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U04-initialize-projects",
           "copy": true
         }
       ],

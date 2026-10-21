@@ -80,7 +80,7 @@ def _payload(root: Path) -> dict[str, object]:
     note_after = _git_blob(root, recovery, _PRESERVED_PATH)
     if not (
         _p06_context_transition(context_before, context_after)
-        and _p06_provenance_transition(provenance_before, provenance_after)
+        and _p06_provenance_transition(provenance_before, provenance_after, source, context_after)
         and _source_object(root, attempt.prepared) == _P06_SOURCE_OBJECT
         and _p06_summary_format_contract(source)
         and note_before == _P06_NOTE
@@ -89,14 +89,14 @@ def _payload(root: Path) -> dict[str, object]:
     ):
         raise _failure()
     return {
-        "context_after_sha256": hashlib.sha256(_P06_CONTEXT_AFTER).hexdigest(),
+        "context_after_sha256": hashlib.sha256(context_after).hexdigest(),
         "context_before_sha256": hashlib.sha256(_P06_CONTEXT).hexdigest(),
         "context_path": _CONTEXT_PATH,
         "prepared_commit": attempt.prepared,
         "preserved_after_sha256": hashlib.sha256(_P06_NOTE).hexdigest(),
         "preserved_before_sha256": hashlib.sha256(_P06_NOTE).hexdigest(),
         "preserved_path": _PRESERVED_PATH,
-        "provenance_after_sha256": hashlib.sha256(_P06_PROVENANCE_AFTER).hexdigest(),
+        "provenance_after_sha256": hashlib.sha256(provenance_after).hexdigest(),
         "provenance_before_sha256": hashlib.sha256(_P06_PROVENANCE).hexdigest(),
         "provenance_path": _PROVENANCE_PATH,
         "recovery_commit": recovery,

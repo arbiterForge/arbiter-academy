@@ -119,6 +119,12 @@ _P06_CONTEXT_AFTER = _P06_CONTEXT.replace(
     b"- Workshop Queue report output is JSON-only.",
     b"- Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
 )
+# The current exercise binds only the inspected CLI source. The earlier v1
+# exercise also updated an ADR link; retain that exact legacy receipt contract.
+_P06_NATIVE_CONTEXT_AFTER = _P06_CONTEXT.replace(
+    b"- Workshop Queue report output is JSON-only.",
+    b"- Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
+)
 _P06_PROVENANCE = b'''{
   "created": "2026-07-30",
   "doc": "CONTEXT",
@@ -209,7 +215,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "F02-orient-to-state": ("live_context_orientation", "orientation", {"artifact": ".codearbiter/reports/academy/F02-orientation.json", "context": ".codearbiter/CONTEXT.md"}),
     "F03-work-the-board": ("task_start_co_commit", "task_start_co_commit", {"board": ".codearbiter/open-tasks.md", "task_id": "academy.docs.0001", "work_file": "docs/ticket-list-contract.md"}),
     "F04-fix-with-evidence": ("red_then_fix_history", "tdd_history", {"code": "workshop_queue/service.py", "test": "tests/test_service.py"}),
-    "P01-feature-through-plan": ("feature_spec_plan_commit", "feature_spec_plan", {"spec": ".codearbiter/specs/academy-feature.md", "plan": ".codearbiter/plans/academy-feature.md", "board": ".codearbiter/open-tasks.md", "test": "tests/test_cli.py", "code": "workshop_queue/cli.py", "fixture": "data/p01-unresolved-tickets.json", "source_identity": "training_scenarios/P01-codearbiter-source.json", "task_id": "academy.feature.0002"}),
+    "P01-feature-through-plan": ("feature_spec_plan_commit", "feature_spec_plan", {"spec": ".codearbiter/specs/academy-feature.html", "plan": ".codearbiter/plans/academy-feature.html", "board": ".codearbiter/open-tasks.md", "test": "tests/test_cli.py", "code": "workshop_queue/cli.py", "fixture": "data/p01-unresolved-tickets.json", "source_identity": "training_scenarios/P01-codearbiter-source.json", "task_id": "academy.feature.0002"}),
     "P02-commit-review-pr": ("review_pr_commit_range", "pr_receipt", {"receipt": ".codearbiter/reports/academy/P02-pr-receipt.json"}),
     "P03-record-an-adr": ("accepted_adr_and_log", "accepted_adr", {"adr": ".codearbiter/decisions/0004-academy-lab.md", "decision_log": ".codearbiter/decisions/decision-log.md"}),
     "P04-review-a-dependency": ("strict_dependency_review", "dependency_review", {"review": ".codearbiter/reports/academy/P04-dependency-review.md", "project": "pyproject.toml"}),
@@ -217,7 +223,7 @@ _CANONICAL_PREDICATES: dict[str, tuple[str, str, dict[str, object]]] = {
     "P06-context-drift-recovery": ("provenance_drift_recovery", "provenance_recovery", {"context": ".codearbiter/CONTEXT.md", "handoff": ".codearbiter/reports/academy/P06-recovery.json", "source": "workshop_queue/cli.py", "preserved_path": "docs/preserved-note.md", "provenance": ".codearbiter/.provenance/CONTEXT.json"}),
     "P07-threat-model": ("stride_model", "stride_model", {"model": ".codearbiter/reports/academy/P07-threat-model.md", "target": "academy_engine/paths.py", "target_blob": "b36801add4eb375f796d1107ee63dd604d08a034", "target_sha256": "e40a7655ce6ba6cde58a91ae10a714f10046c055ac90dcbc58f0696c39133a5d"}),
     "P08-repository-hygiene": ("live_ref_hygiene", "p08_authenticated", {}),
-    "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.md", "plan": ".codearbiter/plans/academy-sprint.md", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
+    "U01-autonomous-sprint": ("approved_sprint_decisions", "sprint_decisions", {"spec": ".codearbiter/specs/academy-sprint.html", "plan": ".codearbiter/plans/academy-sprint.html", "sprint_log": ".codearbiter/sprint-log.md", "brief": "training_scenarios/U01-sprint-brief.json", "deliverable": "docs/academy-sprint-summary.md"}),
     "U02-override-audit-metrics": ("bound_audit_guard_observation", "audit_guard_observation", {"overrides": ".codearbiter/overrides.log", "observation": ".codearbiter/reports/academy/U02-observation.md"}),
     "U03-refactor-chore-release": ("refactor_chore_release", "refactor_chore_release", {"scenario": "training_scenarios/U03-refactor-chore-release.json", "code": "workshop_queue/store.py", "test": "tests/test_store.py", "chore": "README.md", "release_target": "academy-private-training", "release_version": "0.0.1", "release_tag": "academy-v0.0.1", "release_changelog": "CHANGELOG.md", "release_targets": ".codearbiter/release-targets.md"}),
     "U04-initialize-projects": ("initialized_projects", "initialized_projects", {"greenfield": ".academy/workspaces/U04-greenfield", "brownfield": ".academy/workspaces/U04-brownfield", "report": ".codearbiter/reports/academy/U04-initialization.md"}),
@@ -836,30 +842,36 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
     except (UnicodeDecodeError, json.JSONDecodeError):
         return False
     required = {"affected_paths", "finding_commit", "finding_id", "red_commit", "remediation_commit", "schema_version", "status"}
+    current_workflow = isinstance(report, dict) and _version(report.get("schema_version"), 3)
+    if current_workflow:
+        required.remove("red_commit")
     if (
         canonical_json(report) + b"\n" != raw
         or not isinstance(report, dict)
         or set(report) != required
-        or not _version(report["schema_version"], 2)
+        or not (current_workflow or _version(report["schema_version"], 2))
         or report["finding_id"] != "ACADEMY-P05-BLOCKED-UNRESOLVED"
         or report["status"] != "remediated"
         or report["affected_paths"] != ["tests/test_cli.py", "workshop_queue/cli.py"]
     ):
         return False
-    finding, red, remediation = report["finding_commit"], report["red_commit"], report["remediation_commit"]
+    finding, remediation = report["finding_commit"], report["remediation_commit"]
+    red = remediation if current_workflow else report["red_commit"]
     if not all(isinstance(value, str) and oid_pattern.fullmatch(value) for value in (finding, red, remediation)):
         return False
     commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if oid_pattern.fullmatch(line))
-    if commits != (finding, red, remediation, attempt.head):
+    expected_commits = (finding, remediation, attempt.head) if current_workflow else (finding, red, remediation, attempt.head)
+    if commits != expected_commits:
         return False
     parent = attempt.prepared
     for commit in commits:
         if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
             return False
         parent = commit
-    finding_paths, red_paths, remediation_paths, receipt_paths = (
-        _commit_paths(root, commit) for commit in commits
-    )
+    finding_paths = _commit_paths(root, finding)
+    red_paths = _commit_paths(root, red)
+    remediation_paths = _commit_paths(root, remediation)
+    receipt_paths = _commit_paths(root, attempt.head)
     checkpoint_paths = tuple(
         path
         for path in finding_paths
@@ -875,8 +887,9 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
             ".codearbiter/last-checkpoint",
             ".codearbiter/reports/academy/P05-finding.md",
         }
-        or red_paths != ("tests/test_cli.py",)
-        or remediation_paths != ("workshop_queue/cli.py",)
+        or (current_workflow and set(remediation_paths) != {"tests/test_cli.py", "workshop_queue/cli.py"})
+        or (not current_workflow and red_paths != ("tests/test_cli.py",))
+        or (not current_workflow and remediation_paths != ("workshop_queue/cli.py",))
         or receipt_paths != (report_path,)
     ):
         return False
@@ -1101,7 +1114,8 @@ def _f04_has_uncommitted_learner_changes(root: Path) -> bool:
     if status.returncode != 0 or ignored.returncode != 0:
         return True
     allowed_cache = re.compile(
-        r"(?:tests/__pycache__/test_service|workshop_queue/__pycache__/service)"
+        r"(?:tests/__pycache__/(?:__init__|test_service)|"
+        r"workshop_queue/__pycache__/(?:__init__|model|service))"
         r"\.cpython-[0-9]+(?:\.opt-[12])?\.pyc"
     )
     paths = [line[3:] for line in status.stdout.splitlines()]
@@ -1460,6 +1474,7 @@ class _SemanticContext:
     root: Path
     attempt: _Attempt
     predicate: Predicate
+    plugin_root: Path | None = None
 
 
 _P01_SOURCE_IDENTITY = {
@@ -1488,7 +1503,7 @@ def _p01_regular_blob(root: Path, ref: str, path: str) -> bytes | None:
     return _git_blob(root, ref, path)
 
 
-def _p01_one_commit(root: Path, attempt: _Attempt) -> str | None:
+def _p01_one_commit(root: Path, attempt: _Attempt, paths: frozenset[str] = _P01_PATHS) -> str | None:
     commits = tuple(
         line for line in run_git(
             root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False
@@ -1497,7 +1512,7 @@ def _p01_one_commit(root: Path, attempt: _Attempt) -> str | None:
     if len(commits) != 1 or commits[0] != attempt.head:
         return None
     parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
-    if parents != [attempt.head, attempt.prepared] or set(_commit_paths(root, attempt.head)) != _P01_PATHS:
+    if parents != [attempt.head, attempt.prepared] or set(_commit_paths(root, attempt.head)) != paths:
         return None
     return attempt.head
 
@@ -1950,7 +1965,47 @@ def _p03_parse_log(blob: bytes | None, prefix: bytes, author: str, date: str, ch
     return bool(match and "Status type: open-decision-closure" in match.group("variance"))
 
 
-def _p03_accepted_adr(root: Path, attempt: _Attempt, adr: str, decision_log: str) -> bool:
+def _p03_lifecycle_binding(event: object, blob: bytes | None, source: str) -> bool:
+    """Validate the bounded Academy ADR against adr-lifecycle/v1, not user authority."""
+    if not isinstance(event, dict) or blob is None:
+        return False
+    try:
+        text = blob.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        fields, body = _p03_front_matter(text)
+        sections = _p03_sections(body)
+        if fields["status"] != "accepted" or sections["Status"] != "Accepted":
+            return False
+        immutable = text.replace("\nstatus: accepted\n", "\nstatus: <mutable-status>\n", 1)
+        immutable = re.sub(r"(## Status\n\s*)Accepted", r"\1<mutable-status>", immutable, count=1)
+        moment = datetime.fromisoformat(event["recorded_at"].replace("Z", "+00:00"))
+        obligations = event["obligations"]
+        if (moment.utcoffset() is None or event.get("schema") != "adr-lifecycle/v1"
+                or event.get("event") != "acceptance" or event.get("adr") != "0004-academy-lab"
+                or event.get("source_commit") != source or "observed_commit" in event
+                or event.get("blob_sha256") != _raw_digest(blob)
+                or event.get("body_sha256") != _raw_digest(immutable.encode("utf-8"))
+                or event.get("obligations_sealed") is not True
+                or not isinstance(obligations, list) or not 1 <= len(obligations) <= 64
+                or event.get("obligations_sha256") != _raw_digest(json.dumps(obligations, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))):
+            return False
+        seen = set()
+        decision_bound = False
+        for item in obligations:
+            oid, bound = item["id"], item["text"]
+            section = item["section"]
+            if (not isinstance(oid, str) or not oid.startswith("0004-academy-lab.") or oid in seen
+                    or not isinstance(bound, str) or not bound.strip()
+                    or bound not in sections.get(section, "")
+                    or item.get("text_sha256") != _raw_digest(bound.encode("utf-8"))):
+                return False
+            seen.add(oid)
+            decision_bound |= section == "Decision" and bound == sections["Decision"]
+        return decision_bound
+    except (KeyError, TypeError, ValueError, UnicodeError):
+        return False
+
+
+def _p03_accepted_adr(root: Path, attempt: _Attempt, adr: str, decision_log: str, *, require_lifecycle: bool = False) -> bool:
     """Validate P03 from immutable blobs and its narrow linear learner range."""
     if adr != _P03_ADR or decision_log != _P03_LOG:
         return False
@@ -1961,20 +2016,47 @@ def _p03_accepted_adr(root: Path, attempt: _Attempt, adr: str, decision_log: str
     except AttributionError:
         return False
     commits = tuple(line for line in run_git(root, ["rev-list", "--reverse", f"{attempt.prepared}..{attempt.head}"], check=False).stdout.splitlines() if _SHA40.fullmatch(line))
-    if len(commits) not in {1, 2} or commits[-1] != attempt.head:
+    ledger = ".codearbiter/decisions/adr-lifecycle.jsonl"
+    ledger_commits = _path_commits(root, attempt.prepared, attempt.head, ledger)
+    if require_lifecycle and not ledger_commits:
+        return False
+    if ledger_commits:
+        if len(commits) not in {2, 3} or ledger_commits != (commits[-1],) or set(_commit_paths(root, commits[-1])) != {ledger}:
+            return False
+    elif len(commits) not in {1, 2}:
+        return False
+    if not commits or commits[-1] != attempt.head:
         return False
     parent = attempt.prepared
     for commit in commits:
         if run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False).stdout.split() != [commit, parent]:
             return False
         parent = commit
-    changed = [set(_commit_paths(root, commit)) for commit in commits]
+    source_commits = commits[:-1] if ledger_commits else commits
+    changed = [set(_commit_paths(root, commit)) for commit in source_commits]
     if set().union(*changed) != {adr, decision_log}:
         return False
     adr_commits = _path_commits(root, attempt.prepared, attempt.head, adr)
     log_commits = _path_commits(root, attempt.prepared, attempt.head, decision_log)
-    if len(adr_commits) != 1 or len(log_commits) != 1 or (len(commits) == 2 and commits.index(adr_commits[0]) >= commits.index(log_commits[0])):
+    if len(adr_commits) != 1 or len(log_commits) != 1 or (len(source_commits) == 2 and commits.index(adr_commits[0]) >= commits.index(log_commits[0])):
         return False
+    if ledger_commits:
+        prefix = _git_blob(root, attempt.prepared, ledger) or b""
+        final = _git_blob(root, attempt.head, ledger)
+        if final is None or len(final) > (1 << 20) or not final.startswith(prefix):
+            return False
+        lines = final[len(prefix):].splitlines()
+        if len(lines) != 1:
+            return False
+        try:
+            prior = [json.loads(line) for line in prefix.splitlines() if line.strip()]
+            if any(item.get("adr") == "0004-academy-lab" for item in prior):
+                return False
+            event = json.loads(lines[0])
+        except (ValueError, AttributeError):
+            return False
+        if not _p03_lifecycle_binding(event, _git_blob(root, attempt.head, adr), source_commits[-1]):
+            return False
     date_value = run_git(root, ["show", "-s", "--format=%aI", adr_commits[0]], check=False).stdout.strip()
     date_match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}", date_value)
     if date_match is None:
@@ -2181,6 +2263,13 @@ _P07_SECTION_PATTERN = re.compile(
     r"## Clearance\n(?P<clearance>[^\n]+)\n\n"
     r"## Academy Target-SHA256/identity binding\n(?P<binding>[^\n]+(?:\n[^\n]+){3})\n\Z"
 )
+_P07_DESIGN_PATTERN = re.compile(
+    r"\A# P07 Threat Model - Archive import containment boundary\n\n"
+    r"## Surface\n(?P<scope>[^\n]+(?:\n[^\n]+){0,5})\n\n"
+    r"## Threats\n(?P<stride>[^\n]+(?:\n[^\n]+){7})\n\n"
+    r"## Verdict\n(?P<clearance>[^\n]+(?:\n[^\n]+){0,5})\n\n"
+    r"## Academy Target-SHA256/identity binding\n(?P<binding>[^\n]+(?:\n[^\n]+){3})\n\Z"
+)
 _P07_CONTROLS = (
     "- Keep destination resolution under the selected repository root before creating or copying a file.",
     "- Reject absolute, traversal, symlink, and Windows reparse-point ancestors in archive destinations.",
@@ -2212,6 +2301,9 @@ def _p07_sections(raw: bytes | None) -> dict[str, str] | None:
         text = raw.decode("utf-8", "strict")
     except UnicodeDecodeError:
         return None
+    current = _P07_DESIGN_PATTERN.fullmatch(text)
+    if current is not None:
+        return {**current.groupdict(), "controls": "", "contract": "design"}
     match = _P07_SECTION_PATTERN.fullmatch(text)
     return match.groupdict() if match is not None else None
 
@@ -2515,6 +2607,7 @@ def _p07_threat_is_concrete(threat: str, category: str) -> bool:
 
 
 def _p07_native_conversation(sections: dict[str, str]) -> bool:
+    current = sections.get("contract") == "design"
     scope_lines = tuple(sections["scope"].splitlines())
     scope = " ".join(scope_lines).casefold()
     native = "\n".join(sections[name] for name in ("scope", "stride")).casefold()
@@ -2538,6 +2631,13 @@ def _p07_native_conversation(sections: dict[str, str]) -> bool:
     if separator is None or any(not re.fullmatch(r":?-{3,}:?", cell) for cell in separator):
         return False
     categories = ("S", "T", "R", "I", "D", "E")
+    if current:
+        if "proposed" not in scope:
+            return False
+        cells = [_p07_table_cells(line) for line in lines[2:]]
+        if any(item is None for item in cells) or {item[1] for item in cells} != set(categories):
+            return False
+        categories = tuple(item[1] for item in cells)
     threats: set[str] = set()
     for line, category in zip(lines[2:], categories, strict=True):
         cells = _p07_table_cells(line)
@@ -2564,6 +2664,16 @@ def _p07_native_conversation(sections: dict[str, str]) -> bool:
         ):
             return False
         threats.add(folded_threat)
+    if current:
+        verdict, _, explanation = sections["clearance"].partition("\n")
+        gap = "| GAP:" in sections["stride"]
+        if verdict == "PROCEED":
+            return not gap
+        if verdict == "PROCEED-WITH-CONSTRAINTS":
+            return bool(gap and "owner:" in explanation.casefold() and len(explanation) >= 30)
+        if verdict == "STOP":
+            return bool(gap and all(term in explanation.casefold() for term in ("critical", "exploitable", "unmitigated")))
+        return False
     return bool(
         tuple(sections["controls"].splitlines()) == _P07_CONTROLS
         and sections["clearance"]
@@ -2653,11 +2763,13 @@ def _p07_model(context: _SemanticContext) -> bool:
 def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     data, root, attempt = context.predicate.data, context.root, context.attempt
     paths = {name: str(data[name]) for name in ("spec", "plan", "board", "test", "code", "fixture", "source_identity")}
-    if _p01_one_commit(root, attempt) is None:
+    native = paths["spec"].endswith(".html") and paths["plan"].endswith(".html")
+    boundary = frozenset(paths[key] for key in ("spec", "plan", "board", "test", "code"))
+    if _p01_one_commit(root, attempt, boundary) is None:
         return False
     if any(_p01_regular_blob(root, attempt.prepared, path) is None for path in (paths["board"], paths["test"], paths["code"], paths["fixture"], paths["source_identity"])):
         return False
-    if any(_git_blob(root, attempt.prepared, path) is not None for path in (paths["spec"], paths["plan"])):
+    if any(_git_blob(root, attempt.prepared, paths[kind]) is not None for kind in ("spec", "plan")):
         return False
     fixture_models = _p01_fixture_models(_p01_regular_blob(root, attempt.prepared, paths["fixture"]) or b"")
     identity = _p01_json(_p01_regular_blob(root, attempt.prepared, paths["source_identity"]) or b"")
@@ -2669,12 +2781,32 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
         return False
     return bool(
         _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]))
-        and _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"]))
+        and (_native_lesson_plan(context, "academy-feature", paths, {paths["test"], paths["code"]}, ("unresolved", "open", "claimed", "completed")) if native else _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"])))
         and _p01_prepared_defect(_p01_regular_blob(root, attempt.prepared, paths["code"]))
         and _p01_exact_regression(_p01_regular_blob(root, attempt.prepared, paths["test"]), _p01_regular_blob(root, attempt.head, paths["test"]))
         and _p01_exact_repair(_p01_regular_blob(root, attempt.prepared, paths["code"]), _p01_regular_blob(root, attempt.head, paths["code"]))
         and run_git(root, ["diff", "--no-ext-diff", "--quiet", attempt.head], check=False).returncode == 0
     )
+
+
+def _native_lesson_plan(context: _SemanticContext, slug: str, paths: dict[str, str],
+                        allowed_paths: set[str], required_terms: tuple[str, ...]) -> bool:
+    from academy_engine.native_planning import NativePlanningError, inspect_pair
+
+    try:
+        pair = inspect_pair(
+            context.root, context.plugin_root, slug,
+            _p01_regular_blob(context.root, context.attempt.head, paths["spec"]),
+            _p01_regular_blob(context.root, context.attempt.head, paths["plan"]),
+        )
+        criteria = [item["record"] for item in pair["spec"]["records"] if item["kind"] == "criteria"]
+        tasks = [item["record"] for item in pair["plan"]["records"] if item["kind"] == "tasks"]
+        criterion_text = json.dumps(criteria, ensure_ascii=True).casefold()
+        task_paths = {entry["path"] for task in tasks for entry in task["paths"]}
+        return bool(criteria and tasks and task_paths == allowed_paths
+                    and all(term.casefold() in criterion_text for term in required_terms))
+    except (NativePlanningError, KeyError, TypeError, ValueError):
+        return False
 
 
 _U01_BRIEF = {
@@ -2709,6 +2841,8 @@ def _u01_sections(text: str, title: str, headings: tuple[str, ...]) -> dict[str,
 def _u01_sprint_decisions(context: _SemanticContext) -> bool:
     data, root, attempt = context.predicate.data, context.root, context.attempt
     paths = {key: str(data[key]) for key in ("spec", "plan", "sprint_log", "brief", "deliverable")}
+    if paths["spec"].endswith(".html") and paths["plan"].endswith(".html"):
+        return _u01_native_sprint(context, paths)
     brief = _json(root, attempt.prepared, paths["brief"])
     if brief is None or brief != {**_U01_BRIEF, "required_topics": list(_U01_BRIEF["required_topics"])}:
         return False
@@ -2725,7 +2859,8 @@ def _u01_sprint_decisions(context: _SemanticContext) -> bool:
         or spec is None
         or plan is None
         or deliverable is None
-        or any(_git_blob(root, attempt.prepared, paths[key]) is not None for key in ("spec", "plan", "deliverable"))
+        or _git_blob(root, attempt.prepared, paths["deliverable"]) is not None
+        or any(_git_blob(root, attempt.prepared, paths[key]) is not None for key in ("spec", "plan"))
     ):
         return False
     commits = tuple(
@@ -2780,6 +2915,42 @@ def _u01_sprint_decisions(context: _SemanticContext) -> bool:
         and re.search(r"(?i)confidence:\s*(?:high|low)", suffix) is not None
         and "intent:" in suffix
     )
+
+
+def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool:
+    root, attempt = context.root, context.attempt
+    brief = _json(root, attempt.prepared, paths["brief"])
+    if brief != {**_U01_BRIEF, "required_topics": list(_U01_BRIEF["required_topics"])}:
+        return False
+    if any(_git_blob(root, attempt.prepared, paths[key]) is not None for key in ("spec", "plan", "deliverable")):
+        return False
+    baseline = _git_blob(root, attempt.prepared, paths["sprint_log"])
+    final = _git_blob(root, attempt.head, paths["sprint_log"])
+    if baseline is None or final is None or not final.startswith(baseline):
+        return False
+    expected = {paths[key] for key in ("spec", "plan", "deliverable")}
+    if final != baseline:
+        expected.add(paths["sprint_log"])
+    if _p01_one_commit(root, attempt, frozenset(expected)) is None:
+        return False
+    status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
+    if status.returncode or status.stdout:
+        return False
+    try:
+        validate_training_remotes(root, require_push_safe=True)
+    except RemoteSafetyError:
+        return False
+    guide = _text(root, attempt.head, paths["deliverable"])
+    if guide is None:
+        return False
+    sections = _u01_sections(guide, str(brief["title"]), ("Approval boundary", "SMARTS decision trail", "Hard-gate stop"))
+    if sections is None:
+        return False
+    # This checks the lesson's explanation, not a transcript or approval receipt.
+    boundary = sections["Approval boundary"].casefold()
+    if "original request" not in boundary or "merge" not in boundary or "publish" not in boundary:
+        return False
+    return _native_lesson_plan(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
 
 
 def _live_hygiene_inventory(
@@ -2912,16 +3083,61 @@ def _p06_summary_format_contract(source: bytes | None) -> bool:
 def _p06_context_transition(before: bytes | None, after: bytes | None) -> bool:
     return bool(
         before == _P06_CONTEXT
-        and after == _P06_CONTEXT_AFTER
-        and len(before) == 1664
-        and len(after) == 1727
-        and _raw_digest(before) == "3c496fe68bfc6042663c9b1d697c6b7f314e1f814533acbb30fd5169c39752f4"
-        and _raw_digest(after) == "f6840aedb9f55ae370f1b3b3e4d69235e82a3733e52148f93e2a6af32fe9e9b1"
+        and after in (_P06_CONTEXT_AFTER, _P06_NATIVE_CONTEXT_AFTER)
     )
 
 
-def _p06_provenance_transition(before: bytes | None, after: bytes | None) -> bool:
-    if before != _P06_PROVENANCE or after != _P06_PROVENANCE_AFTER:
+def _p06_provenance_transition(
+    before: bytes | None, after: bytes | None, source: bytes | None = None,
+    context_after: bytes | None = None,
+) -> bool:
+    if after is None or len(after) > 1024 * 1024:
+        return False
+    record = _p01_json(after) if after is not None else None
+    if isinstance(record, dict) and record.get("schema") == 2:
+        if (before != _P06_PROVENANCE or source is None
+                or type(record["schema"]) is not int
+                or set(record) != {"schema", "doc", "created", "document", "fields"}
+                or context_after not in (None, _P06_NATIVE_CONTEXT_AFTER)):
+            return False
+        try:
+            datetime.strptime(record["created"], "%Y-%m-%d")
+            if record["doc"] != "CONTEXT" or record["document"] != {
+                "path": ".codearbiter/CONTEXT.md", "digest_method": "sha256-raw", "digest": _raw_digest(_P06_NATIVE_CONTEXT_AFTER)
+            }:
+                return False
+            fields = record["fields"]
+            if not isinstance(fields, list) or not 1 <= len(fields) <= 128:
+                return False
+            ids: set[str] = set()
+            expected = {"kind": "content", "path": "workshop_queue/cli.py", "digest_method": "sha256-raw", "digest": _raw_digest(source)}
+            for field in fields:
+                if not isinstance(field, dict) or set(field) != {"id", "owner_ref", "claims"}:
+                    return False
+                identity, owner, claims = field["id"], field["owner_ref"], field["claims"]
+                if (not isinstance(identity, str) or not re.fullmatch(r"FIELD-[A-Z0-9]+(?:-[A-Z0-9]+)*", identity)
+                        or identity in ids or not isinstance(owner, str) or not 1 <= len(owner) <= 256
+                        or any(ord(char) < 32 or ord(char) == 127 for char in owner)
+                        or not isinstance(claims, list) or not 1 <= len(claims) <= 128):
+                    return False
+                ids.add(identity)
+                for claim in claims:
+                    if not isinstance(claim, dict) or set(claim) != {"id", "semantic_review", "evidence", "effective_authority_refs"}:
+                        return False
+                    identity, evidence = claim["id"], claim["evidence"]
+                    if (not isinstance(identity, str) or not re.fullmatch(r"CLAIM-[A-Z0-9]+(?:-[A-Z0-9]+)*", identity)
+                            or identity in ids
+                            or claim["semantic_review"] != {"state": "unreviewed", "reference": None}
+                            or claim["effective_authority_refs"] != []
+                            or not isinstance(evidence, list) or not 1 <= len(evidence) <= 128
+                            or not all(item == expected for item in evidence)):
+                        return False
+                    ids.add(identity)
+            return True
+        except (KeyError, TypeError, ValueError):
+            return False
+    if (before != _P06_PROVENANCE or after != _P06_PROVENANCE_AFTER
+            or context_after not in (None, _P06_CONTEXT_AFTER)):
         return False
     before_record, after_record = _p01_json(before), _p01_json(after)
     try:
@@ -2967,6 +3183,8 @@ def _p06_handoff(
     provenance_path: str,
     source_path: str,
     preserved_path: str,
+    provenance_after: bytes = _P06_PROVENANCE_AFTER,
+    context_after: bytes = _P06_CONTEXT_AFTER,
 ) -> bool:
     value = _p01_json(raw) if raw is not None else None
     if not isinstance(value, dict):
@@ -2993,9 +3211,9 @@ def _p06_handoff(
         return False
     digest_values = {
         "context_before_sha256": _raw_digest(_P06_CONTEXT),
-        "context_after_sha256": _raw_digest(_P06_CONTEXT_AFTER),
+        "context_after_sha256": _raw_digest(context_after),
         "provenance_before_sha256": _raw_digest(_P06_PROVENANCE),
-        "provenance_after_sha256": _raw_digest(_P06_PROVENANCE_AFTER),
+        "provenance_after_sha256": _raw_digest(provenance_after),
         "preserved_before_sha256": _raw_digest(_P06_NOTE),
         "preserved_after_sha256": _raw_digest(_P06_NOTE),
     }
@@ -3052,13 +3270,13 @@ def _p06_provenance_recovery(context: _SemanticContext) -> bool:
     )
     return bool(
         _p06_context_transition(context_before, context_after)
-        and _p06_provenance_transition(provenance_before, provenance_after)
+        and _p06_provenance_transition(provenance_before, provenance_after, source, context_after)
         and source_object == _P06_SOURCE_OBJECT
         and _p06_summary_format_contract(source)
         and note_before == _P06_NOTE
         and note_after == _P06_NOTE
-        and _git_blob(root, attempt.head, context_path) == _P06_CONTEXT_AFTER
-        and _git_blob(root, attempt.head, provenance_path) == _P06_PROVENANCE_AFTER
+        and _git_blob(root, attempt.head, context_path) == context_after
+        and _git_blob(root, attempt.head, provenance_path) == provenance_after
         and _p06_handoff(
             _git_blob(root, attempt.head, handoff_path),
             prepared=attempt.prepared,
@@ -3067,6 +3285,8 @@ def _p06_provenance_recovery(context: _SemanticContext) -> bool:
             provenance_path=provenance_path,
             source_path=source_path,
             preserved_path=preserved_path,
+            provenance_after=provenance_after,
+            context_after=context_after,
         )
     )
 
@@ -3322,7 +3542,7 @@ def _u07_capstone(context: _SemanticContext) -> bool:
         document_text = "\n".join(item or "" for item in documents.values()).casefold()
         if any(token not in document_text for token in ("control", "character", "resolution")):
             return False
-    else:
+    elif ".codearbiter/triage.log" in changed_paths:
         triage_path = ".codearbiter/triage.log"
         triage = _text(root, attempt.head, triage_path)
         if triage_path not in changed_paths or triage is None:
@@ -3713,6 +3933,23 @@ def _semantic(context: _SemanticContext) -> bool:
         )
     if profile == "tdd_history":
         code, test = str(data["code"]), str(data["test"])
+        parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
+        if parents == [attempt.head, attempt.prepared]:
+            # A current fix observes RED in the worktree and commits only GREEN.
+            # Final source inspection cannot authenticate execution chronology.
+            return bool(
+                set(_commit_paths(root, attempt.head)) == {test, code}
+                and _test_module_has_minimal_retained_control_regression(
+                    _git_blob(root, attempt.prepared, test),
+                    _git_blob(root, attempt.head, test),
+                    _git_blob(root, attempt.head, test),
+                )
+                and _service_has_minimal_control_repair(
+                    _git_blob(root, attempt.prepared, code),
+                    _git_blob(root, attempt.head, code),
+                )
+                and not _f04_has_uncommitted_learner_changes(root)
+            )
         commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
         if commits is None:
             return False
@@ -3741,7 +3978,7 @@ def _semantic(context: _SemanticContext) -> bool:
         return _valid_offline_p02_receipt(context, str(data["receipt"]))
     if profile == "accepted_adr":
         adr, decision_log = str(data["adr"]), str(data["decision_log"])
-        return _p03_accepted_adr(root, attempt, adr, decision_log)
+        return _p03_accepted_adr(root, attempt, adr, decision_log, require_lifecycle=True)
     if profile == "dependency_review":
         return _p04_dependency_review(root, attempt, str(data["review"]), str(data["project"]))
     if profile == "checkpoint_remediation":
@@ -3823,6 +4060,21 @@ def _semantic(context: _SemanticContext) -> bool:
         spike = _changed_document(context, str(data["spike"]))
         board = _changed_document(context, str(data["board"]))
         observation = _text(root, attempt.prepared, str(data["observation"]))
+        parents = run_git(root, ["rev-list", "--parents", "-n", "1", attempt.head], check=False).stdout.split()
+        if parents == [attempt.head, attempt.prepared]:
+            spike_ref = run_git(root, ["for-each-ref", "--format=%(refname)", "refs/heads/spike/u05-cache-key"], check=False)
+            clean_status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
+            # Current debug no-action is read-only. Only spike findings persist.
+            return bool(
+                observation
+                and _headings(observation, ("Observed behavior", "Reproduction", "Expected behavior", "Spike question"))
+                and "debug.note" not in observation
+                and _headings(spike, ("Question", "What tried", "Answer", "Implication"))
+                and _commit_paths(root, attempt.head) == (str(data["spike"]),)
+                and _git_blob(root, attempt.prepared, str(data["board"])) == _git_blob(root, attempt.head, str(data["board"]))
+                and spike_ref.returncode == 0 and not spike_ref.stdout.strip()
+                and clean_status.returncode == 0 and not clean_status.stdout
+            )
         commits = _exact_two_commit_range(root, attempt.prepared, attempt.head)
         board_before = (
             _text(root, f"{commits[0]}^", str(data["board"])) if commits is not None else None
@@ -4010,7 +4262,7 @@ def _valid_offline_p02_receipt(context: _SemanticContext, path: str) -> bool:
 
 
 def evaluate_checkpoint(
-    root: Path, lab_id: str, *, require_current_attempt: bool = True
+    root: Path, lab_id: str, *, require_current_attempt: bool = True, plugin_root: Path | None = None
 ) -> CheckpointResult:
     if lab_id not in LAB_INVENTORY:
         raise CheckpointError("checkpoint ID is not in the exact Academy inventory.")
@@ -4097,7 +4349,7 @@ def evaluate_checkpoint(
             passed.append("prepared_scenario")
         if source_integrity:
             passed.append("source_integrity")
-        context = _SemanticContext(repository, attempt, definition.predicates[0])
+        context = _SemanticContext(repository, attempt, definition.predicates[0], plugin_root)
         for predicate in definition.predicates:
             ok = _semantic(context)
             if ok:

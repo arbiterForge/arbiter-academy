@@ -2,8 +2,8 @@
 id: U01-autonomous-sprint
 track: power-user
 order: 1
-title: Govern an autonomous sprint without outsourcing approval
-outcome: Complete a bounded documentation sprint, preserve its durable decision evidence, and distinguish a human approval gate from the repository facts that Check can verify.
+title: Direct a bounded autonomous sprint
+outcome: Deliver an operator guide under the original request while preserving real decision boundaries.
 prerequisites: P08-repository-hygiene
 estimated_minutes: 35
 scenario_command: {{action:U01-prepare-attempt}}
@@ -11,111 +11,92 @@ checkpoint_command: {{action:U01-check-status}}
 next_lab: U02-override-audit-metrics
 ---
 
-# U01: Govern an autonomous sprint without outsourcing approval
+# U01: Direct a bounded autonomous sprint
 
 ## Know before you begin
 
-U01 is a guided, runnable lesson in Preview 0.32. The website remains the primary lesson surface.
-Academy CLI prepares the reviewed attempt, checks its local evidence boundary, and creates a
-non-destructive numbered retry when recovery is needed.
-
-Complete P08 first. In your personal fork, keep the repository root open in a native terminal and
-the selected codeArbiter harness. A command typed directly in a native terminal
-has no `!`. A shell command passed through a harness begins with exactly one `!`. A host-native
-codeArbiter command belongs to the harness and has no `!`. The action cards label each case.
+A sprint helps when you can describe the outcome and let the agent manage the steps.
+You still own product choices and publication decisions. Complete P08 and keep the
+terminal and harness at the same fork. The website remains the primary lesson surface.
 
 {{action:U01-confirm-fork-boundary}}
 
 ## What you will prove
 
-On a prepared U01 attempt, you will prove that a sprint did not self-authorize its work. The learner
-reads the proposed specification, decides whether its scope is acceptable, then reads and explicitly approves the derived plan before autonomy can begin. The completed attempt preserves the derived specification, plan, append-only sprint log, and one bounded operator guide.
+Deliver docs/academy-sprint-summary.md explaining the Approval boundary, SMARTS
+decision trail, and Hard-gate stop.
 
-This is a documentation-only sprint. Its allowed final commit contains four paths: the spec, plan,
-sprint log, and `docs/academy-sprint-summary.md`. The real sprint lane then pushes only the learner
-fork branch and opens a pull request. It never pushes directly to upstream or merges. It does not
-change product code, tests, dependencies, or remotes.
+Teach the current policy: the original request authorizes agreed work. The agent may
+maintain the spec and plan and choose ordinary in-scope methods. It asks about
+consequential unresolved choices and respects explicit stops. Merge, publication,
+destructive cleanup, and overrides retain their confirmations.
+
+This request includes a governed commit and a PR in your fork after verification.
+It never authorizes merging.
 
 ## Prepare safely
 
 {{action:U01-prepare-attempt}}
 
-Prepare must run in the forked checkout that passed P08's remote safety work. It creates the numbered
-attempt from reviewed fixture bytes; do not recreate that branch or scenario manually.
-
 {{action:U01-inspect-scenario}}
 
-The scenario is installed by the reviewed Academy fixture. Its named deliverable and approval-required
-starting condition explain the exact boundary the prepared attempt now contains.
+Prepare leaves the sprint unplanned. Arbiter creates the native specification and plan, then keeps them current as it works. Open the rendered pages to inspect scope, tasks, and real progress. If the writer fails, preserve its diagnostic and repair the installed plugin before continuing.
 
 ## Practice
 
-The next actions run only on the numbered attempt that Prepare just created. They do not authorize
-an autonomous sprint on an ordinary checkout.
-
 {{action:U01-run-sprint}}
 
-{{action:U01-approve-or-decline-spec}}
+{{action:U01-inspect-scope}}
 
-{{action:U01-approve-or-decline-plan}}
+{{action:U01-inspect-plan}}
+
+The inspection cards help you follow the work. They do not require approval replies.
+Request a pause explicitly if you want one; otherwise, ordinary work proceeds.
 
 {{action:U01-inspect-artifacts}}
 
-The sprint specification and plan gates are where the learner sets authority. Check can verify the resulting
-repository evidence, but it cannot prove that a person understood the proposal, made a good judgment
-call, typed a host command, or created the pull request.
+Read the guide as if you were about to use it. Remove instructions to approve artifact
+codes, certify hashes, or reapprove each routine plan update.
 
 ## Recognize success
 
-Success is a reviewable boundary: a prepared attempt, a bounded
-specification and plan, an append-only sprint record, and one operator guide in the same committed
-packet. The real sprint lane opens a pull request from the learner fork after its commit gate. It is
-not a public release claim, proof that a pull request exists, or permission to merge.
+One learner commit contains the maintained native spec, plan, and guide, plus a
+sprint-log append if a material choice needed recording. The prior log prefix is unchanged and the worktree is clean. The sprint opens
+a pull request in your fork after its commit gate.
 
-Check accepts one linear learner commit containing exactly those four paths. It checks the
-prepared brief, exact headings and scope, a preserved sprint-log prefix, the required guide topics,
-and a clean worktree. It does not authenticate approval.
+Explain material choices. SMARTS helps compare methods; it grants no permission.
+A reported implementation status does not certify tests, review, or publication.
 
 ## Check
 
 {{action:U01-check-status}}
 
-Check verifies repository-derived evidence rather than a transcript supplied by the learner. It does not prove that
-a host command ran, that a learner approved a proposal knowingly, or that an autonomous process
-reasoned well. It does not prove that a pull request was created.
+Check uses the installed native engine to validate the committed spec and plan,
+then checks the guide, commit boundary, and preserved log history. It does not authenticate approval.
+It does not prove that a pull request was created or that a person understood the
+guide. Inspect the real PR separately.
 
 ## Recover or continue
 
-Keep a failed attempt intact for review. Do not amend, rebase, force-update, delete, or overwrite
-history to make an incomplete sprint look completed.
+**Hint 1.** State the outcome and limits once. Correct scope drift without inventing
+new artifact approval ceremonies.
 
-### Hint 1
+**Hint 2.** Keep the guide, spec, plan, and append-only decision record consistent.
 
-Separate the sprint's specification approval and plan approval from its later implementation activity. Autonomous
-execution may begin only after both explicit gates.
-
-### Hint 2
-
-The four named artifact paths are an evidence boundary. A valid packet keeps the prepared sprint-log
-prefix unchanged and commits no unrelated file.
-
-### Hint 3
-
-Treat a failed Check as evidence to inspect, not an invitation to rewrite history or manufacture
-artifact content. Preserve the attempt and use Reset only after returning safely to main.
+**Hint 3.** Preserve a failed attempt. A non-destructive numbered retry keeps the
+earlier work available.
 
 {{action:U01-return-base}}
 
 {{action:U01-reset-retry}}
 
-U02 is published in Preview 0.32. Continue through its published Academy lesson rather than using
-unpublished source exercises as a substitute for a guided route.
+Continue to U02 after a passing Check.
 
 ## Understand the mechanism
 
-The scenario supplies an approval-required documentation scope, the required operator-guide title,
-and three topics. The checkpoint compares that prepared brief with the final spec, plan, guide, and
-append-only sprint log. It accepts one clean descendant commit with no extra paths.
+A sprint maintains a working agreement while carrying work forward. The agent checks
+facts, handles ordinary implementation problems, and reports real uncertainty.
 
-This guide uses the shared action manifest and renderer, records each actor and execution surface,
-and keeps the website-first lesson boundary intact.
+**Use this in your own project.** Give a small outcome, observable acceptance criteria,
+constraints, external-service limits, and any desired human checkpoint. Request a
+report of changes, actual checks, unresolved risks, and remaining delivery steps.

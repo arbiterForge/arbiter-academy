@@ -15,7 +15,9 @@ next_lab: P04-review-a-dependency
 
 ## Know before you begin
 
-P03 is a public guided and runnable lesson in this preview. It uses the shared Markdown-plus-action-manifest renderer and the installed Academy Prepare, Check, and Reset commands. The immutable scenario, checkpoint, and action contract ID stay `P03-record-an-adr`.
+Record a decision that future contributors will need to understand: whether Workshop Queue summaries favor stable text or structured JSON. Explain the trade-off and retain who actually chose it.
+
+Use this lesson to record an actual architectural choice with its reason, alternatives, and attribution. Prepare gives you a bounded scenario to discuss before recording the decision.
 
 Keep a native terminal at the clone root and one codeArbiter harness at the same clone. Native terminal commands never begin with `!`; host-native codeArbiter commands and harness requests never begin with `!` either.
 
@@ -25,7 +27,7 @@ Academy accepts a prepared author name only when it has 1–80 Unicode scalar va
 
 You will record ADR-0004 for the Workshop Queue summary-format boundary. The learner chooses and approves the ADR/log boundary. The agent may analyze and draft, but it cannot choose, replace, or broaden the decision.
 
-The two allowed learner choices are stable text and structured JSON. The committed evidence is an accepted `.codearbiter/decisions/0004-academy-lab.md` and a matching append to `.codearbiter/decisions/decision-log.md`; ADR-0003 remains untouched. The permitted history is one commit or two linear commits, with the ADR before the log when split.
+The two allowed learner choices are stable text and structured JSON. The committed evidence is an accepted `.codearbiter/decisions/0004-academy-lab.md` and a matching append to `.codearbiter/decisions/decision-log.md`; ADR-0003 remains untouched. Commit the ADR and log first (together, or ADR before log when split). The ADR owner then appends a source-bound acceptance to `.codearbiter/decisions/adr-lifecycle.jsonl` in a separate final commit. That record binds the exact source commit and sealed obligations. Keep the existing ledger prefix unchanged.
 
 ## Prepare safely
 
@@ -53,13 +55,13 @@ Read the analysis, select one exact learner choice, then explicitly approve the 
 
 {{action:P03-confirm-native-evidence}}
 
-Success is an accepted ADR-0004 and matching decision-log append on the prepared branch. The record carries the learner-approved choice, attribution, alternatives, consequences, and risks; the worktree is clean.
+Success is an Accepted/Planned ADR-0004, matching decision-log append, and source-bound acceptance ledger on the prepared branch. The record carries the learner-approved choice, attribution, alternatives, consequences, and risks; the worktree is clean.
 
 ## Check
 
 {{action:P03-check}}
 
-Check proves only final-state evidence: a clean worktree; 1–2 linear commits; only ADR/log paths; ADR before log if split; commit date/name; artifact format/choice; and the append-only log prefix. It cannot prove human acceptance, host command use, reasoning quality, chronology, or independent review.
+Check proves only final-state evidence: a clean worktree; 2–3 linear commits; only ADR, log, and acceptance-ledger paths; ADR before log if split; commit date/name; artifact format/choice; and the append-only log prefix. It cannot prove human acceptance, host command use, reasoning quality, chronology, or independent review.
 
 ## Recover or continue
 
@@ -84,3 +86,5 @@ Check reconstructs committed facts. It can reject mismatched or rewritten artifa
 ## Understand the mechanism
 
 An ADR makes a consequential choice durable: context explains why it matters, alternatives preserve the trade-off, the decision records the approved boundary, and consequences guide future maintainers. The append-only log makes that lifecycle discoverable; Check reconstructs the committed boundary from Git rather than trusting a transcript.
+
+**Use this in your own project.** Use an ADR for a consequential architecture choice, not every reversible implementation detail. State the choice, alternatives, and consequences. Let the ADR workflow assign its number and preserve attribution; never have an agent invent your acceptance.

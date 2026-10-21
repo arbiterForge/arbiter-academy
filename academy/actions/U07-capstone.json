@@ -13,9 +13,33 @@
       "rationale": "U07 Prepare creates its own numbered branch from main; it must not start from a previous lesson attempt.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"git switch main\ngit status --short","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"git switch main\ngit status --short","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "git switch main\ngit status --short",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch main\ngit status --short",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "git switch main\ngit status --short",
+          "copy": true
+        }
       ],
       "expected_result": "HEAD is on main and git status --short prints nothing; the completed U06 attempt branch remains intact.",
       "recovery": "If switching branches would overwrite or hide work, stop and preserve that work on its existing branch. Do not force-switch, reset, rebase, delete, or alter the earlier attempt. Next safe step: return only after the checkout is clean.",
@@ -24,53 +48,109 @@
     {
       "id": "U07-prepare",
       "sequence": 2,
-      "title": "Prepare the bounded feature attempt",
+      "title": "Prepare the bounded fix attempt",
       "actor": "learner",
       "surface": null,
       "instruction": "From a clean main branch at the Academy clone root, run Prepare in a native terminal. Academy creates the numbered attempt branch and seeds one known control-character defect. Stay on that branch for the capstone.",
-      "rationale": "The fixture makes the implementation boundary inspectable without replacing codeArbiter's feature workflow.",
+      "rationale": "The fixture makes the implementation boundary inspectable without replacing codeArbiter's fix workflow.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path prepare U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" prepare U07-capstone",
+          "copy": true
+        }
       ],
-      "expected_result": "Academy prints academy/U07-capstone/ATTEMPT_NUMBER. The branch is clean and tests/test_service.py contains a passing case that shows the existing resolution behavior accepts a control character. The feature lane will add the missing resolution regression.",
+      "expected_result": "Academy prints academy/U07-capstone/ATTEMPT_NUMBER. The branch is clean and tests/test_service.py contains a passing case that shows the existing resolution behavior accepts a control character. The fix lane will add the missing resolution regression.",
       "recovery": "If Prepare names a dirty-worktree, branch, or remote problem, preserve the message and repair only that condition. Do not force-reset main or borrow another lesson's history.",
-      "evidence": "Keep the printed attempt branch and verify that git status --short is empty before entering the feature lane."
+      "evidence": "Keep the printed attempt branch and verify that git status --short is empty before entering the fix lane."
     },
     {
-      "id": "U07-run-feature",
+      "id": "U07-run-fix",
       "sequence": 3,
-      "title": "Run the real feature lane",
+      "title": "Repair the known defect through the fix lane",
       "actor": "learner",
       "surface": null,
-      "instruction": "In the selected codeArbiter harness at that clone, invoke the copied feature command. Review the proposed mini-spec and criteria before confirmation. They must keep the work to ticket-resolution control characters, tests/test_service.py, and workshop_queue/service.py. Add the missing resolution regression through this real feature lane.",
-      "rationale": "The real feature lane owns specification, planning, test-first execution, its commit gate, and the terminal decision.",
+      "instruction": "Use the fix command. Add the missing resolution regression, observe RED, make the minimal repair, and run affected service checks.",
+      "rationale": "The fix lane owns the regression, minimal repair, affected verification, and commit gate.",
       "resources": [],
       "variants": [
-        {"id":"claude","surface":"harness","operating_system":"all","host":"claude-code","language":"codearbiter","command":"/ca:feature \"Reject control characters in ticket resolutions\"","copy":true},
-        {"id":"codex","surface":"harness","operating_system":"all","host":"codex","language":"codearbiter","command":"$ca-feature \"Reject control characters in ticket resolutions\"","copy":true},
-        {"id":"pi-direct","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/ca-feature \"Reject control characters in ticket resolutions\"","copy":true},
-        {"id":"pi-fallback","surface":"harness","operating_system":"all","host":"pi","language":"codearbiter","command":"/skill:ca-feature \"Reject control characters in ticket resolutions\"","copy":true}
+        {
+          "id": "claude",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "claude-code",
+          "language": "codearbiter",
+          "command": "/ca:fix \"Reject control characters in ticket resolutions\"",
+          "copy": true
+        },
+        {
+          "id": "codex",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "codex",
+          "language": "codearbiter",
+          "command": "$ca-fix \"Reject control characters in ticket resolutions\"",
+          "copy": true
+        },
+        {
+          "id": "pi-direct",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/ca-fix \"Reject control characters in ticket resolutions\"",
+          "copy": true
+        },
+        {
+          "id": "pi-fallback",
+          "surface": "harness",
+          "operating_system": "all",
+          "host": "pi",
+          "language": "codearbiter",
+          "command": "/skill:ca-fix \"Reject control characters in ticket resolutions\"",
+          "copy": true
+        }
       ],
-      "expected_result": "For this bounded two-file change, codeArbiter uses its small lane and appends the classification to .codearbiter/triage.log, then changes the focused regression and service behavior, completes its own commit gate, and presents its feature-branch terminal. It does not invent full-lane spec or plan files.",
-      "recovery": "If the proposed scope expands or the feature lane reports a stop, do not hand-write substitute artifacts. Preserve the branch and resolve the named real gate, or use Reset for a new attempt.",
-      "evidence": "The committed .codearbiter/triage.log small-lane entry, focused test, implementation, and clean worktree are local evidence that Academy Check can inspect."
+      "expected_result": "The regression and repair are ready for one green commit.",
+      "recovery": "If the proposed scope expands or the fix lane reports a stop, do not hand-write substitute artifacts. Preserve the branch and resolve the named real gate, or use Reset for a new attempt.",
+      "evidence": "Actual checks and committed source; no feature classification is required."
     },
     {
       "id": "U07-open-pr",
       "sequence": 4,
-      "title": "Choose Open a PR at the real terminal",
+      "title": "Open and inspect your fork pull request",
       "actor": "learner",
       "surface": "browser",
-      "instruction": "When codeArbiter presents the feature terminal, choose Open a PR. Do not merge or discard. In your fork's browser view, confirm that the feature branch has an open pull request to its default target.",
-      "rationale": "A feature ends through a real hosted PR. Academy must not imitate that event with a local file.",
+      "instruction": "Request the governed commit of the green fix, then choose Open a PR at the branch handoff. Confirm the base repository is your personal fork before creation. Leave the PR open; do not merge.",
+      "rationale": "The bounded fix ends through a real hosted PR. Academy must not imitate that event with a local file.",
       "resources": [],
       "variants": [],
-      "expected_result": "Your fork shows an open PR from the prepared feature branch. Leave it open for the normal hosted review and merge process.",
-      "recovery": "If no PR opens, keep the clean branch and use the real feature terminal's recovery. Do not write a local PR receipt or claim a review that did not happen.",
-      "evidence": "Preserve the browser URL of the real open PR. Academy Check does not authenticate that browser event."
+      "expected_result": "A real open PR inside your fork with the intended base and head.",
+      "recovery": "If no PR opens, keep the clean branch and use the real delivery workflow's recovery. Do not write a local PR receipt or claim a review that did not happen.",
+      "evidence": "Retain the browser URL. Academy does not authenticate a hosted event."
     },
     {
       "id": "U07-check",
@@ -78,17 +158,41 @@
       "title": "Check durable local evidence",
       "actor": "learner",
       "surface": null,
-      "instruction": "After the feature branch is clean, run Academy Check in a native terminal at the clone root. It inspects the prepared baseline, committed small-lane triage record, bounded behavior, remotes, and worktree state.",
+      "instruction": "Run Check after the committed fix is clean. It inspects the prepared baseline, test, service behavior, safe remotes, and worktree.",
       "rationale": "Check independently verifies durable repository facts without claiming that a harness command, review, PR, CI run, or merge occurred.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path check U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" check U07-capstone",
+          "copy": true
+        }
       ],
-      "expected_result": "Check prints checkpoint U07-capstone: passed only when the prepared defect, feature documents, executable regression and repair, fork-safe remote, and clean worktree match the capstone boundary.",
+      "expected_result": "The local fix passes its bounded Check.",
       "recovery": "Read the failed predicate and correct the real branch boundary it identifies. Do not create a PR, review, CI, or approval receipt to influence Check.",
-      "evidence": "A passing Check records U07 progress. It is separate from the browser URL you retained for the actual hosted PR."
+      "evidence": "Local evidence; hosted review and CI are separate."
     },
     {
       "id": "U07-reset-retry",
@@ -97,12 +201,36 @@
       "actor": "learner",
       "surface": null,
       "instruction": "Use Reset only if this attempt cannot be repaired. Run it from the matching clean Academy attempt branch. Academy archives the current branch before creating a new numbered attempt.",
-      "rationale": "A preserved retry leaves the failed feature evidence inspectable and avoids rewriting history or deleting a real hosted branch.",
+      "rationale": "A preserved retry leaves the failed fix evidence inspectable and avoids rewriting history or deleting a real hosted branch.",
       "resources": [],
       "variants": [
-        {"id":"windows","surface":"native-terminal","operating_system":"windows","host":"none","language":"powershell","command":"$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.32\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U07-capstone","copy":true},
-        {"id":"macos","surface":"native-terminal","operating_system":"macos","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true},
-        {"id":"linux","surface":"native-terminal","operating_system":"linux","host":"none","language":"sh","command":"academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.32/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone","copy":true}
+        {
+          "id": "windows",
+          "surface": "native-terminal",
+          "operating_system": "windows",
+          "host": "none",
+          "language": "powershell",
+          "command": "$academy = \"$env:LOCALAPPDATA\\ArbiterAcademy\\preview-0.33\\Scripts\\arbiter-academy.exe\"\n& $academy --repository (Get-Location).Path reset U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "macos",
+          "surface": "native-terminal",
+          "operating_system": "macos",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone",
+          "copy": true
+        },
+        {
+          "id": "linux",
+          "surface": "native-terminal",
+          "operating_system": "linux",
+          "host": "none",
+          "language": "sh",
+          "command": "academy=\"${XDG_DATA_HOME:-$HOME/.local/share}/arbiter-academy/preview-0.33/bin/arbiter-academy\"\n\"$academy\" --repository \"$PWD\" reset U07-capstone",
+          "copy": true
+        }
       ],
       "expected_result": "Academy preserves the old attempt on an academy/archive/U07-capstone timestamped branch and prints a clean next attempt branch.",
       "recovery": "If Reset refuses, preserve its output and current branch. Resolve only the stated repository condition. Never force-reset, rebase, delete the old attempt, or close a real PR to make the retry easier.",

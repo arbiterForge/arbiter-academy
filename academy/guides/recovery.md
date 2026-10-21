@@ -36,7 +36,7 @@ For Check and Reset, the `lab-id` placeholder means the exact lesson ID printed 
 
 ## Failed Check with clean committed evidence
 
-**Stop:** Do not rewrite the evidence commit. **Observe:** Check names the unmet requirement while the Doctor snapshot reports a clean worktree. **Safe action:** Keep the report with the attempt, read the lesson's expected result and recovery text, then make the smallest new correction on the same attempt branch. **Preserved:** The failed commit and Check report remain part of the evidence trail.
+**Stop:** Do not rewrite the evidence commit. **Observe:** Check names the unmet requirement while the Doctor snapshot reports a clean worktree. **Safe action:** Keep the report with the attempt, read the lesson's expected result and recovery text, then determine whether the failure is live configuration or already-committed evidence. Repair only configuration that the lesson permits and rerun Check. If the committed files or required commit count are wrong, use the numbered Reset action below; another correction commit cannot repair an exact-history checkpoint. **Preserved:** The failed commit and Check report remain part of the evidence trail.
 
 ## Retry
 

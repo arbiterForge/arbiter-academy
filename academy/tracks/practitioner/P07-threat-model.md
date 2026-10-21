@@ -15,6 +15,8 @@ next_lab: P08-repository-hygiene
 
 ## Know before you begin
 
+Trace how an untrusted archive path could escape its destination. Use STRIDE to examine threats and controls at that actual boundary before requesting implementation.
+
 P07 is a public guided and runnable Academy lesson in this preview. It is opt-in and read-only.
 Start in the Academy clone that completed P06. Switch to `main`, then confirm `git status --short` has
 no output before Prepare.
@@ -24,18 +26,15 @@ terminal commands go directly into the terminal and never begin with `!`. Harnes
 when a lesson uses them, begin with exactly one `!`. This lesson uses no harness-shell commands.
 codeArbiter commands and agent messages are entered in the selected harness and never begin with `!`.
 
-The bounded target is `academy_engine/paths.py`. It handles learner-controlled archive-member or
-overlay-destination input beneath the selected repository root. P07 checks containment or rejection
-before a destination write. It does not edit the target.
+The proposed feature is an archive importer that would reuse `academy_engine/paths.py`. Trace untrusted archive-member input through the repository-root boundary to a destination write. Existing code supports claims about present controls; the exercise reviews the proposed design. Use a security reviewer for an audit of code already implemented.
 
 ## What you will prove
 
 You will commit one learner-owned Academy report after Prepare at `.codearbiter/reports/academy/P07-threat-model.md`.
-The report summarizes the read-only advisory analysis in four threat-model sections followed by a separate Academy target identity
+The report summarizes the read-only advisory analysis in three analysis sections followed by a separate Academy target identity
 binding. The target stays byte-identical from the prepared commit to the final commit.
 
-The report can use either `CLEAR TO IMPLEMENT` or `BLOCKED - resolve findings first`. Neither
-clearance outcome authorizes a P07 code change. Both are advisory conclusions from the review.
+The current verdicts are `PROCEED` (no open gap), `PROCEED-WITH-CONSTRAINTS` (named gaps and owners), and `STOP` (a critical, exploitable, unmitigated threat). None authorizes a code change.
 
 ## Prepare safely
 
@@ -58,11 +57,9 @@ numbered P07 branch until Check or Reset tells you otherwise.
 {{action:P07-review-model}}
 
 The learner-owned report must be strict UTF-8 with LF line endings and one final newline. Keep it at or below 12
-KiB. Its sections are Scope, STRIDE findings, Recommended controls before implementation, and
-Clearance, in that order. Scope must name controlled input, repository-root boundary, and containment
-or rejection before write. STRIDE findings need six distinct, concrete threats in S, T, R, I, D, E
-order. Each row needs likelihood, impact, and a `PRESENT:`, `PLANNED:`, `GAP:`, or justified `N/A:`
-control.
+KiB. Its analysis sections are Surface, Threats, and Verdict. Surface identifies the proposed flow, controlled input, repository-root boundary, and containment before write.
+
+The native skill returns advisory analysis. For the learner-owned Academy record, summarize it in a six-row table, one row per STRIDE category, using columns Threat, Category, Likelihood, Impact, Control. Use H/M/L ratings and `PRESENT:`, `PLANNED:`, `GAP:`, or justified `N/A:` control descriptions. Put gaps first rather than sorting by category. This table is an Academy exercise format, not a required native output template.
 
 Use concrete controls in the report: keep destination resolution under the selected repository root
 before creating or copying a file. Reject absolute, traversal, symlink, and Windows reparse-point
@@ -73,9 +70,9 @@ The next learner request creates the report from the advisory analysis and prepa
 
 {{action:P07-write-binding}}
 
-After Clearance, add `## Academy Target-SHA256/identity binding` with the exact target path, prepared
+After Verdict, add `## Academy Target-SHA256/identity binding` with the exact target path, prepared
 blob, head blob, and SHA-256 values from the prepared scenario. Do not mix `Academy-Target-` labels
-into native sections. Do not add a secret, a generic governance event, another changed path, or a
+into analysis sections. Do not add a secret, a generic governance event, another changed path, or a
 claim that a host command was invoked.
 
 {{action:P07-commit-report}}
@@ -84,8 +81,8 @@ claim that a host command was invoked.
 
 ## Recognize success
 
-The final branch has one report-only commit after Prepare. The report has the four native sections
-in order, the separate Academy Target-SHA256/identity binding, and a permitted advisory Clearance.
+The final branch has one report-only commit after Prepare. The report has the three analysis sections
+in order, the separate Academy Target-SHA256/identity binding, and a permitted advisory Verdict.
 The final target object and raw SHA-256 match the prepared target. `git status --short` is empty.
 
 ## Check
@@ -100,7 +97,7 @@ practices, not final-state facts that this verifier can authenticate.
 
 ## Recover or continue
 
-If Scope is generic, STRIDE rows are reordered, Academy labels mix into native fields, a target value
+If Surface is generic, STRIDE rows are missing or duplicated, Academy labels mix into analysis fields, a target value
 is stale, the target changed, or Check names a failed predicate, preserve the attempt. Do not amend,
 rebase, force-reset, or alter `academy_engine/paths.py` to fit an old digest.
 
@@ -111,7 +108,7 @@ destination.
 **Hint 2.** The Threat cells need real outcomes. A row that only says "Tampering" does not say what an attacker
 can change or which containment failure would permit it.
 
-**Hint 3.** Academy target identity is verifier evidence, not native threat-model prose. Keep it after Clearance
+**Hint 3.** Academy target identity is verifier evidence, not native threat-model prose. Keep it after Verdict
 and copy the prepared values exactly. A passing Check does not turn this review into authorization to
 implement controls.
 
@@ -123,3 +120,5 @@ unpublished source exercises for a released lesson.
 ## Understand the mechanism
 
 `$ca-threat-model` is read-only advisory analysis: it writes no report. Threat modeling connects an untrusted input to a concrete boundary, then the learner-owned Academy record preserves threats and controls that matter at that boundary. STRIDE supplies coverage categories, not a substitute for specific reasoning. The Academy binding freezes which source bytes were reviewed without pretending it proves the live conversation, command invocation, or implementation authority.
+
+**Use this in your own project.** Threat-model a concrete flow: input, trust boundary, sensitive operation, failure outcome, and control. Ask which controls already exist and which still need work. An advisory verdict is not permission to expand the task or a claim that the controls were implemented.

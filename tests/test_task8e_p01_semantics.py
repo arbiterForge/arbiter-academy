@@ -31,6 +31,13 @@ def git(root: Path, *arguments: str, env: dict[str, str] | None = None) -> str:
 
 class P01PreparationSemanticsTests(unittest.TestCase):
     def test_feature_checkpoint_accepts_one_bounded_final_commit_without_executing_learner_code(self) -> None:
+        self._feature_case()
+
+    @unittest.skipUnless(os.environ.get("ARBITER_ACADEMY_TEST_PLUGIN_ROOT"), "requires reviewed installed producer")
+    def test_current_native_feature_checkpoint_accepts_real_writer_output(self) -> None:
+        self._feature_case(native=True)
+
+    def _feature_case(self, native: bool = False) -> None:
         """Catches a feature checkpoint that cannot verify the native one-commit contract."""
         with RetryingTemporaryDirectory() as directory:
             root = Path(directory) / "learner"
@@ -71,6 +78,17 @@ class P01PreparationSemanticsTests(unittest.TestCase):
                 "## MVP slice\nT-01 through T-02\n",
                 encoding="utf-8",
             )
+            suffix = "md"
+            plugin = None
+            if native:
+                from tests.native_planning_fixture import create_pair
+                plugin = Path(os.environ["ARBITER_ACADEMY_TEST_PLUGIN_ROOT"])
+                for kind in ("specs", "plans"):
+                    (root / f".codearbiter/{kind}/academy-feature.md").unlink()
+                create_pair(plugin, root)
+                with (root / ".git/info/exclude").open("a", encoding="utf-8") as excluded:
+                    excluded.write("\n.codearbiter/artifacts/\n")
+                suffix = "html"
             board = root / ".codearbiter/open-tasks.md"
             board.write_text(
                 board.read_text(encoding="utf-8").replace(
@@ -111,7 +129,7 @@ class P01PreparationSemanticsTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            git(root, "add", ".codearbiter/specs/academy-feature.md", ".codearbiter/plans/academy-feature.md", ".codearbiter/open-tasks.md", "tests/test_cli.py", "workshop_queue/cli.py")
+            git(root, "add", f".codearbiter/specs/academy-feature.{suffix}", f".codearbiter/plans/academy-feature.{suffix}", ".codearbiter/open-tasks.md", "tests/test_cli.py", "workshop_queue/cli.py")
             git(
                 root,
                 "commit",
@@ -128,8 +146,8 @@ class P01PreparationSemanticsTests(unittest.TestCase):
                 "lab_semantics",
                 {
                     "profile": "feature_spec_plan",
-                    "spec": ".codearbiter/specs/academy-feature.md",
-                    "plan": ".codearbiter/plans/academy-feature.md",
+                    "spec": f".codearbiter/specs/academy-feature.{suffix}",
+                    "plan": f".codearbiter/plans/academy-feature.{suffix}",
                     "board": ".codearbiter/open-tasks.md",
                     "test": "tests/test_cli.py",
                     "code": "workshop_queue/cli.py",
@@ -140,7 +158,9 @@ class P01PreparationSemanticsTests(unittest.TestCase):
             )
             attempt = _Attempt(prepared.branch, 1, prepared.commit_sha, prepared.base_sha, head)
 
-            self.assertTrue(_semantic(_SemanticContext(root, attempt, predicate)))
+            self.assertTrue(_semantic(_SemanticContext(root, attempt, predicate, plugin)))
+            if native:
+                self.assertFalse(_semantic(_SemanticContext(root, attempt, predicate)))
 
     def test_feature_profile_exposes_the_complete_one_commit_semantic_boundary(self) -> None:
         """Catches the old profile that cannot bind the final P01 learner artifact set."""
@@ -152,8 +172,8 @@ class P01PreparationSemanticsTests(unittest.TestCase):
                     "id": "feature_spec_plan_commit",
                     "type": "lab_semantics",
                     "profile": "feature_spec_plan",
-                    "spec": ".codearbiter/specs/academy-feature.md",
-                    "plan": ".codearbiter/plans/academy-feature.md",
+                    "spec": ".codearbiter/specs/academy-feature.html",
+                    "plan": ".codearbiter/plans/academy-feature.html",
                     "board": ".codearbiter/open-tasks.md",
                     "test": "tests/test_cli.py",
                     "code": "workshop_queue/cli.py",

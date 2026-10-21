@@ -4,6 +4,7 @@ build/
 *.egg-info/
 /.academy/
 .codearbiter/open-tasks.md.lock
+.codearbiter/.artifacts/
 node_modules/
 playwright-report/
 test-results/

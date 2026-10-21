@@ -15,7 +15,9 @@ next_lab: U07-capstone
 
 ## Know before you begin
 
-U06 is a guided, runnable lesson in Academy Preview 0.32. Use its installed Prepare, Check, and
+Preview helps you decide what deserves closer review before a commit. Try it on a small documentation change and explain the limits of its advice.
+
+U06 is a guided, runnable lesson in Academy Preview 0.33. Use its installed Prepare, Check, and
 Reset commands from this page; do not substitute repository-local source execution.
 
 The website is the course interface. Academy CLI is a setup, Check, and recovery helper when a
@@ -56,7 +58,7 @@ attempt branch by hand.
 
 {{action:U06-run-read-only-preview}}
 
-The two names are easy to confuse. Academy Preview 0.32 names an installed release and its public
+The two names are easy to confuse. Academy Preview 0.33 names an installed release and its public
 availability boundary. `ca-preview` is a host-native, advisory review of the current diff. It does
 not stage, commit, push, create a release, or give the agent authority to enlarge the change.
 
@@ -76,10 +78,7 @@ any mismatch for review instead of adding an unrelated correction or rewriting h
 
 {{action:U06-classify-advanced-surfaces}}
 
-The four advanced surfaces are **not run here**. `ca-sandbox` needs Docker and an untrusted target.
-`ca-new-skill` needs a demonstrated gap and approved scope. `ca-watch` needs a real hosted PR and
-CI. `ca-tribunal` is a persistent, expensive audit, not routine training. Naming a surface in a
-report is not permission to execute it.
+The four advanced labels are **not run here**. The `new-skill` JSON field is historical schema compatibility only; it is absent from the current catalog. `ca-sandbox` belongs to a separately installed plugin and has its own prerequisites. `ca-watch` follows an explicitly selected PR's CI. `ca-tribunal` is a persistent audit with its own cost and scope decisions. Check the installed catalog, and do not treat a label in a report as permission to execute it.
 
 {{action:U06-write-binding-report}}
 
@@ -103,15 +102,14 @@ committed bytes; neither the record nor Check claims that `ca-preview` ran or pe
 
 **Check limit:** source Check verifies committed repository facts. It cannot establish that you ran
 `ca-preview`, understood its result, or consciously chose not to execute an advanced command. The
-installed Academy Preview 0.32 Check evaluates this accepted source contract.
+installed Academy Preview 0.33 Check evaluates this accepted source contract.
 
 ## Recover or continue
 
 {{action:U06-reset-retry}}
 
 Keep a failed attempt visible. Do not amend, rebase, force-update, delete, reset, or overwrite
-history to make an incomplete preview packet look valid. A future released Reset must archive the
-attempt before it creates a retry.
+history to make an incomplete preview packet look valid. Reset preserves the attempt before it creates a retry.
 
 ### Hint 1
 
@@ -127,3 +125,7 @@ committed and its repository facts are available to bind.
 
 The safest power-user move is often not running a powerful command. State why the surface is out of
 scope and preserve the narrow evidence you do have.
+
+**Use this in your own project.** Use preview to inspect a bounded diff. It predicts review needs; it does not perform the full reviewer fleet or certify a commit. Use watch for a real PR when you want CI monitoring. Check the installed catalog before requesting an advanced command; an old course label is not proof that it still exists.
+
+Sandbox capabilities belong to the separately installed ca-sandbox plugin. Check the actual installed catalog before using them; Academy does not assume that plugin is present.

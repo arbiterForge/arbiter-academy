@@ -120,25 +120,25 @@ _LABS = (
 )
 _COMING_NEXT: tuple[str, ...] = ()
 _RUNNABLE_LINK_LABELS = (
-    "F01 \u2014 Fork, clone, and Doctor safety",
-    "F02 \u2014 Orient to live governance state",
-    "F03: Start a task with its work",
-    "F04 \u2014 Fix with evidence",
-    "P01 - Feature through a user-approved spec and derived plan",
-    "P02: Review, commit, push, and record an offline-local receipt",
-    "P03 - Record an accepted ADR",
-    "P04 - Review a dependency without installing it",
-    "P05 - Remediate a checkpoint finding",
-    "P06 - Recover context drift without losing unrelated work",
-    "P07 - Threat-model the path-handling boundary",
-    "P08: Classify repository hygiene without destructive cleanup",
-    "U01: Govern an autonomous sprint without outsourcing approval",
-    "U02: Observe an audit-log guard without changing the audit trail",
-    "U03: Refactor, chore, and local release evidence",
-    "U04: Initialize a greenfield and a brownfield project",
-    "U05: Debug, spike, and conflict without inventing evidence",
-    "U06: Preview a bounded change without turning advice into authority",
-    "U07: Complete a bounded feature capstone",
+    'F01 — Fork, clone, and Doctor safety',
+    'F02 — Orient to live governance state',
+    'F03: Start a task with its work',
+    'F04: Fix a bug with a regression test',
+    'P01 - Feature through a reviewed specification and derived plan',
+    'P02: Review, commit, push, and record an offline-local receipt',
+    'P03 - Record an accepted ADR',
+    'P04 - Review a dependency without installing it',
+    'P05: Turn a review finding into a tested repair',
+    'P06 - Recover context drift without losing unrelated work',
+    'P07 - Threat-model the path-handling boundary',
+    'P08: Classify repository hygiene without destructive cleanup',
+    'U01: Direct a bounded autonomous sprint',
+    'U02: Observe an audit-log guard without changing the audit trail',
+    'U03: Refactor, chore, and local release evidence',
+    'U04: Initialize a greenfield and a brownfield project',
+    'U05: Investigate before changing code',
+    'U06: Preview a bounded change without turning advice into authority',
+    'U07: Deliver a tested fix for review',
 )
 _COMING_NEXT_ENTRIES: tuple[tuple[str, bool], ...] = ()
 _PUBLIC_PREREQUISITES = (
@@ -149,39 +149,39 @@ _PUBLIC_PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.33.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _EXPECTED_INTEGRATION_COMPATIBILITY = {
-    "academy_release": "preview-0.32",
+    "academy_release": "preview-0.33",
     "evidence_level": "release-and-command-contract",
     "components": [
         {
             "component_id": "codearbiter",
             "display_name": "codeArbiter",
-            "release_tag": "v2.17.11",
-            "version": "2.17.11",
-            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "release_tag": "v3.2.6",
+            "version": "3.2.6",
+            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
             "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
-            "manifest_sha256": "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+            "manifest_sha256": "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64",
         },
         {
             "component_id": "ca-codex",
             "display_name": "Codex",
-            "release_tag": "ca-codex-v0.9.11",
-            "version": "0.9.11",
-            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "release_tag": "ca-codex-v0.20.6",
+            "version": "0.20.6",
+            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
             "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
-            "manifest_sha256": "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+            "manifest_sha256": "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7",
         },
         {
             "component_id": "ca-pi",
             "display_name": "Pi",
-            "release_tag": "ca-pi-v0.10.13",
-            "version": "0.10.13",
-            "source_commit": "d6900d96f0b61f66d420b6a424fddfd89ac0f71e",
+            "release_tag": "ca-pi-v0.21.6",
+            "version": "0.21.6",
+            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
             "manifest_path": "plugins/ca-pi/package.json",
-            "manifest_sha256": "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+            "manifest_sha256": "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499",
         },
     ],
 }
@@ -191,9 +191,9 @@ _COMPATIBILITY_LIMITATION = (
 )
 _COMPATIBILITY_ROWS = (
     (("th", "th", "th"), ("Component", "Version", "Release tag")),
-    (("td", "td", "td"), ("codeArbiter", "2.17.11", "v2.17.11")),
-    (("td", "td", "td"), ("Codex", "0.9.11", "ca-codex-v0.9.11")),
-    (("td", "td", "td"), ("Pi", "0.10.13", "ca-pi-v0.10.13")),
+    (("td", "td", "td"), ("codeArbiter", "3.2.6", "v3.2.6")),
+    (("td", "td", "td"), ("Codex", "0.20.6", "ca-codex-v0.20.6")),
+    (("td", "td", "td"), ("Pi", "0.21.6", "ca-pi-v0.21.6")),
 )
 _EXPECTED_ACTION_IDS = {
     Path("index.html"): (
@@ -262,8 +262,8 @@ _EXPECTED_ACTION_IDS = {
     Path("labs/F04-fix-with-evidence/index.html"): (
         "F04-prepare", "F04-inspect-defect", "F04-confirm-baseline", "F04-start-fix",
         "F04-request-regression", "F04-run-red-regression", "F04-inspect-test-boundary",
-        "F04-stage-regression", "F04-review-regression-boundary", "F04-commit-regression",
-        "F04-prove-red-commit", "F04-request-repair", "F04-prove-repair",
+
+        "F04-request-repair", "F04-prove-repair",
         "F04-inspect-repair-boundary", "F04-stage-repair", "F04-review-repair-boundary",
         "F04-commit-repair", "F04-inspect-history", "F04-check", "F04-reset-retry",
         "F04-return-base",
@@ -296,7 +296,7 @@ _EXPECTED_ACTION_IDS = {
         "P05-prerequisite", "P05-prepare", "P05-guard-attempt", "P05-read-prepared-boundary",
         "P05-surface-finding", "P05-inspect-finding", "P05-record-finding",
         "P05-verify-finding-commit", "P05-add-red-regression", "P05-observe-red",
-        "P05-commit-red", "P05-apply-green-repair", "P05-commit-green", "P05-record-receipt",
+        "P05-apply-green-repair", "P05-commit-green", "P05-record-receipt",
         "P05-commit-receipt", "P05-confirm-clean", "P05-check", "P05-reset-retry",
     ),
     Path("labs/P06-context-drift-recovery/index.html"): (
@@ -318,7 +318,7 @@ _EXPECTED_ACTION_IDS = {
     ),
     Path("labs/U01-autonomous-sprint/index.html"): (
         "U01-confirm-fork-boundary", "U01-prepare-attempt", "U01-inspect-scenario",
-        "U01-run-sprint", "U01-approve-or-decline-spec", "U01-approve-or-decline-plan", "U01-inspect-artifacts",
+        "U01-run-sprint", "U01-inspect-scope", "U01-inspect-plan", "U01-inspect-artifacts",
         "U01-check-status", "U01-return-base", "U01-reset-retry",
     ),
     Path("labs/U02-override-audit-metrics/index.html"): (
@@ -354,7 +354,7 @@ _EXPECTED_ACTION_IDS = {
     ),
     Path("labs/U05-debug-spike-conflict/index.html"): (
         "U05-confirm-readiness", "U05-prepare-attempt", "U05-read-observation",
-        "U05-run-debug", "U05-review-debug-board", "U05-commit-debug-board",
+        "U05-run-debug", "U05-review-debug-board",
         "U05-run-spike", "U05-confirm-spike-question", "U05-transfer-findings",
         "U05-review-findings", "U05-commit-findings", "U05-delete-spike",
         "U05-halt-for-conflict", "U05-check-status", "U05-reset-retry",
@@ -369,7 +369,7 @@ _EXPECTED_ACTION_IDS = {
     ),
     Path("labs/U07-capstone/index.html"): (
         "U07-return-to-main",
-        "U07-prepare", "U07-run-feature", "U07-open-pr", "U07-check", "U07-reset-retry",
+        "U07-prepare", "U07-run-fix", "U07-open-pr", "U07-check", "U07-reset-retry",
     ),
 }
 _GUIDED_STATUS = "Guided lesson"
@@ -735,7 +735,7 @@ def _check_release(root: Path) -> str:
             "prerequisites", "known_limits", "discussion_url",
             "integration_compatibility",
         }
-        or data.get("release") != "preview-0.32"
+        or data.get("release") != "preview-0.33"
         or type(data.get("lesson_contract_version")) is not int
         or data.get("lesson_contract_version") != 1
         or not isinstance(data.get("commit"), str)
@@ -751,7 +751,7 @@ def _check_release(root: Path) -> str:
         or data.get("discussion_url") != "https://github.com/arbiterForge/arbiter-academy/discussions"
         or data.get("integration_compatibility") != _EXPECTED_INTEGRATION_COMPATIBILITY
     ):
-        raise ValueError("release.json does not contain the exact Preview 0.32 provenance contract")
+        raise ValueError("release.json does not contain the exact Preview 0.33 provenance contract")
     return data["release"]
 
 
@@ -784,16 +784,16 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
     )
     expected_runnable_links = tuple(zip(expected_lab_pages, _RUNNABLE_LINK_LABELS, strict=True))
     if runnable_links != expected_runnable_links:
-        raise ValueError("home runnable lab links do not match the exact guided Preview 0.32 inventory")
+        raise ValueError("home runnable lab links do not match the exact guided Preview 0.33 inventory")
     if tuple(home_collector.coming_next_entries) != _COMING_NEXT_ENTRIES:
-        raise ValueError("home coming-next entries do not match the exact Preview 0.32 guided-rewrite sequence")
+        raise ValueError("home coming-next entries do not match the exact Preview 0.33 guided-rewrite sequence")
 
     for page, collector in pages.items():
         relative = page.relative_to(root)
         expected_actions = _EXPECTED_ACTION_IDS.get(relative, ())
         if tuple(collector.action_ids) != expected_actions:
             raise ValueError(
-                f"generated action IDs do not match the exact Preview 0.32 contract: {relative.as_posix()}"
+                f"generated action IDs do not match the exact Preview 0.33 contract: {relative.as_posix()}"
             )
 
         if relative.parts[:1] != ("labs",):
@@ -824,7 +824,7 @@ def _check_publication_truth(root: Path, pages: dict[Path, _LinkCollector]) -> N
             expected_statuses = (_REFERENCE_STATUS,)
         if tuple(collector.publication_statuses) != expected_statuses:
             raise ValueError(
-                "generated publication status does not match the exact Preview 0.32 contract: "
+                "generated publication status does not match the exact Preview 0.33 contract: "
                 f"{relative.as_posix()}"
             )
 
@@ -841,7 +841,7 @@ def _check_home_compatibility(home: str) -> None:
         or tuple(collector.rows) != _COMPATIBILITY_ROWS
     ):
         raise ValueError(
-            "home integration compatibility does not match the exact Preview 0.32 contract"
+            "home integration compatibility does not match the exact Preview 0.33 contract"
         )
 
 

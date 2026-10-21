@@ -2,8 +2,8 @@
 id: U05-debug-spike-conflict
 track: power-user
 order: 5
-title: Debug, spike, and conflict without inventing evidence
-outcome: Preserve a real debug no-action close and a findings-only spike transfer, while stopping for a human conflict decision.
+title: Investigate before changing code
+outcome: Reach a read-only debug conclusion, then preserve only a disposable spike answer.
 prerequisites: U04-initialize-projects
 estimated_minutes: 45
 scenario_command: {{action:U05-prepare-attempt}}
@@ -11,20 +11,23 @@ checkpoint_command: {{action:U05-check-status}}
 next_lab: U06-preview-and-advanced-surfaces
 ---
 
-# U05: Debug, spike, and conflict without inventing evidence
+# U05: Investigate before changing code
 
 ## Know before you begin
 
-This lesson uses the released codeArbiter contract. The website gives the sequence and your host runs the real commands. Academy can inspect repository facts at the end, but it cannot prove an agent's private reasoning or a human conflict decision.
+Use debug when the cause is unknown. Use a spike for a short experiment that answers
+one design or implementation question. Investigation does not silently authorize
+a production change.
 
 {{action:U05-confirm-readiness}}
 
 ## What you will prove
 
-You will preserve two real outputs. The debug no-action exit records its cited conclusion through
-taskwrite; its optional `debug.note` ID is not evidence. The spike preserves only its four-part
-findings file on the parent branch, then deletes the exploratory branch. Neither output proves a
-command transcript or invents a conflict receipt.
+Investigate the fictional cache-key observation. A current no-action debug exit
+returns a cited explanation and leaves the board and source unchanged.
+
+Then bring only the spike's findings file back to the Academy branch in one commit.
+Confirm deletion of the disposable spike only after preserving its answer.
 
 ## Prepare safely
 
@@ -32,22 +35,17 @@ command transcript or invents a conflict receipt.
 
 {{action:U05-read-observation}}
 
+The prepared observation is input to investigate, not a transcript or a conclusion
+you may rewrite to make the lesson pass.
+
 ## Practice
-
-Keep the parent attempt clean between the two commits. The commands below state which surface owns each action and what evidence must remain afterward.
-
-## Debug: preserve the no-action close
 
 {{action:U05-run-debug}}
 
 {{action:U05-review-debug-board}}
 
-{{action:U05-commit-debug-board}}
-
-The first parent commit contains only `.codearbiter/open-tasks.md`. Check verifies the resulting
-taskwrite-shaped U05 cache-key entry and clean tree, not a claimed command invocation or a fixed task ID.
-
-## Spike: transfer only the answer
+Read the cited evidence. A no-action conclusion needs a positive reason; an unsuccessful
+attempt to reproduce a reported problem is not enough.
 
 {{action:U05-run-spike}}
 
@@ -61,41 +59,45 @@ taskwrite-shaped U05 cache-key entry and clean tree, not a claimed command invoc
 
 {{action:U05-delete-spike}}
 
-The native `git branch -D` is intentional. The findings-only restore leaves the disposable spike commit unmerged. Do not merge merely to make ordinary branch deletion succeed. The parent receives the findings file’s contents, never the spike commit or exploratory code.
-
-## Conflict: stop for a person
+The findings-only transfer does not merge the spike. The deletion uses git branch -D
+because that exploratory commit remains unmerged. Confirm the exact branch and the
+preserved answer before running it.
 
 {{action:U05-halt-for-conflict}}
 
+Use conflict when actual sources disagree. Do not invent a conflict or a resolution
+receipt to finish the exercise.
+
 ## Recognize success
 
-Check accepts repository facts only: the exact prepared observation; a first parent commit containing the taskwrite-shaped no-action board entry; a second parent commit with only `.codearbiter/spikes/u05-cache-key.md`; and no `spike/u05-cache-key` ref. It rejects copied or uncommitted exploratory code. It cannot prove that a host command ran or that a person resolved a conflict wisely.
+The task board matches Prepare. One new parent commit contains only
+.codearbiter/spikes/u05-cache-key.md, with Question, What tried, Answer, and Implication
+sections. The disposable spike ref is absent and the worktree is clean.
 
 ## Check
 
 {{action:U05-check-status}}
 
+Check observes the prepared input, preserved board, findings, commit boundary, and
+missing spike ref. It cannot prove debug invocation, reasoning quality, or deletion
+approval.
+
 ## Recover or continue
 
 {{action:U05-reset-retry}}
 
-Never merge or open a pull request for a spike branch, copy spike code to the parent, or keep a spike branch merely to satisfy Check. If `$ca-conflict` fires, stop work and wait for the user’s resolution before continuing.
+**Hint 1.** A debug conclusion does not create a task by default.
 
-### Hint 1
+**Hint 2.** Transfer the findings file, never exploratory code or the spike commit.
 
-Read the prepared observation before debugging. It is an input to investigate, not a transcript that you can edit into evidence.
-
-### Hint 2
-
-The parent board commit and parent findings commit are intentionally separate. Check rejects a single commit that combines them.
-
-### Hint 3
-
-`git branch -D` is correct only after the parent has committed the restored findings file. It deletes the intentionally unmerged disposable branch; it does not merge it.
+**Hint 3.** If rules conflict, preserve the state and wait for the actual user's
+resolution. A passing Check is not that decision.
 
 ## Understand the mechanism
 
-Prepare commits the fictional observation so every learner begins from the same bounded question.
-The host owns debug and spike behavior. Academy Check reads only the resulting Git range, task board,
-findings file, deleted U05 spike ref, and clean worktree. That is why a copied exploratory change,
-retained branch, invented receipt, or merged spike cannot pass.
+Investigation reduces uncertainty. A spike leaves an answer that guides later
+production work through its proper feature or fix workflow.
+
+**Use this in your own project.** Give debug the observed behavior, expected behavior,
+and available evidence. Give a spike one question and a stopping condition. Take a
+confirmed bug's reproduction and regression idea into the fix lane.

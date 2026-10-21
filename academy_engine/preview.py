@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlsplit
 from academy_engine.catalog import Catalog, CatalogError
 
 
-_RELEASE = "preview-0.32"
+_RELEASE = "preview-0.33"
 _RUNNABLE_LABS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",
@@ -44,7 +44,7 @@ _PREREQUISITES = (
     "Complete Academy Home setup steps 1-5 before starting F01.",
 )
 _KNOWN_LIMITS = (
-    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.32.",
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.33.",
     "Graduation is available after all 19 Academy Checks pass in the same repository.",
 )
 _DISCUSSIONS_ORIGIN = "github.com"
@@ -63,28 +63,28 @@ _COMPATIBILITY_COMPONENTS = (
         "codearbiter",
         "codeArbiter",
         "v",
-        "2.17.11",
+        "3.2.6",
         "plugins/ca/.claude-plugin/plugin.json",
-        "6834bcd5628e3e2183ed4643ea129fd0f2e0fb3e942abdd48bd885162f5de964",
+        "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64",
     ),
     (
         "ca-codex",
         "Codex",
         "ca-codex-v",
-        "0.9.11",
+        "0.20.6",
         "plugins/ca-codex/.codex-plugin/plugin.json",
-        "9df49b76696cd7e008ebc2f976292825012d001f8d8e89f580104e34e3bb23c5",
+        "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7",
     ),
     (
         "ca-pi",
         "Pi",
         "ca-pi-v",
-        "0.10.13",
+        "0.21.6",
         "plugins/ca-pi/package.json",
-        "5f6596c90d4341a0a6a8a1f71a5f4126abc6aa8b2ed6aefe69c03df44ab68fb4",
+        "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499",
     ),
 )
-_COMPATIBILITY_SOURCE_COMMIT = "d6900d96f0b61f66d420b6a424fddfd89ac0f71e"
+_COMPATIBILITY_SOURCE_COMMIT = "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77"
 _SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
 
 

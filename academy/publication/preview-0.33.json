@@ -1,0 +1,69 @@
+{
+  "release": "preview-0.33",
+  "lesson_contract_version": 1,
+  "available_labs": [
+    "F01-fork-clone-doctor", "F02-orient-to-state", "F03-work-the-board", "F04-fix-with-evidence",
+    "P01-feature-through-plan", "P02-commit-review-pr", "P03-record-an-adr", "P04-review-a-dependency",
+    "P05-checkpoint-remediation", "P06-context-drift-recovery", "P07-threat-model", "P08-repository-hygiene",
+    "U01-autonomous-sprint", "U02-override-audit-metrics", "U03-refactor-chore-release", "U04-initialize-projects",
+    "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"
+  ],
+  "runnable_labs": [
+    "F01-fork-clone-doctor", "F02-orient-to-state", "F03-work-the-board", "F04-fix-with-evidence",
+    "P01-feature-through-plan", "P02-commit-review-pr", "P03-record-an-adr", "P04-review-a-dependency",
+    "P05-checkpoint-remediation", "P06-context-drift-recovery", "P07-threat-model", "P08-repository-hygiene",
+    "U01-autonomous-sprint", "U02-override-audit-metrics", "U03-refactor-chore-release", "U04-initialize-projects",
+    "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"
+  ],
+  "guided_labs": [
+    "F01-fork-clone-doctor", "F02-orient-to-state", "F03-work-the-board", "F04-fix-with-evidence",
+    "P01-feature-through-plan", "P02-commit-review-pr", "P03-record-an-adr", "P04-review-a-dependency",
+    "P05-checkpoint-remediation", "P06-context-drift-recovery", "P07-threat-model", "P08-repository-hygiene",
+    "U01-autonomous-sprint", "U02-override-audit-metrics", "U03-refactor-chore-release", "U04-initialize-projects",
+    "U05-debug-spike-conflict", "U06-preview-and-advanced-surfaces", "U07-capstone"
+  ],
+  "coming_next": [],
+  "prerequisites": [
+    "A GitHub account that can create a personal fork.", "Git 2.39 or newer.", "Python 3.11 or newer.",
+    "A supported CodeArbiter host: Claude Code, Codex, or Pi.", "Complete Academy Home setup steps 1-5 before starting F01."
+  ],
+  "known_limits": [
+    "F01-F04, P01-P08, and U01-U07 are the guided lessons published in Preview 0.33.",
+    "Graduation is available after all 19 Academy Checks pass in the same repository."
+  ],
+  "discussion_url": "https://github.com/arbiterForge/arbiter-academy/discussions",
+  "catalog_sha256": "1e2198aa281cc409dfe9b91bb42001236dafcd231477202e3a24de5dadf7a09c",
+  "integration_compatibility": {
+    "academy_release": "preview-0.33",
+    "evidence_level": "release-and-command-contract",
+    "components": [
+      {
+        "component_id": "codearbiter",
+        "display_name": "codeArbiter",
+        "release_tag": "v3.2.6",
+        "version": "3.2.6",
+        "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+        "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
+        "manifest_sha256": "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64"
+      },
+      {
+        "component_id": "ca-codex",
+        "display_name": "Codex",
+        "release_tag": "ca-codex-v0.20.6",
+        "version": "0.20.6",
+        "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+        "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
+        "manifest_sha256": "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7"
+      },
+      {
+        "component_id": "ca-pi",
+        "display_name": "Pi",
+        "release_tag": "ca-pi-v0.21.6",
+        "version": "0.21.6",
+        "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+        "manifest_path": "plugins/ca-pi/package.json",
+        "manifest_sha256": "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499"
+      }
+    ]
+  }
+}

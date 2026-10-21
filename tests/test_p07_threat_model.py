@@ -95,6 +95,26 @@ def git(root: Path, *arguments: str, check: bool = True) -> subprocess.Completed
 
 
 class P07ThreatModelTests(unittest.TestCase):
+    def test_current_design_report_uses_risk_order_and_constraints(self):
+        raw = P07_INTENDED_REPORT.replace(b"## Scope", b"## Surface").replace(b"This review covers", b"This proposed archive-import design review covers").replace(b"## STRIDE findings", b"## Threats")
+        start = raw.index(b"## Recommended controls")
+        end = raw.index(b"## Academy Target")
+        raw = raw[:start] + b"## Verdict\nPROCEED-WITH-CONSTRAINTS\nOwner: importer implementer must bound extraction work and retain import provenance.\n\n" + raw[end:]
+        lines = raw.splitlines()
+        row = next(i for i, line in enumerate(lines) if line.startswith(b"| Archive-member"))
+        lines[row:row+6] = [lines[row+2], lines[row+4], lines[row], lines[row+1], lines[row+3], lines[row+5]]
+        raw = b"\n".join(lines) + b"\n"
+        sections = installed_checkpoints._p07_sections(raw)
+        self.assertIsNotNone(sections)
+        self.assertTrue(installed_checkpoints._p07_native_conversation(sections))
+        self.assertFalse(installed_checkpoints._p07_native_conversation(installed_checkpoints._p07_sections(raw.replace(b"PROCEED-WITH-CONSTRAINTS", b"PROCEED"))))
+        root, _, _ = self._repository()
+        target = root / REPORT_PATH
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+        self._commit(root, (REPORT_PATH,), "record proposed-design model")
+        self.assertTrue(evaluate_checkpoint(root, LAB_ID).passed)
+
     def setUp(self) -> None:
         self.source = Path(__file__).resolve().parents[1]
         self.temporary = tempfile.TemporaryDirectory()

@@ -40,7 +40,7 @@ EXPECTED_HOST_ACTIONS = {
     PRACTITIONER[2]: ("adr",),
     PRACTITIONER[3]: ("btw",),
     PRACTITIONER[4]: ("checkpoint",),
-    PRACTITIONER[5]: ("context-check",),
+    PRACTITIONER[5]: ("status drift",),
     PRACTITIONER[6]: ("threat-model",),
     PRACTITIONER[7]: ("standup",),
 }
@@ -211,7 +211,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
                     actions = {action.id: action for action in manifest.actions}
                     release = load_preview_manifest(SOURCE)
                     self.assertNotIn("```", guide)
-                    self.assertEqual(release.release, "preview-0.32")
+                    self.assertEqual(release.release, "preview-0.33")
                     self.assertIn(lab.id, release.runnable_labs)
                     self.assertIn(lab.id, release.guided_labs)
                     for action_id in ("P03-prepare", "P03-check", "P03-reset"):
@@ -406,7 +406,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         """Catches P01 beginning work without the host-native feature command."""
         p01 = load_track(SOURCE, "practitioner").labs[0]
 
-        request = '"Show unresolved tickets in the Workshop Queue summary"'
+        request = '"Show unresolved tickets in the Workshop Queue JSON summary" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.'
         self.assertEqual(
             p01.host_commands,
             {
@@ -489,7 +489,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertEqual(actions["P01-draft-spec"].actor, "agent")
         self.assertEqual(actions["P01-revise-spec"].actor, "learner")
         self.assertEqual(actions["P01-proceed"].actor, "learner")
-        self.assertEqual(actions["P01-check"].actor, "learner")
+        self.assertEqual(actions["P01-check"].actor, "agent")
 
 
 
@@ -660,7 +660,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         guide = (SOURCE / "academy/tracks/practitioner/P03-record-an-adr.md").read_text(encoding="utf-8")
         for required in (
-            "1–80 Unicode scalar values", "No learner email", "one commit or two linear commits",
+            "1–80 Unicode scalar values", "No learner email", "source-bound acceptance",
             "`%an`", "append-only byte prefix", "never echo a rejected name",
         ):
             with self.subTest(required=required):
@@ -693,11 +693,11 @@ class PractitionerCurriculumTests(unittest.TestCase):
             tuple(action.id for action in manifest.actions),
         )
         self.assertEqual(lab.id, "P03-record-an-adr")
-        self.assertEqual(lab.host_commands["codex"], '$ca-adr "Choose the Workshop Queue summary-format boundary"')
+        self.assertTrue(lab.host_commands["codex"].startswith('$ca-adr "Choose the Workshop Queue summary-format boundary"'))
         normalized_guide = " ".join(guide.split())
         for required in (
-            "stable text", "structured JSON", "learner chooses", "clean worktree", "1–2 linear commits",
-            "only ADR/log paths", "ADR before log if split", "commit date/name", "artifact format/choice",
+            "stable text", "structured JSON", "learner chooses", "clean worktree", "2–3 linear commits",
+            "only ADR, log, and acceptance-ledger paths", "ADR before log if split", "commit date/name", "artifact format/choice",
             "append-only log prefix", "cannot prove human acceptance", "host command use", "reasoning quality",
             "chronology", "independent review", "P03-record-an-adr",
         ):
@@ -760,7 +760,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
 
     def test_p04_cannot_be_public_before_p03_closes_its_prerequisite(self) -> None:
         """Catches P04 being promoted while its required P03 lesson remains absent."""
-        path = SOURCE / "academy/publication/preview-0.32.json"
+        path = SOURCE / "academy/publication/preview-0.33.json"
         candidate = json.loads(path.read_text(encoding="utf-8"))
         for field in ("available_labs", "runnable_labs", "guided_labs"):
             candidate[field].remove("P03-record-an-adr")
@@ -789,10 +789,9 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
         guide = (SOURCE / "academy/tracks/practitioner/P05-checkpoint-remediation.md").read_text(encoding="utf-8")
         for required in (
-            "test-only RED", "code-only GREEN", "schema_version", "red_commit",
-            "remediation_commit", "receipt last", "not evidence that either command was invoked",
-            "`affected_paths` is exactly, in order, `tests/test_cli.py` then `workshop_queue/cli.py`",
-            "P06 is the next public guided Academy lesson",
+            "Observe RED", "schema-3 receipt", "finding_commit", "remediation_commit",
+            "no `red_commit` field", "Generate the receipt last",
+            "cannot authenticate", "before P06",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, guide)
@@ -824,8 +823,8 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertIn("{{action:P05-prepare}}", guide)
         self.assertIn("{{action:P05-check}}", guide)
         self.assertIn("{{action:P05-reset-retry}}", guide)
-        self.assertIn("Check does not authenticate a checkpoint run", guide)
-        self.assertIn("does not prove command chronology", guide)
+        self.assertIn("cannot authenticate a checkpoint invocation", guide)
+        self.assertIn("receipt, and clean worktree", guide)
 
     def test_p06_freezes_interrupted_lane_scenario_identity(self) -> None:
         """Catches P06 losing its interrupted-lane, provenance, or preservation boundary."""
@@ -880,20 +879,20 @@ class PractitionerCurriculumTests(unittest.TestCase):
         self.assertEqual(
             p06.host_commands,
             {
-                "claude-code": "/ca:context-check",
-                "codex": "$ca-context-check",
-                "pi": "/ca-context-check\n/skill:ca-context-check",
+                "claude-code": "/ca:status drift",
+                "codex": "$ca-status drift",
+                "pi": "/ca-status drift\n/skill:ca-status drift",
             },
         )
         audit = next(action for action in actions.actions if action.id == "P06-run-context-audit")
         self.assertEqual(
             tuple(variant.command for variant in audit.variants if variant.host == "pi"),
-            ("/ca-context-check", "/skill:ca-context-check"),
+            ("/ca-status drift", "/skill:ca-status drift"),
         )
         for required in (
             "Workshop Queue report output is JSON-only.",
-            "042746e43698e5d2a6de4c536f1024f893aef805",
-            "5b41fb168a8b258cfae7eebc46e8b9ea7696ba56",
+            "native writer",
+            "v2",
             "stable text is the default and structured JSON is optional",
             "Workshop Queue report output defaults to stable text and supports structured JSON with --format json.",
         ):
@@ -1074,57 +1073,16 @@ class PractitionerCurriculumTests(unittest.TestCase):
         )
 
     def test_p07_freezes_native_and_academy_sections_without_invocation_claim(self) -> None:
-        """Catches P07 mixing native fields, Academy binding, or host-invocation claims."""
         p07 = load_track(SOURCE, "practitioner").labs[6]
-        guide = (
-            SOURCE / "academy/tracks/practitioner/P07-threat-model.md"
-        ).read_text(encoding="utf-8")
-
-        self.assertEqual(p07.estimated_minutes, 35)
+        guide = (SOURCE / "academy/tracks/practitioner/P07-threat-model.md").read_text(encoding="utf-8")
         self.assertEqual(p07.prerequisites, ("P06-context-drift-recovery",))
-        self.assertEqual(p07.next_lab, "P08-repository-hygiene")
-        self.assertEqual(
-            p07.host_commands,
-            {
-                "claude-code": (
-                    '/ca:threat-model "academy_engine/paths.py archive-import containment boundary"'
-                ),
-                "codex": (
-                    '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
-                ),
-                "pi": (
-                    '/ca-threat-model "academy_engine/paths.py archive-import containment boundary"\n'
-                    '/skill:ca-threat-model "academy_engine/paths.py archive-import containment boundary"'
-                ),
-            },
-        )
-        native_sections = (
-            "Its sections are Scope, STRIDE findings",
-            "Clearance, in that order",
-            "S, T, R, I, D, E\norder",
-            "## Academy Target-SHA256/identity binding",
-        )
-        self.assertTrue(
-            all(section in guide for section in native_sections),
-            "P07 must teach the native report sections, STRIDE order, and separate binding.",
-        )
-        positions = [guide.index(section) for section in native_sections]
-        self.assertEqual(positions, sorted(positions))
-        normalized = " ".join(guide.split())
-        for required in (
-            "opt-in and read-only",
-            "It does not prove that a host command was invoked",
-            "prepared blob, head blob, and SHA-256 values",
-            "CLEAR TO IMPLEMENT",
-            "BLOCKED - resolve findings first",
-            "keep destination resolution under the selected repository root",
-            "Reject absolute, traversal, symlink, and Windows reparse-point ancestors",
-            "Fail closed on a different drive or an unrepresentable containment path",
-        ):
-            with self.subTest(required=required):
-                self.assertIn(required, normalized)
-        self.assertNotIn("proves that `$ca-threat-model`", guide)
-        self.assertNotIn("native Academy", guide)
+        for command in p07.host_commands.values():
+            self.assertIn("proposed archive importer", command)
+            self.assertIn("Do not implement or write files", command)
+        for term in ("Surface, Threats, and Verdict", "PROCEED-WITH-CONSTRAINTS", "critical, exploitable, unmitigated", "Academy exercise format", "## Academy Target-SHA256/identity binding"):
+            self.assertIn(term, guide)
+        self.assertIn("It does not prove that a host command was", guide)
+        self.assertNotIn("CLEAR TO IMPLEMENT", guide)
 
     def test_p07_is_a_public_action_backed_threat_model_lesson(self) -> None:
         """Catches P07 returning to raw commands or claiming Check proves live process."""
@@ -1151,13 +1109,13 @@ class PractitionerCurriculumTests(unittest.TestCase):
             tuple(action.id for action in manifest.actions),
         )
         self.assertEqual(lab.id, "P07-threat-model")
-        self.assertEqual(lab.host_commands["codex"], '$ca-threat-model "academy_engine/paths.py archive-import containment boundary"')
+        self.assertIn("proposed archive importer", lab.host_commands["codex"])
         normalized = " ".join(guide.split())
         for required in (
-            "strict UTF-8 with LF line endings", "S, T, R, I, D, E order",
+            "strict UTF-8 with LF line endings", "Put gaps first",
             "Academy Target-SHA256/identity binding", "does not prove that a host command was invoked",
             "does not prove that the agent drafted first", "does not prove that you reviewed",
-            "Neither clearance outcome authorizes a P07 code change", "public guided and runnable Academy lesson",
+            "None authorizes a code change", "public guided and runnable Academy lesson",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, normalized)

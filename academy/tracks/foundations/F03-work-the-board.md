@@ -15,7 +15,9 @@ next_lab: F04-fix-with-evidence
 
 ## Know before you begin
 
-Preview 0.32 publishes F03 as a runnable Foundation lesson. Complete [F02 — Orient to live governance
+A task board should help you follow real work. Start one small documentation task, make its correction, and keep the board transition with that change.
+
+Preview 0.33 publishes F03 as a runnable Foundation lesson. Complete [F02 — Orient to live governance
 state](../F02-orient-to-state/index.html) first, then begin from a clean numbered attempt with
 `academy.docs.0001` queued and `docs/ticket-list-contract.md` seeded. Keep a native terminal and one
 active codeArbiter host at that same repository. Agent commands do not run in the shell.
@@ -113,3 +115,5 @@ from hiding that the task entered progress.
 The local Git result is deliberately narrower than the workflow that produced it. Check can
 verify the one commit and its bytes, but not either agent invocation, the learner's review, or the
 branch-handoff choice. The guide states those limits instead of treating durable state as telemetry.
+
+**Use this in your own project.** Give a task one observable done condition and a narrow boundary. Start it when work begins, preserve its ID, and mark it done only when its actual done condition is met. This exercise stops at in-progress to teach the start transition; that is not the normal endpoint of completed work.
