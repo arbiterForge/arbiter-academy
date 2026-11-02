@@ -1,0 +1,101 @@
+name: codeArbiter Drift
+
+# Academy Verify fails when codeArbiter ships a release or changes a mapped lesson
+# source. On a schedule nobody watches, that failure went unnoticed for six weeks.
+# This run checks the same two contracts daily and keeps one open issue while
+# either fails, so the drift reaches a person the day it starts.
+
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: codearbiter-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DRIFT_TITLE: "codeArbiter drift: Academy lessons need review"
+    steps:
+      - name: Check out Academy main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Check out codeArbiter with its release tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: arbiterForge/codeArbiter
+          path: .ci/codearbiter-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the declared cohort and the lesson sources
+        id: check
+        shell: bash
+        run: |
+          set -uo pipefail
+          compatibility=0
+          review=0
+          python scripts/check_codearbiter_compatibility.py \
+            --manifest academy/publication/preview-0.33.json \
+            --codearbiter-root .ci/codearbiter-source > compatibility.txt 2>&1 || compatibility=$?
+          python scripts/check_lesson_source_review.py \
+            --codearbiter-root .ci/codearbiter-source --ref origin/main > review.txt 2>&1 || review=$?
+          cat compatibility.txt review.txt
+          producer="$(git -C .ci/codearbiter-source rev-parse origin/main)"
+          {
+            echo "The daily drift run found Academy out of step with codeArbiter \`$producer\`."
+            echo
+            echo "Compatibility check (exit $compatibility):"
+            echo '```'
+            cat compatibility.txt
+            echo '```'
+            echo
+            echo "Lesson source review (exit $review):"
+            echo '```'
+            cat review.txt
+            echo '```'
+            echo
+            echo "Follow docs/academy-maintenance.md: review each named lesson against the changed sources, then re-pin the cohort and rebind the source map in one PR."
+          } > drift.md
+          if [ "$compatibility" -ne 0 ] || [ "$review" -ne 0 ]; then
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Keep one open drift issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRIFT: ${{ steps.check.outputs.drift }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$DRIFT_TITLE\" in:title" \
+            --json number,title --jq "map(select(.title == env.DRIFT_TITLE)) | .[0].number // empty")"
+          if [ "$DRIFT" = "true" ]; then
+            if [ -n "$number" ]; then
+              gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body-file drift.md
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$DRIFT_TITLE" --body-file drift.md
+            fi
+            exit 1
+          fi
+          if [ -n "$number" ]; then
+            gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+              --comment "The daily drift run passes again; Academy matches the newest codeArbiter cohort and every mapped lesson source."
+          fi

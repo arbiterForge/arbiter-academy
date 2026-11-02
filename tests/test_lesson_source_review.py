@@ -49,6 +49,23 @@ class LessonSourceReviewTests(unittest.TestCase):
         self.assertEqual(len(review.compare(self.fixture(), read)), 19)
         self.assertEqual(set(seen), {"core/surface/commands/feature.md"})
 
+    def test_card_commands_absent_at_the_producer_are_reported(self):
+        """Catches a lesson that still teaches a command codeArbiter removed."""
+        with tempfile.TemporaryDirectory() as directory:
+            actions = Path(directory)
+            (actions / "U06.json").write_text(json.dumps({"actions": [
+                {"id": "U06-run", "variants": [
+                    {"language": "codearbiter", "command": "/ca:preview"},
+                    {"language": "codearbiter", "command": "$ca-review"},
+                    {"language": "text", "command": "/ca:btw is prose here, not a command card"},
+                ]},
+                {"id": "U06-skill", "variants": [{"language": "codearbiter", "command": "/skill:ca-tdd now"}]},
+                {"id": "U06-odd", "variants": [{"language": "codearbiter", "command": "ca-review"}]},
+            ]}), encoding="utf-8")
+            present = {"core/surface/commands/review.md", "core/surface/skills/tdd/SKILL.md"}
+            retired = review.retired_commands(actions, present.__contains__)
+        self.assertEqual(retired, {"U06-run": ["preview"], "U06-odd": ["ca-review"]})
+
     def test_incomplete_duplicate_or_unsafe_review_records_are_rejected(self):
         for change in ("missing", "duplicate", "unsafe", "bad-hash", "empty"):
             manifest = self.fixture()

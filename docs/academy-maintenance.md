@@ -11,8 +11,11 @@ for a learner's own project.
    than a dirty local checkout.
 2. Run `python scripts/check_lesson_source_review.py --codearbiter-root PATH`.
    It compares `academy/lesson-source-review.json` with the producer's
-   `origin/main` and prints each affected lesson. The existing scheduled and PR
-   workflows also run this check. A matching hash is not semantic review.
+   `origin/main` and prints each affected lesson. It also fails when an action card
+   names a codeArbiter command that no longer exists there. The scheduled and PR
+   workflows run this check, and the daily `codeArbiter Drift` workflow keeps one
+   open issue while it or the compatibility check fails. A matching hash is not
+   semantic review.
 3. For every affected lesson, read the command owner and its loaded references.
    Review the guide and **every field** of each action card: instruction,
    rationale, command, expected result, recovery, and evidence limits.
