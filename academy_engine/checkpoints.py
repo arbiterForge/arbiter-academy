@@ -1614,17 +1614,18 @@ def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: st
     old, new = before_lines[queued[0]].rstrip("\r\n"), started[0].rstrip("\r\n")
     match = re.fullmatch(rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old)
     flip = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
-    commit_date = run_git(root, ["show", "-s", "--format=%as", attempt.head], check=False).stdout.strip()
-    if not (match and flip and match.group("body") == flip.group("body") and flip.group("date") == commit_date):
+    if not (match and flip and match.group("body") == flip.group("body")):
         return False
     flipped = list(before_lines)
     flipped[queued[0]] = started[0]
-    if flipped == after_lines:
-        return True
     # From codeArbiter 3.3 the feature lane also records one queued item bound to its spec and plan.
-    return artifact_ids is not None and _one_queued_work_item_added(
-        "".join(flipped).encode("utf-8"), after, frozenset({"feature"}), artifact_ids
-    )
+    if flipped != after_lines and not (
+        artifact_ids is not None
+        and _one_queued_work_item_added("".join(flipped).encode("utf-8"), after, frozenset({"feature"}), artifact_ids)
+    ):
+        return False
+    commit_date = run_git(root, ["show", "-s", "--format=%as", attempt.head], check=False).stdout.strip()
+    return flip.group("date") == commit_date
 
 
 def _p01_exact_regression(prepared: bytes | None, final: bytes | None) -> bool:
