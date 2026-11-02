@@ -629,6 +629,60 @@ def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
     return tuple(result.stdout.splitlines()) if result.returncode == 0 else ()
 
 
+_LEGACY_BOARD = ".codearbiter/open-tasks.md"
+_QUEUED_WORK_ROW = re.compile(r"- \[ \] (?P<title>\S.*?)  \(from (?P<origin>[^\s()]+)\)")
+_WORK_DETAIL_KEYS = frozenset({"Work origin", "Desc", "Work type", "Work ID", "Work operation ID"})
+_WORK_ID = re.compile(r"WORK-[0-9A-F]{32}")
+
+
+def _one_queued_work_item_added(before: bytes | None, after: bytes | None, work_type: str) -> bool:
+    """Accept only the queued row a lane's work-item create adds to a legacy board.
+
+    From codeArbiter 3.3 a fix or feature lane records the change as one work item.
+    On a legacy board that is one queued row with its detail bullets, inserted in one
+    place, and commit-gate keeps it in the work commit. Every existing line must keep
+    its exact bytes.
+    """
+    if before is None or after is None:
+        return False
+    try:
+        old = before.decode("utf-8").splitlines(keepends=True)
+        new = after.decode("utf-8").splitlines(keepends=True)
+    except UnicodeDecodeError:
+        return False
+    prefix = 0
+    while prefix < min(len(old), len(new)) and old[prefix] == new[prefix]:
+        prefix += 1
+    suffix = 0
+    while suffix < min(len(old), len(new)) - prefix and old[-1 - suffix] == new[-1 - suffix]:
+        suffix += 1
+    if prefix + suffix != len(old):
+        return False
+    block = [line.rstrip("\r\n") for line in new[prefix:len(new) - suffix]]
+    if block and block[0] == "## In-flight" and not any(line.rstrip("\r\n") == "## In-flight" for line in old):
+        block = block[1:]
+    row = _QUEUED_WORK_ROW.fullmatch(block[0]) if block else None
+    if row is None:
+        return False
+    details: dict[str, str] = {}
+    for line in block[1:]:
+        key, separator, value = line.removeprefix("  - ").partition(": ")
+        if (
+            not line.startswith("  - ")
+            or not separator
+            or key not in _WORK_DETAIL_KEYS
+            or key in details
+            or not value.strip()
+        ):
+            return False
+        details[key] = value
+    return bool(
+        details.get("Work type") == work_type
+        and _WORK_ID.fullmatch(details.get("Work ID", ""))
+        and details.get("Work origin") == row.group("origin")
+    )
+
+
 def _exact_two_commit_range(
     root: Path, prepared: str, head: str
 ) -> tuple[str, str] | None:
@@ -887,7 +941,18 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
             ".codearbiter/last-checkpoint",
             ".codearbiter/reports/academy/P05-finding.md",
         }
-        or (current_workflow and set(remediation_paths) != {"tests/test_cli.py", "workshop_queue/cli.py"})
+        or (
+            current_workflow
+            and set(remediation_paths) != {"tests/test_cli.py", "workshop_queue/cli.py"}
+            and not (
+                set(remediation_paths) == {"tests/test_cli.py", "workshop_queue/cli.py", _LEGACY_BOARD}
+                and _one_queued_work_item_added(
+                    _git_blob(root, finding, _LEGACY_BOARD),
+                    _git_blob(root, remediation, _LEGACY_BOARD),
+                    "fix",
+                )
+            )
+        )
         or (not current_workflow and red_paths != ("tests/test_cli.py",))
         or (not current_workflow and remediation_paths != ("workshop_queue/cli.py",))
         or receipt_paths != (report_path,)
@@ -1119,9 +1184,13 @@ def _f04_has_uncommitted_learner_changes(root: Path) -> bool:
         r"\.cpython-[0-9]+(?:\.opt-[12])?\.pyc"
     )
     paths = [line[3:] for line in status.stdout.splitlines()]
-    paths.extend(ignored.stdout.splitlines())
     for path in paths:
         if allowed_cache.fullmatch(path):
+            continue
+        return True
+    for path in ignored.stdout.splitlines():
+        # The board writer keeps its ignored lock file after a fix work item is created.
+        if allowed_cache.fullmatch(path) or path == _LEGACY_BOARD + ".lock":
             continue
         return True
     return False
@@ -3937,8 +4006,20 @@ def _semantic(context: _SemanticContext) -> bool:
         if parents == [attempt.head, attempt.prepared]:
             # A current fix observes RED in the worktree and commits only GREEN.
             # Final source inspection cannot authenticate execution chronology.
+            # The fix lane's queued work item may ride that commit.
+            committed = set(_commit_paths(root, attempt.head))
             return bool(
-                set(_commit_paths(root, attempt.head)) == {test, code}
+                (
+                    committed == {test, code}
+                    or (
+                        committed == {test, code, _LEGACY_BOARD}
+                        and _one_queued_work_item_added(
+                            _git_blob(root, attempt.prepared, _LEGACY_BOARD),
+                            _git_blob(root, attempt.head, _LEGACY_BOARD),
+                            "fix",
+                        )
+                    )
+                )
                 and _test_module_has_minimal_retained_control_regression(
                     _git_blob(root, attempt.prepared, test),
                     _git_blob(root, attempt.head, test),
