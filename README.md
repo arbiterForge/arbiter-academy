@@ -81,7 +81,7 @@ repository.
 - [Continue to U03 - Refactor, chore, and cut a local release](https://arbiterforge.github.io/arbiter-academy/labs/U03-refactor-chore-release/)
 - [Continue to U04 - Initialize a greenfield and a brownfield project](https://arbiterforge.github.io/arbiter-academy/labs/U04-initialize-projects/)
 - [Continue to U05 - Debug, spike, and stop for a real conflict](https://arbiterforge.github.io/arbiter-academy/labs/U05-debug-spike-conflict/)
-- [Continue to U06 - Preview a bounded change without turning advice into authority](https://arbiterforge.github.io/arbiter-academy/labs/U06-preview-and-advanced-surfaces/)
+- [Continue to U06 - Review a bounded change without turning advice into authority](https://arbiterforge.github.io/arbiter-academy/labs/U06-preview-and-advanced-surfaces/)
 - [Complete U07 - Deliver a tested fix for review](https://arbiterforge.github.io/arbiter-academy/labs/U07-capstone/)
 - [Open Recovery guidance](https://arbiterforge.github.io/arbiter-academy/recovery/)
 

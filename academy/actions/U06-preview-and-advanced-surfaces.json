@@ -200,8 +200,8 @@
       "title": "Inspect the contained diff",
       "actor": "learner",
       "surface": null,
-      "instruction": "Inspect the unstaged diff before asking for a preview. This native terminal observation has no ! and must show only the candidate path.",
-      "rationale": "A read-only preview must be grounded in a bounded input, not a vague description of intended work.",
+      "instruction": "Inspect the unstaged diff before asking for a review. This native terminal observation has no ! and must show only the candidate path.",
+      "rationale": "A read-only review must be grounded in a bounded input, not a vague description of intended work.",
       "resources": [],
       "variants": [
         {
@@ -232,18 +232,18 @@
           "copy": true
         }
       ],
-      "expected_result": "The only modified path is docs/U06-preview-candidate.md and the policy says preview is read-only.",
-      "recovery": "If the diff contains another path, do not stage or preview it. Preserve the difference and start a reviewed retry later.",
+      "expected_result": "The only modified path is docs/U06-preview-candidate.md and the policy says the review is read-only.",
+      "recovery": "If the diff contains another path, do not stage or review it. Preserve the difference and start a reviewed retry later.",
       "evidence": "The candidate SHA-256 and changed_paths will be bound in the final report."
     },
     {
       "id": "U06-run-read-only-preview",
       "sequence": 7,
-      "title": "Run the host-native read-only preview",
+      "title": "Run the host-native read-only review",
       "actor": "agent",
       "surface": null,
-      "instruction": "Ask the active codeArbiter host for a read-only preview of the current diff. This host-native command has no ! and does not commit, stage, push, or execute advanced surfaces.",
-      "rationale": "ca-preview is a bounded diff review; it is distinct from Academy Preview 0.33, which is the release name and public availability boundary.",
+      "instruction": "Ask the active codeArbiter host to review the current diff. This host-native command has no ! and does not commit, stage, push, or execute advanced surfaces.",
+      "rationale": "ca-review reviews the current working diff and writes no files; it is distinct from Academy Preview 0.33, which is the release name and public availability boundary.",
       "resources": [],
       "variants": [
         {
@@ -252,7 +252,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:preview",
+          "command": "/ca:review",
           "copy": true
         },
         {
@@ -261,7 +261,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-preview",
+          "command": "$ca-review",
           "copy": true
         },
         {
@@ -270,7 +270,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-preview",
+          "command": "/ca-review",
           "copy": true
         },
         {
@@ -279,26 +279,26 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-preview",
+          "command": "/skill:ca-review",
           "copy": true
         }
       ],
-      "expected_result": "The host reports an advisory preview of the candidate diff without mutating repository state.",
+      "expected_result": "The host reports an advisory review verdict on the candidate diff without mutating repository state.",
       "recovery": "If the host cannot find the command, do not replace it with shell syntax. Record the unavailable host capability and retain the diff.",
-      "evidence": "The later Academy binding record names only durable repository facts and not-executed classifications. It does not preserve ca-preview output or claim host invocation proof."
+      "evidence": "The later Academy binding record names only durable repository facts and not-executed classifications. It does not preserve ca-review output or claim host invocation proof."
     },
     {
       "id": "U06-assess-preview-output",
       "sequence": 8,
-      "title": "Assess the preview as advice",
+      "title": "Assess the review as advice",
       "actor": "learner",
       "surface": "active-harness",
-      "instruction": "Read the preview output in the selected host. Confirm it addresses only documentation and does not claim a sandbox run, new skill, hosted watch, or tribunal.",
+      "instruction": "Read the review verdict in the selected host. Confirm it addresses only documentation and does not claim a sandbox run, new skill, hosted watch, or tribunal.",
       "rationale": "The learner evaluates advisory output; a repository Check cannot prove the host result was understood.",
       "resources": [],
       "variants": [],
       "expected_result": "You can state whether the candidate remains a docs-only, read-only policy before staging it.",
-      "recovery": "If the preview points beyond the candidate boundary, stop and preserve the result instead of expanding scope.",
+      "recovery": "If the review points beyond the candidate boundary, stop and preserve the result instead of expanding scope.",
       "evidence": "No committed record preserves this advisory output; the later Academy binding record proves only repository facts and not-executed classifications."
     },
     {
@@ -489,7 +489,7 @@
         }
       ],
       "expected_result": "The record names only the candidate binding, read_only true, and four not-executed surfaces; it contains no reviewer, scan, or invocation claim.",
-      "recovery": "If any binding is absent, malformed, or claims ca-preview telemetry or an executed advanced surface, stop before staging.",
+      "recovery": "If any binding is absent, malformed, or claims ca-review telemetry or an executed advanced surface, stop before staging.",
       "evidence": "Canonical JSON bytes and exact Academy record keys are part of the Check profile."
     },
     {

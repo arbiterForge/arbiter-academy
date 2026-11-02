@@ -38,7 +38,7 @@ EXPECTED_HOST_ACTIONS = {
     # metadata presents the first host entry point only.
     PRACTITIONER[1]: ("review",),
     PRACTITIONER[2]: ("adr",),
-    PRACTITIONER[3]: ("btw",),
+    PRACTITIONER[3]: ("commit",),
     PRACTITIONER[4]: ("checkpoint",),
     PRACTITIONER[5]: ("status drift",),
     PRACTITIONER[6]: ("threat-model",),

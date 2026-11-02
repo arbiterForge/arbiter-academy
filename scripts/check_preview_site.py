@@ -137,7 +137,7 @@ _RUNNABLE_LINK_LABELS = (
     'U03: Refactor, chore, and local release evidence',
     'U04: Initialize a greenfield and a brownfield project',
     'U05: Investigate before changing code',
-    'U06: Preview a bounded change without turning advice into authority',
+    'U06: Review a bounded change without turning advice into authority',
     'U07: Deliver a tested fix for review',
 )
 _COMING_NEXT_ENTRIES: tuple[tuple[str, bool], ...] = ()
