@@ -29,7 +29,7 @@ Prepare creates a numbered U02 branch with a committed scenario overlay and bind
 
 The only committed learner artifact is `.codearbiter/reports/academy/U02-observation.md`. It records the prepared baseline digest and the displayed H-05 line, then says plainly that a written note cannot prove the event chronology. The audit log remains unchanged.
 
-This lesson does not practice `$ca-override` or write audit packets. Those are separate real CodeArbiter surfaces. Do not represent an Academy note as their output.
+This lesson does not practice `$ca-override` or write audit packets. Those are separate real codeArbiter surfaces. Do not represent an Academy note as their output.
 
 ## Prepare safely
 

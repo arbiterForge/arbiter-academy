@@ -229,7 +229,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         },
         {
@@ -238,7 +238,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         },
         {
@@ -247,7 +247,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         }
       ],

@@ -58,6 +58,8 @@ Complete and commit greenfield before opening brownfield:
 
 {{action:U04-run-greenfield-init}}
 
+Current codeArbiter initializes new projects with HTML knowledge by default. This lesson's Check reads the Markdown context and greenfield plan files, so both children ask for the Markdown format explicitly.
+
 {{action:U04-run-greenfield-decompose}}
 
 {{action:U04-read-greenfield-plans}}

@@ -66,6 +66,8 @@ the wrong unresolved count are the meaningful RED result.
 
 {{action:P05-commit-green}}
 
+From codeArbiter 3.3, the fix lane records an authorized repair as one fix work item. On this practice board that is one queued row, and the commit gate keeps it in the green commit. Leave it queued.
+
 {{action:P05-record-receipt}}
 
 {{action:P05-commit-receipt}}

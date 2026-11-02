@@ -46,6 +46,8 @@ Prepare leaves the sprint unplanned. Arbiter creates the native specification an
 
 {{action:U01-run-sprint}}
 
+From codeArbiter 3.3, a sprint records each deliverable as one work item. On this practice board that is one queued row bound to the sprint's specification and plan, and it rides the sprint commit.
+
 {{action:U01-inspect-scope}}
 
 {{action:U01-inspect-plan}}

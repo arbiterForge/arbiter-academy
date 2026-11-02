@@ -82,6 +82,8 @@ Use the revision action. It sends a bounded request and returns you to the same 
 
 After you send the proceed instruction, let the agent execute the governed path it describes. Add and run a focused summary test before touching production code. The RED result must fail because unresolved tickets are absent, not because a file, import, or fixture is broken. The repair remains the exact `open + claimed` assignment. Do not create a RED commit, amend, or rebase.
 
+From codeArbiter 3.3, the feature lane may also record one queued work item bound to this specification and plan. It rides the same commit as the start of `academy.feature.0002`; leave it queued.
+
 ## Recognize success
 
 The attempt has one final green commit after Prepare. That commit contains exactly the feature

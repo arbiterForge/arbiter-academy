@@ -401,7 +401,7 @@
       "title": "Commit the green regression and repair",
       "actor": "agent",
       "surface": null,
-      "instruction": "After the focused test and affected CLI suite pass, commit the test and repair together.",
+      "instruction": "After the focused test and affected CLI suite pass, commit the test and repair together, with this repair's queued fix work item if codeArbiter recorded one.",
       "rationale": "A green commit keeps the regression and implementation together after verification.",
       "resources": [],
       "variants": [
@@ -411,7 +411,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         },
         {
@@ -420,7 +420,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         },
         {
@@ -429,11 +429,11 @@
           "operating_system": "all",
           "host": "pi",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         }
       ],
-      "expected_result": "One green commit changes tests/test_cli.py and workshop_queue/cli.py.",
+      "expected_result": "One green commit changes tests/test_cli.py and workshop_queue/cli.py, plus at most one queued fix work item on .codearbiter/open-tasks.md.",
       "recovery": "Before committing, confirm that both the regression test and repair are staged. If either is missing or unrelated paths are staged, correct the staged selection and review it again. Do not amend or rebase the attempt history.",
       "evidence": "RED remains an observed result, not a failing commit."
     },
