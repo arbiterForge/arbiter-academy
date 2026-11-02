@@ -34,7 +34,9 @@
         "core/surface/skills/tdd/SKILL.md": "0bd6ba72760ef2049659d92c8421b9ed2f1ada6d74ad3c200daeaf9bb7bf4dd0",
         "core/surface/skills/commit-gate/SKILL.md": "5e17da4691770a085457a28b68b6e2edf7f8b5783643cedbcad6ec87f73e231f",
         "core/pysrc/work.py": "fe51520ff1faa8d94740fde5a8d73c0a2626841abc7eae5397e6969055b95722",
-        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce"
+        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce",
+        "core/pysrc/_taskboardlib.py": "1ff827bca68c253f59293cd97708a4d92e4d05fbc1e68228d4c17e111114aa46",
+        "core/pysrc/taskwrite.py": "c0f1b9406982457d6a52fa55f184efa255aed23ce48515fd99a3bda27adbec25"
       }
     },
     {
@@ -48,7 +50,9 @@
         "core/surface/skills/writing-plans/SKILL.md": "5229b532b424ad2bdf3d3205517986125f25f759d055fcfafe786a40ad4a436f",
         "core/pysrc/_artifactlib.py": "24424a47249483eefce1f389041892273bd2950cce7213bb76458d953b394ce1",
         "core/pysrc/work.py": "fe51520ff1faa8d94740fde5a8d73c0a2626841abc7eae5397e6969055b95722",
-        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce"
+        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce",
+        "core/pysrc/_taskboardlib.py": "1ff827bca68c253f59293cd97708a4d92e4d05fbc1e68228d4c17e111114aa46",
+        "core/pysrc/taskwrite.py": "c0f1b9406982457d6a52fa55f184efa255aed23ce48515fd99a3bda27adbec25"
       }
     },
     {
@@ -84,7 +88,9 @@
         "core/surface/skills/tdd/SKILL.md": "0bd6ba72760ef2049659d92c8421b9ed2f1ada6d74ad3c200daeaf9bb7bf4dd0",
         "core/surface/skills/commit-gate/SKILL.md": "5e17da4691770a085457a28b68b6e2edf7f8b5783643cedbcad6ec87f73e231f",
         "core/pysrc/work.py": "fe51520ff1faa8d94740fde5a8d73c0a2626841abc7eae5397e6969055b95722",
-        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce"
+        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce",
+        "core/pysrc/_taskboardlib.py": "1ff827bca68c253f59293cd97708a4d92e4d05fbc1e68228d4c17e111114aa46",
+        "core/pysrc/taskwrite.py": "c0f1b9406982457d6a52fa55f184efa255aed23ce48515fd99a3bda27adbec25"
       }
     },
     {
@@ -121,7 +127,9 @@
         "core/surface/includes/artifacts.md": "eaf3036a03b30334bd61520b9bc2b48836ca1b8fcb038afc23a08fdc2f03c43c",
         "core/pysrc/_artifactlib.py": "24424a47249483eefce1f389041892273bd2950cce7213bb76458d953b394ce1",
         "core/pysrc/work.py": "fe51520ff1faa8d94740fde5a8d73c0a2626841abc7eae5397e6969055b95722",
-        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce"
+        "core/pysrc/_worklib.py": "4b08bdfdea85a96e1bde4bd7dc610bc61dd8ef31a42d530fb10437b1145818ce",
+        "core/pysrc/_taskboardlib.py": "1ff827bca68c253f59293cd97708a4d92e4d05fbc1e68228d4c17e111114aa46",
+        "core/pysrc/taskwrite.py": "c0f1b9406982457d6a52fa55f184efa255aed23ce48515fd99a3bda27adbec25"
       }
     },
     {
@@ -154,7 +162,9 @@
         "core/surface/skills/decision-variance/SKILL.md": "be1d34c708e68689042ea1588f85ed800803ff8b9da6274f1ec307cf08c9089c",
         "core/surface/skills/decision-lifecycle/references/authoring.md": "98c8741b04e80b71754950c029e119dae592472c48877c43f034dd9a1cc74f0e",
         "core/pysrc/init-codearbiter.py": "faaeaf09ccfcaa893ec6d2b9f966a86e58aea8a5eb8daec4f4760c0587cddc0b",
-        "core/surface/skills/decompose/references/markdown-format.md": "cad5c770c5274613a660c7d1daf0fb4fe5a2e1d967c755eb8c0024cb44d160d5"
+        "core/surface/skills/decompose/references/markdown-format.md": "cad5c770c5274613a660c7d1daf0fb4fe5a2e1d967c755eb8c0024cb44d160d5",
+        "core/surface/skills/context-creation/references/markdown-format.md": "29e7add1ba8884f1c80b357aed5b6c3ac88a4110f2bd72cdceee124e84c90477",
+        "core/surface/includes/knowledge.md": "05419cf635d82a4889c2f964654bf2337e0ab878bc6e1fc4786c50d8e7dd31be"
       }
     },
     {
