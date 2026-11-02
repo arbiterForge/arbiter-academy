@@ -11,8 +11,9 @@ for a learner's own project.
    than a dirty local checkout.
 2. Run `python scripts/check_lesson_source_review.py --codearbiter-root PATH`.
    It compares `academy/lesson-source-review.json` with the producer's
-   `origin/main` and prints each affected lesson. It also fails when an action card
-   names a codeArbiter command that no longer exists there. The scheduled and PR
+   `origin/main` and prints each affected lesson. It also fails when a codeArbiter
+   command variant on an action card names a command or skill absent from the
+   producer's `core/surface`; text variants and guide prose are not scanned. The scheduled and PR
    workflows run this check, and the daily `codeArbiter Drift` workflow keeps one
    open issue while it or the compatibility check fails. A matching hash is not
    semantic review.
@@ -76,32 +77,36 @@ Preview 0.33 remains a source candidate, not a publication claim.
 
 The drift check flagged 18 lessons. Each changed source was diffed against
 `0badb588` and its effect checked against every affected guide and action card.
-Where a lane now writes files, the real 3.8.3 helpers were run against prepared
-attempts instead of inferring the behavior from the skill text.
+Where a lane now writes the task board, the real 3.8.3 work facade and task writer
+were run against prepared boards, and commit-gate's own board classifier was asked
+whether it keeps each resulting change. `tests/test_lane_work_items.py` repeats
+those classifier checks against the pinned producer.
 
 | Lesson | Finding | Correction |
 | --- | --- | --- |
-| F04, P05 | The fix lane records an authorized repair as one fix work item: a queued board row that commit-gate keeps in the repair commit. | Check also accepts exactly that row in the repair commit; the guides say to leave it queued. |
-| P01 | The feature lane may record its own feature item bound to the spec and plan, beside the taught start of `academy.feature.0002`. | Check also accepts that one queued row when its Spec ID and Plan ID name the committed native pair. |
-| U01 | The sprint records its deliverable as one work item. | Check accepts one queued feature or chore row bound to the committed native pair; the prompt asks for it. |
+| F04, P05 | From 3.8.0 the fix lane records an authorized repair as one fix work item: a queued board row that commit-gate keeps in the repair commit. | Check also accepts exactly that row, where the producer inserts it, in the repair commit. The cards stage it with the repair; the guides say to leave it queued. |
+| P01 | From 3.8.0 the feature lane records its own work item once the specification exists. commit-gate cannot keep that row and the taught start of `academy.feature.0002` in one commit (arbiterForge/codeArbiter#1089), and the work facade cannot address the dotted task. | Both prompts ask the lane not to record a separate item, and Check still accepts only the start. If the gate stops on the board, the guide says to Reset and retry. |
+| U01 | From 3.8.0 the sprint records its deliverable as one work item. | Check accepts one queued feature or chore row whose Spec ID and Plan ID both name the committed native pair; the prompt asks for it. |
 | U04 | `init` now defaults to HTML knowledge with no task board. | Both children ask for `--format markdown`, which keeps the Markdown context and greenfield plans this Check reads. |
-| U06 | `/preview` was retired in codeArbiter 3.3.0. | The lesson reviews its bounded diff with read-only `ca-review`; the Check contract is unchanged. |
+| U06 | `/preview` was retired in codeArbiter 3.3.0. | The lesson reviews its bounded diff with read-only `ca-review`. The committed policy text and the binding-record wording now describe review findings, not predicted reviewers. |
 | P04 | `/btw` was retired. | The no-install context question is asked of the agent directly. |
-| U02 | `/metrics` was retired; the H-05 refusal line is byte-identical (run). | Prose no longer mentions metrics output. |
-| F03 | The originless dotted row still uses the task-writer compatibility path; the 3.8.3 start flip is unchanged (run). | None. |
-| F01, F02, P02, P06, P07, P08, U03, U05, U07 | Policy preambles, HTML-knowledge alternates, and removed `/btw` pointers. | None. |
+| U02 | `/metrics` was retired; the H-05 refusal line is byte-identical (run). | Prose and the review card no longer mention metrics output. |
+| F03 | The originless dotted row still starts through the task writer (run). `task.md` now prefers native work IDs and keeps the task writer as an explicit compatibility path; that `/ca:task start academy.docs.0001` takes that path was not run. | None. |
+| P08 | `standup.md` now asks for one named archive subset, archives in a fresh sibling worktree, and selects the drift owner through `work.py`. | None: P08 declines every cleanup. |
+| F01, F02, P02, P06, P07, U03, U05, U07 | Policy preambles, HTML-knowledge alternates, removed `/btw` pointers, and sprint merge-authority wording. | None. |
 
-The source map drops the deleted `commands.md`, `preview.md` and `metrics.md` and
-adds the work facade for the lanes above, `review.md` for U06, and the init
-scaffolder and Markdown decomposition reference for U04. The native planning pins
-take the artifact bridge and release manifest from the published 3.8.3 payloads.
+The source map drops the deleted `commands.md`, `preview.md` and `metrics.md`. It
+adds the work facade, the task writer and `_taskboardlib.py` (which owns the row
+format and the gate's classifier) for F04, P05, P01 and U01; `review.md` for U06;
+and the init scaffolder, the decompose and context-creation Markdown references,
+and the knowledge include for U04. The native planning pins take the artifact
+bridge and release manifest from the published 3.8.3 payloads.
 
-Evidence limits: the board shapes are produced by the real 3.8.3 work facade and
-task writer, and the native suites ran against the published Codex 0.26.3
-payload. Whether a live agent working through commit-gate produces those exact
-shapes is not qualified here. commit-gate's legacy board classifier rejects an
-`attach` on an existing row and a start-then-complete in one commit
-(arbiterForge/codeArbiter#1089), so the Checks accept only the shapes it keeps today.
+Evidence limits: the board shapes come from the real 3.8.3 work facade and task
+writer, and the gate's classifier keeps each shape the Checks accept. The native
+suites ran against the published Codex 0.26.3 payload. Whether a live agent
+working through commit-gate produces those exact shapes, and whether it honors
+P01's request not to record a separate item, is not qualified here.
 
 ## October 2026 lesson review
 
