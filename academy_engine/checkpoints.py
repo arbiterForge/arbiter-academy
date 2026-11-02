@@ -159,7 +159,7 @@ _U06_SEED_CANDIDATE = b"# U06 preview candidate\n\nThis draft is intentionally i
 _U06_SAFE_CANDIDATE = (
     b"# U06 preview candidate\n\n"
     b"## Read-only documentation policy\n\n"
-    b"Preview may inspect the prepared attempt and report predicted reviewers. "
+    b"Review may inspect the prepared attempt and report findings. "
     b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
     b"## Evidence\n\n"
     b"Record the reviewed commit, candidate tree, exact changed path, and "
@@ -630,10 +630,11 @@ def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
 
 
 _LEGACY_BOARD = ".codearbiter/open-tasks.md"
-_QUEUED_WORK_ROW = re.compile(r"- \[ \] (?P<title>\S.*?)  \(from (?P<origin>[^\s()]+)\)")
+_QUEUED_WORK_ROW = re.compile(r"- \[ \] (?P<title>\S.*?)  \(from (?P<origin>[^()\r\n]+)\)")
 _WORK_DETAIL_KEYS = frozenset({"Work origin", "Desc", "Work type", "Work ID", "Work operation ID"})
 _ARTIFACT_DETAIL_KEYS = {"Spec ID": "spec", "Plan ID": "plan"}
 _WORK_ID = re.compile(r"WORK-[0-9A-F]{32}")
+_IN_FLIGHT = "## In-flight"
 
 
 def _one_queued_work_item_added(
@@ -644,30 +645,33 @@ def _one_queued_work_item_added(
 ) -> bool:
     """Accept only the queued row a lane's work-item create adds to a legacy board.
 
-    From codeArbiter 3.3 a fix or feature lane records the change as one work item.
-    On a legacy board that is one queued row with its detail bullets, inserted in one
-    place, and commit-gate keeps it in the work commit. Every existing line must keep
-    its exact bytes. A feature item may carry the Spec ID and Plan ID the lane attached;
-    each must name the committed native artifact.
+    From codeArbiter 3.8 the fix and sprint lanes record the change as one work item.
+    On a legacy board the producer's writer inserts one queued row with its detail
+    bullets directly under the first In-flight heading, or appends that heading and
+    the row when the board has none, and commit-gate keeps exactly that change in the
+    work commit. Every existing line must keep its exact bytes. When the lesson binds
+    a native pair, the item must carry both its Spec ID and its Plan ID.
     """
-    if before is None or after is None:
+    if not before or after is None:
         return False
     try:
         old = before.decode("utf-8").splitlines(keepends=True)
         new = after.decode("utf-8").splitlines(keepends=True)
     except UnicodeDecodeError:
         return False
-    prefix = 0
-    while prefix < min(len(old), len(new)) and old[prefix] == new[prefix]:
-        prefix += 1
-    suffix = 0
-    while suffix < min(len(old), len(new)) - prefix and old[-1 - suffix] == new[-1 - suffix]:
-        suffix += 1
-    if prefix + suffix != len(old):
+    heading = next((index for index, line in enumerate(old) if line.strip() == _IN_FLIGHT), None)
+    start = len(old) if heading is None else heading + 1
+    added = len(new) - len(old)
+    if added < 1 or new[:start] != old[:start] or new[start + added:] != old[start:]:
         return False
-    block = [line.rstrip("\r\n") for line in new[prefix:len(new) - suffix]]
-    if block and block[0] == "## In-flight" and not any(line.rstrip("\r\n") == "## In-flight" for line in old):
+    block = [line.rstrip("\r\n") for line in new[start:start + added]]
+    if heading is None:
+        if block[0] != _IN_FLIGHT:
+            return False
         block = block[1:]
+    # The next existing line must begin a new entry, not continue another task's bullets.
+    if start + added < len(new) and new[start + added][:1] in (" ", "\t"):
+        return False
     row = _QUEUED_WORK_ROW.fullmatch(block[0]) if block else None
     if row is None:
         return False
@@ -685,6 +689,8 @@ def _one_queued_work_item_added(
         ):
             return False
         details[key] = value
+    if artifact_ids is not None and not all(key in details for key in _ARTIFACT_DETAIL_KEYS):
+        return False
     return bool(
         details.get("Work type") in work_types
         and _WORK_ID.fullmatch(details.get("Work ID", ""))
@@ -1595,8 +1601,7 @@ def _p01_one_commit(root: Path, attempt: _Attempt, paths: frozenset[str] = _P01_
     return attempt.head
 
 
-def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: str,
-                          artifact_ids: dict[str, str] | None = None) -> bool:
+def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: str) -> bool:
     before, after = _p01_regular_blob(root, attempt.prepared, board), _p01_regular_blob(root, attempt.head, board)
     if before is None or after is None:
         return False
@@ -1605,27 +1610,16 @@ def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: st
         after_lines = after.decode("utf-8").splitlines(keepends=True)
     except UnicodeDecodeError:
         return False
-    queued = [index for index, line in enumerate(before_lines)
-              if re.fullmatch(rf"- \[ \] {re.escape(task_id)} - .+", line.rstrip("\r\n"))]
-    started = [line for line in after_lines
-               if re.fullmatch(rf"- \[~\] {re.escape(task_id)} - .+", line.rstrip("\r\n"))]
-    if len(queued) != 1 or len(started) != 1:
+    if len(before_lines) != len(after_lines):
         return False
-    old, new = before_lines[queued[0]].rstrip("\r\n"), started[0].rstrip("\r\n")
+    changed = [(old.rstrip("\r\n"), new.rstrip("\r\n")) for old, new in zip(before_lines, after_lines, strict=True) if old != new]
+    if len(changed) != 1:
+        return False
+    old, new = changed[0]
     match = re.fullmatch(rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old)
-    flip = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
-    if not (match and flip and match.group("body") == flip.group("body")):
-        return False
-    flipped = list(before_lines)
-    flipped[queued[0]] = started[0]
-    # From codeArbiter 3.3 the feature lane also records one queued item bound to its spec and plan.
-    if flipped != after_lines and not (
-        artifact_ids is not None
-        and _one_queued_work_item_added("".join(flipped).encode("utf-8"), after, frozenset({"feature"}), artifact_ids)
-    ):
-        return False
+    started = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
     commit_date = run_git(root, ["show", "-s", "--format=%as", attempt.head], check=False).stdout.strip()
-    return flip.group("date") == commit_date
+    return bool(match and started and match.group("body") == started.group("body") and started.group("date") == commit_date)
 
 
 def _p01_exact_regression(prepared: bytes | None, final: bytes | None) -> bool:
@@ -2869,13 +2863,9 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     expected_model = {"open": 1, "claimed": 1, "completed": 1, "unresolved": 2}
     if prepared_model == expected_model or intended_model != expected_model:
         return False
-    pair = (
-        _native_lesson_pair(context, "academy-feature", paths, {paths["test"], paths["code"]}, ("unresolved", "open", "claimed", "completed"))
-        if native else None
-    )
     return bool(
-        _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]), _artifact_ids(pair))
-        and (pair is not None if native else _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"])))
+        _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]))
+        and (_native_lesson_plan(context, "academy-feature", paths, {paths["test"], paths["code"]}, ("unresolved", "open", "claimed", "completed")) if native else _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"])))
         and _p01_prepared_defect(_p01_regular_blob(root, attempt.prepared, paths["code"]))
         and _p01_exact_regression(_p01_regular_blob(root, attempt.prepared, paths["test"]), _p01_regular_blob(root, attempt.head, paths["test"]))
         and _p01_exact_repair(_p01_regular_blob(root, attempt.prepared, paths["code"]), _p01_regular_blob(root, attempt.head, paths["code"]))
@@ -3065,7 +3055,7 @@ def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool
     pair = _native_lesson_pair(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
     if pair is None:
         return False
-    # From codeArbiter 3.3 the sprint records its deliverable as one queued work item.
+    # From codeArbiter 3.8 the sprint records its deliverable as one queued work item.
     return board_after == board_before or _one_queued_work_item_added(
         board_before, board_after, frozenset({"feature", "chore"}), _artifact_ids(pair)
     )

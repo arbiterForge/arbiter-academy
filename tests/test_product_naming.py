@@ -26,7 +26,7 @@ PROSE_FIELDS = (
 # Preview 0.33 on codeArbiter 3.8.3: ca-review replaces the retired preview, P04 asks the
 # agent directly, the lanes' work items are taught, and U04 asks for the Markdown format.
 BASELINE_VARIANT_COUNT = 974
-BASELINE_VARIANT_SHA256 = "f7a973092ff6950dc3b30c0c0efff3b29bcdb6e5b0bcc049ea66c5eb0a819687"
+BASELINE_VARIANT_SHA256 = "8d6d5829e8b5076aa3cadb243b8e702b27ee86ae1ed9d8b31c427052b9d4a205"
 MUTABLE_DISPLAY_COPY_PATHS = (
     "README.md",
     "academy_engine/curriculum.py",

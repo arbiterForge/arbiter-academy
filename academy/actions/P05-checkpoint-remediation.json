@@ -411,7 +411,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's queued fix work item, show the staged diff, and invoke the codeArbiter commit gate. Leave any such item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         },
         {
@@ -420,7 +420,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's queued fix work item, show the staged diff, and invoke the codeArbiter commit gate. Leave any such item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         },
         {
@@ -429,7 +429,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "text",
-          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, show the staged diff, and invoke the codeArbiter commit gate. Let it include this repair's queued fix work item, and leave that item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
+          "command": "Run the focused blocked-ticket regression and tests.test_cli. If both pass, stage only tests/test_cli.py and workshop_queue/cli.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's queued fix work item, show the staged diff, and invoke the codeArbiter commit gate. Leave any such item queued. Keep the regression unchanged since RED. Do not create the receipt, amend, or rebase.",
           "copy": true
         }
       ],

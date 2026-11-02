@@ -438,7 +438,7 @@
       "title": "Stage the green test and repair together",
       "actor": "learner",
       "surface": null,
-      "instruction": "After the focused test and service suite pass, stage exactly the test and service paths. Leave a queued fix work item for the commit gate, which keeps it in the same commit.",
+      "instruction": "After the focused test and service suite pass, stage the test and service paths. If the fix lane recorded its queued fix work item, the commands also stage the task board so the commit gate reviews that row with the repair.",
       "rationale": "The governed commit needs one visible test-and-service boundary with passing checks.",
       "resources": [],
       "variants": [
@@ -448,7 +448,7 @@
           "operating_system": "windows",
           "host": "none",
           "language": "powershell",
-          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --cached --stat",
+          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --quiet -- .codearbiter/open-tasks.md\nif ($LASTEXITCODE -ne 0) { git add -- .codearbiter/open-tasks.md }\ngit diff --cached --stat",
           "copy": true
         },
         {
@@ -457,7 +457,7 @@
           "operating_system": "macos",
           "host": "none",
           "language": "sh",
-          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --cached --stat",
+          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --quiet -- .codearbiter/open-tasks.md || git add -- .codearbiter/open-tasks.md\ngit diff --cached --stat",
           "copy": true
         },
         {
@@ -466,11 +466,11 @@
           "operating_system": "linux",
           "host": "none",
           "language": "sh",
-          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --cached --stat",
+          "command": "git add -- tests/test_service.py workshop_queue/service.py\ngit diff --quiet -- .codearbiter/open-tasks.md || git add -- .codearbiter/open-tasks.md\ngit diff --cached --stat",
           "copy": true
         }
       ],
-      "expected_result": "The index contains the regression and minimal repair.",
+      "expected_result": "The index contains the regression and minimal repair, plus the task board only when it holds this repair's queued fix work item.",
       "recovery": "If another path is staged, unstage only that path and inspect the whole worktree again. Do not commit until the staged list is exact.",
       "evidence": "One green commit retains the final test and repair."
     },
@@ -490,7 +490,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "text",
-          "command": "Show the staged paths and diff. Confirm only tests/test_service.py and workshop_queue/service.py are staged, any other change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
+          "command": "Show the staged paths and diff. Confirm the staged paths are tests/test_service.py and workshop_queue/service.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
           "copy": true
         },
         {
@@ -499,7 +499,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "text",
-          "command": "Show the staged paths and diff. Confirm only tests/test_service.py and workshop_queue/service.py are staged, any other change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
+          "command": "Show the staged paths and diff. Confirm the staged paths are tests/test_service.py and workshop_queue/service.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
           "copy": true
         },
         {
@@ -508,11 +508,11 @@
           "operating_system": "all",
           "host": "pi",
           "language": "text",
-          "command": "Show the staged paths and diff. Confirm only tests/test_service.py and workshop_queue/service.py are staged, any other change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
+          "command": "Show the staged paths and diff. Confirm the staged paths are tests/test_service.py and workshop_queue/service.py, plus .codearbiter/open-tasks.md only when its sole change is this repair's one queued fix work item, the regression is unchanged since RED, and the focused test and service suite pass. Do not commit until I request it.",
           "copy": true
         }
       ],
-      "expected_result": "Only the test and service paths are staged, and the checks passed. A queued fix work item may remain unstaged for the commit gate.",
+      "expected_result": "The test and service paths are staged, with the task board only when it holds this repair's queued fix work item, and the checks passed.",
       "recovery": "If the report names a changed test, another path, or an unreachable guard, do not approve. Preserve the attempt and correct only that defect.",
       "evidence": "Review the observed RED result separately from the committed final source."
     },

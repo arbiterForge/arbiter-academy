@@ -37,7 +37,7 @@ code, add dependencies, or make an advanced operation look routine.
 The source Check contract is deliberately narrow. It compares the prepared candidate bytes, exact
 final candidate bytes, candidate commit and tree, one changed path, canonical report bytes, a clean
 worktree, and four not-executed classifications. It does not prove that an agent command ran, what
-reviewers it predicted, whether a secret scan ran, or that you agreed with a preview.
+what the review found, whether a secret scan ran, or that you agreed with the review.
 
 ## Prepare safely
 
@@ -128,6 +128,6 @@ committed and its repository facts are available to bind.
 The safest power-user move is often not running a powerful command. State why the surface is out of
 scope and preserve the narrow evidence you do have.
 
-**Use this in your own project.** Use review to inspect a bounded diff before you commit it. Its verdict is advice; it does not certify a commit or replace the commit gate. Use watch for a real PR when you want CI monitoring. Check the installed catalog before requesting an advanced command; an old course label is not proof that it still exists.
+**Use this in your own project.** Use review to inspect a bounded diff before you commit it. Its verdict does not certify a commit or replace the commit gate, though a CRITICAL or HIGH finding on your own change must be resolved before you open a PR. Use watch for a real PR when you want CI monitoring. Check the installed catalog before requesting an advanced command; an old course label is not proof that it still exists.
 
 Sandbox capabilities belong to the separately installed ca-sandbox plugin. Check the actual installed catalog before using them; Academy does not assume that plugin is present.

@@ -314,7 +314,7 @@
       "instruction": "Ask the agent one bounded project-context question about whether the prepared finite legacy date-format requirement has an existing local policy constraint. Ask it directly in the harness; codeArbiter has no separate question command. Its answer is conversational context only: it cannot inspect the supplied wheel artifacts, decide adoption, or write the Academy report.",
       "rationale": "A direct question can clarify repository context without pretending to review an artifact or create evidence.",
       "resources": [],
-      "expected_result": "codeArbiter answers from the repository's existing context without changing a file, routing work, installing a package, or deciding the rejection.",
+      "expected_result": "The agent answers from the repository's existing context without changing a file, routing work, installing a package, or deciding the rejection.",
       "recovery": "If the answer is absent from repository context, record that limit and continue from the supplied frozen artifacts; do not turn the question into package research or a write request.",
       "evidence": "The harness answer is ephemeral context, not a report or proof of the dependency assessment.",
       "variants": [

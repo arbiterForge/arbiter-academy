@@ -2224,7 +2224,7 @@ class LessonActionTests(unittest.TestCase):
         exact_candidate = (
             "# U06 preview candidate\n\n"
             "## Read-only documentation policy\n\n"
-            "Preview may inspect the prepared attempt and report predicted reviewers. "
+            "Review may inspect the prepared attempt and report findings. "
             "It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
             "## Evidence\n\n"
             "Record the reviewed commit, candidate tree, exact changed path, and "

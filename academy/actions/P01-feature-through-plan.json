@@ -61,7 +61,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.",
+          "command": "/ca:feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. academy.feature.0002 already tracks this feature, so do not record a separate work item for it. Draft the specification and stop for my review before planning, implementation, or commits.",
           "copy": true
         },
         {
@@ -70,7 +70,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.",
+          "command": "$ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. academy.feature.0002 already tracks this feature, so do not record a separate work item for it. Draft the specification and stop for my review before planning, implementation, or commits.",
           "copy": true
         },
         {
@@ -79,7 +79,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.",
+          "command": "/ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. academy.feature.0002 already tracks this feature, so do not record a separate work item for it. Draft the specification and stop for my review before planning, implementation, or commits.",
           "copy": true
         },
         {
@@ -88,7 +88,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.",
+          "command": "/skill:ca-feature \"Show unresolved tickets in the Workshop Queue JSON summary\" Use slug academy-feature and the full feature workflow for this new output field. academy.feature.0002 already tracks this feature, so do not record a separate work item for it. Draft the specification and stop for my review before planning, implementation, or commits.",
           "copy": true
         }
       ],
@@ -229,7 +229,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. academy.feature.0002 is this feature's only work item: do not record another work item or attach the specification or plan to one. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         },
         {
@@ -238,7 +238,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. academy.feature.0002 is this feature's only work item: do not record another work item or attach the specification or plan to one. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         },
         {
@@ -247,7 +247,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "text",
-          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. If the feature lane records its own work item, bind it to this specification and plan and leave it queued. Do not push, merge, or publish. Stop and report any real blocker.",
+          "command": "Continue academy-feature. Create its native plan from the specification, start academy.feature.0002 through the task workflow, and implement the bounded JSON summary change. Run a focused regression while the behavior is missing, make the repair, then run the affected tests. Commit the complete green change through the commit gate. academy.feature.0002 is this feature's only work item: do not record another work item or attach the specification or plan to one. Do not push, merge, or publish. Stop and report any real blocker.",
           "copy": true
         }
       ],
