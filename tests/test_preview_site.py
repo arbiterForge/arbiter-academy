@@ -1919,6 +1919,8 @@ class PreviewSiteTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/blob/preview-0.3/install/install.ps1",
             "https://github.com/arbiterForge/arbiter-academy/releases/download/preview-0.3/install.ps1.sha256",
             "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/",
+            "https://codearbiter.dev/guides/feature-lane/",
+            "https://codearbiter.dev/concepts/gated-lanes/",
         )
         for target in approved:
             with self.subTest(target=target):
@@ -1934,6 +1936,18 @@ class PreviewSiteTests(unittest.TestCase):
             "https://github.com/arbiterForge/arbiter-academy/blob/main/file%0a",
             "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor",
             "https://arbiterforge.github.io/arbiter-academy/labs/F01-fork-clone-doctor/?raw=1",
+            "https://codearbiter.dev/guides/feature-lane",
+            "https://codearbiter.dev/guides/",
+            "https://codearbiter.dev/reference/commands/doctor/",
+            "https://codearbiter.dev/getting-started/install/",
+            "https://codearbiter.dev/guides/../reference/commands/doctor/",
+            "https://codearbiter.dev/guides/feature-lane/?raw=1",
+            "https://codearbiter.dev/guides/feature-lane/#steps",
+            "https://codearbiter.dev/guides/feature-lane/%0a",
+            "https://codearbiter.dev/guides/Feature_Lane/",
+            "http://codearbiter.dev/guides/feature-lane/",
+            "https://codearbiter.dev.example/guides/feature-lane/",
+            "https://example.codearbiter.dev/guides/feature-lane/",
             "/recovery/",
         ):
             with self.subTest(target=target):
@@ -2804,6 +2818,45 @@ class PreviewSiteTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unsupported Markdown"):
                     build_preview_site(source, destination, release_sha="c" * 40)
                 self.assertFalse(destination.exists())
+
+    def test_lessons_may_link_codearbiter_guide_and_concept_pages_only(self) -> None:
+        """Catches a lesson link to its explaining codeArbiter page being refused, or the allowance widening."""
+        source = self._copy_public_source()
+        lesson = source / "academy" / "tracks" / "foundations" / "F01-fork-clone-doctor.md"
+        original = lesson.read_text(encoding="utf-8")
+
+        lesson.write_text(
+            original
+            + "\nRead [Test-First Evidence](https://codearbiter.dev/concepts/test-first/) next.\n",
+            encoding="utf-8",
+        )
+        destination = self.out.parent / "site-page-link"
+        build_preview_site(source, destination, release_sha="c" * 40)
+        page = (destination / "labs" / "F01-fork-clone-doctor" / "index.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            '<a href="https://codearbiter.dev/concepts/test-first/">Test-First Evidence</a>', page
+        )
+        check_preview_site(destination)
+
+        for index, target in enumerate(
+            (
+                "https://codearbiter.dev/reference/commands/doctor/",
+                "https://codearbiter.dev/getting-started/install/",
+                "https://codearbiter.dev/concepts/test-first",
+                "https://codearbiter.dev/concepts/test-first/?raw=1",
+                "https://codearbiter.dev/concepts/test-first/#why",
+                "http://codearbiter.dev/concepts/test-first/",
+                "https://codearbiter.dev.example/concepts/test-first/",
+            )
+        ):
+            with self.subTest(target=target):
+                lesson.write_text(original + f"\n[Elsewhere]({target})\n", encoding="utf-8")
+                rejected = self.out.parent / f"site-page-link-rejected-{index}"
+                with self.assertRaisesRegex(ValueError, "unsupported Markdown"):
+                    build_preview_site(source, rejected, release_sha="c" * 40)
+                self.assertFalse(rejected.exists())
 
     def test_markdown_renderer_rejects_block_syntax_nested_in_ordered_items(self) -> None:
         """Catches ordered-list continuations flattening nested block constructs into prose."""

@@ -50,6 +50,11 @@ _GUIDE_LINK_TARGETS = frozenset(
         "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
     }
 )
+# A lesson may send the learner to the codeArbiter guide or concept page that explains its
+# mechanism in full. Only those two sections, with a lowercase slug and a trailing slash.
+_SITE_PAGE_LINK = re.compile(
+    r"https://codearbiter\.dev/(?:guides|concepts)/[a-z0-9]+(?:-[a-z0-9]+)*/"
+)
 _ACTION_REFERENCE = re.compile(r"\{\{action:([A-Za-z0-9][A-Za-z0-9-]{0,95})\}\}")
 _UNSUPPORTED_INLINE_MARKERS = ("*", "_", "[", "]", "\\", "~")
 _PUBLIC_ASSET_FILES = (
@@ -463,7 +468,7 @@ def _render_inline(lab_id: str, value: str) -> str:
                 raise ValueError(f"eligible lesson {lab_id} contains unsupported Markdown syntax")
             label, target = match.groups()
             if (
-                target not in _GUIDE_LINK_TARGETS
+                (target not in _GUIDE_LINK_TARGETS and _SITE_PAGE_LINK.fullmatch(target) is None)
                 or not label.strip()
                 or _RAW_HTML.search(label)
                 or any(marker in label for marker in _UNSUPPORTED_INLINE_MARKERS)

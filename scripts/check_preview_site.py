@@ -32,10 +32,14 @@ _EXTERNAL_URLS = {
     "https://codearbiter.dev/",
     "https://arbiterforge.github.io/codeArbiter/getting-started/choose-your-host/",
 }
+# Lesson links to the codeArbiter guide or concept page that explains a mechanism in full.
+_SITE_PAGE_URL = re.compile(
+    r"https://codearbiter\.dev/(?:guides|concepts)/[a-z0-9]+(?:-[a-z0-9]+)*/"
+)
 
 
 def _is_approved_external_url(target: str) -> bool:
-    if target in _EXTERNAL_URLS:
+    if target in _EXTERNAL_URLS or _SITE_PAGE_URL.fullmatch(target) is not None:
         return True
     try:
         validate_action_resource_href(target)
