@@ -146,14 +146,6 @@ attempt intact. Next safe course step: start U01, Autonomous sprint.
 
 ## Understand the mechanism
 
-P08 records external identities outside the learner checkout, then compares the final report with
-the prepared live fixture. The report intentionally carries path-free worktree identities rather
-than local paths. That makes a copied inventory, a missing resource, a moved resource, a rebound
-branch, and a stale classification detectable.
+Your report carries path-free worktree identities, and Check compares it with the prepared live fixture. That makes a copied inventory, a moved resource, a rebound branch, and a stale classification detectable. Check cannot decide whether a future cleanup is appropriate. [Review and Ship a Change](https://codearbiter.dev/guides/review-and-ship/) covers post-merge cleanup.
 
-The verifier is strict about the final state but narrow about the process. It can verify the exact
-report, commit boundary, and current prepared resources. It cannot observe every conversation or
-decide whether a future cleanup is appropriate. Preserve live state and require a separate explicit
-review before any cleanup decision.
-
-**Use this in your own project.** Check merge containment, unique commits, and worktree dirt separately. Name each exact branch or directory before authorizing deletion. A merged branch is only a candidate for review; its worktree can still contain work worth preserving.
+**Use this in your own project.** Check merge containment, unique commits, and worktree dirt separately. Name each exact branch or directory before authorizing deletion.

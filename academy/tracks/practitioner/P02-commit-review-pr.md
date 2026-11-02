@@ -91,6 +91,6 @@ If origin or upstream evidence differs, stop. The local bare routes are verifier
 
 ## Understand the mechanism
 
-The receipt is a canonical local statement that binds your declared cleared review to Git facts the verifier can recompute. The separate receipt commit keeps the reviewed work range distinct from the declaration about it. Continue to P03 after Reset or after preserving this completed attempt.
+The receipt is a local statement binding your declared review to Git facts that Check recomputes. A separate commit keeps the reviewed work distinct from that declaration. Continue to P03 after Reset or after preserving this attempt.
 
-**Use this in your own project.** For a real delivery, inspect the diff, test results, PR base and head, and hosted checks. A local rehearsal receipt is not a PR. Confirm the saved GitHub remotes have been restored before later lessons that open hosted pull requests.
+**Use this in your own project.** Inspect the diff, tests, and hosted checks. A local receipt is not a PR; [Review and Ship a Change](https://codearbiter.dev/guides/review-and-ship/) covers a real one. Restore your GitHub remotes before lessons that open hosted pull requests.

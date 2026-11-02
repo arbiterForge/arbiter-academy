@@ -119,6 +119,6 @@ unpublished source exercises for a released lesson.
 
 ## Understand the mechanism
 
-`$ca-threat-model` is read-only advisory analysis: it writes no report. Threat modeling connects an untrusted input to a concrete boundary, then the learner-owned Academy record preserves threats and controls that matter at that boundary. STRIDE supplies coverage categories, not a substitute for specific reasoning. The Academy binding freezes which source bytes were reviewed without pretending it proves the live conversation, command invocation, or implementation authority.
+`$ca-threat-model` is read-only advice and writes no report. A threat model ties an untrusted input to a concrete boundary; STRIDE supplies coverage categories, not specific reasoning. Your Academy record freezes the reviewed source bytes, not the conversation or any implementation. [Review and Ship a Change](https://codearbiter.dev/guides/review-and-ship/) shows where this review fits.
 
-**Use this in your own project.** Threat-model a concrete flow: input, trust boundary, sensitive operation, failure outcome, and control. Ask which controls already exist and which still need work. An advisory verdict is not permission to expand the task or a claim that the controls were implemented.
+**Use this in your own project.** Model a concrete flow: input, trust boundary, sensitive operation, failure outcome, control. An advisory verdict does not mean the controls exist.

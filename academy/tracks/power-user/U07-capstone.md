@@ -83,10 +83,6 @@ use Reset when the attempt needs a fresh baseline.
 
 ## Understand the mechanism
 
-You have taken a concrete problem from reproduction to reviewable delivery.
+You have taken a concrete problem from reproduction to reviewable delivery. [Build a Feature End to End](https://codearbiter.dev/guides/feature-lane/) covers the same lane.
 
-**Build something of your own.** Choose a useful feature, such as filtering a reading
-list or exporting a small inventory. State who uses it, one visible success case,
-one failure case, and what is out of scope. Ask codeArbiter to build it through the
-feature lane. Request a review pause where it helps you; let ordinary in-scope work
-continue under the original request. Use the Home page's own-project guide for setup.
+**Build something of your own.** Choose a useful feature, such as filtering a reading list. State who uses it, one success case, one failure case, and what is out of scope. Ask codeArbiter to build it through the feature lane, with a review pause where it helps. Use the Home page's own-project guide for setup.

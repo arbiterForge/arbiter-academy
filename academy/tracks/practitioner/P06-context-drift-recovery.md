@@ -133,10 +133,6 @@ you return to `main`; do not substitute unpublished source exercises for the acc
 
 ## Understand the mechanism
 
-Context becomes trustworthy when its claims can be traced to the source and decision that support
-them. A re-scout repairs a contradiction without pretending all repository context was freshly
-reviewed. The two commits separate the source-backed correction from the record that describes it;
-the external verifier then reconstructs both against the prepared baseline. Keeping unrelated work
-byte-identical makes recovery auditable instead of destructive.
+A re-scout repairs one contradiction without pretending all context was freshly reviewed. Your two commits separate the source-backed correction from the record that describes it, and unrelated work stays byte-identical. [Understand an Existing Project](https://codearbiter.dev/guides/understand-an-existing-project/) and [Provenance & Context Drift](https://codearbiter.dev/concepts/provenance-drift/) explain how claims trace to source.
 
-**Use this in your own project.** When code and context disagree, ask for a scoped drift check and follow the cited source. Refresh only supported claims. Keep unrelated work, distinguish planned from implemented behavior, and resume the existing task after the correction.
+**Use this in your own project.** When code and context disagree, ask for a scoped drift check and follow the cited source. Refresh only supported claims.

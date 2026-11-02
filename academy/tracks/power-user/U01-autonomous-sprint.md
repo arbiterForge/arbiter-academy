@@ -94,9 +94,6 @@ Continue to U02 after a passing Check.
 
 ## Understand the mechanism
 
-A sprint maintains a working agreement while carrying work forward. The agent checks
-facts, handles ordinary implementation problems, and reports real uncertainty.
+A sprint maintains a working agreement while carrying work forward. The agent checks facts, handles ordinary implementation problems, and reports real uncertainty. [Run an Autonomous Sprint](https://codearbiter.dev/guides/autonomous-sprints/) covers boundaries and pauses.
 
-**Use this in your own project.** Give a small outcome, observable acceptance criteria,
-constraints, external-service limits, and any desired human checkpoint. Request a
-report of changes, actual checks, unresolved risks, and remaining delivery steps.
+**Use this in your own project.** Give a small outcome, observable acceptance criteria, constraints, external-service limits, and any human checkpoint you want. Request a report of changes, actual checks, unresolved risks, and remaining delivery steps.

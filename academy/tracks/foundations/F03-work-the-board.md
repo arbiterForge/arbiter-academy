@@ -107,13 +107,6 @@ base-branch requirement.
 
 ## Understand the mechanism
 
-`$ca-task start` records that work began. `$ca-chore docs` performs the bounded non-behavioral change
-and carries the dirty board transition through the same governed commit. Co-locating those paths
-prevents a board-only commit from claiming progress without work and prevents a document-only commit
-from hiding that the task entered progress.
+`$ca-task start` records that work began, and `$ca-chore docs` makes the bounded change in the same governed commit as the board transition. Check verifies that one commit and its bytes, not your agent calls or your review. [Return to a Project](https://codearbiter.dev/guides/return-to-a-project/) and [The Gated-Lane Model](https://codearbiter.dev/concepts/gated-lanes/) explain the board and lanes.
 
-The local Git result is deliberately narrower than the workflow that produced it. Check can
-verify the one commit and its bytes, but not either agent invocation, the learner's review, or the
-branch-handoff choice. The guide states those limits instead of treating durable state as telemetry.
-
-**Use this in your own project.** Give a task one observable done condition and a narrow boundary. Start it when work begins, preserve its ID, and mark it done only when its actual done condition is met. This exercise stops at in-progress to teach the start transition; that is not the normal endpoint of completed work.
+**Use this in your own project.** Give each task one observable done condition. Mark it done only when that condition is met; this exercise stops at in-progress.

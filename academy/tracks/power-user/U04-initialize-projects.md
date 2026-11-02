@@ -144,10 +144,6 @@ history to make status look clean.
 
 ## Understand the mechanism
 
-The action manifest preserves actor, surface, timing, expected result, evidence, recovery, and next
-safe step. Its verifier reads real codeArbiter layout from committed
-child heads: decompose plans live under `.codearbiter/plans/`; context-creation documents remain in
-their real root locations. The canonical writer and Check use the same byte renderer, so the report
-that you inspect is the report Check verifies.
+Check reads real codeArbiter layout from the committed heads of your greenfield and brownfield children. The canonical writer and Check share one byte renderer, so the report you inspect is the report Check verifies. [Understand an Existing Project](https://codearbiter.dev/guides/understand-an-existing-project/) and [Plan a New Project](https://codearbiter.dev/guides/plan-a-new-project/) cover each path.
 
-**Use this in your own project.** For a new project, describe the user, problem, first useful outcome, and exclusions. Use init --greenfield to develop that context. For existing code use init --brownfield to inspect it. In Codex these are $ca-init --greenfield and $ca-init --brownfield. Run the workflow once in the correct project; initial scaffolding alone is not complete context.
+**Use this in your own project.** Use `init --greenfield` for a new project and `init --brownfield` for existing code (`$ca-init` in Codex). Scaffolding alone is not complete context.

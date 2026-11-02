@@ -100,6 +100,6 @@ Do not destroy a failed attempt to make it look clean. Preserve the state and us
 
 ## Understand the mechanism
 
-The guide and its action manifest are one shared renderer contract. Every command card names who acts and where. Native terminal commands never use `!`. codeArbiter commands use the selected host directly. Check can compare repository state, but it cannot infer a learner's judgment or an external release event.
+Check compares repository state, but it cannot infer your judgment or an external release event. A local annotated tag is not a remote publication. [Cut a Release](https://codearbiter.dev/guides/releasing-a-version/) and [The Gated-Lane Model](https://codearbiter.dev/concepts/gated-lanes/) explain the lanes.
 
-**Use this in your own project.** Choose refactor when behavior must stay the same, chore for non-behavioral work, and release for a declared delivery target. Run the existing behavior tests before and after refactoring. A local annotated tag is not a remote publication. On Windows the release workflow needs Git for Windows Bash; let the installed workflow select its shell and interpreter.
+**Use this in your own project.** Choose refactor to keep behavior the same, chore for non-behavioral work, and release for a declared target. Run behavior tests before and after a refactor. On Windows, release needs Git for Windows Bash and picks its own shell.
