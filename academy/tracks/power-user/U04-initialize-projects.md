@@ -30,7 +30,7 @@ child project in the Academy root. Host-native commands act on
 the folder visible in that host. A terminal `cd` does not switch it, and neither native-terminal nor
 codeArbiter commands use `!`.
 
-Greenfield uses init --greenfield, which routes to decompose, which currently produces legacy reconciliation inputs. This greenfield route has not yet migrated to native HTML planning; let the owner produce its current outputs rather than drafting or converting plans yourself. After learner review, greenfield alone will use `ca-reconcile`,
+Greenfield uses init --greenfield, which routes to decompose. With the Markdown context format this lesson requests, decompose produces the Markdown reconciliation inputs this Check reads; let the owner produce them rather than drafting or converting plans yourself. After learner review, greenfield alone will use `ca-reconcile`,
 then `ca-adr` drafts the learner-attributed decision for the learner to review and explicitly
 accept. Complete the ADR owner's Accepted/Planned binding: commit its source first, then the separate source-bound acceptance ledger. Reconciliation does not author ADRs or advance their status.
 Brownfield uses init --brownfield, which routes to create-context; the next card inspects or resumes that same population run. Do not restart an already completed interview or scaffold. The
@@ -57,6 +57,8 @@ Complete and commit greenfield before opening brownfield:
 {{action:U04-inspect-greenfield}}
 
 {{action:U04-run-greenfield-init}}
+
+Current codeArbiter initializes new projects with HTML knowledge by default. This lesson's Check reads the Markdown context and greenfield plan files, so both children ask for the Markdown format explicitly.
 
 {{action:U04-run-greenfield-decompose}}
 

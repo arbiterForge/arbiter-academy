@@ -131,7 +131,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:init --greenfield",
+          "command": "/ca:init --greenfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -140,7 +140,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-init --greenfield",
+          "command": "$ca-init --greenfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -149,7 +149,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-init --greenfield",
+          "command": "/ca-init --greenfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -158,7 +158,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-init --greenfield",
+          "command": "/skill:ca-init --greenfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         }
       ],
@@ -638,7 +638,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:init --brownfield",
+          "command": "/ca:init --brownfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -647,7 +647,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-init --brownfield",
+          "command": "$ca-init --brownfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -656,7 +656,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-init --brownfield",
+          "command": "/ca-init --brownfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         },
         {
@@ -665,7 +665,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-init --brownfield",
+          "command": "/skill:ca-init --brownfield Use the Markdown context format (--format markdown) for this child, and keep Markdown if a conversion is offered.",
           "copy": true
         }
       ],

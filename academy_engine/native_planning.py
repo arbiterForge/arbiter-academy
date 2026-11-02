@@ -16,10 +16,10 @@ import tempfile
 from pathlib import Path
 
 
-# Released cohort at codeArbiter 849a3cf6; update with the lesson source review.
-BRIDGE_SHA256 = "5761e096518fc760ba1aa8fc73dd3a84de7148e9aa88c01ecf66bf129a0eabeb"
+# Released cohort at codeArbiter 27e6cb12; update with the lesson source review.
+BRIDGE_SHA256 = "24424a47249483eefce1f389041892273bd2950cce7213bb76458d953b394ce1"
 GIT_HELPER_SHA256 = "6dc323512f8a50b2a82a8ff63cd5eb2d1e98aefb9dafcc802b8053a2bc838d68"
-RELEASE_SHA256 = "138bc85f914e10442eae34070ea19ff0c36534570d93c8fb297939fe5a6d4609"
+RELEASE_SHA256 = "a71beb6bb048fc0818f786f4cd7bba0262b176b896537aad8b72ddcaedd8bbf1"
 MAX_DOCUMENT = 2 << 20
 
 

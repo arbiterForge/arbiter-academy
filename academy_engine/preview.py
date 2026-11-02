@@ -63,28 +63,28 @@ _COMPATIBILITY_COMPONENTS = (
         "codearbiter",
         "codeArbiter",
         "v",
-        "3.2.6",
+        "3.8.3",
         "plugins/ca/.claude-plugin/plugin.json",
-        "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64",
+        "f79c8ec4d006700bca480faacc8189f57da1bebc0afafedab21cc884eeaa9894",
     ),
     (
         "ca-codex",
         "Codex",
         "ca-codex-v",
-        "0.20.6",
+        "0.26.3",
         "plugins/ca-codex/.codex-plugin/plugin.json",
-        "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7",
+        "5baae6470aab9b2a4c551610a04ba5e2e0a08eaf33230c48c6d0458911e95c70",
     ),
     (
         "ca-pi",
         "Pi",
         "ca-pi-v",
-        "0.21.6",
+        "0.27.3",
         "plugins/ca-pi/package.json",
-        "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499",
+        "e49ff25777e7df245ff15f4df71c2c17a3d72dc174c4d44ee72d89620ce1e4b2",
     ),
 )
-_COMPATIBILITY_SOURCE_COMMIT = "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77"
+_COMPATIBILITY_SOURCE_COMMIT = "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa"
 _SCHEMA_PINNED_FIELDS = ("id", "track", "order", "manifest", "checkpoint")
 
 

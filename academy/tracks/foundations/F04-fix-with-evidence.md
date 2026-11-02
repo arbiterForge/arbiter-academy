@@ -71,6 +71,8 @@ rejecting every name would also be a bug.
 
 {{action:F04-commit-repair}}
 
+From codeArbiter 3.8, the fix lane records an authorized repair as one fix work item. On this practice board that is one queued row. Stage it with the repair so the commit gate reviews it in the same commit, and leave it queued; completing work items is outside this lesson.
+
 {{action:F04-inspect-history}}
 
 ## Recognize success

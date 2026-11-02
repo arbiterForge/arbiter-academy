@@ -16,6 +16,57 @@ from academy_engine.scenario import prepare_lab
 from academy_engine.lesson_actions import load_action_manifest
 
 
+def write_f04_green_change(case, root):
+    """Add the F04 regression, observe it fail, then add the minimal guard."""
+    test = root / 'tests/test_service.py'
+    text = test.read_text(encoding='utf-8')
+    method = '''    def test_claim_rejects_control_characters_in_volunteer_label(self) -> None:
+        for volunteer in ("Sam\\nAdmin", "Sam\\tAdmin", "Sam\\x7fAdmin"):
+            with self.subTest(volunteer=repr(volunteer)):
+                with self.assertRaisesRegex(ValueError, "control characters"):
+                    claim_ticket([open_ticket("RQ-104")], "RQ-104", volunteer, fixed_now())
+        claimed = claim_ticket([open_ticket("RQ-104")], "RQ-104", "Sam Allen", fixed_now())
+        self.assertEqual(claimed[0].claimed_by, "Sam Allen")
+
+'''
+    marker = '    def test_complete_requires_a_claimed_ticket_and_records_resolution(self) -> None:\n'
+    case.assertIn(marker, text)
+    test.write_text(text.replace(marker, method + marker), encoding='utf-8', newline='\n')
+    result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label'], cwd=root, capture_output=True, text=True)
+    case.assertNotEqual(result.returncode, 0)
+    case.assertIn('ValueError not raised', result.stderr)
+    code = root / 'workshop_queue/service.py'
+    before = code.read_text(encoding='utf-8')
+    needle = '            if not volunteer.strip():\n                raise ValueError("volunteer must be non-empty")\n'
+    guard = '            if any(ord(character) < 32 or ord(character) == 127 for character in volunteer):\n                raise ValueError("volunteer must not contain control characters")\n'
+    case.assertIn(needle, before)
+    code.write_text(before.replace(needle, needle + guard), encoding='utf-8', newline='\n')
+    result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service'], cwd=root, capture_output=True, text=True)
+    case.assertEqual(result.returncode, 0, result.stderr)
+
+
+def current_p05_history(helper, *, before_repair=None, repair_paths=('tests/test_cli.py', 'workshop_queue/cli.py')):
+    """Rebuild a disposable P05 fixture into the current green-only topology."""
+    prepared_root, _, prepared = helper._p05_prepared_repository()
+    history = helper._p05_history(prepared_root, prepared, 'current', name='Academy Fixture', email='fixture@example.invalid', timestamps=tuple(f'2026-08-02T12:0{i}:00+00:00' for i in range(4)))
+    root = history['root']
+    helper._p05_git(root, 'reset', '--soft', str(history['finding']))
+    helper._p05_git(root, 'restore', '--staged', '.codearbiter/checkpoints/P05-academy.json')
+    (root / '.codearbiter/checkpoints/P05-academy.json').unlink()
+    if before_repair is not None:
+        before_repair(root)
+    repair = helper._p05_commit(root, repair_paths, 'fix: regression and repair', name='Academy Fixture', email='fixture@example.invalid', timestamp='2026-08-02T12:02:00+00:00')
+    report = dict(history['receipt_data'])
+    report.pop('red_commit')
+    report.update(schema_version=3, remediation_commit=repair)
+    receipt = root / '.codearbiter/checkpoints/P05-academy.json'
+    receipt.write_bytes(json.dumps(report, sort_keys=True, separators=(',', ':')).encode() + b'\n')
+    history['head'] = helper._p05_commit(root, ('.codearbiter/checkpoints/P05-academy.json',), 'docs: record repair', name='Academy Fixture', email='fixture@example.invalid', timestamp='2026-08-02T12:03:00+00:00')
+    history['report'] = report
+    history['remediation'] = repair
+    return history
+
+
 class CurrentPluginWorkflows(unittest.TestCase):
     def test_u05_debug_check_exposes_untracked_changes_on_every_platform(self):
         fixture = foundations.AcademyRepository()
@@ -45,31 +96,7 @@ class CurrentPluginWorkflows(unittest.TestCase):
         helper = foundations.FoundationsCheckpointMatrixTests()
         fixture = helper._prepared('F04-fix-with-evidence')
         self.addCleanup(fixture.close)
-        test = fixture.root / 'tests/test_service.py'
-        text = test.read_text(encoding='utf-8')
-        method = '''    def test_claim_rejects_control_characters_in_volunteer_label(self) -> None:
-        for volunteer in ("Sam\\nAdmin", "Sam\\tAdmin", "Sam\\x7fAdmin"):
-            with self.subTest(volunteer=repr(volunteer)):
-                with self.assertRaisesRegex(ValueError, "control characters"):
-                    claim_ticket([open_ticket("RQ-104")], "RQ-104", volunteer, fixed_now())
-        claimed = claim_ticket([open_ticket("RQ-104")], "RQ-104", "Sam Allen", fixed_now())
-        self.assertEqual(claimed[0].claimed_by, "Sam Allen")
-
-'''
-        marker = '    def test_complete_requires_a_claimed_ticket_and_records_resolution(self) -> None:\n'
-        self.assertIn(marker, text)
-        test.write_text(text.replace(marker, method + marker), encoding='utf-8', newline='\n')
-        result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service.TicketTransitionTests.test_claim_rejects_control_characters_in_volunteer_label'], cwd=fixture.root, capture_output=True, text=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('ValueError not raised', result.stderr)
-        code = fixture.root / 'workshop_queue/service.py'
-        before = code.read_text(encoding='utf-8')
-        needle = '            if not volunteer.strip():\n                raise ValueError("volunteer must be non-empty")\n'
-        guard = '            if any(ord(character) < 32 or ord(character) == 127 for character in volunteer):\n                raise ValueError("volunteer must not contain control characters")\n'
-        self.assertIn(needle, before)
-        code.write_text(before.replace(needle, needle + guard), encoding='utf-8', newline='\n')
-        result = subprocess.run([sys.executable, '-m', 'unittest', 'tests.test_service'], cwd=fixture.root, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
+        write_f04_green_change(self, fixture.root)
         fixture.commit('fix: validate claimant labels with regression', 'tests/test_service.py', 'workshop_queue/service.py')
         self.assertTrue(evaluate_checkpoint(fixture.root, 'F04-fix-with-evidence').passed)
         (fixture.root / 'unrelated.txt').write_text('unrelated', encoding='utf-8')
@@ -79,20 +106,9 @@ class CurrentPluginWorkflows(unittest.TestCase):
         helper = checkpoints.CheckpointTests()
         helper.setUp()
         self.addCleanup(helper.tearDown)
-        prepared_root, _, prepared = helper._p05_prepared_repository()
-        history = helper._p05_history(prepared_root, prepared, 'current', name='Academy Fixture', email='fixture@example.invalid', timestamps=tuple(f'2026-08-02T12:0{i}:00+00:00' for i in range(4)))
-        root = history['root']
-        # Rebuild only this disposable fixture into the current green-only topology.
-        helper._p05_git(root, 'reset', '--soft', str(history['finding']))
-        helper._p05_git(root, 'restore', '--staged', '.codearbiter/checkpoints/P05-academy.json')
-        (root / '.codearbiter/checkpoints/P05-academy.json').unlink()
-        repair = helper._p05_commit(root, ('tests/test_cli.py', 'workshop_queue/cli.py'), 'fix: regression and repair', name='Academy Fixture', email='fixture@example.invalid', timestamp='2026-08-02T12:02:00+00:00')
-        report = dict(history['receipt_data'])
-        report.pop('red_commit')
-        report.update(schema_version=3, remediation_commit=repair)
+        history = current_p05_history(helper)
+        root, report, repair = history['root'], history['report'], history['remediation']
         receipt = root / '.codearbiter/checkpoints/P05-academy.json'
-        receipt.write_bytes(json.dumps(report, sort_keys=True, separators=(',', ':')).encode() + b'\n')
-        history['head'] = helper._p05_commit(root, ('.codearbiter/checkpoints/P05-academy.json',), 'docs: record repair', name='Academy Fixture', email='fixture@example.invalid', timestamp='2026-08-02T12:03:00+00:00')
         self.assertTrue(helper._p05_semantic(history))
         report['red_commit'] = repair
         receipt.write_bytes(json.dumps(report, sort_keys=True, separators=(',', ':')).encode() + b'\n')

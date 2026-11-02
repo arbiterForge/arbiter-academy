@@ -51,6 +51,31 @@ def compare(manifest: object, read_source) -> dict[str, list[str]]:
     return drift
 
 
+_HOST_COMMAND = re.compile(r"(?:/ca:|\$ca-|/ca-|/skill:ca-)(?P<name>[a-z][a-z0-9-]*)(?:\s|$)")
+
+
+def retired_commands(actions: Path, exists) -> dict[str, list[str]]:
+    """Name each card command whose codeArbiter command or skill is absent at the producer.
+
+    A lesson that tells learners to run a removed command fails for every learner,
+    even when no mapped source hash changed.
+    """
+    missing: dict[str, set[str]] = {}
+    for path in sorted(actions.glob("*.json")):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        for action in manifest.get("actions", []):
+            for variant in action.get("variants", []):
+                if variant.get("language") != "codearbiter":
+                    continue
+                match = _HOST_COMMAND.match(variant["command"])
+                name = match.group("name") if match else variant["command"].split()[0]
+                if match is None or not (
+                    exists(f"core/surface/commands/{name}.md") or exists(f"core/surface/skills/{name}/SKILL.md")
+                ):
+                    missing.setdefault(action["id"], set()).add(name)
+    return {action: sorted(names) for action, names in missing.items()}
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=Path(__file__).resolve().parents[1] / "academy/lesson-source-review.json")
@@ -73,11 +98,21 @@ def main(argv=None) -> int:
                 raise ValueError("producer source exceeds size bound")
             return result.stdout
         drift = compare(manifest, read_source)
-        if drift:
-            for lesson, paths in drift.items():
-                print(f"REVIEW REQUIRED {lesson}: {', '.join(paths)}")
+        retired = retired_commands(
+            args.manifest.parent / "actions",
+            lambda path: subprocess.run(
+                ["git", "-C", str(args.codearbiter_root), "cat-file", "-e", commit + ":" + path],
+                capture_output=True, timeout=20, check=False,
+            ).returncode == 0,
+        )
+        for lesson, paths in drift.items():
+            print(f"REVIEW REQUIRED {lesson}: {', '.join(paths)}")
+        for action, names in retired.items():
+            print(f"RETIRED COMMAND {action}: {', '.join(names)}")
+        if drift or retired:
             return 1
-        print(f"All 19 lessons match their declared source dependencies at {commit}; this is a drift check, not semantic or host qualification.")
+        print(f"All 19 lessons match their declared source dependencies at {commit}, and every action-card "
+              "command exists there; this is a drift check, not semantic or host qualification.")
         return 0
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(f"lesson source review could not complete: {type(error).__name__}", file=sys.stderr)

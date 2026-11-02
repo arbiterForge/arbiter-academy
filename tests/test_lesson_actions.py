@@ -172,8 +172,8 @@ U06_HEADINGS = (
     "Know before you begin",
     "What you will prove",
     "Prepare safely",
-    "Create a contained preview",
-    "Read the preview",
+    "Create a contained review input",
+    "Read the review",
     "Record evidence",
     "Check the boundary",
     "Recover or continue",
@@ -662,7 +662,9 @@ class LessonActionTests(unittest.TestCase):
         context = by_id["P04-ask-context"]
         self.assertEqual(context.actor, "learner")
         self.assertIsNone(context.surface)
-        self.assertTrue(all("btw" in variant.command for variant in context.variants))
+        self.assertEqual(tuple(variant.host for variant in context.variants), ("claude-code", "codex", "pi"))
+        self.assertTrue(all(variant.language == "text" for variant in context.variants))
+        self.assertFalse(any("btw" in variant.command for variant in context.variants))
         self.assertIn("cannot inspect the supplied wheel artifacts", context.expected_result + context.instruction)
         self.assertTrue(all("not $ca-add-dep output" in variant.command for variant in draft.variants))
         self.assertFalse(any(variant.command.startswith("!") for variant in draft.variants))
@@ -2222,7 +2224,7 @@ class LessonActionTests(unittest.TestCase):
         exact_candidate = (
             "# U06 preview candidate\n\n"
             "## Read-only documentation policy\n\n"
-            "Preview may inspect the prepared attempt and report predicted reviewers. "
+            "Review may inspect the prepared attempt and report findings. "
             "It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
             "## Evidence\n\n"
             "Record the reviewed commit, candidate tree, exact changed path, and "
@@ -2259,7 +2261,7 @@ class LessonActionTests(unittest.TestCase):
         self.assertEqual(preview.actor, "agent")
         self.assertEqual(
             tuple((variant.host, variant.command) for variant in preview.variants),
-            (("claude-code", "/ca:preview"), ("codex", "$ca-preview"), ("pi", "/ca-preview"), ("pi", "/skill:ca-preview")),
+            (("claude-code", "/ca:review"), ("codex", "$ca-review"), ("pi", "/ca-review"), ("pi", "/skill:ca-review")),
         )
         self.assertTrue(all(variant.language == "codearbiter" and not variant.command.startswith("!") for variant in preview.variants))
         report_writer = by_id["U06-write-binding-report"]
@@ -2289,8 +2291,9 @@ class LessonActionTests(unittest.TestCase):
                     if variant.surface == "native-terminal" or variant.language == "codearbiter":
                         self.assertFalse(variant.command.startswith("!"))
         self.assertIn(f"Academy Preview {CURRENT_RELEASE.removeprefix('preview-')}", guide)
-        self.assertIn("`ca-preview`", guide)
-        self.assertIn("not `ca-preview` output", guide)
+        self.assertIn("`ca-review`", guide)
+        self.assertIn("not `ca-review` output", guide)
+        self.assertNotIn("/ca:preview", commands)
         self.assertIn("whether a secret scan ran", guide)
         self.assertNotIn("reports `docs` as the reviewer", guide)
         self.assertIn("No committed record preserves this advisory output", manifest_source)

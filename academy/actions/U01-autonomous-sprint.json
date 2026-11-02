@@ -140,7 +140,7 @@
           "operating_system": "all",
           "host": "claude-code",
           "language": "codearbiter",
-          "command": "/ca:sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
+          "command": "/ca:sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Record the guide as one work item bound to the specification and plan, and leave it queued. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
           "copy": true
         },
         {
@@ -149,7 +149,7 @@
           "operating_system": "all",
           "host": "codex",
           "language": "codearbiter",
-          "command": "$ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
+          "command": "$ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Record the guide as one work item bound to the specification and plan, and leave it queued. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
           "copy": true
         },
         {
@@ -158,7 +158,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
+          "command": "/ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Record the guide as one work item bound to the specification and plan, and leave it queued. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
           "copy": true
         },
         {
@@ -167,7 +167,7 @@
           "operating_system": "all",
           "host": "pi",
           "language": "codearbiter",
-          "command": "/skill:ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
+          "command": "/skill:ca-sprint academy-sprint: Write docs/academy-sprint-summary.md from the prepared U01 brief. Explain authorization from the original request, meaningful SMARTS decisions, and hard-gate stops. Create and maintain the native spec and plan, record material choices if any, verify the guide, and commit through the gate. Record the guide as one work item bound to the specification and plan, and leave it queued. Open a PR only in my fork against its main branch. Do not change product code, tests, dependencies, or remotes. Do not merge or publish.",
           "copy": true
         }
       ],

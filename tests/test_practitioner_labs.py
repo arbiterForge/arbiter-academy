@@ -38,7 +38,7 @@ EXPECTED_HOST_ACTIONS = {
     # metadata presents the first host entry point only.
     PRACTITIONER[1]: ("review",),
     PRACTITIONER[2]: ("adr",),
-    PRACTITIONER[3]: ("btw",),
+    PRACTITIONER[3]: ("commit",),
     PRACTITIONER[4]: ("checkpoint",),
     PRACTITIONER[5]: ("status drift",),
     PRACTITIONER[6]: ("threat-model",),
@@ -406,7 +406,7 @@ class PractitionerCurriculumTests(unittest.TestCase):
         """Catches P01 beginning work without the host-native feature command."""
         p01 = load_track(SOURCE, "practitioner").labs[0]
 
-        request = '"Show unresolved tickets in the Workshop Queue JSON summary" Use slug academy-feature and the full feature workflow for this new output field. Draft the specification and stop for my review before planning, implementation, or commits.'
+        request = '"Show unresolved tickets in the Workshop Queue JSON summary" Use slug academy-feature and the full feature workflow for this new output field. academy.feature.0002 already tracks this feature, so do not record a separate work item for it. Draft the specification and stop for my review before planning, implementation, or commits.'
         self.assertEqual(
             p01.host_commands,
             {

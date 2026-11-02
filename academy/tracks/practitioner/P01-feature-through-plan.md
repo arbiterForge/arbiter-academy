@@ -82,6 +82,8 @@ Use the revision action. It sends a bounded request and returns you to the same 
 
 After you send the proceed instruction, let the agent execute the governed path it describes. Add and run a focused summary test before touching production code. The RED result must fail because unresolved tickets are absent, not because a file, import, or fixture is broken. The repair remains the exact `open + claimed` assignment. Do not create a RED commit, amend, or rebase.
 
+From codeArbiter 3.8, the feature lane normally records its own work item once the specification exists. Here `academy.feature.0002` already tracks the feature, and the commit gate cannot yet keep a task start and a new work item in one commit, so both prompts ask the lane not to record one. If the gate still stops on `.codearbiter/open-tasks.md` because a second queued row appeared, do not edit the board by hand. Use Reset and repeat the attempt.
+
 ## Recognize success
 
 The attempt has one final green commit after Prepare. That commit contains exactly the feature

@@ -11,8 +11,12 @@ for a learner's own project.
    than a dirty local checkout.
 2. Run `python scripts/check_lesson_source_review.py --codearbiter-root PATH`.
    It compares `academy/lesson-source-review.json` with the producer's
-   `origin/main` and prints each affected lesson. The existing scheduled and PR
-   workflows also run this check. A matching hash is not semantic review.
+   `origin/main` and prints each affected lesson. It also fails when a codeArbiter
+   command variant on an action card names a command or skill absent from the
+   producer's `core/surface`; text variants and guide prose are not scanned. The scheduled and PR
+   workflows run this check, and the daily `codeArbiter Drift` workflow keeps one
+   open issue while it or the compatibility check fails. A matching hash is not
+   semantic review.
 3. For every affected lesson, read the command owner and its loaded references.
    Review the guide and **every field** of each action card: instruction,
    rationale, command, expected result, recovery, and evidence limits.
@@ -64,6 +68,46 @@ the reviewed installed plugin before running `tests.test_native_planning`,
 installed-producer tests skip. Ordinary CI source tests do not establish native
 host qualification; qualify each supported host before publishing a new cohort.
 
+## November 2026 lesson review
+
+Baseline Academy: `7ed625c973f4d7484efea0321ddd15b13ebc293b`.
+Reviewed plugin source and released producer cohort:
+`27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa` (Claude 3.8.3, Codex 0.26.3, Pi 0.27.3).
+Preview 0.33 remains a source candidate, not a publication claim.
+
+The drift check flagged 18 lessons. Each changed source was diffed against
+`0badb588` and its effect checked against every affected guide and action card.
+Where a lane now writes the task board, the real 3.8.3 work facade and task writer
+were run against prepared boards, and commit-gate's own board classifier was asked
+whether it keeps each resulting change. `tests/test_lane_work_items.py` repeats
+those classifier checks against the pinned producer.
+
+| Lesson | Finding | Correction |
+| --- | --- | --- |
+| F04, P05 | From 3.8.0 the fix lane records an authorized repair as one fix work item: a queued board row that commit-gate keeps in the repair commit. | Check also accepts exactly that row, where the producer inserts it, in the repair commit. The cards stage it with the repair; the guides say to leave it queued. |
+| P01 | From 3.8.0 the feature lane records its own work item once the specification exists. commit-gate cannot keep that row and the taught start of `academy.feature.0002` in one commit (arbiterForge/codeArbiter#1089), and the work facade cannot address the dotted task. | Both prompts ask the lane not to record a separate item, and Check still accepts only the start. If the gate stops on the board, the guide says to Reset and retry. |
+| U01 | From 3.8.0 the sprint records its deliverable as one work item. | Check accepts one queued feature or chore row whose Spec ID and Plan ID both name the committed native pair; the prompt asks for it. |
+| U04 | `init` now defaults to HTML knowledge with no task board. | Both children ask for `--format markdown`, which keeps the Markdown context and greenfield plans this Check reads. |
+| U06 | `/preview` was retired in codeArbiter 3.3.0. | The lesson reviews its bounded diff with read-only `ca-review`. The committed policy text and the binding-record wording now describe review findings, not predicted reviewers. |
+| P04 | `/btw` was retired. | The no-install context question is asked of the agent directly. |
+| U02 | `/metrics` was retired; the H-05 refusal line is byte-identical (run). | Prose and the review card no longer mention metrics output. |
+| F03 | The originless dotted row still starts through the task writer (run). `task.md` now prefers native work IDs and keeps the task writer as an explicit compatibility path; that `/ca:task start academy.docs.0001` takes that path was not run. | None. |
+| P08 | `standup.md` now asks for one named archive subset, archives in a fresh sibling worktree, and selects the drift owner through `work.py`. | None: P08 declines every cleanup. |
+| F01, F02, P02, P06, P07, U03, U05, U07 | Policy preambles, HTML-knowledge alternates, removed `/btw` pointers, and sprint merge-authority wording. | None. |
+
+The source map drops the deleted `commands.md`, `preview.md` and `metrics.md`. It
+adds the work facade, the task writer and `_taskboardlib.py` (which owns the row
+format and the gate's classifier) for F04, P05, P01 and U01; `review.md` for U06;
+and the init scaffolder, the decompose and context-creation Markdown references,
+and the knowledge include for U04. The native planning pins take the artifact
+bridge and release manifest from the published 3.8.3 payloads.
+
+Evidence limits: the board shapes come from the real 3.8.3 work facade and task
+writer, and the gate's classifier keeps each shape the Checks accept. The native
+suites ran against the published Codex 0.26.3 payload. Whether a live agent
+working through commit-gate produces those exact shapes, and whether it honors
+P01's request not to record a separate item, is not qualified here.
+
 ## October 2026 lesson review
 
 Baseline Academy: `c8e5f0a4c58df0997ba079fafbbe5768974c3bff`.
@@ -98,15 +142,14 @@ Every lesson includes a practical purpose and a transfer prompt for the learner'
 own project. Recovery now distinguishes live configuration from invalid committed
 history: preserve a failed exact-history attempt and use numbered Reset.
 
-## Upstream gap: greenfield decomposition
+## Greenfield decomposition format
 
-The feature and sprint HTML authoring/readiness paths exist and were exercised
-with the installed Windows producer. Greenfield decomposition is a separate
-remaining path: the reviewed `core/surface/skills/decompose/SKILL.md` still requires
-three Markdown reconciliation inputs. U04 describes that limitation and delegates
-their production to the current owner. Academy does not teach manual Markdown
-planning or invent an HTML decomposition route. Migrating decomposition and its
-reconciliation consumers belongs in a separate codeArbiter change.
+codeArbiter now records greenfield decomposition as HTML knowledge by default, and
+`init` creates HTML context with no task board. The Markdown route remains supported
+through `--format markdown` and the decompose skill's Markdown reference, which
+still produces the three Markdown plans U04 checks. U04 therefore asks for the
+Markdown format explicitly. Moving U04 to the HTML default needs a Check that
+reads the knowledge and decomposition HTML; that is a separate Academy change.
 
 ## Validation of this candidate
 

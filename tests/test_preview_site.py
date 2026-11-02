@@ -41,29 +41,29 @@ EXPECTED_INTEGRATION_COMPATIBILITY = {
         {
             "component_id": "codearbiter",
             "display_name": "codeArbiter",
-            "release_tag": "v3.2.6",
-            "version": "3.2.6",
-            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+            "release_tag": "v3.8.3",
+            "version": "3.8.3",
+            "source_commit": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa",
             "manifest_path": "plugins/ca/.claude-plugin/plugin.json",
-            "manifest_sha256": "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64",
+            "manifest_sha256": "f79c8ec4d006700bca480faacc8189f57da1bebc0afafedab21cc884eeaa9894",
         },
         {
             "component_id": "ca-codex",
             "display_name": "Codex",
-            "release_tag": "ca-codex-v0.20.6",
-            "version": "0.20.6",
-            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+            "release_tag": "ca-codex-v0.26.3",
+            "version": "0.26.3",
+            "source_commit": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa",
             "manifest_path": "plugins/ca-codex/.codex-plugin/plugin.json",
-            "manifest_sha256": "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7",
+            "manifest_sha256": "5baae6470aab9b2a4c551610a04ba5e2e0a08eaf33230c48c6d0458911e95c70",
         },
         {
             "component_id": "ca-pi",
             "display_name": "Pi",
-            "release_tag": "ca-pi-v0.21.6",
-            "version": "0.21.6",
-            "source_commit": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77",
+            "release_tag": "ca-pi-v0.27.3",
+            "version": "0.27.3",
+            "source_commit": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa",
             "manifest_path": "plugins/ca-pi/package.json",
-            "manifest_sha256": "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499",
+            "manifest_sha256": "e49ff25777e7df245ff15f4df71c2c17a3d72dc174c4d44ee72d89620ce1e4b2",
         },
     ],
 }
@@ -712,12 +712,12 @@ class PreviewSiteTests(unittest.TestCase):
             parser.rows,
             [
                 (("th", "th", "th"), ("Component", "Version", "Release tag")),
-                (("td", "td", "td"), ("codeArbiter", "3.2.6", "v3.2.6")),
+                (("td", "td", "td"), ("codeArbiter", "3.8.3", "v3.8.3")),
                 (
                     ("td", "td", "td"),
-                    ("Codex", "0.20.6", "ca-codex-v0.20.6"),
+                    ("Codex", "0.26.3", "ca-codex-v0.26.3"),
                 ),
-                (("td", "td", "td"), ("Pi", "0.21.6", "ca-pi-v0.21.6")),
+                (("td", "td", "td"), ("Pi", "0.27.3", "ca-pi-v0.27.3")),
             ],
         )
 
@@ -1859,8 +1859,8 @@ class PreviewSiteTests(unittest.TestCase):
         html_mutations = (
             (
                 "component display name drift",
-                "<tr><td>codeArbiter</td><td>3.2.6</td><td>v3.2.6</td></tr>",
-                "<tr><td>Code Arbiter</td><td>3.2.6</td><td>v3.2.6</td></tr>",
+                "<tr><td>codeArbiter</td><td>3.8.3</td><td>v3.8.3</td></tr>",
+                "<tr><td>Code Arbiter</td><td>3.8.3</td><td>v3.8.3</td></tr>",
             ),
             (
                 "table header drift",
@@ -1869,7 +1869,7 @@ class PreviewSiteTests(unittest.TestCase):
             ),
             (
                 "component row removal",
-                "<tr><td>Pi</td><td>0.21.6</td><td>ca-pi-v0.21.6</td></tr>\n",
+                "<tr><td>Pi</td><td>0.27.3</td><td>ca-pi-v0.27.3</td></tr>\n",
                 "",
             ),
             (
