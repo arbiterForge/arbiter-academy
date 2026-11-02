@@ -450,45 +450,58 @@ class U01SprintDecisionSemanticsTests(unittest.TestCase):
         """Catches a source-only semantic pass that cannot survive Academy preparation checks."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "learner"
-            root.mkdir()
-            shutil.copytree(SOURCE / "academy", root / "academy")
-            shutil.copytree(SOURCE / "academy_engine", root / "academy_engine")
-            shutil.copytree(SOURCE / ".codearbiter", root / ".codearbiter")
-            (root / "scripts").mkdir()
-            shutil.copy2(SOURCE / "scripts/academy.py", root / "scripts/academy.py")
-            self._git(root, "init", "-b", "main")
-            self._git(root, "config", "user.name", "Academy Learner")
-            self._git(root, "config", "user.email", "learner@example.invalid")
-            self._git(root, "add", ".")
-            self._git(root, "commit", "-m", "base")
-            self._git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
-            self._git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
-            self._git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
-
-            prepared = prepare_lab(root, U01)
-            self._commit_packet(root)
-            # Replace the legacy fixture packet with a real native writer pair.
-            from tests.native_planning_fixture import create_pair
-            plugin = Path(os.environ["ARBITER_ACADEMY_TEST_PLUGIN_ROOT"])
-            self._git(root, "reset", "--soft", prepared.commit_sha)
-            for kind in ("specs", "plans"):
-                path = f".codearbiter/{kind}/academy-sprint.md"
-                self._git(root, "restore", "--staged", path)
-                (root / path).unlink()
-            self._git(root, "restore", "--source", prepared.commit_sha, "--staged", "--worktree", ".codearbiter/sprint-log.md")
-            create_pair(plugin, root, "academy-sprint")
-            with (root / ".git/info/exclude").open("a", encoding="utf-8") as handle:
-                handle.write("\n.codearbiter/.artifacts/\n")
-            (root / "docs/academy-sprint-summary.md").write_text(
-                "# Operate a bounded autonomous sprint\n\n"
-                "## Approval boundary\nThe original request authorizes this bounded work; merge and publish require their own authority.\n\n"
-                "## SMARTS decision trail\nRecord material choices and their reasons without inventing approvals.\n\n"
-                "## Hard-gate stop\nPreserve the concrete blocker and resolve it before continuing.\n",
-                encoding="utf-8",
-            )
-            self._git(root, "add", ".codearbiter/specs/academy-sprint.html", ".codearbiter/plans/academy-sprint.html", "docs/academy-sprint-summary.md")
-            self._git(root, "commit", "-m", "complete native sprint")
+            plugin = write_native_sprint_packet(root)
+            commit_native_sprint_packet(root)
             result = evaluate_checkpoint(root, U01, plugin_root=plugin)
 
             self.assertTrue(result.passed, result.failed_predicates)
             self.assertFalse(evaluate_checkpoint(root, U01).passed)
+
+
+def write_native_sprint_packet(root: Path) -> Path:
+    """Prepare U01 and write a real native sprint pair plus the guide, uncommitted."""
+    case = U01SprintDecisionSemanticsTests()
+    root.mkdir()
+    shutil.copytree(SOURCE / "academy", root / "academy")
+    shutil.copytree(SOURCE / "academy_engine", root / "academy_engine")
+    shutil.copytree(SOURCE / ".codearbiter", root / ".codearbiter")
+    (root / "scripts").mkdir()
+    shutil.copy2(SOURCE / "scripts/academy.py", root / "scripts/academy.py")
+    case._git(root, "init", "-b", "main")
+    case._git(root, "config", "user.name", "Academy Learner")
+    case._git(root, "config", "user.email", "learner@example.invalid")
+    case._git(root, "add", ".")
+    case._git(root, "commit", "-m", "base")
+    case._git(root, "remote", "add", "origin", "https://github.com/learner/arbiter-academy.git")
+    case._git(root, "remote", "add", "upstream", "https://github.com/arbiterForge/arbiter-academy.git")
+    case._git(root, "remote", "set-url", "--push", "upstream", "DISABLED")
+
+    prepared = prepare_lab(root, U01)
+    case._commit_packet(root)
+    # Replace the legacy fixture packet with a real native writer pair.
+    from tests.native_planning_fixture import create_pair
+    plugin = Path(os.environ["ARBITER_ACADEMY_TEST_PLUGIN_ROOT"])
+    case._git(root, "reset", "--soft", prepared.commit_sha)
+    for kind in ("specs", "plans"):
+        path = f".codearbiter/{kind}/academy-sprint.md"
+        case._git(root, "restore", "--staged", path)
+        (root / path).unlink()
+    case._git(root, "restore", "--source", prepared.commit_sha, "--staged", "--worktree", ".codearbiter/sprint-log.md")
+    create_pair(plugin, root, "academy-sprint")
+    with (root / ".git/info/exclude").open("a", encoding="utf-8") as handle:
+        handle.write("\n.codearbiter/.artifacts/\n")
+    (root / "docs/academy-sprint-summary.md").write_text(
+        "# Operate a bounded autonomous sprint\n\n"
+        "## Approval boundary\nThe original request authorizes this bounded work; merge and publish require their own authority.\n\n"
+        "## SMARTS decision trail\nRecord material choices and their reasons without inventing approvals.\n\n"
+        "## Hard-gate stop\nPreserve the concrete blocker and resolve it before continuing.\n",
+        encoding="utf-8",
+    )
+    return plugin
+
+
+def commit_native_sprint_packet(root: Path, *extra: str) -> None:
+    case = U01SprintDecisionSemanticsTests()
+    case._git(root, "add", ".codearbiter/specs/academy-sprint.html", ".codearbiter/plans/academy-sprint.html",
+              "docs/academy-sprint-summary.md", *extra)
+    case._git(root, "commit", "-m", "complete native sprint")

@@ -632,16 +632,23 @@ def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
 _LEGACY_BOARD = ".codearbiter/open-tasks.md"
 _QUEUED_WORK_ROW = re.compile(r"- \[ \] (?P<title>\S.*?)  \(from (?P<origin>[^\s()]+)\)")
 _WORK_DETAIL_KEYS = frozenset({"Work origin", "Desc", "Work type", "Work ID", "Work operation ID"})
+_ARTIFACT_DETAIL_KEYS = {"Spec ID": "spec", "Plan ID": "plan"}
 _WORK_ID = re.compile(r"WORK-[0-9A-F]{32}")
 
 
-def _one_queued_work_item_added(before: bytes | None, after: bytes | None, work_type: str) -> bool:
+def _one_queued_work_item_added(
+    before: bytes | None,
+    after: bytes | None,
+    work_types: frozenset[str],
+    artifact_ids: dict[str, str] | None = None,
+) -> bool:
     """Accept only the queued row a lane's work-item create adds to a legacy board.
 
     From codeArbiter 3.3 a fix or feature lane records the change as one work item.
     On a legacy board that is one queued row with its detail bullets, inserted in one
     place, and commit-gate keeps it in the work commit. Every existing line must keep
-    its exact bytes.
+    its exact bytes. A feature item may carry the Spec ID and Plan ID the lane attached;
+    each must name the committed native artifact.
     """
     if before is None or after is None:
         return False
@@ -667,17 +674,19 @@ def _one_queued_work_item_added(before: bytes | None, after: bytes | None, work_
     details: dict[str, str] = {}
     for line in block[1:]:
         key, separator, value = line.removeprefix("  - ").partition(": ")
+        artifact = _ARTIFACT_DETAIL_KEYS.get(key)
         if (
             not line.startswith("  - ")
             or not separator
-            or key not in _WORK_DETAIL_KEYS
+            or (key not in _WORK_DETAIL_KEYS and artifact is None)
             or key in details
             or not value.strip()
+            or (artifact is not None and (artifact_ids is None or value != artifact_ids.get(artifact)))
         ):
             return False
         details[key] = value
     return bool(
-        details.get("Work type") == work_type
+        details.get("Work type") in work_types
         and _WORK_ID.fullmatch(details.get("Work ID", ""))
         and details.get("Work origin") == row.group("origin")
     )
@@ -949,7 +958,7 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
                 and _one_queued_work_item_added(
                     _git_blob(root, finding, _LEGACY_BOARD),
                     _git_blob(root, remediation, _LEGACY_BOARD),
-                    "fix",
+                    frozenset({"fix"}),
                 )
             )
         )
@@ -1586,7 +1595,8 @@ def _p01_one_commit(root: Path, attempt: _Attempt, paths: frozenset[str] = _P01_
     return attempt.head
 
 
-def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: str) -> bool:
+def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: str,
+                          artifact_ids: dict[str, str] | None = None) -> bool:
     before, after = _p01_regular_blob(root, attempt.prepared, board), _p01_regular_blob(root, attempt.head, board)
     if before is None or after is None:
         return False
@@ -1595,16 +1605,26 @@ def _p01_board_transition(root: Path, attempt: _Attempt, board: str, task_id: st
         after_lines = after.decode("utf-8").splitlines(keepends=True)
     except UnicodeDecodeError:
         return False
-    if len(before_lines) != len(after_lines):
+    queued = [index for index, line in enumerate(before_lines)
+              if re.fullmatch(rf"- \[ \] {re.escape(task_id)} - .+", line.rstrip("\r\n"))]
+    started = [line for line in after_lines
+               if re.fullmatch(rf"- \[~\] {re.escape(task_id)} - .+", line.rstrip("\r\n"))]
+    if len(queued) != 1 or len(started) != 1:
         return False
-    changed = [(old.rstrip("\r\n"), new.rstrip("\r\n")) for old, new in zip(before_lines, after_lines, strict=True) if old != new]
-    if len(changed) != 1:
-        return False
-    old, new = changed[0]
+    old, new = before_lines[queued[0]].rstrip("\r\n"), started[0].rstrip("\r\n")
     match = re.fullmatch(rf"- \[ \] {re.escape(task_id)} - (?P<body>.+)", old)
-    started = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
+    flip = re.fullmatch(rf"- \[~\] {re.escape(task_id)} - (?P<body>.+?)  \(started (?P<date>\d{{4}}-\d{{2}}-\d{{2}})\)", new)
     commit_date = run_git(root, ["show", "-s", "--format=%as", attempt.head], check=False).stdout.strip()
-    return bool(match and started and match.group("body") == started.group("body") and started.group("date") == commit_date)
+    if not (match and flip and match.group("body") == flip.group("body") and flip.group("date") == commit_date):
+        return False
+    flipped = list(before_lines)
+    flipped[queued[0]] = started[0]
+    if flipped == after_lines:
+        return True
+    # From codeArbiter 3.3 the feature lane also records one queued item bound to its spec and plan.
+    return artifact_ids is not None and _one_queued_work_item_added(
+        "".join(flipped).encode("utf-8"), after, frozenset({"feature"}), artifact_ids
+    )
 
 
 def _p01_exact_regression(prepared: bytes | None, final: bytes | None) -> bool:
@@ -2848,9 +2868,13 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
     expected_model = {"open": 1, "claimed": 1, "completed": 1, "unresolved": 2}
     if prepared_model == expected_model or intended_model != expected_model:
         return False
+    pair = (
+        _native_lesson_pair(context, "academy-feature", paths, {paths["test"], paths["code"]}, ("unresolved", "open", "claimed", "completed"))
+        if native else None
+    )
     return bool(
-        _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]))
-        and (_native_lesson_plan(context, "academy-feature", paths, {paths["test"], paths["code"]}, ("unresolved", "open", "claimed", "completed")) if native else _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"])))
+        _p01_board_transition(root, attempt, paths["board"], str(data["task_id"]), _artifact_ids(pair))
+        and (pair is not None if native else _p01_spec_and_plan(_p01_regular_blob(root, attempt.head, paths["spec"]), _p01_regular_blob(root, attempt.head, paths["plan"])))
         and _p01_prepared_defect(_p01_regular_blob(root, attempt.prepared, paths["code"]))
         and _p01_exact_regression(_p01_regular_blob(root, attempt.prepared, paths["test"]), _p01_regular_blob(root, attempt.head, paths["test"]))
         and _p01_exact_repair(_p01_regular_blob(root, attempt.prepared, paths["code"]), _p01_regular_blob(root, attempt.head, paths["code"]))
@@ -2860,6 +2884,18 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
 
 def _native_lesson_plan(context: _SemanticContext, slug: str, paths: dict[str, str],
                         allowed_paths: set[str], required_terms: tuple[str, ...]) -> bool:
+    return _native_lesson_pair(context, slug, paths, allowed_paths, required_terms) is not None
+
+
+def _artifact_ids(pair: dict | None) -> dict[str, str] | None:
+    if pair is None:
+        return None
+    return {"spec": str(pair["spec"]["artifact_id"]), "plan": str(pair["plan"]["artifact_id"])}
+
+
+def _native_lesson_pair(context: _SemanticContext, slug: str, paths: dict[str, str],
+                        allowed_paths: set[str], required_terms: tuple[str, ...]) -> dict | None:
+    """Return the inspected native pair when it carries the lesson's criteria and tasks."""
     from academy_engine.native_planning import NativePlanningError, inspect_pair
 
     try:
@@ -2872,10 +2908,12 @@ def _native_lesson_plan(context: _SemanticContext, slug: str, paths: dict[str, s
         tasks = [item["record"] for item in pair["plan"]["records"] if item["kind"] == "tasks"]
         criterion_text = json.dumps(criteria, ensure_ascii=True).casefold()
         task_paths = {entry["path"] for task in tasks for entry in task["paths"]}
-        return bool(criteria and tasks and task_paths == allowed_paths
-                    and all(term.casefold() in criterion_text for term in required_terms))
+        if (criteria and tasks and task_paths == allowed_paths
+                and all(term.casefold() in criterion_text for term in required_terms)):
+            return pair
+        return None
     except (NativePlanningError, KeyError, TypeError, ValueError):
-        return False
+        return None
 
 
 _U01_BRIEF = {
@@ -3000,6 +3038,10 @@ def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool
     expected = {paths[key] for key in ("spec", "plan", "deliverable")}
     if final != baseline:
         expected.add(paths["sprint_log"])
+    board_before = _git_blob(root, attempt.prepared, _LEGACY_BOARD)
+    board_after = _git_blob(root, attempt.head, _LEGACY_BOARD)
+    if board_after != board_before:
+        expected.add(_LEGACY_BOARD)
     if _p01_one_commit(root, attempt, frozenset(expected)) is None:
         return False
     status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
@@ -3019,7 +3061,13 @@ def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool
     boundary = sections["Approval boundary"].casefold()
     if "original request" not in boundary or "merge" not in boundary or "publish" not in boundary:
         return False
-    return _native_lesson_plan(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
+    pair = _native_lesson_pair(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
+    if pair is None:
+        return False
+    # From codeArbiter 3.3 the sprint records its deliverable as one queued work item.
+    return board_after == board_before or _one_queued_work_item_added(
+        board_before, board_after, frozenset({"feature", "chore"}), _artifact_ids(pair)
+    )
 
 
 def _live_hygiene_inventory(
@@ -4016,7 +4064,7 @@ def _semantic(context: _SemanticContext) -> bool:
                         and _one_queued_work_item_added(
                             _git_blob(root, attempt.prepared, _LEGACY_BOARD),
                             _git_blob(root, attempt.head, _LEGACY_BOARD),
-                            "fix",
+                            frozenset({"fix"}),
                         )
                     )
                 )
