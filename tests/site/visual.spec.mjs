@@ -160,7 +160,7 @@ test("every command variant remains visible without JavaScript", async ({ browse
     }
   }
 
-  expect(variantCount).toBe(975);
+  expect(variantCount).toBe(974);
   await context.close();
 });
 

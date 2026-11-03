@@ -41,9 +41,20 @@ def preview_codearbiter_source_sha(root: Path = SOURCE) -> str:
     return source_commit
 
 
+def reviewed_source_digest(path: str, root: Path = SOURCE) -> str:
+    """Return the one SHA-256 the lesson source review records for a producer file."""
+    review = json.loads((root / "academy/lesson-source-review.json").read_text(encoding="utf-8"))
+    digests = {
+        lesson["sources"][path] for lesson in review["lessons"] if path in lesson["sources"]
+    }
+    if len(digests) != 1:
+        raise AssertionError(f"lesson source review must record one digest for {path}")
+    return digests.pop()
+
+
 OFFICIAL_CODEARBITER_SHA = preview_codearbiter_source_sha()
-OFFICIAL_TASKWRITE_BLOB = "287d49a24cd8aaf7e33ee3852c2092aca03c4b78"
-OFFICIAL_TASKWRITE_SHA256 = "f834f3fcc9dafcdf31db16ad4f52cd232c17162dc1711bdba112c2cac8a30d29"
+OFFICIAL_TASKWRITE_BLOB = "2243e3bfed634f496c70f815c54d5208ed321032"
+OFFICIAL_TASKWRITE_SHA256 = reviewed_source_digest("core/pysrc/taskwrite.py")
 FOUNDATIONS = (
     "F01-fork-clone-doctor",
     "F02-orient-to-state",

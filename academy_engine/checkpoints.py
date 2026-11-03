@@ -159,7 +159,7 @@ _U06_SEED_CANDIDATE = b"# U06 preview candidate\n\nThis draft is intentionally i
 _U06_SAFE_CANDIDATE = (
     b"# U06 preview candidate\n\n"
     b"## Read-only documentation policy\n\n"
-    b"Preview may inspect the prepared attempt and report predicted reviewers. "
+    b"Review may inspect the prepared attempt and report findings. "
     b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
     b"## Evidence\n\n"
     b"Record the reviewed commit, candidate tree, exact changed path, and "
@@ -629,6 +629,75 @@ def _commit_paths(root: Path, commit: str) -> tuple[str, ...]:
     return tuple(result.stdout.splitlines()) if result.returncode == 0 else ()
 
 
+_LEGACY_BOARD = ".codearbiter/open-tasks.md"
+_QUEUED_WORK_ROW = re.compile(r"- \[ \] (?P<title>\S.*?)  \(from (?P<origin>[^()\r\n]+)\)")
+_WORK_DETAIL_KEYS = frozenset({"Work origin", "Desc", "Work type", "Work ID", "Work operation ID"})
+_ARTIFACT_DETAIL_KEYS = {"Spec ID": "spec", "Plan ID": "plan"}
+_WORK_ID = re.compile(r"WORK-[0-9A-F]{32}")
+_IN_FLIGHT = "## In-flight"
+
+
+def _one_queued_work_item_added(
+    before: bytes | None,
+    after: bytes | None,
+    work_types: frozenset[str],
+    artifact_ids: dict[str, str] | None = None,
+) -> bool:
+    """Accept only the queued row a lane's work-item create adds to a legacy board.
+
+    From codeArbiter 3.8 the fix and sprint lanes record the change as one work item.
+    On a legacy board the producer's writer inserts one queued row with its detail
+    bullets directly under the first In-flight heading, or appends that heading and
+    the row when the board has none, and commit-gate keeps exactly that change in the
+    work commit. Every existing line must keep its exact bytes. When the lesson binds
+    a native pair, the item must carry both its Spec ID and its Plan ID.
+    """
+    if not before or after is None:
+        return False
+    try:
+        old = before.decode("utf-8").splitlines(keepends=True)
+        new = after.decode("utf-8").splitlines(keepends=True)
+    except UnicodeDecodeError:
+        return False
+    heading = next((index for index, line in enumerate(old) if line.strip() == _IN_FLIGHT), None)
+    start = len(old) if heading is None else heading + 1
+    added = len(new) - len(old)
+    if added < 1 or new[:start] != old[:start] or new[start + added:] != old[start:]:
+        return False
+    block = [line.rstrip("\r\n") for line in new[start:start + added]]
+    if heading is None:
+        if block[0] != _IN_FLIGHT:
+            return False
+        block = block[1:]
+    # The next existing line must begin a new entry, not continue another task's bullets.
+    if start + added < len(new) and new[start + added][:1] in (" ", "\t"):
+        return False
+    row = _QUEUED_WORK_ROW.fullmatch(block[0]) if block else None
+    if row is None:
+        return False
+    details: dict[str, str] = {}
+    for line in block[1:]:
+        key, separator, value = line.removeprefix("  - ").partition(": ")
+        artifact = _ARTIFACT_DETAIL_KEYS.get(key)
+        if (
+            not line.startswith("  - ")
+            or not separator
+            or (key not in _WORK_DETAIL_KEYS and artifact is None)
+            or key in details
+            or not value.strip()
+            or (artifact is not None and (artifact_ids is None or value != artifact_ids.get(artifact)))
+        ):
+            return False
+        details[key] = value
+    if artifact_ids is not None and not all(key in details for key in _ARTIFACT_DETAIL_KEYS):
+        return False
+    return bool(
+        details.get("Work type") in work_types
+        and _WORK_ID.fullmatch(details.get("Work ID", ""))
+        and details.get("Work origin") == row.group("origin")
+    )
+
+
 def _exact_two_commit_range(
     root: Path, prepared: str, head: str
 ) -> tuple[str, str] | None:
@@ -887,7 +956,18 @@ def _p05_remediation(root: Path, attempt: _Attempt, report_path: str) -> bool:
             ".codearbiter/last-checkpoint",
             ".codearbiter/reports/academy/P05-finding.md",
         }
-        or (current_workflow and set(remediation_paths) != {"tests/test_cli.py", "workshop_queue/cli.py"})
+        or (
+            current_workflow
+            and set(remediation_paths) != {"tests/test_cli.py", "workshop_queue/cli.py"}
+            and not (
+                set(remediation_paths) == {"tests/test_cli.py", "workshop_queue/cli.py", _LEGACY_BOARD}
+                and _one_queued_work_item_added(
+                    _git_blob(root, finding, _LEGACY_BOARD),
+                    _git_blob(root, remediation, _LEGACY_BOARD),
+                    frozenset({"fix"}),
+                )
+            )
+        )
         or (not current_workflow and red_paths != ("tests/test_cli.py",))
         or (not current_workflow and remediation_paths != ("workshop_queue/cli.py",))
         or receipt_paths != (report_path,)
@@ -1119,9 +1199,13 @@ def _f04_has_uncommitted_learner_changes(root: Path) -> bool:
         r"\.cpython-[0-9]+(?:\.opt-[12])?\.pyc"
     )
     paths = [line[3:] for line in status.stdout.splitlines()]
-    paths.extend(ignored.stdout.splitlines())
     for path in paths:
         if allowed_cache.fullmatch(path):
+            continue
+        return True
+    for path in ignored.stdout.splitlines():
+        # The board writer keeps its ignored lock file after a fix work item is created.
+        if allowed_cache.fullmatch(path) or path == _LEGACY_BOARD + ".lock":
             continue
         return True
     return False
@@ -2791,6 +2875,18 @@ def _p01_feature_spec_plan(context: _SemanticContext) -> bool:
 
 def _native_lesson_plan(context: _SemanticContext, slug: str, paths: dict[str, str],
                         allowed_paths: set[str], required_terms: tuple[str, ...]) -> bool:
+    return _native_lesson_pair(context, slug, paths, allowed_paths, required_terms) is not None
+
+
+def _artifact_ids(pair: dict | None) -> dict[str, str] | None:
+    if pair is None:
+        return None
+    return {"spec": str(pair["spec"]["artifact_id"]), "plan": str(pair["plan"]["artifact_id"])}
+
+
+def _native_lesson_pair(context: _SemanticContext, slug: str, paths: dict[str, str],
+                        allowed_paths: set[str], required_terms: tuple[str, ...]) -> dict | None:
+    """Return the inspected native pair when it carries the lesson's criteria and tasks."""
     from academy_engine.native_planning import NativePlanningError, inspect_pair
 
     try:
@@ -2803,10 +2899,12 @@ def _native_lesson_plan(context: _SemanticContext, slug: str, paths: dict[str, s
         tasks = [item["record"] for item in pair["plan"]["records"] if item["kind"] == "tasks"]
         criterion_text = json.dumps(criteria, ensure_ascii=True).casefold()
         task_paths = {entry["path"] for task in tasks for entry in task["paths"]}
-        return bool(criteria and tasks and task_paths == allowed_paths
-                    and all(term.casefold() in criterion_text for term in required_terms))
+        if (criteria and tasks and task_paths == allowed_paths
+                and all(term.casefold() in criterion_text for term in required_terms)):
+            return pair
+        return None
     except (NativePlanningError, KeyError, TypeError, ValueError):
-        return False
+        return None
 
 
 _U01_BRIEF = {
@@ -2931,6 +3029,10 @@ def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool
     expected = {paths[key] for key in ("spec", "plan", "deliverable")}
     if final != baseline:
         expected.add(paths["sprint_log"])
+    board_before = _git_blob(root, attempt.prepared, _LEGACY_BOARD)
+    board_after = _git_blob(root, attempt.head, _LEGACY_BOARD)
+    if board_after != board_before:
+        expected.add(_LEGACY_BOARD)
     if _p01_one_commit(root, attempt, frozenset(expected)) is None:
         return False
     status = run_git(root, ["status", "--porcelain", "--untracked-files=all"], check=False)
@@ -2950,7 +3052,13 @@ def _u01_native_sprint(context: _SemanticContext, paths: dict[str, str]) -> bool
     boundary = sections["Approval boundary"].casefold()
     if "original request" not in boundary or "merge" not in boundary or "publish" not in boundary:
         return False
-    return _native_lesson_plan(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
+    pair = _native_lesson_pair(context, "academy-sprint", paths, {paths["deliverable"]}, tuple(brief["required_topics"]))
+    if pair is None:
+        return False
+    # From codeArbiter 3.8 the sprint records its deliverable as one queued work item.
+    return board_after == board_before or _one_queued_work_item_added(
+        board_before, board_after, frozenset({"feature", "chore"}), _artifact_ids(pair)
+    )
 
 
 def _live_hygiene_inventory(
@@ -3937,8 +4045,20 @@ def _semantic(context: _SemanticContext) -> bool:
         if parents == [attempt.head, attempt.prepared]:
             # A current fix observes RED in the worktree and commits only GREEN.
             # Final source inspection cannot authenticate execution chronology.
+            # The fix lane's queued work item may ride that commit.
+            committed = set(_commit_paths(root, attempt.head))
             return bool(
-                set(_commit_paths(root, attempt.head)) == {test, code}
+                (
+                    committed == {test, code}
+                    or (
+                        committed == {test, code, _LEGACY_BOARD}
+                        and _one_queued_work_item_added(
+                            _git_blob(root, attempt.prepared, _LEGACY_BOARD),
+                            _git_blob(root, attempt.head, _LEGACY_BOARD),
+                            frozenset({"fix"}),
+                        )
+                    )
+                )
                 and _test_module_has_minimal_retained_control_regression(
                     _git_blob(root, attempt.prepared, test),
                     _git_blob(root, attempt.head, test),

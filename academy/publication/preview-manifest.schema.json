@@ -142,11 +142,11 @@
               "properties": {
                 "component_id": {"type": "string", "const": "codearbiter"},
                 "display_name": {"type": "string", "const": "codeArbiter"},
-                "release_tag": {"type": "string", "const": "v3.2.6"},
-                "version": {"type": "string", "const": "3.2.6"},
-                "source_commit": {"type": "string", "const": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77"},
+                "release_tag": {"type": "string", "const": "v3.8.3"},
+                "version": {"type": "string", "const": "3.8.3"},
+                "source_commit": {"type": "string", "const": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa"},
                 "manifest_path": {"type": "string", "const": "plugins/ca/.claude-plugin/plugin.json"},
-                "manifest_sha256": {"type": "string", "const": "d1370de9a243f07d26701ed79036ec7d743228bf0e3b461870df55ddf288ab64"}
+                "manifest_sha256": {"type": "string", "const": "f79c8ec4d006700bca480faacc8189f57da1bebc0afafedab21cc884eeaa9894"}
               }
             },
             {
@@ -156,11 +156,11 @@
               "properties": {
                 "component_id": {"type": "string", "const": "ca-codex"},
                 "display_name": {"type": "string", "const": "Codex"},
-                "release_tag": {"type": "string", "const": "ca-codex-v0.20.6"},
-                "version": {"type": "string", "const": "0.20.6"},
-                "source_commit": {"type": "string", "const": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77"},
+                "release_tag": {"type": "string", "const": "ca-codex-v0.26.3"},
+                "version": {"type": "string", "const": "0.26.3"},
+                "source_commit": {"type": "string", "const": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa"},
                 "manifest_path": {"type": "string", "const": "plugins/ca-codex/.codex-plugin/plugin.json"},
-                "manifest_sha256": {"type": "string", "const": "777063dc90267d109d4b1c15d544773b78a5d29b9a6be9d14fd4603791ac15f7"}
+                "manifest_sha256": {"type": "string", "const": "5baae6470aab9b2a4c551610a04ba5e2e0a08eaf33230c48c6d0458911e95c70"}
               }
             },
             {
@@ -170,11 +170,11 @@
               "properties": {
                 "component_id": {"type": "string", "const": "ca-pi"},
                 "display_name": {"type": "string", "const": "Pi"},
-                "release_tag": {"type": "string", "const": "ca-pi-v0.21.6"},
-                "version": {"type": "string", "const": "0.21.6"},
-                "source_commit": {"type": "string", "const": "849a3cf6fa6f4fdf3256cd3095c92499e9c4ec77"},
+                "release_tag": {"type": "string", "const": "ca-pi-v0.27.3"},
+                "version": {"type": "string", "const": "0.27.3"},
+                "source_commit": {"type": "string", "const": "27e6cb12eb0195bc89b4e91ee7d8d8093ac490fa"},
                 "manifest_path": {"type": "string", "const": "plugins/ca-pi/package.json"},
-                "manifest_sha256": {"type": "string", "const": "f9c6ddffc4b9fbeb74e443e013811b4e88a7c5b8aba25fd8e1c0fe2d9e2fd499"}
+                "manifest_sha256": {"type": "string", "const": "e49ff25777e7df245ff15f4df71c2c17a3d72dc174c4d44ee72d89620ce1e4b2"}
               }
             }
           ]

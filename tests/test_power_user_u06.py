@@ -30,7 +30,7 @@ SEED_CANDIDATE = b"# U06 preview candidate\n\nThis draft is intentionally incomp
 SAFE_CANDIDATE = (
     b"# U06 preview candidate\n\n"
     b"## Read-only documentation policy\n\n"
-    b"Preview may inspect the prepared attempt and report predicted reviewers. "
+    b"Review may inspect the prepared attempt and report findings. "
     b"It does not run a sandbox, create a skill, start watch, or convene a tribunal.\n\n"
     b"## Evidence\n\n"
     b"Record the reviewed commit, candidate tree, exact changed path, and "

@@ -2,7 +2,7 @@
 id: U06-preview-and-advanced-surfaces
 track: power-user
 order: 6
-title: Preview a bounded change without turning advice into authority
+title: Review a bounded change without turning advice into authority
 outcome: Produce a two-commit, read-only documentation preview packet and recognize when advanced codeArbiter surfaces do not belong in a training exercise.
 prerequisites: U05-debug-spike-conflict
 estimated_minutes: 30
@@ -11,11 +11,11 @@ checkpoint_command: {{action:U06-check-status}}
 next_lab: U07-capstone
 ---
 
-# U06: Preview a bounded change without turning advice into authority
+# U06: Review a bounded change without turning advice into authority
 
 ## Know before you begin
 
-Preview helps you decide what deserves closer review before a commit. Try it on a small documentation change and explain the limits of its advice.
+A read-only review helps you decide what deserves closer attention before a commit. Try it on a small documentation change and explain the limits of its advice.
 
 U06 is a guided, runnable lesson in Academy Preview 0.33. Use its installed Prepare, Check, and
 Reset commands from this page; do not substitute repository-local source execution.
@@ -30,14 +30,14 @@ has no `!`. Each rendered action card labels the surface and supplies a copy but
 ## What you will prove
 
 In a prepared attempt, you will turn one frozen Markdown seed into one exact safe
-policy. You will ask the selected host for a read-only `ca-preview`, evaluate its advice, and retain
+policy. You will ask the selected host for a read-only `ca-review`, evaluate its advice, and retain
 only two learner commits: the candidate, then its binding report. You do not push, change product
 code, add dependencies, or make an advanced operation look routine.
 
 The source Check contract is deliberately narrow. It compares the prepared candidate bytes, exact
 final candidate bytes, candidate commit and tree, one changed path, canonical report bytes, a clean
 worktree, and four not-executed classifications. It does not prove that an agent command ran, what
-reviewers it predicted, whether a secret scan ran, or that you agreed with a preview.
+what the review found, whether a secret scan ran, or that you agreed with the review.
 
 ## Prepare safely
 
@@ -50,7 +50,7 @@ reviewers it predicted, whether a secret scan ran, or that you agreed with a pre
 Prepare creates the bounded attempt and frozen candidate. Do not create the candidate, report, or
 attempt branch by hand.
 
-## Create a contained preview
+## Create a contained review input
 
 {{action:U06-create-contained-diff}}
 
@@ -59,10 +59,12 @@ attempt branch by hand.
 {{action:U06-run-read-only-preview}}
 
 The two names are easy to confuse. Academy Preview 0.33 names an installed release and its public
-availability boundary. `ca-preview` is a host-native, advisory review of the current diff. It does
+availability boundary. `ca-review` is a host-native, advisory review of the current diff. It does
 not stage, commit, push, create a release, or give the agent authority to enlarge the change.
+Older codeArbiter releases had a separate `ca-preview` command; it was retired, and `ca-review`
+covers this diff.
 
-## Read the preview
+## Read the review
 
 {{action:U06-assess-preview-output}}
 
@@ -70,7 +72,7 @@ not stage, commit, push, create a release, or give the agent authority to enlarg
 
 {{action:U06-commit-candidate}}
 
-Treat the preview as a signal to inspect, not a verdict to obey blindly. The candidate commit must be
+Treat the review as a signal to inspect, not a verdict to obey blindly. The candidate commit must be
 the direct child of the prepared attempt and contain only `docs/U06-preview-candidate.md`. Preserve
 any mismatch for review instead of adding an unrelated correction or rewriting history.
 
@@ -89,10 +91,10 @@ The four advanced labels are **not run here**. The `new-skill` JSON field is his
 {{action:U06-commit-report}}
 
 The second commit contains only `.codearbiter/reports/academy/U06-preview.json`. It is an Academy
-binding record, not `ca-preview` output: it binds the prepared commit, committed candidate, candidate
+binding record, not `ca-review` output: it binds the prepared commit, committed candidate, candidate
 tree, candidate path, candidate SHA-256, and the single changed path. It marks the policy `read_only`
 and classifies all four advanced surfaces as not-executed. Check independently rejects secret-bearing
-committed bytes; neither the record nor Check claims that `ca-preview` ran or persisted telemetry.
+committed bytes; neither the record nor Check claims that `ca-review` ran or persisted telemetry.
 
 ## Check the boundary
 
@@ -101,7 +103,7 @@ committed bytes; neither the record nor Check claims that `ca-preview` ran or pe
 {{action:U06-check-status}}
 
 **Check limit:** source Check verifies committed repository facts. It cannot establish that you ran
-`ca-preview`, understood its result, or consciously chose not to execute an advanced command. The
+`ca-review`, understood its result, or consciously chose not to execute an advanced command. The
 installed Academy Preview 0.33 Check evaluates this accepted source contract.
 
 ## Recover or continue
@@ -118,7 +120,7 @@ requires exact final bytes.
 
 ### Hint 2
 
-Use the preview before staging the candidate. The report belongs only after that candidate is
+Use the review before staging the candidate. The report belongs only after that candidate is
 committed and its repository facts are available to bind.
 
 ### Hint 3
@@ -126,6 +128,6 @@ committed and its repository facts are available to bind.
 The safest power-user move is often not running a powerful command. State why the surface is out of
 scope and preserve the narrow evidence you do have.
 
-**Use this in your own project.** Use preview to inspect a bounded diff. It predicts review needs; it does not perform the full reviewer fleet or certify a commit. Use watch for a real PR when you want CI monitoring. Check the installed catalog before requesting an advanced command; an old course label is not proof that it still exists.
+**Use this in your own project.** Use review to inspect a bounded diff before you commit it. Its verdict does not certify a commit or replace the commit gate, though a CRITICAL or HIGH finding on your own change must be resolved before you open a PR. Use watch for a real PR when you want CI monitoring. Check the installed catalog before requesting an advanced command; an old course label is not proof that it still exists.
 
 Sandbox capabilities belong to the separately installed ca-sandbox plugin. Check the actual installed catalog before using them; Academy does not assume that plugin is present.

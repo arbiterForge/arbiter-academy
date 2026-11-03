@@ -23,9 +23,10 @@ PROSE_FIELDS = (
     "recovery",
     "evidence",
 )
-# Preview 0.33: reviewed native planning and current owner workflow commands.
-BASELINE_VARIANT_COUNT = 975
-BASELINE_VARIANT_SHA256 = "df18e0c8983229c59fb25b5ee53bf8e80c6ca1e6202bc6c394835f9d380f6d27"
+# Preview 0.33 on codeArbiter 3.8.3: ca-review replaces the retired preview, P04 asks the
+# agent directly, the lanes' work items are taught, and U04 asks for the Markdown format.
+BASELINE_VARIANT_COUNT = 974
+BASELINE_VARIANT_SHA256 = "8d6d5829e8b5076aa3cadb243b8e702b27ee86ae1ed9d8b31c427052b9d4a205"
 MUTABLE_DISPLAY_COPY_PATHS = (
     "README.md",
     "academy_engine/curriculum.py",
@@ -37,11 +38,12 @@ MUTABLE_DISPLAY_COPY_PATHS = (
     "tests/test_preview_site.py",
 )
 LAST_LEGACY_PUBLICATION = (0, 32)
-# Nine obsolete P01/P05 command lines and four mutable prerequisite lines removed.
+# Nine obsolete P01/P05 command lines and four mutable prerequisite lines removed, and the
+# U02 line rewritten for the retired metrics command uses the product name.
 # Frozen publication manifests retain their original bytes.
-PROTECTED_LEGACY_OCCURRENCE_COUNT = 82
+PROTECTED_LEGACY_OCCURRENCE_COUNT = 81
 PROTECTED_LEGACY_OCCURRENCE_SHA256 = (
-    "d0e5b8939c32cda0c49d790794b7d752064ec6ea71f1821f8a516ba22113a945"
+    "8b3f29a2f517a4ce58345d98f0fb25131dab33dfab3a1223a460fc66f685514d"
 )
 
 
