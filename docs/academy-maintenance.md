@@ -39,6 +39,51 @@ for a learner's own project.
 The source map is an explicit dependency list. It detects changes to mapped files;
 it cannot discover every new dependency or prove that a lesson is understandable.
 
+## Publishing a Preview
+
+The `academy-preview` row in `.codearbiter/release-targets.md` declares the
+release, and the `Academy Release` workflow publishes it. Nothing is tagged or
+uploaded from a local checkout.
+
+1. Prepare the release with codeArbiter's release workflow on a branch. It bumps
+   `academy/release.json`, rolls each fix and feature commit's `CHANGELOG:` footer
+   into `CHANGELOG.md`, and runs the declared pre-tag checks. A published commit
+   without a footer gets an entry in
+   `.codearbiter/release-changelog-reconciliations.json`, merged first.
+2. Merge the release pull request with a merge commit, and merge nothing else
+   until the release is published. The workflow only accepts the commit whose
+   first-parent change advanced the changelog.
+3. Wait for that commit's `Academy Pages` run to pass all 16 `verify-main`
+   shards and `build`. Its `verify-release` job keeps polling for the release.
+4. Dispatch `Academy Release` from `main` with the version and a title summary
+   of ten words or fewer. The run has three jobs:
+   - `preflight` rechecks the commit, changelog section, manifest, exact-head
+     CI, and that the previous release is immutable;
+   - `build` builds the six assets with read-only access and uploads them;
+   - `publish` runs in the `academy-release` environment and runs no Academy
+     code. It checks the installers and checksums against the committed
+     `install/` files and that both installers embed the bundle's digest. Then
+     it pushes the annotated tag by its full refspec, publishes an immutable
+     release, and reads back the tag and every asset digest.
+5. If the Pages run gave up before the release appeared, rerun its failed jobs.
+   It verifies the published assets against a rebuild from the tag before
+   deploying.
+
+Before the workflow is merged or dispatched, repository owners must create the
+`academy-release` environment with a required reviewer and deployment branches
+limited to `main`, and protect `preview-*` tags from deletion and non-fast-forward
+updates without bypass actors. Naming the environment in the workflow does not
+create those protections. These repository settings are separate from CI and
+from authority to publish a release.
+
+If a run fails after `preflight`, dispatch the workflow again instead of
+rerunning one job. If the tag was already pushed, the new run finds it at the
+release commit and resumes from it. A failure during upload can leave an unpublished draft
+release; delete that draft before dispatching again.
+
+A published tag or release is never moved or deleted. A bad release is fixed by
+publishing the next version.
+
 ## Native planning verification
 
 P01 and U01 now produce `.html` specification/plan pairs through Arbiter. Their

@@ -1,0 +1,513 @@
+name: Academy Release
+
+# Publishes the declared academy-preview release from the exact merged main
+# commit. A maintainer dispatches it from main after the release-prep pull
+# request merges and after reviewing the reported changelog section and asset
+# names. It runs only in the Academy repository, never in a learner fork.
+#
+# Repository code runs only in the read-only jobs. The publish job holds the
+# write token, runs no repository code, and checks every asset against the
+# committed installers before it tags and publishes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, exactly as academy/release.json declares it (for example 0.33)"
+        required: true
+        type: string
+      summary:
+        description: "Release title summary: ten words or fewer, from the section's first Fixed or Added entry"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: academy-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'arbiterForge/arbiter-academy' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      candidate: ${{ steps.bind.outputs.candidate }}
+      codearbiter-sha: ${{ steps.codearbiter-source.outputs.sha }}
+      release-tag: ${{ steps.bind.outputs.release-tag }}
+      mode: ${{ steps.bind.outputs.mode }}
+      title: ${{ steps.bind.outputs.title }}
+    env:
+      VERSION: ${{ inputs.version }}
+      SUMMARY: ${{ inputs.summary }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - name: Check out the exact dispatched main commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Read the Preview compatibility source as data
+        id: codearbiter-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: version must look like 0.33." >&2
+            exit 1
+          fi
+          git show "$GITHUB_SHA:academy/publication/preview-$VERSION.json" > "$RUNNER_TEMP/preview-manifest.json"
+          python -I - "$RUNNER_TEMP/preview-manifest.json" <<'PY'
+          import json
+          import os
+          import re
+          import sys
+
+          manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+          compatibility = manifest.get("integration_compatibility")
+          if not isinstance(compatibility, dict):
+              raise SystemExit("Preview compatibility is not an object")
+          expected_release = f"preview-{os.environ['VERSION']}"
+          if compatibility.get("academy_release") != expected_release:
+              raise SystemExit(f"Preview compatibility does not name {expected_release}")
+          components = manifest.get("integration_compatibility", {}).get("components")
+          if not isinstance(components, list) or len(components) != 3:
+              raise SystemExit("Preview compatibility must declare exactly three components")
+          if any(not isinstance(component, dict) for component in components):
+              raise SystemExit("Preview compatibility components must be objects")
+          source_commits = {
+              component.get("source_commit")
+              for component in components
+          }
+          if len(source_commits) != 1:
+              raise SystemExit("Preview compatibility does not declare one shared source")
+          source = source_commits.pop()
+          if re.fullmatch(r"[0-9a-f]{40}", source) is None:
+              raise SystemExit("Preview compatibility source is not a full commit ID")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"sha={source}\n")
+          PY
+
+      - name: Fetch the release helper from that codeArbiter source
+        shell: bash
+        env:
+          CODEARBITER_SHA: ${{ steps.codearbiter-source.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$CODEARBITER_SHA" =~ ^[0-9a-f]{40}$ ]]
+          # The pinned source must be published codeArbiter history, not a fork-only commit.
+          status="$(gh api "repos/arbiterForge/codeArbiter/compare/$CODEARBITER_SHA...main" --jq '.status')"
+          if [[ "$status" != identical && "$status" != ahead ]]; then
+            echo "ERROR: $CODEARBITER_SHA is not on codeArbiter main." >&2
+            exit 1
+          fi
+          helper_root="$RUNNER_TEMP/codearbiter-source"
+          git init -q "$helper_root"
+          git -C "$helper_root" remote add origin https://github.com/arbiterForge/codeArbiter.git
+          git -C "$helper_root" sparse-checkout set core/pysrc
+          git -C "$helper_root" fetch -q --depth 1 origin "$CODEARBITER_SHA"
+          git -C "$helper_root" checkout -q FETCH_HEAD
+          test "$(git -C "$helper_root" rev-parse HEAD)" = "$CODEARBITER_SHA"
+          test -f "$helper_root/core/pysrc/_releaselib.py"
+
+      - name: Bind the release candidate
+        id: bind
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export CLAUDE_PROJECT_DIR="$GITHUB_WORKSPACE"
+          lib="$RUNNER_TEMP/codearbiter-source/core/pysrc/_releaselib.py"
+          helper() { python -E -s "$lib" "$@"; }
+          target=academy-preview
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: version must look like 0.33." >&2
+            exit 1
+          fi
+          summary_pattern="^[A-Za-z0-9][A-Za-z0-9 ,.'()/-]{2,79}$"
+          if [[ ! "$SUMMARY" =~ $summary_pattern ]] || [[ "$(wc -w <<< "$SUMMARY")" -gt 10 ]]; then
+            echo "ERROR: summary must be ten plain words or fewer." >&2
+            exit 1
+          fi
+
+          candidate="$(git rev-parse HEAD)"
+          test "$candidate" = "$GITHUB_SHA"
+          remote_main="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [[ "$remote_main" != "$candidate" ]]; then
+            echo "ERROR: main moved after dispatch; dispatch again from the current main." >&2
+            exit 1
+          fi
+
+          test "$(helper list-targets)" = "$target"
+          prefix="$(helper show-row "$target" --field prefix)"
+          policy="$(helper show-row "$target" --field version-policy)"
+          initial="$(helper show-row "$target" --field initial-version)"
+          changelog="$(helper show-row "$target" --field changelog)"
+          display="$(helper show-row "$target" --field display-name)"
+          release_tag="${prefix}${VERSION}"
+
+          # The changelog advance and the exact manifest bytes bind this cohort.
+          helper check-manifests "$target" "$VERSION"
+          if [[ "$(git log --first-parent -1 --format=%H -- "$changelog")" != "$candidate" ]]; then
+            echo "ERROR: this main commit is not the release-prep merge; dispatch right after it merges." >&2
+            exit 1
+          fi
+          helper list-field "$target" manifest > "$RUNNER_TEMP/release-manifests.txt"
+          while IFS= read -r manifest; do
+            test "$(git hash-object -- "$manifest")" = "$(git rev-parse "$candidate:$manifest")"
+          done < "$RUNNER_TEMP/release-manifests.txt"
+
+          section="$RUNNER_TEMP/release-section.md"
+          helper changelog-section "$GITHUB_WORKSPACE" "$candidate" "$changelog" "$VERSION" "$policy" "$initial" > "$section"
+          helper notes-match "$release_tag" "$section" "$policy" "$initial"
+          parent="$(git rev-parse "$candidate^1")"
+          parent_section="$RUNNER_TEMP/release-parent-section.md"
+          parent_status=0
+          helper changelog-section "$GITHUB_WORKSPACE" "$parent" "$changelog" "$VERSION" "$policy" "$initial" --allow-absent-path > "$parent_section" || parent_status=$?
+          if [[ "$parent_status" -eq 0 ]]; then
+            compare_status=0
+            cmp -s "$parent_section" "$section" || compare_status=$?
+            if [[ "$compare_status" -ne 1 ]]; then
+              echo "ERROR: this commit did not introduce the release section." >&2
+              exit 1
+            fi
+          elif [[ "$parent_status" -ne 1 ]]; then
+            exit "$parent_status"
+          fi
+
+          tag_rows="$(git ls-remote --tags origin "refs/tags/$release_tag" "refs/tags/$release_tag^{}")"
+          if [[ -z "$tag_rows" ]]; then
+            mode=fresh
+          else
+            peeled="$(printf '%s\n' "$tag_rows" | helper peel-tag "$release_tag")"
+            if [[ "$peeled" != "$candidate" ]]; then
+              echo "ERROR: $release_tag already exists at another commit." >&2
+              exit 1
+            fi
+            view_status=0
+            gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json tagName > /dev/null 2> "$RUNNER_TEMP/release-view.err" || view_status=$?
+            if [[ "$view_status" -eq 0 ]]; then
+              echo "ERROR: $release_tag is already published." >&2
+              exit 1
+            fi
+            grep -q "release not found" "$RUNNER_TEMP/release-view.err"
+            mode=resume
+          fi
+          last_tag="$(git tag -l | awk -v current="$release_tag" '$0 != current' | helper last-tag-for-policy "$prefix" "$policy" "$initial")"
+          if [[ "$last_tag" != "<none>" ]]; then
+            helper version-greater "$VERSION" "${last_tag#"$prefix"}" "$policy" "$initial"
+            # An immutable earlier release shows the repository still locks published releases.
+            test "$(gh release view "$last_tag" --repo "$GITHUB_REPOSITORY" --json isImmutable --jq '.isImmutable')" = true
+          fi
+
+          # Exact-head evidence: every verify-main shard and the site build passed on this commit.
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/academy-pages.yml/runs?event=push&branch=main&head_sha=$candidate&per_page=1" \
+            --jq '.workflow_runs[0] | [(.id // ""), (.head_branch // ""), (.head_sha // ""), (.event // ""), (.path // "")] | @tsv' \
+            > "$RUNNER_TEMP/release-ci-run.tsv"
+          IFS=$'\t' read -r run_id run_branch run_sha run_event run_path < "$RUNNER_TEMP/release-ci-run.tsv"
+          if [[ -z "$run_id" || "$run_branch" != main || "$run_sha" != "$candidate" || "$run_event" != push \
+                || "$run_path" != .github/workflows/academy-pages.yml ]]; then
+            echo "ERROR: no Academy Pages push run on main exists for $candidate." >&2
+            exit 1
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" \
+            --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv' > "$RUNNER_TEMP/release-ci-jobs.tsv"
+          python -I - "$RUNNER_TEMP/release-ci-jobs.tsv" <<'PY'
+          import sys
+
+          rows = [line.rstrip("\n").split("\t") for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          passed = lambda row: row[1] == "completed" and row[2] == "success"
+          shards = [row for row in rows if row[0].startswith("verify-main")]
+          builds = [row for row in rows if row[0] == "build"]
+          if len(shards) != 16 or not all(map(passed, shards)):
+              raise SystemExit("ERROR: the 16 exact-head verify-main shards have not all passed.")
+          if len(builds) != 1 or not passed(builds[0]):
+              raise SystemExit("ERROR: the exact-head site build has not passed.")
+          PY
+
+          {
+            echo "candidate=$candidate"
+            echo "release-tag=$release_tag"
+            echo "mode=$mode"
+            echo "title=$display $VERSION: $SUMMARY"
+          } >> "$GITHUB_OUTPUT"
+          echo "Publishing $release_tag ($mode) from $candidate with these notes:"
+          cat "$section"
+
+  build:
+    needs: preflight
+    if: github.repository == 'arbiterForge/arbiter-academy' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+      CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate }}
+      CODEARBITER_SHA: ${{ needs.preflight.outputs.codearbiter-sha }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.release-tag }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - name: Check out the exact release candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the release helper from the bound codeArbiter source
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper_root="$RUNNER_TEMP/codearbiter-source"
+          git init -q "$helper_root"
+          git -C "$helper_root" remote add origin https://github.com/arbiterForge/codeArbiter.git
+          git -C "$helper_root" sparse-checkout set core/pysrc
+          git -C "$helper_root" fetch -q --depth 1 origin "$CODEARBITER_SHA"
+          git -C "$helper_root" checkout -q FETCH_HEAD
+          test "$(git -C "$helper_root" rev-parse HEAD)" = "$CODEARBITER_SHA"
+
+      - name: Build and verify the declared release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CLAUDE_PROJECT_DIR="$GITHUB_WORKSPACE" PY=python
+          lib="$RUNNER_TEMP/codearbiter-source/core/pysrc/_releaselib.py"
+          target=academy-preview
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test -z "$(git status --porcelain)"
+
+          python -E -s "$lib" list-field "$target" release-assets > "$RUNNER_TEMP/release-asset-templates.txt"
+          mapfile -t templates < "$RUNNER_TEMP/release-asset-templates.txt"
+          python -E -s "$lib" render-release-assets "$VERSION" "$RELEASE_TAG" "${templates[@]}" > "$RUNNER_TEMP/release-asset-names.txt"
+          mapfile -t declared < "$RUNNER_TEMP/release-asset-names.txt"
+
+          RELEASE_ASSET_DIR="$RUNNER_TEMP/academy-release-assets"
+          mkdir "$RELEASE_ASSET_DIR"
+          export VERSION RELEASE_TAG RELEASE_ASSET_DIR
+          release_build="$(python -E -s "$lib" show-row "$target" --field release-build)"
+          ( eval "$release_build" )
+          test -z "$(git status --porcelain)"
+          python -E -s "$lib" verify-release-assets "$RELEASE_ASSET_DIR" "${declared[@]}" > /dev/null
+          (cd "$RELEASE_ASSET_DIR" && sha256sum -- "${declared[@]}") > "$RUNNER_TEMP/release-asset-digests.txt"
+          cat "$RUNNER_TEMP/release-asset-digests.txt"
+
+      - name: Upload the built assets
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: academy-release-assets
+          path: ${{ runner.temp }}/academy-release-assets
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [preflight, build]
+    if: github.repository == 'arbiterForge/arbiter-academy' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: academy-release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+      CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate }}
+      CODEARBITER_SHA: ${{ needs.preflight.outputs.codearbiter-sha }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.release-tag }}
+      MODE: ${{ needs.preflight.outputs.mode }}
+      TITLE: ${{ needs.preflight.outputs.title }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - name: Check out the exact release candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the release helper from the bound codeArbiter source
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper_root="$RUNNER_TEMP/codearbiter-source"
+          git init -q "$helper_root"
+          git -C "$helper_root" remote add origin https://github.com/arbiterForge/codeArbiter.git
+          git -C "$helper_root" sparse-checkout set core/pysrc
+          git -C "$helper_root" fetch -q --depth 1 origin "$CODEARBITER_SHA"
+          git -C "$helper_root" checkout -q FETCH_HEAD
+          test "$(git -C "$helper_root" rev-parse HEAD)" = "$CODEARBITER_SHA"
+
+      - name: Download the built assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: academy-release-assets
+          path: ${{ runner.temp }}/academy-release-assets
+
+      - name: Check the assets against the committed installers
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CLAUDE_PROJECT_DIR="$GITHUB_WORKSPACE"
+          lib="$RUNNER_TEMP/codearbiter-source/core/pysrc/_releaselib.py"
+          target=academy-preview
+          assets="$RUNNER_TEMP/academy-release-assets"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]
+          prefix="$(python -E -s "$lib" show-row "$target" --field prefix)"
+          test "$RELEASE_TAG" = "$prefix$VERSION"
+          test "$(python -E -s "$lib" show-row "$target" --field latest-eligible)" = "true"
+
+          python -E -s "$lib" list-field "$target" release-assets > "$RUNNER_TEMP/release-asset-templates.txt"
+          mapfile -t templates < "$RUNNER_TEMP/release-asset-templates.txt"
+          python -E -s "$lib" render-release-assets "$VERSION" "$RELEASE_TAG" "${templates[@]}" > "$RUNNER_TEMP/release-asset-names.txt"
+          mapfile -t declared < "$RUNNER_TEMP/release-asset-names.txt"
+          python -E -s "$lib" verify-release-assets "$assets" "${declared[@]}" > "$RUNNER_TEMP/release-asset-paths.txt"
+
+          # The installers and their checksums must be the reviewed bytes, and the
+          # bundle must be the one both installers embed.
+          bundle="arbiter-academy-$RELEASE_TAG.zip"
+          for name in install.sh install.ps1 install.sh.sha256 install.ps1.sha256; do
+            git show "$CANDIDATE_SHA:install/$name" | cmp - "$assets/$name"
+          done
+          bundle_digest="$(sha256sum "$assets/$bundle" | cut -d' ' -f1)"
+          for installer in install.sh install.ps1; do
+            test "$(grep -o "$bundle_digest" "$assets/$installer" | wc -l)" -eq 1
+          done
+          printf '%s  %s\n' "$bundle_digest" "$bundle" | cmp - "$assets/$bundle.sha256"
+          (cd "$assets" && sha256sum -- "${declared[@]}") > "$RUNNER_TEMP/release-asset-digests.txt"
+          cat "$RUNNER_TEMP/release-asset-digests.txt"
+
+      - name: Compose and check the annotated tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CLAUDE_PROJECT_DIR="$GITHUB_WORKSPACE"
+          lib="$RUNNER_TEMP/codearbiter-source/core/pysrc/_releaselib.py"
+          helper() { python -E -s "$lib" "$@"; }
+          target=academy-preview
+          policy="$(helper show-row "$target" --field version-policy)"
+          initial="$(helper show-row "$target" --field initial-version)"
+          changelog="$(helper show-row "$target" --field changelog)"
+
+          section="$RUNNER_TEMP/release-section.md"
+          helper changelog-section "$GITHUB_WORKSPACE" "$CANDIDATE_SHA" "$changelog" "$VERSION" "$policy" "$initial" > "$section"
+          helper notes-match "$RELEASE_TAG" "$section" "$policy" "$initial"
+          release_date="$(sed -n '1s/.* \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\)$/\1/p' "$section")"
+          test -n "$release_date"
+          # Earlier Preview tags store the section, one blank line, then the footer.
+          body="$RUNNER_TEMP/release-tag-body.md"
+          { cat "$section"; printf '\n'; } > "$body"
+          message="$RUNNER_TEMP/release-tag-message.md"
+          { cat "$body"; printf 'Released-at: %s\n' "$release_date"; } > "$message"
+          helper dates-match "$section" "$message" "$policy" "$initial"
+
+          if [[ "$MODE" = fresh ]]; then
+            git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              tag -a "$RELEASE_TAG" -F "$message" --cleanup=verbatim "$CANDIDATE_SHA"
+          else
+            git fetch -q --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          fi
+          test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$CANDIDATE_SHA"
+          stored="$RUNNER_TEMP/release-tag-object.txt"
+          git cat-file tag "$RELEASE_TAG" > "$stored"
+          helper notes-match "$RELEASE_TAG" "$stored" "$policy" "$initial"
+          helper dates-match "$section" "$stored" "$policy" "$initial"
+          sed '1,/^$/d; /^Released-at: /,$d' "$stored" > "$RUNNER_TEMP/release-tag-stored-body.md"
+          cmp "$RUNNER_TEMP/release-tag-stored-body.md" "$body"
+
+          tag_object="$(git rev-parse "refs/tags/$RELEASE_TAG^{tag}")"
+          echo "TAG_OBJECT_SHA=$tag_object" >> "$GITHUB_ENV"
+          printf 'pre-push tag=%s tag_object=%s hosted_head=%s\n' "$RELEASE_TAG" "$tag_object" "$CANDIDATE_SHA"
+
+      - name: Push the tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$CANDIDATE_SHA"
+          if [[ "$MODE" = fresh ]]; then
+            auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+            echo "::add-mask::$auth"
+            git -c core.hooksPath=/dev/null \
+              -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+              push origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          fi
+          remote_rows="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
+          remote_object="$(printf '%s\n' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" '$2 == ref { print $1 }')"
+          test "$remote_object" = "$TAG_OBJECT_SHA"
+          test "$(printf '%s\n' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG^{}" '$2 == ref { print $1 }')" = "$CANDIDATE_SHA"
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t assets < "$RUNNER_TEMP/release-asset-paths.txt"
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --title "$TITLE" \
+            --notes-file "$RUNNER_TEMP/release-section.md" \
+            --latest --verify-tag \
+            -- "${assets[@]}"
+
+      - name: Read the release back
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release-readback.json"
+          python -I - "$RUNNER_TEMP/release-readback.json" "$RUNNER_TEMP/release-asset-digests.txt" <<'PY'
+          import json
+          import os
+          import sys
+
+          release = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = {}
+          for line in open(sys.argv[2], encoding="utf-8"):
+              digest, name = line.rstrip("\n").split("  ", 1)
+              expected[name] = f"sha256:{digest}"
+          if release.get("tag_name") != os.environ["RELEASE_TAG"]:
+              raise SystemExit("ERROR: the release names another tag.")
+          if release.get("draft") is not False:
+              raise SystemExit("ERROR: the release is still a draft.")
+          if release.get("immutable") is not True:
+              raise SystemExit("ERROR: the release is not immutable.")
+          published = {asset["name"]: asset.get("digest") for asset in release.get("assets", [])}
+          if published != expected:
+              raise SystemExit(f"ERROR: published assets {published} differ from the checked assets {expected}.")
+          print(f"Published {release['tag_name']}: {release['html_url']}")
+          PY
+          remote_rows="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}")"
+          test "$(printf '%s\n' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" '$2 == ref { print $1 }')" = "$TAG_OBJECT_SHA"
+          test "$(printf '%s\n' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG^{}" '$2 == ref { print $1 }')" = "$CANDIDATE_SHA"
+          printf 'published tag=%s tag_object=%s commit=%s\n' "$RELEASE_TAG" "$TAG_OBJECT_SHA" "$CANDIDATE_SHA"
