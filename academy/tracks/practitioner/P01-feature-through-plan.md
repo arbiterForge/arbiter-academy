@@ -137,12 +137,6 @@ If P01 needs another attempt, use the preserved retry action.
 
 ## Understand the mechanism
 
-A feature contract begins with observable behavior. The specification tells the agent and reviewer
-what must be true; the plan traces that contract into work; the focused test protects the caller
-boundary; and the commit gate records only the verified final change. Academy Check then compares
-the prepared baseline, commit ancestry, required artifacts, and live worktree without trusting a
-transcript supplied by the learner checkout.
+A feature starts from observable behavior. The specification says what must be true, the plan traces it into work, a focused test protects the caller boundary, and the commit gate records the verified result. Check compares your baseline, commit ancestry, artifacts, and worktree. [Build a Feature End to End](https://codearbiter.dev/guides/feature-lane/) covers the lane.
 
-**Use this in your own project.** Describe an observable improvement and its limits. Review
-success and failure cases. Let the agent maintain a useful plan and show actual checks.
-Request a pause when it helps; routine plan changes do not need another approval.
+**Use this in your own project.** Describe an observable improvement and its limits, review success and failure cases, and let the agent keep the plan current.

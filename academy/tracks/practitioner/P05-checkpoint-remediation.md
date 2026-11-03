@@ -108,9 +108,6 @@ Leave the completed attempt intact and return to clean main before P06.
 
 ## Understand the mechanism
 
-A checkpoint can surface many findings. Take one through a complete repair and
-keep adjacent cleanup separate. The receipt connects a diagnosis to its result;
-it does not replace tests.
+A checkpoint can surface many findings. Take one through a complete repair and keep adjacent cleanup separate. The receipt connects a diagnosis to its result and does not replace tests. [Test-First Evidence](https://codearbiter.dev/concepts/test-first/) and [Checkpoints](https://codearbiter.dev/concepts/checkpoints/) explain the evidence and the review.
 
-**Use this in your own project.** Ask for the impact and reproduction of a finding,
-repair the affected behavior, and report what remains open.
+**Use this in your own project.** Ask for a finding's impact and reproduction, repair the affected behavior, and report what remains open.

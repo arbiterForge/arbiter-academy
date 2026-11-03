@@ -129,11 +129,6 @@ only to preserve a failed attempt and prepare the next number.
 
 ## Understand the mechanism
 
-The report is deliberately small and learner-controlled; it records no username, URL, credential,
-email, local path, or terminal transcript. The verifier therefore checks two independent sources:
-the exact report committed on the numbered branch and the live Git configuration at Check time.
-Changing either after Doctor breaks the proof. Keeping preparation, the governed evidence commit,
-clean state, and external verification separate makes the result reconstructable instead of merely
-plausible.
+Check trusts two independent sources: the Doctor report committed on your numbered branch and your live Git configuration. Changing either after Doctor breaks the proof. The [Troubleshooting](https://codearbiter.dev/guides/troubleshooting/) guide explains how the host Doctor diagnoses an install.
 
-**Use this in your own project.** Before sharing work, name the remote and branch that will receive it. Recheck them after cloning, changing accounts, or adding a worktree. Host Doctor checks the plugin; Academy Doctor checks this exercise checkout. Neither replaces reviewing a real push target.
+**Use this in your own project.** Name the remote and branch that will receive your work. Recheck them after cloning, switching accounts, or adding a worktree. Host Doctor checks the plugin; Academy Doctor checks this exercise checkout.

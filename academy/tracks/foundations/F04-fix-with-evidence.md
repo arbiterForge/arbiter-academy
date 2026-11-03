@@ -110,9 +110,6 @@ After a passing Check, continue to P01.
 
 ## Understand the mechanism
 
-Running a regression before a fix shows it detects the defect. Running it afterward
-checks the repair. A green commit retains both the protection and implementation.
+Running a regression before a fix shows it detects the defect. Running it afterward checks the repair. A green commit retains both the protection and the implementation. [Investigate and Fix a Defect](https://codearbiter.dev/guides/investigate-and-fix/) and [Test-First Evidence](https://codearbiter.dev/concepts/test-first/) cover the full lane.
 
-**Use this in your own project.** Describe the input, actual result, and expected result
-in a fix request. Ask for a regression at the caller boundary. You need not pause
-after each step outside this exercise unless you want to inspect it.
+**Use this in your own project.** Describe the input, the actual result, and the expected result. Ask for a regression at the caller boundary.

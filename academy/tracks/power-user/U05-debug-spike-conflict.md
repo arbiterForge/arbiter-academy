@@ -95,9 +95,6 @@ resolution. A passing Check is not that decision.
 
 ## Understand the mechanism
 
-Investigation reduces uncertainty. A spike leaves an answer that guides later
-production work through its proper feature or fix workflow.
+Investigation reduces uncertainty. A spike leaves an answer that guides later production work through the proper feature or fix workflow. [Return to a Project](https://codearbiter.dev/guides/return-to-a-project/) and [Investigate and Fix a Defect](https://codearbiter.dev/guides/investigate-and-fix/) cover choosing the next lane.
 
-**Use this in your own project.** Give debug the observed behavior, expected behavior,
-and available evidence. Give a spike one question and a stopping condition. Take a
-confirmed bug's reproduction and regression idea into the fix lane.
+**Use this in your own project.** Give debug the observed behavior, expected behavior, and evidence. Give a spike one question and a stopping condition. Take a confirmed bug's reproduction into the fix lane.

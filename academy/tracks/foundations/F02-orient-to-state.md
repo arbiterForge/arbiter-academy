@@ -130,14 +130,6 @@ then F04. Use the next lesson linked from the course home.
 
 ## Understand the mechanism
 
-Status is advisory orientation generated for the current host. The repository files are durable
-state. The report connects those layers without copying a transcript: its canonical path tells the
-verifier what was read, its raw-byte digest identifies the exact version, and its integer stage
-records the active maturity boundary.
+Status is advisory; the repository files are the durable state. Your report binds them with the context path, a digest of the bytes you read, and the stage. Check confirms those bytes, one report-only commit, and a clean worktree. [Return to a Project](https://codearbiter.dev/guides/return-to-a-project/) shows how to orient.
 
-The verifier also protects the shape of the attempt. It compares the prepared context blob with the
-attempt head, requires one post-Prepare learner commit containing only the report, and requires a
-clean worktree. That makes the lesson reconstructable later: the claim, source bytes, commit
-boundary, and external verdict all agree.
-
-**Use this in your own project.** Ask the agent to explain the project goal, the files that govern your change, and the checks it will run. Follow its citations. If a claim contradicts source, request a scoped context check; do not quietly rewrite history or assume an old summary is current.
+**Use this in your own project.** Ask the agent to explain your goal, the governing files, and its checks. If a claim contradicts source, request a scoped context check.

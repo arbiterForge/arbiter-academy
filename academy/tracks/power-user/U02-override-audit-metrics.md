@@ -81,6 +81,6 @@ If Check reports a mismatch, correct only the observation note. Do not edit `.co
 
 ## Understand the mechanism
 
-The guide and action manifest are one contract. The renderer turns each action reference into the same website card, with the correct operating-system, harness, and copy control. Check is the deterministic authority for the local artifact boundary. It does not claim a command invocation, approval, or event chronology that repository state cannot establish.
+Check is the deterministic authority for the local artifact boundary. It claims no command invocation, approval, or event order that repository state cannot show. [Override a Gate Safely](https://codearbiter.dev/guides/overriding-a-gate/) and [Auditability](https://codearbiter.dev/concepts/auditability/) cover real overrides and the audit trail.
 
-**Use this in your own project.** When a guard blocks work, read the message and inspect the triggering action. Diagnose a possible false positive before retrying. An override is a separate, explicitly confirmed and logged exception; do not edit a protected log or manufacture evidence to make a gate pass.
+**Use this in your own project.** When a guard blocks work, read its message and inspect the triggering action. Diagnose a false positive before retrying. An override is a separate, confirmed, logged exception; never edit a protected log.

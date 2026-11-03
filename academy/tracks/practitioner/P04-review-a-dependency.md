@@ -108,6 +108,6 @@ After Check passes, leave the completed branch intact and return to `main` when 
 
 ## Understand the mechanism
 
-Dependency governance separates proposal, evidence, decision, and adoption. This lesson stops at a reviewed rejection because the bounded standard library parser meets the stated need with no new runtime closure. The stored report makes that tradeoff inspectable; it does not invent live facts, delegate the learner decision, or silently promote review evidence into installation authority.
+Dependency governance separates proposal, evidence, decision, and adoption. This lesson stops at a reviewed rejection because the standard library meets the need, and the stored report keeps that tradeoff inspectable. [Add a Dependency Safely](https://codearbiter.dev/guides/adding-a-dependency/) covers the full process.
 
-**Use this in your own project.** For a real proposed dependency, ask codeArbiter to vet the actual version, license, provenance, maintenance, and supply-chain risks before installation. Use current primary evidence. This exercise uses frozen offline artifacts and ends with rejection; it cannot establish the present safety of a package.
+**Use this in your own project.** Before installing, ask codeArbiter to vet the exact version, license, provenance, maintenance, and supply-chain risk. This exercise uses frozen offline artifacts, so it cannot show a package is safe today.

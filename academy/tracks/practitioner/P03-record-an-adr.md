@@ -85,6 +85,6 @@ Check reconstructs committed facts. It can reject mismatched or rewritten artifa
 
 ## Understand the mechanism
 
-An ADR makes a consequential choice durable: context explains why it matters, alternatives preserve the trade-off, the decision records the approved boundary, and consequences guide future maintainers. The append-only log makes that lifecycle discoverable; Check reconstructs the committed boundary from Git rather than trusting a transcript.
+An ADR makes a consequential choice durable: context, alternatives, the approved decision, and consequences. The append-only log makes it discoverable, and Check rebuilds the committed boundary from Git instead of trusting a transcript. [Record an Architecture Decision](https://codearbiter.dev/guides/recording-adrs/) and [ADRs and the Decision Log](https://codearbiter.dev/concepts/adrs/) explain the lifecycle.
 
-**Use this in your own project.** Use an ADR for a consequential architecture choice, not every reversible implementation detail. State the choice, alternatives, and consequences. Let the ADR workflow assign its number and preserve attribution; never have an agent invent your acceptance.
+**Use this in your own project.** Keep ADRs for consequential choices. Let the workflow assign the number and preserve your attribution; never let an agent invent your acceptance.
