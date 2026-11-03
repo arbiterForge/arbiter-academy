@@ -7,6 +7,69 @@
       "changelog": "Make Academy Preview release checks reusable across versions.",
       "reason": "The published squash commit stored escaped newlines before its CHANGELOG footer.",
       "authorization": "Campaign owner approved evidence-backed correction on 2026-09-14."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "6db085fac046af268d80038e171c95c44a580645",
+      "changelog": "Bind Preview 0.33 to the codeArbiter 3.8.3, ca-codex 0.26.3 and ca-pi 0.27.3 release cohort.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "6145c8063ebe8642143a9d125ecf7f488c3229f1",
+      "changelog": "Stop teaching the retired preview, question and metrics commands in U06, P04 and U02.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "0f750da234582b47124e39fcfd8a454d7f84993e",
+      "changelog": "Rebind the lesson source map to codeArbiter 27e6cb12 and drop the deleted sources.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "9cb4c81c2b6d33367d197b52a772bfcbb53931e7",
+      "changelog": "Accept the fix lane's queued work item in the F04 and P05 repair commits.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "5612fb1c982122c6926f64428cc2383a200e3122",
+      "changelog": "Accept the sprint's work item in U01 when it names the committed specification and plan.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "d3592426d4b5bebb66e1c72c8f2f41ec2725dd2b",
+      "changelog": "Keep the P01 task-board check as it was in Preview 0.32.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "7a2d02eff521cf07adf7cb8cc4d5c7229b6663c1",
+      "changelog": "Accept only lane work items the commit gate keeps, and ask the P01 feature lane not to record a separate item.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "8934c68f81ade41012699e067e4f91807ad0e929",
+      "changelog": "Flag F04, P05, P01, U01 and U04 for review when the task board library or the Markdown references change.",
+      "reason": "Published on main without a CHANGELOG footer; published history cannot be amended.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
+    },
+    {
+      "target": "academy-preview",
+      "commit_sha": "292ec7c38013eeb570968f7f17738cf9196b2ebd",
+      "changelog": "Use codeArbiter in current Academy copy and require future Previews to retain it.",
+      "reason": "The published squash commit's CHANGELOG footer is followed by a Co-authored-by trailer, so it is not terminal.",
+      "authorization": "User approved the drafted Preview 0.33 reconciliations on 2026-11-03 (\"Yes build the publisher\")."
     }
   ]
 }
