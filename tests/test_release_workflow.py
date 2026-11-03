@@ -168,6 +168,15 @@ def contract_problems(text: str) -> list[str]:
     )
     if monotonic_check not in bind:
         problems.append("fresh and resumed releases must both advance the immutable predecessor")
+    resume_checks = {
+        'if [[ "$peeled" != "$candidate" ]]; then': "resume must keep the tag on the same candidate",
+        'if [[ "$view_status" -eq 0 ]]; then': "resume must refuse an existing release",
+        'grep -q "release not found" "$RUNNER_TEMP/release-view.err"':
+            "resume must distinguish a missing release from another API failure",
+    }
+    for check, problem in resume_checks.items():
+        if check not in bind:
+            problems.append(problem)
 
     publish_steps = _steps(publish)
     asset_step = publish_steps.get("Check the assets against the committed installers", "")
@@ -194,10 +203,20 @@ def contract_problems(text: str) -> list[str]:
     if "--verify-tag" not in release_step or '--notes-file "$RUNNER_TEMP/release-section.md"' not in release_step:
         problems.append("the release must use the pushed tag and the committed changelog section")
     readback = publish_steps.get("Read the release back", "")
-    for check in ('if release.get("draft") is not False:', 'if release.get("immutable") is not True:',
+    for check in ('if release.get("tag_name") != os.environ["RELEASE_TAG"]:',
+                  'if release.get("draft") is not False:', 'if release.get("immutable") is not True:',
                   "if published != expected:"):
         if check not in readback:
             problems.append(f"read-back is missing: {check}")
+    remote_checks = {
+        'test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" \'$2 == ref { print $1 }\')" = "$TAG_OBJECT_SHA"':
+            "remote tag object must match the composed tag",
+        'test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG^{}" \'$2 == ref { print $1 }\')" = "$CANDIDATE_SHA"':
+            "remote peeled tag must match the release candidate",
+    }
+    for check, problem in remote_checks.items():
+        if check not in readback:
+            problems.append(problem)
     for token in FORBIDDEN:
         if token in text:
             problems.append(f"a published tag or release must never be rewritten: {token}")
@@ -249,6 +268,12 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
                 'if [[ "$mode" = fresh && "$last_tag" != "<none>" ]]; then\n'
                 '            helper version-greater "$VERSION" "${last_tag#"$prefix"}" "$policy" "$initial"',
             ),
+            "resume accepts another candidate": ('if [[ "$peeled" != "$candidate" ]]; then', "if false; then"),
+            "resume accepts existing release": ('if [[ "$view_status" -eq 0 ]]; then', "if false; then"),
+            "resume accepts another API failure": (
+                'grep -q "release not found" "$RUNNER_TEMP/release-view.err"',
+                'test "$view_status" -ne 0',
+            ),
             "malformed publish version": ('[[ "$VERSION" =~ ^[0-9]+\\.[0-9]+$ ]]', "true"),
             "different publish tag": ('test "$RELEASE_TAG" = "$prefix$VERSION"', "true"),
             "external helper beside write token": (
@@ -274,7 +299,21 @@ class ReleaseWorkflowContractTests(unittest.TestCase):
             "forced tag push": ("push origin \"refs/tags", "push --force origin \"refs/tags"),
             "unverified tag": (" --latest --verify-tag", " --latest"),
             "mutable release accepted": ('if release.get("immutable") is not True:', "if False:"),
+            "wrong release tag accepted": (
+                'if release.get("tag_name") != os.environ["RELEASE_TAG"]:',
+                "if False:",
+            ),
             "unchecked asset digests": ("if published != expected:", "if False:"),
+            "remote tag object not bound": (
+                'test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" \'$2 == ref { print $1 }\')" = "$TAG_OBJECT_SHA"',
+                "true",
+            ),
+            "remote peeled tag not bound": (
+                'test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" \'$2 == ref { print $1 }\')" = "$TAG_OBJECT_SHA"\n'
+                '          test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG^{}" \'$2 == ref { print $1 }\')" = "$CANDIDATE_SHA"',
+                'test "$(printf \'%s\\n\' "$remote_rows" | awk -v ref="refs/tags/$RELEASE_TAG" \'$2 == ref { print $1 }\')" = "$TAG_OBJECT_SHA"\n'
+                "          true",
+            ),
             "release deletion": ("gh release create", "gh release delete \"$RELEASE_TAG\" --yes\n          gh release create"),
         }
         for name, (old, new) in mutants.items():
